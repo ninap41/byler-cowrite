@@ -1,0 +1,508 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Byler Cowrite</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400&family=Inconsolata:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg:#0d0b14; --panel:#161222; --panel-2:#1e1930; --ink:#ece7f5;
+        --muted:#9a90b4; --accent:#e63946; --accent-2:#6c8cff; --good:#3ddc84;
+        --glow:rgba(230,57,70,.35); --line:#2a2440;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin:0; min-height:100vh;
+        background: radial-gradient(900px 500px at 50% -10%, #241a33 0%, transparent 60%), var(--bg);
+        color:var(--ink); font-family:"Inconsolata",ui-monospace,monospace;
+        display:flex; justify-content:center; padding:24px;
+      }
+      .wrap { width:100%; max-width:1160px; }
+      .layout { display:flex; gap:0; align-items:flex-start; }
+      .side { flex:0 0 22%; position:sticky; top:24px; min-width:180px; }
+      .side:has(#chatCard.hidden) { display:none; }
+      .side:has(#chatCard.hidden) + .resizer { display:none; }
+      .resizer { flex:0 0 10px; align-self:stretch; margin:0 6px; cursor:col-resize;
+        border-radius:4px; background:var(--line); transition:background .15s; }
+      .resizer:hover, .resizer.dragging { background:var(--accent-2); }
+      .main { flex:1 1 auto; min-width:0; }
+      @media (max-width:760px) {
+        .layout { flex-direction:column; }
+        .side { position:static; flex-basis:auto !important; width:100%; order:2; }
+        .main { order:1; width:100%; }
+        .resizer { display:none !important; }
+        .chat-log { height:200px !important; }
+      }
+      h1 { font-family:"Fraunces",serif; font-weight:600; font-size:clamp(1.9rem,6vw,2.9rem);
+        margin:0 0 4px; color:var(--accent); text-shadow:0 0 24px var(--glow); }
+      .tag { color:var(--muted); margin:0 0 24px; font-size:.95rem; }
+      .card { background:var(--panel); border:1px solid var(--line); border-radius:16px;
+        padding:24px; box-shadow:0 20px 60px rgba(0,0,0,.45); margin-bottom:16px; }
+      label { display:block; font-size:.78rem; color:var(--muted); margin:14px 0 6px; text-transform:uppercase; letter-spacing:1px; }
+      input { width:100%; padding:12px 14px; background:var(--panel-2); border:1px solid var(--line);
+        border-radius:10px; color:var(--ink); font-family:inherit; font-size:1rem; }
+      input:focus { outline:none; border-color:var(--accent-2); }
+      input.code { text-transform:uppercase; letter-spacing:6px; font-weight:700; text-align:center; font-size:1.4rem; }
+      .row { display:flex; gap:10px; flex-wrap:wrap; margin-top:18px; }
+      button { flex:1; min-width:110px; padding:13px 16px; border:none; border-radius:10px;
+        font-family:inherit; font-size:.98rem; font-weight:600; cursor:pointer; transition:transform .08s,filter .15s; }
+      button:active { transform:translateY(1px); }
+      button:disabled { opacity:.45; cursor:not-allowed; }
+      .primary { background:linear-gradient(135deg,var(--accent),#b21e2b); color:#fff; box-shadow:0 0 18px var(--glow); }
+      .ghost { background:var(--panel-2); color:var(--ink); border:1px solid var(--line); }
+      .divider { text-align:center; color:var(--muted); margin:20px 0; font-size:.8rem; letter-spacing:2px; }
+      .hidden { display:none; }
+      .err { color:var(--accent); font-size:.85rem; min-height:1.2em; margin-top:10px; }
+      .codechip { font-family:"Fraunces",serif; font-size:2.4rem; letter-spacing:10px; color:var(--accent-2); text-align:center; margin:4px 0; }
+      .subtle { color:var(--muted); font-size:.85rem; text-align:center; }
+      .swatches { display:flex; gap:10px; flex-wrap:wrap; margin-top:6px; }
+      .swatch { width:32px; height:32px; border-radius:50%; cursor:pointer; border:3px solid transparent; transition:transform .1s; }
+      .swatch:hover { transform:scale(1.1); }
+      .swatch.sel { border-color:var(--ink); box-shadow:0 0 10px rgba(255,255,255,.3); }
+      ul.roster { list-style:none; padding:0; margin:16px 0 0; }
+      ul.roster li { display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid var(--line);
+        border-radius:10px; margin-bottom:8px; background:var(--panel-2); }
+      .dot { width:9px; height:9px; border-radius:50%; }
+      .rname { font-weight:700; }
+      .badge { margin-left:auto; font-size:.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:1px; }
+      .prompt-banner { padding:18px 20px; background:var(--panel-2); border:1px solid var(--line);
+        border-left:3px solid var(--accent); border-radius:12px; font-family:"Fraunces",serif; font-size:1.1rem; line-height:1.5; }
+      .option { position:relative; text-align:left; background:var(--panel-2); border:2px solid var(--line); color:var(--ink);
+        font-family:"Fraunces",serif; font-size:1.02rem; line-height:1.45; padding:16px 60px 16px 16px; border-radius:12px;
+        cursor:pointer; width:100%; margin-bottom:10px; flex:none; }
+      .option:hover { border-color:var(--accent-2); }
+      .option.mine { border-color:var(--good); }
+      .votecount { position:absolute; right:14px; top:50%; transform:translateY(-50%);
+        background:var(--panel); border:1px solid var(--line); border-radius:20px; padding:4px 10px;
+        font-family:"Inconsolata",monospace; font-size:.85rem; color:var(--accent-2); font-weight:700; }
+      .story { margin-top:18px; padding:20px; background:#120f1c; border:1px solid var(--line); border-radius:12px;
+        font-family:"Fraunces",serif; font-size:1.12rem; line-height:1.75; max-height:40vh; overflow-y:auto; }
+      .story p { margin:0 0 .7em; } .story p:last-child { margin-bottom:0; }
+      .story .who { font-family:"Inconsolata",monospace; font-size:.7rem; text-transform:uppercase; letter-spacing:1px; margin-right:6px; font-weight:700; }
+      .story .empty { color:var(--muted); font-style:italic; }
+      .story .fresh { animation:fade .6s ease; }
+      @keyframes fade { from{opacity:0;transform:translateY(4px);} to{opacity:1;} }
+      .live { margin-top:12px; padding:14px 16px; background:var(--panel-2); border:1px dashed var(--accent-2);
+        border-radius:12px; font-family:"Fraunces",serif; font-size:1.08rem; line-height:1.65; opacity:.92; }
+      .live .who { font-family:"Inconsolata",monospace; font-size:.7rem; text-transform:uppercase; letter-spacing:1px; margin-right:6px; font-weight:700; }
+      .live .caret { display:inline-block; width:2px; height:1.05em; background:var(--accent-2); margin-left:2px; vertical-align:-2px; animation:blink 1s steps(1) infinite; }
+      @keyframes blink { 50%{opacity:0;} }
+      .turnbar { display:flex; align-items:center; gap:12px; margin-top:18px; }
+      .who-turn { font-weight:700; font-size:1.05rem; }
+      .timer { margin-left:auto; font-weight:700; font-size:1.3rem; font-variant-numeric:tabular-nums; min-width:3ch; text-align:right; }
+      .timer.low { color:var(--accent); animation:pulse .6s infinite alternate; }
+      .timer.paused { color:var(--accent-2); }
+      @keyframes pulse { to{opacity:.5;} }
+      /* WYSIWYG editor */
+      .toolbar { display:flex; gap:6px; margin-top:12px; }
+      .toolbar button { flex:0 0 auto; min-width:42px; padding:8px 12px; font-size:1rem; }
+      .toolbar .tb-b { font-weight:800; } .toolbar .tb-i { font-style:italic; } .toolbar .tb-u { text-decoration:underline; }
+      .editor { width:100%; min-height:90px; margin-top:8px; padding:16px; overflow-y:auto;
+        background:var(--panel-2); border:1px solid var(--accent-2); border-radius:12px; color:var(--ink);
+        font-family:"Fraunces",serif; font-size:1.12rem; line-height:1.7; outline:none; }
+      .editor:empty:before { content:attr(data-placeholder); color:var(--muted); }
+      .editor[aria-disabled="true"] { opacity:.5; pointer-events:none; }
+      .hint { color:var(--muted); font-size:.78rem; margin-top:6px; }
+      .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+      .progress { color:var(--muted); font-size:.8rem; text-align:center; margin-top:12px; }
+      .chat-log { height:56vh; overflow-y:auto; background:var(--panel-2); border:1px solid var(--line);
+        border-radius:10px; padding:12px; margin-bottom:10px; }
+      .chat-log .msg { margin:0 0 6px; font-size:.92rem; line-height:1.4; }
+      .chat-log .cn { font-weight:700; margin-right:6px; }
+      .chat-row { display:flex; gap:8px; }
+      .chat-row input { flex:1; }
+      .chat-row button { flex:0 0 auto; min-width:auto; padding:12px 18px; }
+      h3 { font-family:"Fraunces",serif; margin:0 0 12px; color:var(--muted); font-weight:600; font-size:1rem; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>Byler Cowrite</h1>
+      <p class="tag">A round-robin writing game. One story, one line at a time, one ticking clock.</p>
+
+      <div class="layout">
+      <aside class="side">
+        <!-- CHAT -->
+        <div id="chatCard" class="card hidden">
+          <h3>Chat</h3>
+          <div class="chat-log" id="chatLog"></div>
+          <div class="chat-row">
+            <input id="chatInput" placeholder="Say something…" maxlength="500" />
+            <button class="ghost" id="chatSend">Send</button>
+          </div>
+        </div>
+      </aside>
+
+      <div class="resizer" id="resizer"></div>
+
+      <div class="main">
+
+        <!-- LOBBY -->
+        <div id="lobby" class="card">
+          <label for="name">Your name</label>
+          <input id="name" placeholder="e.g. willthewise" maxlength="24" />
+          <label>Your color</label>
+          <div class="swatches" id="swatches"></div>
+          <div class="row"><button class="primary" id="createBtn">Start a game</button></div>
+          <div class="divider">— or join one —</div>
+          <label for="code">Game code</label>
+          <input id="code" class="code" placeholder="XXXX" maxlength="4" />
+          <div class="row"><button class="ghost" id="joinBtn">Join game</button></div>
+          <div class="err" id="lobbyErr"></div>
+        </div>
+
+        <!-- WAITING ROOM -->
+        <div id="waiting" class="card hidden">
+          <p class="subtle">Game code — share it with your writers</p>
+          <div class="codechip" id="codeDisplay">----</div>
+          <ul class="roster" id="rosterList"></ul>
+          <div id="hostControls" class="hidden">
+            <div class="grid2" style="margin-top:8px">
+              <div><label for="turnSecs">Seconds per turn</label><input id="turnSecs" type="number" min="10" max="600" value="60" /></div>
+              <div><label for="rounds">Rounds (0 = endless)</label><input id="rounds" type="number" min="0" max="50" value="3" /></div>
+            </div>
+            <div class="row"><button class="primary" id="startBtn">Begin →</button></div>
+          </div>
+          <p id="waitingNote" class="subtle" style="margin-top:16px">Waiting for the host to begin…</p>
+        </div>
+
+        <!-- CHOOSING (GROUP VOTE) -->
+        <div id="choosing" class="card hidden">
+          <h3>Vote for your scenario</h3>
+          <div id="optionsBox"></div>
+          <label for="customPrompt" style="margin-top:4px">Add your own scenario</label>
+          <div class="chat-row">
+            <input id="customPrompt" placeholder="Write a scenario for everyone to vote on…" maxlength="280" />
+            <button class="ghost" id="addPromptBtn" style="flex:0 0 auto;min-width:auto">Add</button>
+          </div>
+          <p class="subtle" id="voteProgress" style="margin-top:14px"></p>
+          <div class="row hidden" id="hostVoteBtns">
+            <button class="ghost" id="reshuffleBtn">🎲 New options</button>
+            <button class="ghost" id="finalizeBtn">Start with current votes →</button>
+          </div>
+        </div>
+
+        <!-- GAME (WRITING) -->
+        <div id="game" class="card hidden">
+          <div class="prompt-banner" id="gamePrompt"></div>
+          <div class="story" id="storyBox"></div>
+          <div class="live hidden" id="livePreview"></div>
+          <div class="turnbar">
+            <span class="who-turn" id="whoTurn">…</span>
+            <span class="timer" id="timer">--</span>
+          </div>
+          <div id="myTurn" class="hidden">
+            <div class="toolbar">
+              <button class="ghost tb-b" data-cmd="bold" title="Bold">B</button>
+              <button class="ghost tb-i" data-cmd="italic" title="Italic">I</button>
+              <button class="ghost tb-u" data-cmd="underline" title="Underline">U</button>
+            </div>
+            <div class="editor" id="writerEditor" contenteditable="true" data-placeholder="Add the next line…"></div>
+            <div class="hint">Format with the buttons · Enter for a line break · Ctrl/⌘+Enter or “Add line” to submit · auto-submits when the timer ends</div>
+            <div class="row"><button class="primary" id="submitBtn">Add line →</button></div>
+          </div>
+          <div class="progress" id="progress"></div>
+          <div id="hostGame" class="row hidden">
+            <button class="ghost" id="pauseBtn">⏸ Pause</button>
+            <button class="ghost" id="endBtn">End game &amp; reveal</button>
+          </div>
+        </div>
+
+        <!-- GAME OVER -->
+        <div id="over" class="card hidden">
+          <h3 style="color:var(--accent-2)">The finished story</h3>
+          <div class="prompt-banner" id="overPrompt"></div>
+          <div class="story" id="overStory" style="max-height:48vh"></div>
+          <div class="row">
+            <button class="ghost" id="copyBtn">Copy (formatted)</button>
+            <button class="ghost" id="downloadBtn">Download .html</button>
+            <button class="primary" id="againBtn">New game</button>
+          </div>
+        </div>
+
+      </div><!-- /main -->
+      </div><!-- /layout -->
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      const socket = io();
+      const PALETTE = ["#e63946","#6c8cff","#3ddc84","#f4a261","#e879c9","#38bdf8","#facc15","#c084fc"];
+      let myId=null, hostId=null, tickInterval=null, myColor=PALETTE[0], myVote=null, lastOptsKey="";
+      const $ = (id)=>document.getElementById(id);
+      const show=(id)=>$(id).classList.remove("hidden");
+      const hide=(id)=>$(id).classList.add("hidden");
+      const esc=(s)=>String(s).replace(/[&<>"']/g,(c)=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+      const safeColor=(c)=>PALETTE.includes(c)?c:PALETTE[0];
+      const onlyShow=(id)=>["lobby","waiting","choosing","game","over"].forEach((x)=>x===id?show(x):hide(x));
+
+      // ---- Resizable chat column ----
+      (function(){
+        const resizer=$("resizer"), side=document.querySelector(".side"), layout=document.querySelector(".layout");
+        let dragging=false, startX=0, startW=0;
+        const saved=parseInt(localStorage.getItem("chatW")||"",10);
+        if(saved) side.style.flex="0 0 "+saved+"px";
+        resizer.addEventListener("pointerdown",(e)=>{
+          dragging=true; startX=e.clientX; startW=side.getBoundingClientRect().width;
+          resizer.classList.add("dragging"); resizer.setPointerCapture(e.pointerId);
+        });
+        resizer.addEventListener("pointermove",(e)=>{
+          if(!dragging) return;
+          const max=layout.clientWidth*0.6;
+          const w=Math.max(180, Math.min(max, startW + (e.clientX-startX)));
+          side.style.flex="0 0 "+w+"px";
+        });
+        const stop=(e)=>{ if(!dragging) return; dragging=false; resizer.classList.remove("dragging");
+          localStorage.setItem("chatW", Math.round(side.getBoundingClientRect().width)); };
+        resizer.addEventListener("pointerup",stop);
+        resizer.addEventListener("pointercancel",stop);
+      })();
+
+      // ---- Color picker ----
+      const sw=$("swatches");
+      PALETTE.forEach((c,i)=>{
+        const d=document.createElement("div");
+        d.className="swatch"+(i===0?" sel":""); d.style.background=c; d.dataset.color=c;
+        d.onclick=()=>{ myColor=c; document.querySelectorAll(".swatch").forEach((x)=>x.classList.toggle("sel",x.dataset.color===c)); };
+        sw.appendChild(d);
+      });
+
+      // ---- Lobby ----
+      $("createBtn").onclick=()=>socket.emit("create-session",{name:$("name").value.trim(),color:myColor},(res)=>{
+        if(!res?.ok) return $("lobbyErr").textContent=res?.error||"Error";
+        enterSession(res);
+      });
+      $("joinBtn").onclick=()=>{
+        const code=$("code").value.trim().toUpperCase();
+        if(code.length!==4) return $("lobbyErr").textContent="Enter a 4-letter code.";
+        socket.emit("join-session",{name:$("name").value.trim(),color:myColor,code},(res)=>{
+          if(!res?.ok) return $("lobbyErr").textContent=res?.error||"Error";
+          enterSession(res);
+        });
+      };
+      function enterSession(res){
+        myId=socket.id; hostId=res.hostId;
+        $("codeDisplay").textContent=res.code;
+        onlyShow("waiting"); show("chatCard"); updateHostView();
+      }
+      function updateHostView(){
+        const host=myId===hostId;
+        $("hostControls").classList.toggle("hidden",!host);
+        $("waitingNote").classList.toggle("hidden",host);
+      }
+
+      // ---- Waiting room ----
+      $("startBtn").onclick=()=>socket.emit("start-game",
+        {turnSeconds:$("turnSecs").value, rounds:$("rounds").value},
+        (res)=>{ if(!res?.ok) alert(res?.error||"Could not start."); });
+
+      socket.on("roster",({writers})=>{
+        const list=$("rosterList"); list.innerHTML="";
+        for(const w of writers){
+          const li=document.createElement("li"); const col=safeColor(w.color);
+          li.innerHTML=`<span class="dot" style="background:${col};box-shadow:0 0 8px ${col}"></span>`+
+            `<span class="rname" style="color:${col}">${esc(w.name)}</span>`+
+            `${w.isHost?'<span class="badge">host</span>':""}`;
+          list.appendChild(li);
+        }
+        hostId=writers.find((w)=>w.isHost)?.id ?? hostId;
+        updateHostView();
+      });
+
+      // ---- Phase router ----
+      let lastStoryLen=0;
+      socket.on("game-state",(st)=>{
+        hostId=st.hostId ?? hostId;
+        if(st.phase==="choosing") renderChoosing(st);
+        else if(st.phase==="writing") renderWriting(st);
+      });
+
+      // ---- Choosing (vote) ----
+      function renderChoosing(st){
+        onlyShow("choosing");
+        const key=st.options.join("||");
+        if(key!==lastOptsKey){ lastOptsKey=key; myVote=null; }
+        const box=$("optionsBox"); box.innerHTML="";
+        st.options.forEach((p,i)=>{
+          const b=document.createElement("button");
+          b.className="option"+(myVote===p?" mine":"");
+          b.innerHTML=`${esc(p)}<span class="votecount">${st.tally?.[i]||0} ▲</span>`;
+          b.onclick=()=>{ myVote=p; socket.emit("vote",{prompt:p}); };
+          box.appendChild(b);
+        });
+        $("voteProgress").textContent=`${st.voted} of ${st.total} voted — most votes wins`;
+        $("hostVoteBtns").classList.toggle("hidden", myId!==hostId);
+      }
+      $("reshuffleBtn").onclick=()=>{ myVote=null; socket.emit("shuffle-options"); };
+      $("finalizeBtn").onclick=()=>socket.emit("finalize-vote");
+      function addPrompt(){
+        const v=$("customPrompt").value.trim(); if(!v) return;
+        socket.emit("add-prompt",{prompt:v},(res)=>{
+          if(res?.ok) $("customPrompt").value="";
+          else if(res?.error) { $("customPrompt").value=""; $("voteProgress").textContent=res.error; }
+        });
+      }
+      $("addPromptBtn").onclick=addPrompt;
+      $("customPrompt").addEventListener("keydown",(e)=>{ if(e.key==="Enter"){ e.preventDefault(); addPrompt(); } });
+
+      // ---- Writing ----
+      let curColor=PALETTE[1], curName="";
+      function renderWriting(st){
+        onlyShow("game");
+        $("gamePrompt").textContent=st.prompt;
+        renderStory($("storyBox"),st.story,true);
+        curColor=safeColor(st.currentColor); curName=st.currentName||"";
+        $("livePreview").classList.add("hidden"); $("livePreview").innerHTML=""; // clear on new turn
+        const myTurn=st.currentId===myId, host=myId===hostId;
+        $("whoTurn").textContent=myTurn?"Your turn — write!":`Waiting for ${st.currentName||"…"}`;
+        $("whoTurn").style.color=myTurn?"var(--good)":"var(--ink)";
+        $("myTurn").classList.toggle("hidden",!myTurn);
+        $("hostGame").classList.toggle("hidden",!host);
+        $("pauseBtn").textContent = st.paused ? "▶ Resume" : "⏸ Pause";
+        $("progress").textContent =
+          (st.maxTurns?`Turn ${st.turnCount+1} of ${st.maxTurns}`:`Turn ${st.turnCount+1} · endless`)
+          + (st.paused?" · ⏸ paused by host":"");
+        $("writerEditor").setAttribute("aria-disabled", st.paused ? "true" : "false");
+        if(myTurn && !st.paused){ const e=$("writerEditor"); e.innerHTML=""; e.focus(); }
+        startTimer(st, myTurn);
+      }
+      function renderStory(box,story,animateNew){
+        if(!story.length){ box.innerHTML='<p class="empty">The page is blank. The first line is coming…</p>'; lastStoryLen=0; return; }
+        box.innerHTML=story.map((l,i)=>{
+          const col=safeColor(l.color);
+          // l.html is already sanitized server-side — safe to inject.
+          return `<p class="${animateNew&&i>=lastStoryLen?"fresh":""}"><span class="who" style="color:${col}">${esc(l.name)}</span>${l.html||""}</p>`;
+        }).join("");
+        lastStoryLen=story.length; box.scrollTop=box.scrollHeight;
+      }
+      function startTimer(st, myTurn){
+        clearInterval(tickInterval);
+        const t=$("timer");
+        if(st.paused){
+          t.classList.remove("low"); t.classList.add("paused");
+          t.textContent="⏸ "+Math.ceil((st.remaining||0)/1000)+"s";
+          return; // frozen: no countdown, no auto-submit
+        }
+        t.classList.remove("paused");
+        const tick=()=>{
+          const left=Math.max(0,Math.ceil((st.deadline-Date.now())/1000));
+          t.textContent=left+"s"; t.classList.toggle("low",left<=10);
+          if(left<=0){ clearInterval(tickInterval); if(myTurn) submitLine(); }
+        };
+        tick(); tickInterval=setInterval(tick,250);
+      }
+
+      // Convert the contenteditable into a safe minimal HTML subset.
+      function cleanHtml(el){
+        const map={B:"b",STRONG:"b",I:"i",EM:"i",U:"u"};
+        const walk=(node)=>{
+          let out="";
+          node.childNodes.forEach((n)=>{
+            if(n.nodeType===3){ out+=esc(n.nodeValue); }
+            else if(n.nodeType===1){
+              const tag=n.nodeName;
+              if(tag==="BR") out+="<br>";
+              else if(map[tag]) out+=`<${map[tag]}>`+walk(n)+`</${map[tag]}>`;
+              else if(tag==="DIV"||tag==="P"){ if(out && !out.endsWith("<br>")) out+="<br>"; out+=walk(n); }
+              else out+=walk(n);
+            }
+          });
+          return out;
+        };
+        return walk(el);
+      }
+      function submitLine(){
+        const html=cleanHtml($("writerEditor"));
+        $("submitBtn").disabled=true;
+        socket.emit("submit-line",{text:html},()=>{ $("submitBtn").disabled=false; });
+      }
+      $("submitBtn").onclick=submitLine;
+      document.querySelectorAll(".toolbar button").forEach((b)=>{
+        b.addEventListener("mousedown",(e)=>{ e.preventDefault(); document.execCommand(b.dataset.cmd,false,null); $("writerEditor").focus(); });
+      });
+      $("writerEditor").addEventListener("keydown",(e)=>{
+        if(e.key==="Enter" && (e.metaKey||e.ctrlKey)){ e.preventDefault(); submitLine(); }
+      });
+      // Broadcast what I'm typing so others watch live (debounced).
+      let typingTimer=null;
+      $("writerEditor").addEventListener("input",()=>{
+        clearTimeout(typingTimer);
+        typingTimer=setTimeout(()=>socket.emit("typing",{text:cleanHtml($("writerEditor"))}),140);
+      });
+      // Render another writer's live, in-progress line.
+      socket.on("live-typing",({html})=>{
+        const box=$("livePreview");
+        if(!html || !html.replace(/<[^>]+>/g,"").trim()){ box.classList.add("hidden"); box.innerHTML=""; return; }
+        box.innerHTML=`<span class="who" style="color:${curColor}">${esc(curName)}</span>${html}<span class="caret"></span>`;
+        box.classList.remove("hidden");
+      });
+      $("pauseBtn").onclick=()=>socket.emit($("pauseBtn").textContent.includes("Resume")?"resume-game":"pause-game");
+      $("endBtn").onclick=()=>socket.emit("end-game");
+
+      // ---- Game over ----
+      socket.on("game-over",({prompt,story})=>{
+        clearInterval(tickInterval);
+        onlyShow("over");
+        $("overPrompt").textContent=prompt;
+        renderStory($("overStory"),story,false);
+        buildExports(prompt,story);
+      });
+      // Build both a formatted-HTML and a plain-text version of the story —
+      // prose only, with formatting preserved and NO usernames.
+      function buildExports(prompt,story){
+        const body=story.map((l)=>`<p>${l.html||""}</p>`).join("\n");
+        window._html=`<h3><em>${esc(prompt)}</em></h3>\n${body}`;
+        const tmp=document.createElement("div");
+        window._plain=`${prompt}\n\n`+story.map((l)=>{
+          tmp.innerHTML=(l.html||"").replace(/<br\s*\/?>/g,"\n");
+          return tmp.textContent;
+        }).join("\n\n");
+      }
+      // Copy as rich text so pasting into Docs/Word/AO3 keeps bold/italic/underline.
+      $("copyBtn").onclick=async ()=>{
+        const btn=$("copyBtn");
+        try{
+          await navigator.clipboard.write([new ClipboardItem({
+            "text/html": new Blob([window._html||""],{type:"text/html"}),
+            "text/plain": new Blob([window._plain||""],{type:"text/plain"}),
+          })]);
+          btn.textContent="Copied — paste into Docs/Word";
+        }catch(e){
+          try{ await navigator.clipboard.writeText(window._plain||""); btn.textContent="Copied (plain text)"; }
+          catch(_){ btn.textContent="Copy failed"; }
+        }
+      };
+      // Download a self-contained, styled HTML file.
+      $("downloadBtn").onclick=()=>{
+        const doc=`<!doctype html><html><head><meta charset="utf-8"><title>Byler Cowrite</title>`+
+          `<style>body{font-family:Georgia,'Times New Roman',serif;max-width:640px;margin:48px auto;`+
+          `padding:0 20px;line-height:1.75;font-size:18px;color:#1a1a1a}`+
+          `h3{font-style:italic;color:#666;font-weight:normal;margin-bottom:1.5em}p{margin:0 0 1em}</style>`+
+          `</head><body>${window._html||""}</body></html>`;
+        const blob=new Blob([doc],{type:"text/html"});
+        const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+        a.download="byler-cowrite.html"; a.click(); URL.revokeObjectURL(a.href);
+      };
+      $("againBtn").onclick=()=>location.reload();
+
+      // ---- Chat ----
+      function addChat(m){
+        const log=$("chatLog"); const col=safeColor(m.color);
+        const p=document.createElement("p");
+        p.className="msg"; p.innerHTML=`<span class="cn" style="color:${col}">${esc(m.name)}</span>${esc(m.text)}`;
+        log.appendChild(p); log.scrollTop=log.scrollHeight;
+      }
+      socket.on("chat-history",(msgs)=>{ $("chatLog").innerHTML=""; (msgs||[]).forEach(addChat); });
+      socket.on("chat",addChat);
+      function sendChat(){ const v=$("chatInput").value.trim(); if(!v) return; socket.emit("chat",{text:v}); $("chatInput").value=""; }
+      $("chatSend").onclick=sendChat;
+      $("chatInput").addEventListener("keydown",(e)=>{ if(e.key==="Enter"){ e.preventDefault(); sendChat(); } });
+    </script>
+  </body>
+</html>

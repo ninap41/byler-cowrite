@@ -1,0 +1,14 @@
+{
+  "name": "byler-cowrite",
+  "version": "1.0.0",
+  "description": "A real-time round-robin Byler fanfiction writing game",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "socket.io": "^4.8.1"
+  }
+}
