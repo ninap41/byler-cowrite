@@ -36,7 +36,8 @@ app.use(express.static(join(__dirname, "public")));
 
 const sessions = new Map(); // code -> session (in-memory; fine for a party game)
 
-const GRACE_MS = 3000; // AFK/disconnect fallback after a turn deadline
+// At the deadline the server advances immediately, using the writer's last
+// live-typing content (s.lastTyping) as their line so partial work is kept.
 const CHAT_LIMIT = 200;
 const MAX_OPTIONS = 8;
 
@@ -112,8 +113,13 @@ function startTurn(s) {
   s.remaining = 0;
   if (s.turnOrder.length === 0) return endGame(s);
   s.deadline = Date.now() + s.turnSeconds * 1000;
+  s.lastTyping = "";
   broadcastGame(s);
-  s.timer = setTimeout(() => advance(s, null, null), s.turnSeconds * 1000 + GRACE_MS);
+  s.timer = setTimeout(() => timeUp(s), s.turnSeconds * 1000);
+}
+
+function timeUp(s) {
+  advance(s, s.writers.get(currentId(s)), s.lastTyping);
 }
 
 function advance(s, writer, html) {
@@ -203,7 +209,7 @@ io.on("connection", (socket) => {
       writers: new Map([[socket.id, { name: name || "Host", color: cleanColor(color) }]]),
       turnOrder: [], currentIdx: 0, turnCount: 0, maxTurns: null,
       story: [], prompt: "", options: [], votes: new Map(),
-      turnSeconds: 60, deadline: 0, paused: false, remaining: 0, timer: null, chat: [],
+      turnSeconds: 60, deadline: 0, paused: false, remaining: 0, timer: null, chat: [], lastTyping: "",
     };
     sessions.set(code, s);
     joinedCode = code;
@@ -281,7 +287,8 @@ io.on("connection", (socket) => {
     const s = mySession();
     if (!s || s.phase !== "writing" || s.paused) return;
     if (currentId(s) !== socket.id) return;
-    socket.to(s.code).emit("live-typing", { html: sanitizeRich(text || "") });
+    s.lastTyping = sanitizeRich(text || "");
+    socket.to(s.code).emit("live-typing", { html: s.lastTyping });
   });
 
   socket.on("finalize-vote", (_, ack) => {
@@ -314,7 +321,7 @@ io.on("connection", (socket) => {
     if (!s || s.hostId !== socket.id || s.phase !== "writing" || !s.paused) return ack?.({ ok: false });
     s.paused = false;
     s.deadline = Date.now() + s.remaining;
-    s.timer = setTimeout(() => advance(s, null, null), s.remaining + GRACE_MS);
+    s.timer = setTimeout(() => timeUp(s), s.remaining);
     broadcastGame(s);
     ack?.({ ok: true });
   });
