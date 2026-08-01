@@ -1169,20 +1169,13 @@
 				padding: 12px 18px;
 			}
 			/* ---------- Account / auth ---------- */
-			.auth-tabs {
-				display: flex;
-				gap: 6px;
-				margin-bottom: 2px;
+			.linky {
+				color: var(--accent-2);
+				text-decoration: none;
+				border-bottom: 1px dotted var(--accent-2);
 			}
-			.auth-tabs button {
-				flex: 1;
-				min-width: 0;
-				padding: 9px 10px;
-				font-size: 0.85rem;
-			}
-			.auth-tabs button.sel {
-				border-color: var(--accent-2);
-				color: var(--ink);
+			.linky:hover {
+				border-bottom-style: solid;
 			}
 			.badge-chip {
 				font-family: var(--font-mono);
@@ -1324,21 +1317,28 @@
 			<p class="tag">A round-robin writing game. One story, one line at a time, one ticking clock.</p>
 
 			<div class="main">
-					<!-- LOBBY -->
+					<!-- LOBBY (step flow: choice -> login/signup/forgot pane OR play box) -->
 					<div id="lobby" class="card">
-						<!-- signed OUT: login / signup / forgot-password -->
-						<div id="authOut">
-							<div class="auth-tabs">
-								<button class="ghost sel" data-auth-tab="login">Log in</button>
-								<button class="ghost" data-auth-tab="signup">Sign up</button>
-								<button class="ghost" data-auth-tab="forgot">Forgot?</button>
+						<!-- step 1: pick a path -->
+						<div id="authChoice">
+							<div class="row" style="margin-top: 4px">
+								<button class="primary" id="chLogin">Log in</button>
+								<button class="primary" id="chSignup">Sign up</button>
 							</div>
-							<div data-auth-pane="login">
+							<p class="subtle" style="margin-top: 12px"><a href="#" class="linky" id="chForgot">Forgot your password?</a></p>
+							<div class="divider">— OR —</div>
+							<div class="row"><button class="ghost" id="chGuest">Play as guest →</button></div>
+						</div>
+
+						<!-- step 2 (signed out): one pane at a time -->
+						<div id="authPanes" class="hidden">
+							<div data-auth-pane="login" class="hidden">
 								<label for="liUser">Username or email</label>
 								<input id="liUser" autocomplete="username" />
 								<label for="liPass">Password</label>
 								<input id="liPass" type="password" autocomplete="current-password" />
 								<div class="row"><button class="primary" id="liBtn">Log in</button></div>
+								<p class="subtle" style="margin-top: 12px"><a href="#" class="linky" id="liForgot">Forgot your password?</a></p>
 							</div>
 							<div data-auth-pane="signup" class="hidden">
 								<label for="suEmail">Email</label>
@@ -1359,8 +1359,9 @@
 								</div>
 							</div>
 							<div class="err" id="authErr"></div>
-							<div class="divider">— OR PLAY AS GUEST —</div>
+							<p class="subtle" style="margin-top: 14px"><a href="#" class="linky" id="authBack">← Back</a></p>
 						</div>
+
 						<!-- signed IN: profile, badges, past games -->
 						<div id="authIn" class="hidden">
 							<div class="me-row">
@@ -1373,16 +1374,20 @@
 							<div class="divider">— PLAY —</div>
 						</div>
 
-						<label for="name">Your name</label>
-						<input id="name" placeholder="e.g. willthewise" maxlength="24" />
-						<label>Your color</label>
-						<div class="swatches" id="swatches"></div>
-						<div class="row"><button class="primary" id="createBtn">Start a game</button></div>
-						<div class="divider">— or join one —</div>
-						<label for="code">Game code</label>
-						<input id="code" class="code" placeholder="XXXX" maxlength="4" />
-						<div class="row"><button class="ghost" id="joinBtn">Join game</button></div>
-						<div class="err" id="lobbyErr"></div>
+						<!-- step 2 (guest) / signed-in: the actual play controls -->
+						<div id="playBox" class="hidden">
+							<label for="name">Your name</label>
+							<input id="name" placeholder="e.g. willthewise" maxlength="24" />
+							<label>Your color</label>
+							<div class="swatches" id="swatches"></div>
+							<div class="row"><button class="primary" id="createBtn">Start a game</button></div>
+							<div class="divider">— or join one —</div>
+							<label for="code">Game code</label>
+							<input id="code" class="code" placeholder="XXXX" maxlength="4" />
+							<div class="row"><button class="ghost" id="joinBtn">Join game</button></div>
+							<div class="err" id="lobbyErr"></div>
+							<p class="subtle" id="guestBackRow" style="margin-top: 14px"><a href="#" class="linky" id="guestBack">← Back</a></p>
+						</div>
 					</div>
 
 					<!-- WAITING ROOM -->
@@ -1570,10 +1575,51 @@
 				} catch (e) {}
 				renderAuth()
 			}
-			function renderAuth() {
-				$("authOut").classList.toggle("hidden", !!me)
-				$("authIn").classList.toggle("hidden", !me)
+			// Lobby step flow: choice screen -> a single auth pane OR the play box.
+			function showChoice() {
+				show("authChoice")
+				hide("authPanes")
+				hide("authIn")
+				hide("playBox")
 				$("authErr").textContent = ""
+			}
+			function showPane(name) {
+				hide("authChoice")
+				show("authPanes")
+				hide("authIn")
+				hide("playBox")
+				document
+					.querySelectorAll("[data-auth-pane]")
+					.forEach((p) => p.classList.toggle("hidden", p.dataset.authPane !== name))
+				$("authErr").textContent = ""
+			}
+			function showPlay() {
+				hide("authChoice")
+				hide("authPanes")
+				$("authIn").classList.toggle("hidden", !me)
+				show("playBox")
+				$("guestBackRow").classList.toggle("hidden", !!me) // signed-in users have no "back"
+			}
+			$("chLogin").onclick = () => showPane("login")
+			$("chSignup").onclick = () => showPane("signup")
+			$("chForgot").onclick = (e) => {
+				e.preventDefault()
+				showPane("forgot")
+			}
+			$("liForgot").onclick = (e) => {
+				e.preventDefault()
+				showPane("forgot")
+			}
+			$("chGuest").onclick = () => showPlay()
+			$("authBack").onclick = (e) => {
+				e.preventDefault()
+				showChoice()
+			}
+			$("guestBack").onclick = (e) => {
+				e.preventDefault()
+				showChoice()
+			}
+			function renderAuth() {
 				const nameInput = $("name"),
 					swatches = $("swatches")
 				if (me) {
@@ -1600,20 +1646,13 @@
 					myColor = safeColor(me.color)
 					document.querySelectorAll(".swatch").forEach((x) => x.classList.toggle("sel", x.dataset.color === myColor))
 					swatches.classList.add("locked")
+					showPlay()
 				} else {
 					nameInput.disabled = false
 					swatches.classList.remove("locked")
+					showChoice()
 				}
 			}
-			document.querySelectorAll("[data-auth-tab]").forEach((b) => {
-				b.onclick = () => {
-					document.querySelectorAll("[data-auth-tab]").forEach((x) => x.classList.toggle("sel", x === b))
-					document
-						.querySelectorAll("[data-auth-pane]")
-						.forEach((p) => p.classList.toggle("hidden", p.dataset.authPane !== b.dataset.authTab))
-					$("authErr").textContent = ""
-				}
-			})
 			$("liBtn").onclick = async () => {
 				try {
 					const d = await authApi("/api/login", { user: $("liUser").value.trim(), password: $("liPass").value })
