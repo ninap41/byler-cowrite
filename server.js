@@ -134,6 +134,17 @@ const GHOST_MS = 90_000;
 
 const connectedCount = (s) => [...s.writers.values()].filter((w) => w.connected).length;
 
+// System-style chat line ("Will started the game") — rendered muted/italic client-side.
+function announce(s, writer, text) {
+  const msg = {
+    name: writer?.name ?? "?", color: writer?.color ?? PALETTE[0],
+    text, sys: true, ts: Date.now(),
+  };
+  s.chat.push(msg);
+  if (s.chat.length > CHAT_LIMIT) s.chat.shift();
+  io.to(s.code).emit("chat", msg);
+}
+
 const newWriter = (name, color, fallbackName) => ({
   name: name || fallbackName, color: cleanColor(color),
   token: randomUUID(), connected: true, ghostTimer: null,
@@ -419,6 +430,7 @@ io.on("connection", (socket) => {
     s.maxTurns = r > 0 ? r * s.turnOrder.length : null;
     s.options = promptOptions();
     ack?.({ ok: true });
+    announce(s, s.writers.get(socket.id), "started the game");
     broadcastGame(s);
   });
 

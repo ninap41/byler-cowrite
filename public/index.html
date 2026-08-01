@@ -1152,6 +1152,10 @@
 				font-weight: 700;
 				margin-right: 6px;
 			}
+			.chat-log .msg.sys {
+				color: var(--muted);
+				font-style: italic;
+			}
 			.chat-row {
 				display: flex;
 				gap: 8px;
@@ -1800,7 +1804,7 @@
 				const log = $("chatLog")
 				const col = safeColor(m.color)
 				const p = document.createElement("p")
-				p.className = "msg"
+				p.className = m.sys ? "msg sys" : "msg"
 				p.innerHTML = `<span class="cn" style="color:${col}">${esc(m.name)}</span>${esc(m.text)}`
 				log.appendChild(p)
 				log.scrollTop = log.scrollHeight
