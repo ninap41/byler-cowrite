@@ -1,7 +1,8 @@
 import express from "express";
 import { createServer } from "http";
 import { Server } from "socket.io";
-import { readFileSync } from "fs";
+import { readFileSync, writeFileSync, mkdirSync } from "fs";
+import { randomUUID } from "crypto";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 
@@ -36,10 +37,88 @@ app.use(express.static(join(__dirname, "public")));
 
 const sessions = new Map(); // code -> session (in-memory; fine for a party game)
 
+// Paused/finished games are snapshotted to disk so they survive a server
+// restart and can be picked up later. Seats are identified by writer token.
+const SAVE_DIR = join(__dirname, "saves");
+mkdirSync(SAVE_DIR, { recursive: true });
+
+function saveSnapshot(s) {
+  try {
+    writeFileSync(join(SAVE_DIR, s.code + ".json"), JSON.stringify({
+      code: s.code, phase: s.phase, prompt: s.prompt, story: s.story, chat: s.chat,
+      turnSeconds: s.turnSeconds, maxTurns: s.maxTurns, turnCount: s.turnCount,
+      remaining: s.remaining, currentIdx: s.currentIdx,
+      writers: [...s.writers.values()].map((w) => ({ name: w.name, color: w.color, token: w.token })),
+      turnOrderTokens: s.turnOrder.map((id) => s.writers.get(id)?.token).filter(Boolean),
+      hostToken: s.writers.get(s.hostId)?.token ?? s.hostToken ?? null,
+      savedAt: Date.now(),
+    }));
+  } catch (e) {
+    console.error("saveSnapshot failed:", e.message);
+  }
+}
+
+// Rehydrate a saved game: every seat comes back as an unclaimed ghost keyed by
+// its token; players reclaim seats via the normal rejoin flow. A saved writing
+// game wakes up paused; the first reclaimer becomes host and can resume.
+function loadSession(code) {
+  let d;
+  try {
+    d = JSON.parse(readFileSync(join(SAVE_DIR, code + ".json"), "utf-8"));
+  } catch {
+    return null;
+  }
+  const writers = new Map(d.writers.map((w) => [
+    "ghost:" + w.token,
+    { name: w.name, color: cleanColor(w.color), token: w.token, connected: false, ghostTimer: null },
+  ]));
+  const s = {
+    code, hostId: null, hostToken: d.hostToken ?? null, phase: d.phase === "over" ? "over" : "writing",
+    writers, turnOrder: d.turnOrderTokens.map((t) => "ghost:" + t).filter((id) => writers.has(id)),
+    currentIdx: Math.min(d.currentIdx || 0, Math.max(0, d.turnOrderTokens.length - 1)),
+    turnCount: d.turnCount || 0, maxTurns: d.maxTurns ?? null,
+    story: d.story || [], prompt: d.prompt || "", options: [], votes: new Map(),
+    turnSeconds: d.turnSeconds || 60, deadline: 0,
+    paused: d.phase !== "over", remaining: d.remaining || (d.turnSeconds || 60) * 1000,
+    timer: null, chat: d.chat || [], lastTyping: "",
+  };
+  sessions.set(code, s);
+  return s;
+}
+
 // At the deadline the server advances immediately, using the writer's last
 // live-typing content (s.lastTyping) as their line so partial work is kept.
 const CHAT_LIMIT = 200;
 const MAX_OPTIONS = 8;
+// Disconnected writers linger as reclaimable "ghosts" this long. The client
+// holds {code, token} in localStorage and rejoins via `rejoin-session`.
+const GHOST_MS = 90_000;
+
+const connectedCount = (s) => [...s.writers.values()].filter((w) => w.connected).length;
+
+const newWriter = (name, color, fallbackName) => ({
+  name: name || fallbackName, color: cleanColor(color),
+  token: randomUUID(), connected: true, ghostTimer: null,
+});
+
+// Keep the seat but mark it reclaimable; drop it for real after GHOST_MS.
+function markDisconnected(s, id) {
+  const w = s.writers.get(id);
+  if (!w) return;
+  w.connected = false;
+  if (s.hostId === id) {
+    const next = [...s.writers.entries()].find(([, ww]) => ww.connected);
+    if (next) s.hostId = next[0];
+  }
+  clearTimeout(w.ghostTimer);
+  w.ghostTimer = setTimeout(() => {
+    if (s.writers.get(id) === w && !w.connected) removeWriter(s, id);
+  }, GHOST_MS);
+  if (s.phase === "choosing" && s.votes.size >= connectedCount(s) && connectedCount(s) > 0)
+    return finalizeVote(s);
+  if (s.phase === "waiting" || s.phase === "over") broadcastRoster(s);
+  else broadcastGame(s);
+}
 
 function makeCode() {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -69,7 +148,7 @@ const names = (s) =>
 
 function roster(s) {
   return [...s.writers.entries()].map(([id, w]) => ({
-    id, name: w.name, color: w.color, isHost: id === s.hostId,
+    id, name: w.name, color: w.color, isHost: id === s.hostId, connected: w.connected !== false,
   }));
 }
 const broadcastRoster = (s) => io.to(s.code).emit("roster", { writers: roster(s) });
@@ -90,7 +169,7 @@ function broadcastGame(s) {
     options: s.phase === "choosing" ? s.options : [],
     tally: s.phase === "choosing" ? tally(s) : [],
     voted: s.votes.size,
-    total: s.writers.size,
+    total: connectedCount(s),
     prompt: s.prompt,
     story: s.story,
     currentId: curId,
@@ -112,6 +191,20 @@ function startTurn(s) {
   s.paused = false;
   s.remaining = 0;
   if (s.turnOrder.length === 0) return endGame(s);
+  // Skip ghost seats; if nobody is connected, auto-pause (and snapshot) so the
+  // game waits instead of burning empty turns.
+  let hops = 0;
+  while (hops < s.turnOrder.length && !s.writers.get(currentId(s))?.connected) {
+    s.currentIdx = (s.currentIdx + 1) % s.turnOrder.length;
+    hops++;
+  }
+  if (!s.writers.get(currentId(s))?.connected) {
+    s.paused = true;
+    s.remaining = s.turnSeconds * 1000;
+    saveSnapshot(s);
+    broadcastGame(s);
+    return;
+  }
   s.deadline = Date.now() + s.turnSeconds * 1000;
   s.lastTyping = "";
   broadcastGame(s);
@@ -159,11 +252,13 @@ function endGame(s) {
   clearTimeout(s.timer);
   s.phase = "over";
   s.paused = false;
+  saveSnapshot(s);
   io.to(s.code).emit("game-over", { prompt: s.prompt, story: s.story });
 }
 
 function removeWriter(s, id) {
   const wasHost = s.hostId === id;
+  clearTimeout(s.writers.get(id)?.ghostTimer);
   s.writers.delete(id);
   s.votes.delete(id);
 
@@ -172,7 +267,10 @@ function removeWriter(s, id) {
     sessions.delete(s.code);
     return;
   }
-  if (wasHost) s.hostId = s.writers.keys().next().value;
+  if (wasHost) {
+    s.hostId = ([...s.writers.entries()].find(([, w]) => w.connected) ?? [...s.writers.entries()][0])[0];
+    s.hostToken = s.writers.get(s.hostId)?.token ?? null; // permanent transfer
+  }
 
   if (s.phase === "writing") {
     const pos = s.turnOrder.indexOf(id);
@@ -191,7 +289,7 @@ function removeWriter(s, id) {
       s.turnOrder.splice(pos, 1);
       if (pos < s.currentIdx) s.currentIdx--;
     }
-    if (s.votes.size >= s.writers.size && s.writers.size > 0) return finalizeVote(s);
+    if (s.votes.size >= connectedCount(s) && connectedCount(s) > 0) return finalizeVote(s);
     broadcastGame(s);
   } else {
     broadcastRoster(s);
@@ -204,9 +302,10 @@ io.on("connection", (socket) => {
 
   socket.on("create-session", ({ name, color }, ack) => {
     const code = makeCode();
+    const host = newWriter(name, color, "Host");
     const s = {
-      code, hostId: socket.id, phase: "waiting",
-      writers: new Map([[socket.id, { name: name || "Host", color: cleanColor(color) }]]),
+      code, hostId: socket.id, hostToken: host.token, phase: "waiting",
+      writers: new Map([[socket.id, host]]),
       turnOrder: [], currentIdx: 0, turnCount: 0, maxTurns: null,
       story: [], prompt: "", options: [], votes: new Map(),
       turnSeconds: 60, deadline: 0, paused: false, remaining: 0, timer: null, chat: [], lastTyping: "",
@@ -214,7 +313,7 @@ io.on("connection", (socket) => {
     sessions.set(code, s);
     joinedCode = code;
     socket.join(code);
-    ack?.({ ok: true, code, hostId: socket.id });
+    ack?.({ ok: true, code, hostId: socket.id, token: s.writers.get(socket.id).token });
     socket.emit("chat-history", s.chat);
     broadcastRoster(s);
   });
@@ -225,12 +324,46 @@ io.on("connection", (socket) => {
     if (!s) return ack?.({ ok: false, error: "Game not found." });
     if (s.phase !== "waiting")
       return ack?.({ ok: false, error: "This game has already started." });
-    s.writers.set(socket.id, { name: name || "Writer", color: cleanColor(color) });
+    s.writers.set(socket.id, newWriter(name, color, "Writer"));
     joinedCode = code;
     socket.join(code);
-    ack?.({ ok: true, code, hostId: s.hostId });
+    ack?.({ ok: true, code, hostId: s.hostId, token: s.writers.get(socket.id).token });
     socket.emit("chat-history", s.chat);
     broadcastRoster(s);
+  });
+
+  // Reclaim a seat (page refresh / transient reconnect) using the localStorage token.
+  // Swaps the new socket id into every place the old one appears.
+  socket.on("rejoin-session", ({ code, token }, ack) => {
+    code = (code || "").toUpperCase().trim();
+    const s = sessions.get(code) ?? loadSession(code);
+    if (!s || !token) return ack?.({ ok: false, error: "Game not found." });
+    const entry = [...s.writers.entries()].find(([, w]) => w.token === token);
+    if (!entry) return ack?.({ ok: false, error: "Seat expired." });
+    const [oldId, w] = entry;
+    if (oldId !== socket.id) {
+      io.sockets.sockets.get(oldId)?.disconnect(true); // stale duplicate tab
+      s.writers.delete(oldId);
+      s.writers.set(socket.id, w);
+      const pos = s.turnOrder.indexOf(oldId);
+      if (pos !== -1) s.turnOrder[pos] = socket.id;
+      if (s.votes.has(oldId)) { s.votes.set(socket.id, s.votes.get(oldId)); s.votes.delete(oldId); }
+      if (s.hostId === oldId) s.hostId = socket.id;
+    }
+    clearTimeout(w.ghostTimer);
+    w.connected = true;
+    // The original host reclaims the role on return; otherwise the first
+    // person back into a rehydrated game hosts until they do.
+    if (w.token === s.hostToken || !s.writers.has(s.hostId)) s.hostId = socket.id;
+    joinedCode = code;
+    socket.join(code);
+    ack?.({ ok: true, code, hostId: s.hostId, name: w.name, color: w.color, phase: s.phase, token: w.token });
+    socket.emit("chat-history", s.chat);
+    if (s.phase === "waiting") broadcastRoster(s);
+    else if (s.phase === "over") {
+      broadcastRoster(s); // everyone learns the (possibly restored) hostId
+      socket.emit("game-over", { prompt: s.prompt, story: s.story });
+    } else broadcastGame(s);
   });
 
   socket.on("start-game", ({ turnSeconds, rounds }, ack) => {
@@ -255,7 +388,7 @@ io.on("connection", (socket) => {
     const s = mySession();
     if (!s || s.phase !== "choosing" || !s.options.includes(prompt)) return ack?.({ ok: false });
     s.votes.set(socket.id, prompt);
-    if (s.votes.size >= s.writers.size) return finalizeVote(s);
+    if (s.votes.size >= connectedCount(s)) return finalizeVote(s);
     broadcastGame(s);
     ack?.({ ok: true });
   });
@@ -312,14 +445,56 @@ io.on("connection", (socket) => {
     s.paused = true;
     s.remaining = Math.max(0, s.deadline - Date.now());
     clearTimeout(s.timer);
+    saveSnapshot(s);
     broadcastGame(s);
     ack?.({ ok: true });
+  });
+
+  // Host can retune mid-game: a new turn length applies from the next turn
+  // (the running clock is untouched); added rounds extend maxTurns, and give
+  // an endless game a finish line turnCount + extra turns away.
+  socket.on("update-rules", ({ turnSeconds, addRounds }, ack) => {
+    const s = mySession();
+    if (!s || s.hostId !== socket.id || s.phase !== "writing") return ack?.({ ok: false });
+    if (turnSeconds != null && Number(turnSeconds) > 0)
+      s.turnSeconds = Math.min(600, Math.max(10, Number(turnSeconds)));
+    const r = Number(addRounds);
+    if (r > 0) {
+      const extra = r * Math.max(1, s.turnOrder.length);
+      s.maxTurns = s.maxTurns == null ? s.turnCount + extra : s.maxTurns + extra;
+    }
+    broadcastGame(s);
+    ack?.({ ok: true });
+  });
+
+  // After a reveal, the host can pick the story back up with fresh rules.
+  // Keeps prompt + story; the turn order rebuilds from connected writers.
+  socket.on("continue-writing", ({ turnSeconds, rounds }, ack) => {
+    const s = mySession();
+    if (!s || s.hostId !== socket.id || s.phase !== "over") return ack?.({ ok: false });
+    s.turnSeconds = Math.min(600, Math.max(10, Number(turnSeconds) || s.turnSeconds));
+    s.turnOrder = [...s.writers.entries()].filter(([, w]) => w.connected).map(([id]) => id);
+    if (s.turnOrder.length === 0) return ack?.({ ok: false });
+    const r = Number(rounds);
+    s.turnCount = 0;
+    s.maxTurns = r > 0 ? r * s.turnOrder.length : null;
+    s.currentIdx = 0;
+    s.votes.clear();
+    s.phase = "writing";
+    ack?.({ ok: true });
+    startTurn(s);
   });
 
   socket.on("resume-game", (_, ack) => {
     const s = mySession();
     if (!s || s.hostId !== socket.id || s.phase !== "writing" || !s.paused) return ack?.({ ok: false });
     s.paused = false;
+    // If the paused turn belongs to a ghost (e.g. a rehydrated save), hand out
+    // a fresh turn via startTurn(), which skips disconnected seats.
+    if (!s.writers.get(currentId(s))?.connected) {
+      ack?.({ ok: true });
+      return startTurn(s);
+    }
     s.deadline = Date.now() + s.remaining;
     s.timer = setTimeout(() => timeUp(s), s.remaining);
     broadcastGame(s);
@@ -351,7 +526,8 @@ io.on("connection", (socket) => {
 
   socket.on("disconnect", () => {
     const s = mySession();
-    if (s) removeWriter(s, socket.id);
+    // Guard: after a rejoin swap, this stale socket's id is no longer a writer.
+    if (s && s.writers.has(socket.id)) markDisconnected(s, socket.id);
   });
 });
 

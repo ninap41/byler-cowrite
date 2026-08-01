@@ -1127,6 +1127,19 @@
 							<button class="ghost" id="pauseBtn">⏸ Pause</button>
 							<button class="ghost" id="endBtn">End game &amp; reveal</button>
 						</div>
+						<div id="hostRules" class="grid2 hidden">
+							<div>
+								<label for="liveSecs">Seconds per turn (next turn)</label
+								><input id="liveSecs" type="number" min="10" max="600" />
+							</div>
+							<div>
+								<label for="addRoundsInput">Add rounds</label>
+								<div class="chat-row">
+									<input id="addRoundsInput" type="number" min="1" max="20" placeholder="0" />
+									<button class="ghost" id="applyRulesBtn">Apply</button>
+								</div>
+							</div>
+						</div>
 					</div>
 
 					<!-- GAME OVER -->
@@ -1134,6 +1147,19 @@
 						<h3 style="color: var(--accent-2)">The finished story</h3>
 						<div class="prompt-banner" id="overPrompt"></div>
 						<div class="story" id="overStory" style="max-height: 48vh"></div>
+						<div id="continueControls" class="hidden">
+							<div class="grid2">
+								<div>
+									<label for="contSecs">Seconds per turn</label
+									><input id="contSecs" type="number" min="10" max="600" value="60" />
+								</div>
+								<div>
+									<label for="contRounds">Rounds (0 = endless)</label><input id="contRounds" type="number" min="0" max="50" value="3" />
+								</div>
+							</div>
+							<div class="row"><button class="primary" id="continueBtn">Continue the story →</button></div>
+							<div class="divider">OR EXPORT IT</div>
+						</div>
 						<div class="row">
 							<button class="ghost" id="copyBtn">Copy (formatted)</button>
 							<button class="ghost" id="downloadBtn">Download .html</button>
@@ -1212,6 +1238,44 @@
 				sw.appendChild(d)
 			})
 
+			// ---- Rejoin (refresh / reconnect survival) ----
+			// The server hands out a per-seat token on create/join; we keep it in
+			// localStorage and reclaim the seat on every (re)connect.
+			let rejoinInfo = null
+			try {
+				rejoinInfo = JSON.parse(localStorage.getItem("cowriteRejoin") || "null")
+			} catch (e) {}
+			function saveRejoin(code, token) {
+				rejoinInfo = { code, token }
+				try {
+					localStorage.setItem("cowriteRejoin", JSON.stringify(rejoinInfo))
+				} catch (e) {}
+			}
+			function clearRejoin() {
+				rejoinInfo = null
+				try {
+					localStorage.removeItem("cowriteRejoin")
+				} catch (e) {}
+			}
+			socket.on("connect", () => {
+				if (!rejoinInfo || !rejoinInfo.code || !rejoinInfo.token) return
+				socket.emit("rejoin-session", rejoinInfo, (res) => {
+					if (!res?.ok) return clearRejoin() // dead game or expired seat: stay in lobby
+					myId = socket.id
+					hostId = res.hostId
+					if (res.color) {
+						myColor = res.color
+						document.querySelectorAll(".swatch").forEach((x) => x.classList.toggle("sel", x.dataset.color === myColor))
+					}
+					$("codeDisplay").textContent = res.code
+					show("chatCard")
+					// waiting is the only phase the server doesn't follow up with a
+					// game-state / game-over push, so restore that card here.
+					if (res.phase === "waiting") onlyShow("waiting")
+					updateHostView()
+				})
+			})
+
 			// ---- Lobby ----
 			$("createBtn").onclick = () =>
 				socket.emit("create-session", { name: $("name").value.trim(), color: myColor }, (res) => {
@@ -1229,6 +1293,7 @@
 			function enterSession(res) {
 				myId = socket.id
 				hostId = res.hostId
+				if (res.token) saveRejoin(res.code, res.token)
 				$("codeDisplay").textContent = res.code
 				onlyShow("waiting")
 				show("chatCard")
@@ -1238,6 +1303,7 @@
 				const host = myId === hostId
 				$("hostControls").classList.toggle("hidden", !host)
 				$("waitingNote").classList.toggle("hidden", host)
+				$("continueControls").classList.toggle("hidden", !host)
 			}
 
 			// ---- Waiting room ----
@@ -1252,10 +1318,11 @@
 				for (const w of writers) {
 					const li = document.createElement("li")
 					const col = safeColor(w.color)
+					if (w.connected === false) li.style.opacity = "0.45"
 					li.innerHTML =
 						`<span class="dot" style="background:${col};box-shadow:0 0 8px ${col}"></span>` +
 						`<span class="rname" style="color:${col}">${esc(w.name)}</span>` +
-						`${w.isHost ? '<span class="badge">host</span>' : ""}`
+						`${w.connected === false ? '<span class="badge">away</span>' : w.isHost ? '<span class="badge">host</span>' : ""}`
 					list.appendChild(li)
 				}
 				hostId = writers.find((w) => w.isHost)?.id ?? hostId
@@ -1319,27 +1386,35 @@
 
 			// ---- Writing ----
 			let curColor = PALETTE[1],
-				curName = ""
+				curName = "",
+				lastTurnKey = null // detects real turn changes vs mid-turn re-broadcasts (e.g. rule updates)
 			function renderWriting(st) {
 				onlyShow("game")
 				$("gamePrompt").textContent = st.prompt
 				renderStory($("storyBox"), st.story, true)
 				curColor = safeColor(st.currentColor)
 				curName = st.currentName || ""
-				$("livePreview").classList.add("hidden")
-				$("livePreview").innerHTML = "" // clear on new turn
+				const turnKey = st.turnCount + ":" + st.currentId
+				const newTurn = turnKey !== lastTurnKey
+				lastTurnKey = turnKey
+				if (newTurn) {
+					$("livePreview").classList.add("hidden")
+					$("livePreview").innerHTML = "" // clear on new turn
+				}
 				const myTurn = st.currentId === myId,
 					host = myId === hostId
 				$("whoTurn").textContent = myTurn ? "Your turn — write!" : `Waiting for ${st.currentName || "…"}`
 				$("whoTurn").style.color = myTurn ? "var(--good)" : "var(--ink)"
 				$("myTurn").classList.toggle("hidden", !myTurn)
 				$("hostGame").classList.toggle("hidden", !host)
+				$("hostRules").classList.toggle("hidden", !host)
+				if (document.activeElement !== $("liveSecs")) $("liveSecs").value = st.turnSeconds
 				$("pauseBtn").textContent = st.paused ? "▶ Resume" : "⏸ Pause"
 				$("progress").textContent =
 					(st.maxTurns ? `Turn ${st.turnCount + 1} of ${st.maxTurns}` : `Turn ${st.turnCount + 1} · endless`) +
 					(st.paused ? " · ⏸ paused by host" : "")
 				$("writerEditor").setAttribute("aria-disabled", st.paused ? "true" : "false")
-				if (myTurn && !st.paused) {
+				if (myTurn && !st.paused && newTurn) {
 					const e = $("writerEditor")
 					e.innerHTML = ""
 					e.focus()
@@ -1448,6 +1523,18 @@
 			$("pauseBtn").onclick = () =>
 				socket.emit($("pauseBtn").textContent.includes("Resume") ? "resume-game" : "pause-game")
 			$("endBtn").onclick = () => socket.emit("end-game")
+			$("applyRulesBtn").onclick = () => {
+				const btn = $("applyRulesBtn")
+				socket.emit(
+					"update-rules",
+					{ turnSeconds: $("liveSecs").value, addRounds: $("addRoundsInput").value || 0 },
+					(res) => {
+						$("addRoundsInput").value = ""
+						btn.textContent = res?.ok ? "Applied ✓" : "Host only"
+						setTimeout(() => (btn.textContent = "Apply"), 1500)
+					}
+				)
+			}
 
 			// ---- Game over ----
 			socket.on("game-over", ({ prompt, story }) => {
@@ -1456,7 +1543,12 @@
 				$("overPrompt").textContent = prompt
 				renderStory($("overStory"), story, false)
 				buildExports(prompt, story)
+				updateHostView()
 			})
+			$("continueBtn").onclick = () =>
+				socket.emit("continue-writing", { turnSeconds: $("contSecs").value, rounds: $("contRounds").value }, (res) => {
+					if (!res?.ok) alert("Could not continue — only the host can, and someone must be here.")
+				})
 			// Build both a formatted-HTML and a plain-text version of the story —
 			// prose only, with formatting preserved and NO usernames.
 			function buildExports(prompt, story) {
@@ -1507,7 +1599,10 @@
 				a.click()
 				URL.revokeObjectURL(a.href)
 			}
-			$("againBtn").onclick = () => location.reload()
+			$("againBtn").onclick = () => {
+				clearRejoin() // otherwise the reload auto-rejoins straight back here
+				location.reload()
+			}
 
 			// ---- Chat ----
 			function addChat(m) {
