@@ -1340,7 +1340,11 @@
 								<button class="primary" id="chLogin">Log in</button>
 								<button class="primary" id="chSignup">Sign up</button>
 							</div>
-							<p class="subtle" style="margin-top: 12px"><a href="#" class="linky" id="chForgot">Forgot your password?</a></p>
+							<p class="subtle" style="margin-top: 12px">
+								<a href="#" class="linky" id="chForgot">Forgot your password?</a>
+								&nbsp;·&nbsp;
+								<a href="#" class="linky" id="chForgotUser">Forgot your username?</a>
+							</p>
 							<div class="divider">— OR —</div>
 							<div class="row"><button class="ghost" id="chGuest">Play as guest →</button></div>
 						</div>
@@ -1353,7 +1357,11 @@
 								<label for="liPass">Password</label>
 								<input id="liPass" type="password" autocomplete="current-password" />
 								<div class="row"><button class="primary" id="liBtn">Log in</button></div>
-								<p class="subtle" style="margin-top: 12px"><a href="#" class="linky" id="liForgot">Forgot your password?</a></p>
+								<p class="subtle" style="margin-top: 12px">
+									<a href="#" class="linky" id="liForgot">Forgot your password?</a>
+									&nbsp;·&nbsp;
+									<a href="#" class="linky" id="liForgotUser">Forgot your username?</a>
+								</p>
 							</div>
 							<div data-auth-pane="signup" class="hidden">
 								<label for="suEmail">Email</label>
@@ -1372,6 +1380,12 @@
 									<p class="subtle" style="margin-top: 14px">Your username is <b id="fgUser"></b></p>
 									<div class="row"><button class="primary" id="fgSend">Send reset link</button></div>
 								</div>
+							</div>
+							<div data-auth-pane="forgotuser" class="hidden">
+								<label for="fuEmail">Your email</label>
+								<input id="fuEmail" type="email" autocomplete="email" />
+								<div class="row"><button class="ghost" id="fuFind">Find my username</button></div>
+								<p class="subtle hidden" id="fuResult" style="margin-top: 14px">Your username is <b id="fuUser"></b></p>
 							</div>
 							<div class="err" id="authErr"></div>
 							<p class="subtle" style="margin-top: 14px"><a href="#" class="linky" id="authBack">← Back</a></p>
@@ -1606,6 +1620,8 @@
 				document
 					.querySelectorAll("[data-auth-pane]")
 					.forEach((p) => p.classList.toggle("hidden", p.dataset.authPane !== name))
+				hide("fgResult")
+				hide("fuResult")
 				$("authErr").textContent = ""
 			}
 			function showPlay() {
@@ -1624,6 +1640,14 @@
 			$("liForgot").onclick = (e) => {
 				e.preventDefault()
 				showPane("forgot")
+			}
+			$("chForgotUser").onclick = (e) => {
+				e.preventDefault()
+				showPane("forgotuser")
+			}
+			$("liForgotUser").onclick = (e) => {
+				e.preventDefault()
+				showPane("forgotuser")
 			}
 			$("chGuest").onclick = () => showPlay()
 			$("authBack").onclick = (e) => {
@@ -1701,6 +1725,19 @@
 					$("authErr").textContent = ""
 				} catch (e) {
 					hide("fgResult")
+					$("authErr").textContent = e.message
+				}
+			}
+			// Forgot username: email -> just tells you the username (or that no
+			// account exists under that email).
+			$("fuFind").onclick = async () => {
+				try {
+					const d = await authApi("/api/forgot", { email: $("fuEmail").value.trim() })
+					$("fuUser").textContent = d.username
+					show("fuResult")
+					$("authErr").textContent = ""
+				} catch (e) {
+					hide("fuResult")
 					$("authErr").textContent = e.message
 				}
 			}

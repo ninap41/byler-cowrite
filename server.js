@@ -158,10 +158,13 @@ app.get("/api/me", (req, res) => {
   res.json({ user: publicUser(u) });
 });
 
-// Forgot password, step 1: look up the account and return its username.
+// Forgot password step 1 / forgot username: look up the account by email and
+// return its username. Plainly says so when the email has no account.
 app.post("/api/forgot", (req, res) => {
-  const u = findByEmail(req.body?.email);
-  if (!u) return res.status(404).json({ error: "No account with that email." });
+  const em = String(req.body?.email || "").toLowerCase().trim();
+  if (!EMAIL_RE.test(em)) return res.status(400).json({ error: "Enter a valid email." });
+  const u = findByEmail(em);
+  if (!u) return res.status(404).json({ error: "There's no username under that email — no account exists." });
   res.json({ username: u.username });
 });
 
@@ -191,8 +194,10 @@ async function sendResetEmail(to, link) {
 
 const RESET_TTL_MS = 30 * 60_000;
 app.post("/api/send-reset", (req, res) => {
-  const u = findByEmail(req.body?.email);
-  if (!u) return res.status(404).json({ error: "No account with that email." });
+  const em = String(req.body?.email || "").toLowerCase().trim();
+  if (!EMAIL_RE.test(em)) return res.status(400).json({ error: "Enter a valid email." });
+  const u = findByEmail(em);
+  if (!u) return res.status(404).json({ error: "There's no username under that email — no account exists." });
   // one live reset token per user
   for (const [t, r] of Object.entries(store.resets))
     if (r.userId === u.id || r.exp < Date.now()) delete store.resets[t];
