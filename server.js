@@ -1,7 +1,7 @@
 import express from "express";
 import { createServer } from "http";
 import { Server } from "socket.io";
-import { readFileSync, writeFileSync, mkdirSync } from "fs";
+import { readFileSync, writeFileSync, mkdirSync, readdirSync } from "fs";
 import { randomUUID } from "crypto";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
@@ -36,6 +36,44 @@ const io = new Server(httpServer);
 app.use(express.static(join(__dirname, "public")));
 
 const sessions = new Map(); // code -> session (in-memory; fine for a party game)
+
+// ---- Previous-games archive (read-only, backed by saves/*.json snapshots) ----
+// No database on purpose: saveSnapshot() already persists every paused/finished
+// game to disk, so the archive is just a directory listing + file reads.
+const CODE_RE = /^[A-Z0-9]{4}$/;
+
+app.get("/api/games", (_req, res) => {
+  const out = [];
+  for (const f of readdirSync(SAVE_DIR)) {
+    if (!f.endsWith(".json")) continue;
+    try {
+      const d = JSON.parse(readFileSync(join(SAVE_DIR, f), "utf-8"));
+      out.push({
+        code: d.code, phase: d.phase, prompt: d.prompt || "",
+        savedAt: d.savedAt || 0, lines: (d.story || []).length,
+        writers: (d.writers || []).map((w) => ({ name: w.name, color: cleanColor(w.color) })),
+      });
+    } catch { /* skip unreadable snapshot */ }
+  }
+  out.sort((a, b) => b.savedAt - a.savedAt);
+  res.json(out);
+});
+
+app.get("/api/games/:code", (req, res) => {
+  const code = String(req.params.code || "").toUpperCase();
+  if (!CODE_RE.test(code)) return res.status(400).json({ error: "Bad code." });
+  try {
+    // Story html in snapshots already passed through sanitizeRich() when written.
+    const d = JSON.parse(readFileSync(join(SAVE_DIR, code + ".json"), "utf-8"));
+    res.json({
+      code: d.code, phase: d.phase, prompt: d.prompt || "", savedAt: d.savedAt || 0,
+      story: d.story || [],
+      writers: (d.writers || []).map((w) => ({ name: w.name, color: cleanColor(w.color) })),
+    });
+  } catch {
+    res.status(404).json({ error: "Not found." });
+  }
+});
 
 // Paused/finished games are snapshotted to disk so they survive a server
 // restart and can be picked up later. Seats are identified by writer token.

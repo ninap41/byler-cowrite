@@ -344,7 +344,7 @@
 			.theme-switch {
 				position: fixed;
 				top: 16px;
-				right: 16px;
+				right: 72px; /* hamburger owns the corner */
 				z-index: 50;
 				perspective: 700px;
 			}
@@ -442,11 +442,169 @@
 			@media (max-width: 760px) {
 				.theme-switch {
 					top: 12px;
-					right: 12px;
+					right: 62px;
 				}
 			}
 
-			/* ---------- Layout (unchanged structure) ---------- */
+			/* ---------- Hamburger + slide-in nav drawer ---------- */
+			.hamburger {
+				position: fixed;
+				top: 16px;
+				right: 16px;
+				z-index: 70;
+				width: 44px;
+				height: 42px;
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				justify-content: center;
+				gap: 5px;
+				background: var(--panel);
+				border: 1px solid var(--panel-brd);
+				border-radius: 14px;
+				box-shadow: var(--panel-glow);
+				backdrop-filter: blur(14px);
+				-webkit-backdrop-filter: blur(14px);
+				cursor: pointer;
+				padding: 0;
+				flex: none;
+				min-width: 0;
+			}
+			.hamburger:hover {
+				transform: translateY(-1px);
+			}
+			.hamburger .bar {
+				display: block;
+				width: 20px;
+				height: 2px;
+				border-radius: 2px;
+				background: var(--ink);
+				pointer-events: none;
+			}
+			.nav-scrim {
+				position: fixed;
+				inset: 0;
+				z-index: 60;
+				background: rgba(0, 0, 0, 0.45);
+				opacity: 0;
+				visibility: hidden;
+			}
+			.nav-drawer {
+				position: fixed;
+				top: 0;
+				right: 0;
+				bottom: 0;
+				z-index: 65;
+				width: min(300px, 85vw);
+				padding: 76px 18px 18px;
+				background: var(--panel);
+				border-left: 1px solid var(--panel-brd);
+				box-shadow: var(--panel-glow);
+				backdrop-filter: blur(18px);
+				-webkit-backdrop-filter: blur(18px);
+				transform: translateX(100%);
+				visibility: hidden;
+				display: flex;
+				flex-direction: column;
+				gap: 8px;
+			}
+			.nav-drawer .nav-title {
+				font-family: var(--font-mono);
+				font-size: 0.7rem;
+				letter-spacing: 2px;
+				text-transform: uppercase;
+				color: var(--muted);
+				margin: 0 0 4px 6px;
+			}
+			.nav-drawer button {
+				flex: none;
+				width: 100%;
+				text-align: left;
+				background: var(--panel-2);
+				color: var(--ink);
+				border: 1px solid var(--line);
+				font-size: 1rem;
+			}
+			.nav-drawer button:hover {
+				border-color: var(--accent-2);
+			}
+
+			/* ---------- Previous-games archive page ---------- */
+			.archive-page {
+				position: fixed;
+				inset: 0;
+				z-index: 55;
+				overflow-y: auto;
+				background: var(--bg);
+				padding: 24px 20px 60px;
+				visibility: hidden;
+				transform: translateX(100%);
+			}
+			.archive-inner {
+				max-width: 860px;
+				margin: 0 auto;
+			}
+			.archive-head {
+				display: flex;
+				align-items: center;
+				gap: 14px;
+				margin: 8px 0 22px;
+			}
+			.archive-head h2 {
+				font-family: var(--font-display);
+				font-size: clamp(1.3rem, 4vw, 2rem);
+				margin: 0;
+				background: var(--grad-1);
+				-webkit-background-clip: text;
+				background-clip: text;
+				color: transparent;
+			}
+			.archive-head button {
+				flex: none;
+				min-width: 0;
+			}
+			.game-card {
+				width: 100%;
+				text-align: left;
+				background: var(--panel);
+				border: 1px solid var(--panel-brd);
+				border-radius: 16px;
+				padding: 16px 18px;
+				margin-bottom: 12px;
+				cursor: pointer;
+				color: var(--ink);
+				font-family: var(--font-body);
+				transition:
+					border-color 0.2s,
+					transform 0.12s;
+				flex: none;
+			}
+			.game-card:hover {
+				border-color: var(--accent-2);
+				transform: translateY(-2px);
+			}
+			.game-card .gc-prompt {
+				font-family: var(--font-story);
+				font-size: 1.02rem;
+				line-height: 1.45;
+				margin: 0 0 8px;
+			}
+			.game-card .gc-meta {
+				font-family: var(--font-mono);
+				font-size: 0.72rem;
+				color: var(--muted);
+				display: flex;
+				gap: 12px;
+				flex-wrap: wrap;
+			}
+			.archive-empty {
+				color: var(--muted);
+				font-family: var(--font-mono);
+				text-align: center;
+				padding: 40px 0;
+			}
+
+			/* ---------- Layout ---------- */
 			.wrap {
 				position: relative;
 				z-index: 1;
@@ -456,56 +614,86 @@
 			.wrap > .tag {
 				padding: 0 20px;
 			}
-			.layout {
-				display: flex;
-				gap: 0;
-				align-items: flex-start;
-			}
-			.side {
-				flex: 0 0 22%;
-				position: sticky;
-				top: 24px;
-				min-width: 180px;
-			}
-			.side:has(#chatCard.hidden) {
-				display: none;
-			}
-			.side:has(#chatCard.hidden) + .resizer {
-				display: none;
-			}
-			.resizer {
-				flex: 0 0 10px;
-				align-self: stretch;
-				margin: 0 6px;
-				cursor: col-resize;
-				border-radius: 4px;
-				background: var(--line);
-				transition: background 0.15s;
-			}
-			.resizer:hover,
-			.resizer.dragging {
-				background: var(--accent-2);
-			}
 			.main {
-				flex: 1 1 auto;
 				min-width: 0;
+				padding: 0 20px;
+				max-width: 980px;
+				margin: 0 auto;
+			}
+
+			/* ---------- Docked chat panel ---------- */
+			.chat-dock {
+				position: fixed;
+				right: 18px;
+				bottom: 0;
+				z-index: 45;
+				width: min(340px, calc(100vw - 36px));
+				display: flex;
+				flex-direction: column;
+				background: var(--panel);
+				border: 1px solid var(--panel-brd);
+				border-bottom: 0;
+				border-radius: 16px 16px 0 0;
+				box-shadow: var(--panel-glow);
+				backdrop-filter: blur(16px);
+				-webkit-backdrop-filter: blur(16px);
+				transition:
+					background var(--tsn),
+					border-color var(--tsn);
+			}
+			.chat-dock.hidden {
+				display: none;
+			}
+			.chat-dock-head {
+				flex: none;
+				min-width: 0;
+				display: flex;
+				align-items: center;
+				gap: 8px;
+				width: 100%;
+				background: transparent;
+				border: 0;
+				color: var(--ink);
+				padding: 12px 16px;
+				font-weight: 700;
+				font-family: var(--font-body);
+				font-size: 0.9rem;
+				cursor: pointer;
+			}
+			.chat-dock-head:hover {
+				transform: none;
+			}
+			.chat-dock-head .chev {
+				margin-left: auto;
+				font-style: normal;
+				color: var(--muted);
+				transition: transform 0.3s;
+			}
+			.chat-dock.collapsed .chat-dock-head .chev {
+				transform: rotate(180deg);
+			}
+			.chat-unread {
+				background: var(--accent);
+				color: var(--btn-ink);
+				border-radius: 20px;
+				font-size: 0.7rem;
+				font-family: var(--font-mono);
+				padding: 2px 8px;
+				font-weight: 700;
+			}
+			.chat-unread:empty {
+				display: none;
+			}
+			.chat-dock-body {
+				padding: 0 12px 12px;
+				overflow: hidden;
+			}
+			.chat-dock.collapsed .chat-dock-body {
+				display: none;
 			}
 			@media (max-width: 760px) {
-				.layout {
-					flex-direction: column;
-				}
-				.side {
-					position: static;
-					flex-basis: auto !important;
-					width: 100%;
-					order: 2;
-				}
-				.main {
-					order: 1;
-					width: 100%;
-				}
-				.resizer {
-					display: none !important;
+				.chat-dock {
+					right: 10px;
 				}
 				.chat-log {
 					height: 200px !important;
@@ -947,7 +1135,7 @@
 				font-family: var(--font-mono);
 			}
 			.chat-log {
-				height: 56vh;
+				height: 300px;
 				overflow-y: auto;
 				background: var(--panel-2);
 				border: 1px solid var(--line);
@@ -1017,6 +1205,33 @@
 			<div class="grain"></div>
 		</div>
 
+		<!-- Hamburger nav (upper right) -->
+		<button type="button" class="hamburger" id="navBtn" aria-label="Menu" aria-expanded="false">
+			<span class="bar"></span><span class="bar"></span><span class="bar"></span>
+		</button>
+		<div class="nav-scrim" id="navScrim"></div>
+		<nav class="nav-drawer" id="navDrawer" aria-label="Main menu">
+			<p class="nav-title">Menu</p>
+			<button type="button" id="navPrevGames">📚 Previous games</button>
+			<button type="button" id="navHome">🏠 Back to game</button>
+		</nav>
+
+		<!-- Previous-games archive "page" -->
+		<div class="archive-page" id="archivePage">
+			<div class="archive-inner">
+				<div class="archive-head">
+					<button class="ghost" id="archiveBack">← Back</button>
+					<h2>Previous Games</h2>
+				</div>
+				<div id="archiveList"></div>
+				<div id="archiveDetail" class="hidden">
+					<div class="prompt-banner" id="archPrompt"></div>
+					<p class="gc-meta" id="archMeta" style="margin: 10px 0 0"></p>
+					<div class="story" id="archStory" style="max-height: none"></div>
+				</div>
+			</div>
+		</div>
+
 		<div class="theme-switch" id="themeSwitch">
 			<button type="button" class="theme-toggle" id="themeToggle" aria-haspopup="listbox" aria-expanded="false">
 				<i class="sw sw-neon" id="themeCurSw"></i><span id="themeCurLabel">Neon Dusk</span><i class="chev">&#9662;</i>
@@ -1034,22 +1249,7 @@
 			<h1>Byler Cowrite</h1>
 			<p class="tag">A round-robin writing game. One story, one line at a time, one ticking clock.</p>
 
-			<div class="layout">
-				<aside class="side">
-					<!-- CHAT -->
-					<div id="chatCard" class="card hidden">
-						<h3>Chat</h3>
-						<div class="chat-log" id="chatLog"></div>
-						<div class="chat-row">
-							<input id="chatInput" placeholder="Say something…" maxlength="500" />
-							<button class="ghost" id="chatSend">Send</button>
-						</div>
-					</div>
-				</aside>
-
-				<div class="resizer" id="resizer"></div>
-
-				<div class="main">
+			<div class="main">
 					<!-- LOBBY -->
 					<div id="lobby" class="card">
 						<label for="name">Your name</label>
@@ -1166,10 +1366,22 @@
 							<button class="primary" id="againBtn">New game</button>
 						</div>
 					</div>
-				</div>
-				<!-- /main -->
 			</div>
-			<!-- /layout -->
+			<!-- /main -->
+		</div>
+
+		<!-- CHAT (docked panel, bottom right) -->
+		<div id="chatCard" class="chat-dock hidden">
+			<button type="button" class="chat-dock-head" id="chatDockToggle">
+				💬 Chat <span class="chat-unread" id="chatUnread"></span><i class="chev">&#9662;</i>
+			</button>
+			<div class="chat-dock-body">
+				<div class="chat-log" id="chatLog"></div>
+				<div class="chat-row">
+					<input id="chatInput" placeholder="Say something…" maxlength="500" />
+					<button class="ghost" id="chatSend">Send</button>
+				</div>
+			</div>
 		</div>
 
 		<script src="/socket.io/socket.io.js"></script>
@@ -1191,38 +1403,17 @@
 			const onlyShow = (id) =>
 				["lobby", "waiting", "choosing", "game", "over"].forEach((x) => (x === id ? show(x) : hide(x)))
 
-			// ---- Resizable chat column ----
-			;(function () {
-				const resizer = $("resizer"),
-					side = document.querySelector(".side"),
-					layout = document.querySelector(".layout")
-				let dragging = false,
-					startX = 0,
-					startW = 0
-				const saved = parseInt(localStorage.getItem("chatW") || "", 10)
-				if (saved) side.style.flex = "0 0 " + saved + "px"
-				resizer.addEventListener("pointerdown", (e) => {
-					dragging = true
-					startX = e.clientX
-					startW = side.getBoundingClientRect().width
-					resizer.classList.add("dragging")
-					resizer.setPointerCapture(e.pointerId)
-				})
-				resizer.addEventListener("pointermove", (e) => {
-					if (!dragging) return
-					const max = layout.clientWidth * 0.6
-					const w = Math.max(180, Math.min(max, startW + (e.clientX - startX)))
-					side.style.flex = "0 0 " + w + "px"
-				})
-				const stop = (e) => {
-					if (!dragging) return
-					dragging = false
-					resizer.classList.remove("dragging")
-					localStorage.setItem("chatW", Math.round(side.getBoundingClientRect().width))
+			// ---- Docked chat panel (collapse/expand + unread badge) ----
+			let chatUnread = 0
+			$("chatDockToggle").onclick = () => {
+				const dock = $("chatCard")
+				dock.classList.toggle("collapsed")
+				if (!dock.classList.contains("collapsed")) {
+					chatUnread = 0
+					$("chatUnread").textContent = ""
+					$("chatLog").scrollTop = $("chatLog").scrollHeight
 				}
-				resizer.addEventListener("pointerup", stop)
-				resizer.addEventListener("pointercancel", stop)
-			})()
+			}
 
 			// ---- Color picker ----
 			const sw = $("swatches")
@@ -1613,6 +1804,10 @@
 				p.innerHTML = `<span class="cn" style="color:${col}">${esc(m.name)}</span>${esc(m.text)}`
 				log.appendChild(p)
 				log.scrollTop = log.scrollHeight
+				if ($("chatCard").classList.contains("collapsed")) {
+					chatUnread++
+					$("chatUnread").textContent = chatUnread > 99 ? "99+" : chatUnread
+				}
 			}
 			socket.on("chat-history", (msgs) => {
 				$("chatLog").innerHTML = ""
@@ -1769,6 +1964,187 @@
 					if (e.key === "Escape" && menuOpen) closeMenu()
 				})
 				applyTheme(current)
+
+				/* ===== Hamburger nav drawer + Previous-games archive page ===== */
+				var navBtn = document.getElementById("navBtn")
+				var drawer = document.getElementById("navDrawer")
+				var scrim = document.getElementById("navScrim")
+				var bars = navBtn.querySelectorAll(".bar")
+				var archive = document.getElementById("archivePage")
+				var navOpen = false
+				var archiveOpen = false
+
+				function openNav() {
+					navOpen = true
+					navBtn.setAttribute("aria-expanded", "true")
+					if (hasGsap) {
+						gsap.killTweensOf([drawer, scrim, bars, drawer.children])
+						gsap.set([drawer, scrim], { visibility: "visible" })
+						gsap.to(scrim, { opacity: 1, duration: 0.3 })
+						gsap.to(drawer, { x: 0, duration: 0.45, ease: "power3.out" })
+						gsap.fromTo(
+							drawer.children,
+							{ opacity: 0, x: 24 },
+							{ opacity: 1, x: 0, duration: 0.35, stagger: 0.06, delay: 0.15, ease: "power2.out", clearProps: "transform" },
+						)
+						gsap.to(bars[0], { rotation: 45, y: 7, duration: 0.3, ease: "power2.out" })
+						gsap.to(bars[1], { opacity: 0, scaleX: 0.4, duration: 0.2 })
+						gsap.to(bars[2], { rotation: -45, y: -7, duration: 0.3, ease: "power2.out" })
+					} else {
+						scrim.style.visibility = drawer.style.visibility = "visible"
+						scrim.style.opacity = "1"
+						drawer.style.transform = "translateX(0)"
+					}
+				}
+				function closeNav() {
+					if (!navOpen) return
+					navOpen = false
+					navBtn.setAttribute("aria-expanded", "false")
+					if (hasGsap) {
+						gsap.killTweensOf([drawer, scrim, bars])
+						gsap.to(scrim, {
+							opacity: 0,
+							duration: 0.25,
+							onComplete: function () {
+								gsap.set(scrim, { visibility: "hidden" })
+							},
+						})
+						gsap.to(drawer, {
+							x: "100%",
+							duration: 0.35,
+							ease: "power2.in",
+							onComplete: function () {
+								gsap.set(drawer, { visibility: "hidden" })
+							},
+						})
+						gsap.to(bars[0], { rotation: 0, y: 0, duration: 0.3 })
+						gsap.to(bars[1], { opacity: 1, scaleX: 1, duration: 0.25, delay: 0.1 })
+						gsap.to(bars[2], { rotation: 0, y: 0, duration: 0.3 })
+					} else {
+						scrim.style.visibility = drawer.style.visibility = "hidden"
+						scrim.style.opacity = "0"
+						drawer.style.transform = "translateX(100%)"
+					}
+				}
+				navBtn.addEventListener("click", function () {
+					navOpen ? closeNav() : openNav()
+				})
+				scrim.addEventListener("click", closeNav)
+				document.addEventListener("keydown", function (e) {
+					if (e.key !== "Escape") return
+					if (navOpen) closeNav()
+					else if (archiveOpen) closeArchive()
+				})
+
+				/* ----- archive page (backed by /api/games) ----- */
+				function fmtWhen(ts) {
+					return ts ? new Date(ts).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : "unknown date"
+				}
+				function showArchiveList() {
+					document.getElementById("archiveDetail").classList.add("hidden")
+					document.getElementById("archiveList").classList.remove("hidden")
+				}
+				function renderGameCards(games) {
+					var list = document.getElementById("archiveList")
+					if (!games.length) {
+						list.innerHTML =
+							'<p class="archive-empty">No saved games yet — finish (or pause) a game and it will show up here.</p>'
+						return
+					}
+					list.innerHTML = ""
+					games.forEach(function (g) {
+						var b = document.createElement("button")
+						b.className = "game-card"
+						b.innerHTML =
+							'<p class="gc-prompt">' + (esc(g.prompt) || "<em>No prompt yet</em>") + "</p>" +
+							'<span class="gc-meta">' +
+							"<span>" + esc(g.code) + "</span>" +
+							"<span>" + g.lines + " line" + (g.lines === 1 ? "" : "s") + "</span>" +
+							"<span>" + (g.phase === "over" ? "finished" : "paused") + "</span>" +
+							"<span>" + esc(g.writers.map(function (w) { return w.name }).join(", ")) + "</span>" +
+							"<span>" + fmtWhen(g.savedAt) + "</span>" +
+							"</span>"
+						b.onclick = function () {
+							openGameDetail(g.code)
+						}
+						list.appendChild(b)
+						if (hasGsap)
+							gsap.from(b, { opacity: 0, y: 18, duration: 0.45, delay: 0.05 * list.children.length, ease: "power2.out" })
+					})
+				}
+				function openGameDetail(code) {
+					fetch("/api/games/" + encodeURIComponent(code))
+						.then(function (r) { return r.json() })
+						.then(function (g) {
+							if (!g || g.error) return
+							document.getElementById("archPrompt").textContent = g.prompt || "(no prompt)"
+							document.getElementById("archMeta").textContent =
+								g.code + " · " + (g.phase === "over" ? "finished" : "paused") + " · " + fmtWhen(g.savedAt)
+							// story html was sanitized server-side by sanitizeRich() before being saved
+							document.getElementById("archStory").innerHTML = g.story.length
+								? g.story
+										.map(function (l) {
+											var col = safeColor(l.color)
+											return '<p><span class="who" style="color:' + col + '">' + esc(l.name) + "</span>" + (l.html || "") + "</p>"
+										})
+										.join("")
+								: '<p class="empty">Nothing written yet.</p>'
+							document.getElementById("archiveList").classList.add("hidden")
+							var det = document.getElementById("archiveDetail")
+							det.classList.remove("hidden")
+							if (hasGsap) gsap.fromTo(det, { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.45, ease: "power2.out" })
+						})
+						.catch(function () {})
+				}
+				function openArchive() {
+					archiveOpen = true
+					showArchiveList()
+					document.getElementById("archiveList").innerHTML = '<p class="archive-empty">Loading…</p>'
+					fetch("/api/games")
+						.then(function (r) { return r.json() })
+						.then(renderGameCards)
+						.catch(function () {
+							document.getElementById("archiveList").innerHTML = '<p class="archive-empty">Could not load saved games.</p>'
+						})
+					if (hasGsap) {
+						gsap.killTweensOf(archive)
+						gsap.set(archive, { visibility: "visible" })
+						gsap.fromTo(archive, { x: "100%" }, { x: 0, duration: 0.55, ease: "power3.out" })
+					} else {
+						archive.style.visibility = "visible"
+						archive.style.transform = "translateX(0)"
+					}
+				}
+				function closeArchive() {
+					archiveOpen = false
+					if (hasGsap) {
+						gsap.killTweensOf(archive)
+						gsap.to(archive, {
+							x: "100%",
+							duration: 0.45,
+							ease: "power2.in",
+							onComplete: function () {
+								gsap.set(archive, { visibility: "hidden" })
+							},
+						})
+					} else {
+						archive.style.visibility = "hidden"
+						archive.style.transform = "translateX(100%)"
+					}
+				}
+				document.getElementById("navPrevGames").addEventListener("click", function () {
+					closeNav()
+					if (!archiveOpen) openArchive()
+				})
+				document.getElementById("navHome").addEventListener("click", function () {
+					closeNav()
+					if (archiveOpen) closeArchive()
+				})
+				document.getElementById("archiveBack").addEventListener("click", function () {
+					var det = document.getElementById("archiveDetail")
+					if (!det.classList.contains("hidden")) showArchiveList()
+					else closeArchive()
+				})
 
 				if (!hasGsap) return // CSS-only fallback from here down
 
