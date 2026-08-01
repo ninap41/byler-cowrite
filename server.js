@@ -94,11 +94,13 @@ const publicUser = (u) => ({
   nextBadge: BADGES.find((b) => u.wordCount < b.min) ?? null,
 });
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 app.post("/api/signup", (req, res) => {
   const { email, username, password, color } = req.body || {};
   const em = String(email || "").toLowerCase().trim();
   const un = String(username || "").trim();
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) return res.status(400).json({ error: "Enter a valid email." });
+  if (!EMAIL_RE.test(em)) return res.status(400).json({ error: "Enter a valid email." });
   if (un.length < 4 || un.length > 24)
     return res.status(400).json({ error: "Username must be 4–24 characters." });
   if (String(password || "").length < 4)
@@ -117,11 +119,24 @@ app.post("/api/signup", (req, res) => {
   res.json({ token, user: publicUser(u) });
 });
 
+// Distinct login errors on purpose (bad email format / unknown email /
+// unknown username / wrong password) — friendlier for a small friend group,
+// and the forgot-password flow reveals usernames anyway.
 app.post("/api/login", (req, res) => {
   const { user, password } = req.body || {};
-  const u = findByEmail(user) ?? findByUsername(user);
-  if (!u || !checkPassword(String(password || ""), u.passHash))
-    return res.status(401).json({ error: "Wrong username/email or password." });
+  const raw = String(user || "").trim();
+  if (!raw) return res.status(400).json({ error: "Enter your username or email." });
+  let u;
+  if (raw.includes("@")) {
+    if (!EMAIL_RE.test(raw.toLowerCase())) return res.status(400).json({ error: "Enter a valid email." });
+    u = findByEmail(raw);
+    if (!u) return res.status(404).json({ error: "We couldn't find a username associated with that email." });
+  } else {
+    u = findByUsername(raw);
+    if (!u) return res.status(404).json({ error: "We couldn't find an email associated with that username." });
+  }
+  if (!checkPassword(String(password || ""), u.passHash))
+    return res.status(401).json({ error: "Wrong password." });
   const token = randomUUID();
   store.sessions[token] = u.id;
   saveStore();
