@@ -2,7 +2,7 @@ import express from "express";
 import { createServer } from "http";
 import { Server } from "socket.io";
 import { readFileSync, writeFileSync, mkdirSync, readdirSync } from "fs";
-import { randomUUID } from "crypto";
+import { randomUUID, randomBytes, scryptSync, timingSafeEqual } from "crypto";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 
@@ -34,6 +34,175 @@ const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer);
 app.use(express.static(join(__dirname, "public")));
+app.use(express.json());
+
+// ---------------------------------------------------------------------------
+// User accounts — JSON file store (data/users.json), no database on purpose.
+// ~100 users; every mutation just rewrites the file.
+// ---------------------------------------------------------------------------
+const DATA_DIR = join(__dirname, "data");
+mkdirSync(DATA_DIR, { recursive: true });
+const USERS_PATH = join(DATA_DIR, "users.json");
+let store = { users: [], sessions: {}, resets: {} };
+try {
+  store = { ...store, ...JSON.parse(readFileSync(USERS_PATH, "utf-8")) };
+} catch { /* first run */ }
+const saveStore = () => {
+  try {
+    writeFileSync(USERS_PATH, JSON.stringify(store, null, 1));
+  } catch (e) {
+    console.error("saveStore failed:", e.message);
+  }
+};
+
+const hashPassword = (pw) => {
+  const salt = randomBytes(16).toString("hex");
+  return salt + ":" + scryptSync(pw, salt, 64).toString("hex");
+};
+const checkPassword = (pw, stored) => {
+  const [salt, hash] = String(stored).split(":");
+  const a = Buffer.from(hash, "hex");
+  const b = scryptSync(pw, salt, 64);
+  return a.length === b.length && timingSafeEqual(a, b);
+};
+
+// Achievement badges, earned by total words written while signed in.
+// currentBadge is always the highest earned tier.
+const BADGES = [
+  { id: "inkling", name: "✏️ Inkling", min: 1 },
+  { id: "scribbler", name: "🖊️ Scribbler", min: 100 },
+  { id: "wordsmith", name: "📜 Wordsmith", min: 500 },
+  { id: "storyteller", name: "📖 Storyteller", min: 1000 },
+  { id: "novelist", name: "📚 Novelist", min: 5000 },
+  { id: "legend", name: "🏆 Living Legend", min: 10000 },
+];
+const badgeName = (id) => BADGES.find((b) => b.id === id)?.name ?? null;
+function awardBadges(u) {
+  for (const b of BADGES) if (u.wordCount >= b.min && !u.badges.includes(b.id)) u.badges.push(b.id);
+  u.currentBadge = [...BADGES].reverse().find((b) => u.badges.includes(b.id))?.id ?? null;
+}
+
+const findByEmail = (e) => store.users.find((u) => u.email === String(e || "").toLowerCase().trim());
+const findByUsername = (n) =>
+  store.users.find((u) => u.username.toLowerCase() === String(n || "").toLowerCase().trim());
+const userByToken = (t) => (t && store.sessions[t] ? store.users.find((u) => u.id === store.sessions[t]) : null);
+const authedUser = (req) => userByToken((req.headers.authorization || "").replace(/^Bearer\s+/i, ""));
+const publicUser = (u) => ({
+  id: u.id, email: u.email, username: u.username, color: u.color,
+  games: u.games, wordCount: u.wordCount,
+  currentBadge: badgeName(u.currentBadge), badges: u.badges.map(badgeName),
+  nextBadge: BADGES.find((b) => u.wordCount < b.min) ?? null,
+});
+
+app.post("/api/signup", (req, res) => {
+  const { email, username, password, color } = req.body || {};
+  const em = String(email || "").toLowerCase().trim();
+  const un = String(username || "").trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) return res.status(400).json({ error: "Enter a valid email." });
+  if (un.length < 4 || un.length > 24)
+    return res.status(400).json({ error: "Username must be 4–24 characters." });
+  if (String(password || "").length < 4)
+    return res.status(400).json({ error: "Password must be at least 4 characters." });
+  if (findByEmail(em)) return res.status(400).json({ error: "That email already has an account." });
+  if (findByUsername(un)) return res.status(400).json({ error: "That username is taken." });
+  const u = {
+    id: randomUUID(), email: em, username: un, passHash: hashPassword(password),
+    color: cleanColor(color), games: [], wordCount: 0, currentBadge: null, badges: [],
+    createdAt: Date.now(),
+  };
+  store.users.push(u);
+  const token = randomUUID();
+  store.sessions[token] = u.id;
+  saveStore();
+  res.json({ token, user: publicUser(u) });
+});
+
+app.post("/api/login", (req, res) => {
+  const { user, password } = req.body || {};
+  const u = findByEmail(user) ?? findByUsername(user);
+  if (!u || !checkPassword(String(password || ""), u.passHash))
+    return res.status(401).json({ error: "Wrong username/email or password." });
+  const token = randomUUID();
+  store.sessions[token] = u.id;
+  saveStore();
+  res.json({ token, user: publicUser(u) });
+});
+
+app.post("/api/logout", (req, res) => {
+  const t = (req.headers.authorization || "").replace(/^Bearer\s+/i, "");
+  if (store.sessions[t]) {
+    delete store.sessions[t];
+    saveStore();
+  }
+  res.json({ ok: true });
+});
+
+app.get("/api/me", (req, res) => {
+  const u = authedUser(req);
+  if (!u) return res.status(401).json({ error: "Not signed in." });
+  res.json({ user: publicUser(u) });
+});
+
+// Forgot password, step 1: look up the account and return its username.
+app.post("/api/forgot", (req, res) => {
+  const u = findByEmail(req.body?.email);
+  if (!u) return res.status(404).json({ error: "No account with that email." });
+  res.json({ username: u.username });
+});
+
+// Forgot password, step 2: email a reset link (valid 30 minutes). Without SMTP
+// env vars the link is logged to the server console instead — it is never
+// returned to the browser.
+async function sendResetEmail(to, link) {
+  const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM } = process.env;
+  if (!SMTP_HOST) {
+    console.log(`[reset] Password reset link for ${to}: ${link}`);
+    return;
+  }
+  const nodemailer = (await import("nodemailer")).default;
+  const transport = nodemailer.createTransport({
+    host: SMTP_HOST,
+    port: Number(SMTP_PORT || 587),
+    secure: Number(SMTP_PORT) === 465,
+    auth: SMTP_USER ? { user: SMTP_USER, pass: SMTP_PASS } : undefined,
+  });
+  await transport.sendMail({
+    from: SMTP_FROM || SMTP_USER,
+    to,
+    subject: "Byler Cowrite — reset your password",
+    text: `Someone (hopefully you) asked to reset your Byler Cowrite password.\n\nReset it here: ${link}\n\nThis link expires in 30 minutes. If you didn't ask, ignore this email.`,
+  });
+}
+
+const RESET_TTL_MS = 30 * 60_000;
+app.post("/api/send-reset", (req, res) => {
+  const u = findByEmail(req.body?.email);
+  if (!u) return res.status(404).json({ error: "No account with that email." });
+  // one live reset token per user
+  for (const [t, r] of Object.entries(store.resets))
+    if (r.userId === u.id || r.exp < Date.now()) delete store.resets[t];
+  const token = randomUUID();
+  store.resets[token] = { userId: u.id, exp: Date.now() + RESET_TTL_MS };
+  saveStore();
+  const link = `${req.protocol}://${req.get("host")}/reset.html?token=${token}`;
+  sendResetEmail(u.email, link).catch((e) => console.error("sendResetEmail failed:", e.message));
+  res.json({ ok: true });
+});
+
+app.post("/api/reset", (req, res) => {
+  const { token, password } = req.body || {};
+  const r = store.resets[token];
+  if (!r || r.exp < Date.now()) return res.status(400).json({ error: "This reset link is invalid or has expired." });
+  if (String(password || "").length < 4)
+    return res.status(400).json({ error: "Password must be at least 4 characters." });
+  const u = store.users.find((x) => x.id === r.userId);
+  if (!u) return res.status(400).json({ error: "This reset link is invalid or has expired." });
+  u.passHash = hashPassword(password);
+  delete store.resets[token];
+  for (const [t, id] of Object.entries(store.sessions)) if (id === u.id) delete store.sessions[t]; // sign out everywhere
+  saveStore();
+  res.json({ ok: true });
+});
 
 const sessions = new Map(); // code -> session (in-memory; fine for a party game)
 
@@ -86,7 +255,9 @@ function saveSnapshot(s) {
       code: s.code, phase: s.phase, prompt: s.prompt, story: s.story, chat: s.chat,
       turnSeconds: s.turnSeconds, maxTurns: s.maxTurns, turnCount: s.turnCount,
       remaining: s.remaining, currentIdx: s.currentIdx,
-      writers: [...s.writers.values()].map((w) => ({ name: w.name, color: w.color, token: w.token })),
+      writers: [...s.writers.values()].map((w) => ({
+        name: w.name, color: w.color, token: w.token, userId: w.userId ?? null, badge: w.badge ?? null,
+      })),
       turnOrderTokens: s.turnOrder.map((id) => s.writers.get(id)?.token).filter(Boolean),
       hostToken: s.writers.get(s.hostId)?.token ?? s.hostToken ?? null,
       savedAt: Date.now(),
@@ -108,7 +279,10 @@ function loadSession(code) {
   }
   const writers = new Map(d.writers.map((w) => [
     "ghost:" + w.token,
-    { name: w.name, color: cleanColor(w.color), token: w.token, connected: false, ghostTimer: null },
+    {
+      name: w.name, color: cleanColor(w.color), token: w.token,
+      userId: w.userId ?? null, badge: w.badge ?? null, connected: false, ghostTimer: null,
+    },
   ]));
   const s = {
     code, hostId: null, hostToken: d.hostToken ?? null, phase: d.phase === "over" ? "over" : "writing",
@@ -145,10 +319,34 @@ function announce(s, writer, text) {
   io.to(s.code).emit("chat", msg);
 }
 
-const newWriter = (name, color, fallbackName) => ({
-  name: name || fallbackName, color: cleanColor(color),
-  token: randomUUID(), connected: true, ghostTimer: null,
-});
+// Signed-in players (valid auth token) get their account's name, color, and
+// badge, and their lines count toward word-count achievements.
+const newWriter = (name, color, fallbackName, authToken) => {
+  const acct = userByToken(authToken);
+  return {
+    name: acct?.username || name || fallbackName,
+    color: cleanColor(acct?.color ?? color),
+    userId: acct?.id ?? null,
+    badge: acct ? badgeName(acct.currentBadge) : null,
+    token: randomUUID(), connected: true, ghostTimer: null,
+  };
+};
+
+// Credit a committed line to the writer's account: word count, games list,
+// and any newly crossed badge tier (announced in chat).
+function creditLine(s, writer, cleanHtml) {
+  if (!writer?.userId) return;
+  const u = store.users.find((x) => x.id === writer.userId);
+  if (!u) return;
+  const words = stripTags(cleanHtml).split(/\s+/).filter(Boolean).length;
+  u.wordCount += words;
+  if (!u.games.includes(s.code)) u.games.push(s.code);
+  const before = u.currentBadge;
+  awardBadges(u);
+  saveStore();
+  writer.badge = badgeName(u.currentBadge);
+  if (u.currentBadge !== before) announce(s, writer, `earned the ${writer.badge} badge!`);
+}
 
 // Keep the seat but mark it reclaimable; drop it for real after GHOST_MS.
 function markDisconnected(s, id) {
@@ -197,7 +395,8 @@ const names = (s) =>
 
 function roster(s) {
   return [...s.writers.entries()].map(([id, w]) => ({
-    id, name: w.name, color: w.color, isHost: id === s.hostId, connected: w.connected !== false,
+    id, name: w.name, color: w.color, badge: w.badge ?? null,
+    isHost: id === s.hostId, connected: w.connected !== false,
   }));
 }
 const broadcastRoster = (s) => io.to(s.code).emit("roster", { writers: roster(s) });
@@ -268,7 +467,10 @@ function advance(s, writer, html) {
   clearTimeout(s.timer);
   if (html) {
     const clean = sanitizeRich(html);
-    if (stripTags(clean)) s.story.push({ name: writer?.name, color: writer?.color, html: clean });
+    if (stripTags(clean)) {
+      s.story.push({ name: writer?.name, color: writer?.color, html: clean });
+      creditLine(s, writer, clean);
+    }
   }
   s.turnCount++;
   if (s.maxTurns && s.turnCount >= s.maxTurns) return endGame(s);
@@ -349,9 +551,9 @@ io.on("connection", (socket) => {
   let joinedCode = null;
   const mySession = () => sessions.get(joinedCode);
 
-  socket.on("create-session", ({ name, color }, ack) => {
+  socket.on("create-session", ({ name, color, auth }, ack) => {
     const code = makeCode();
-    const host = newWriter(name, color, "Host");
+    const host = newWriter(name, color, "Host", auth);
     const s = {
       code, hostId: socket.id, hostToken: host.token, phase: "waiting",
       writers: new Map([[socket.id, host]]),
@@ -367,13 +569,13 @@ io.on("connection", (socket) => {
     broadcastRoster(s);
   });
 
-  socket.on("join-session", ({ name, color, code }, ack) => {
+  socket.on("join-session", ({ name, color, code, auth }, ack) => {
     code = (code || "").toUpperCase().trim();
     const s = sessions.get(code);
     if (!s) return ack?.({ ok: false, error: "Game not found." });
     if (s.phase !== "waiting")
       return ack?.({ ok: false, error: "This game has already started." });
-    s.writers.set(socket.id, newWriter(name, color, "Writer"));
+    s.writers.set(socket.id, newWriter(name, color, "Writer", auth));
     joinedCode = code;
     socket.join(code);
     ack?.({ ok: true, code, hostId: s.hostId, token: s.writers.get(socket.id).token });
@@ -566,6 +768,7 @@ io.on("connection", (socket) => {
     const msg = {
       name: w?.name ?? "?",
       color: w?.color ?? PALETTE[0],
+      badge: w?.badge ?? null,
       text: String(text).slice(0, 500).trim(),
       ts: Date.now(),
     };

@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Reset password — Byler Cowrite</title>
+		<link rel="icon" type="image/x-icon" href="./favicon.ico?v=2" />
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Space+Grotesk:wght@400;500;700&family=Inconsolata:wght@400;600&display=swap"
+			rel="stylesheet"
+		/>
+		<style>
+			* {
+				box-sizing: border-box;
+			}
+			body {
+				margin: 0;
+				min-height: 100vh;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				background: #0a0616;
+				background-image:
+					radial-gradient(80% 60% at 15% -5%, #140a2e, transparent 60%),
+					radial-gradient(70% 60% at 100% 0%, #140a2e, transparent 55%);
+				color: #f4ecff;
+				font-family: "Space Grotesk", sans-serif;
+				padding: 20px;
+			}
+			.card {
+				width: 100%;
+				max-width: 420px;
+				background: rgba(30, 16, 66, 0.5);
+				border: 1px solid rgba(168, 120, 255, 0.28);
+				border-radius: 20px;
+				padding: 28px;
+				box-shadow: 0 20px 50px rgba(10, 4, 25, 0.5);
+				backdrop-filter: blur(16px);
+			}
+			h1 {
+				font-family: "Orbitron", sans-serif;
+				font-size: 1.3rem;
+				margin: 0 0 4px;
+				background: linear-gradient(120deg, #ff3ea5, #a855f7 45%, #22d3ee);
+				-webkit-background-clip: text;
+				background-clip: text;
+				color: transparent;
+			}
+			p.sub {
+				color: #b9a9e6;
+				font-size: 0.85rem;
+				margin: 0 0 18px;
+				font-family: "Inconsolata", monospace;
+			}
+			label {
+				display: block;
+				font-size: 0.72rem;
+				color: #b9a9e6;
+				margin: 14px 0 6px;
+				text-transform: uppercase;
+				letter-spacing: 1.2px;
+				font-family: "Inconsolata", monospace;
+			}
+			input {
+				width: 100%;
+				padding: 12px 14px;
+				background: rgba(43, 25, 86, 0.55);
+				border: 1px solid rgba(168, 120, 255, 0.22);
+				border-radius: 10px;
+				color: #f4ecff;
+				font-family: inherit;
+				font-size: 1rem;
+			}
+			input:focus {
+				outline: none;
+				border-color: #22d3ee;
+			}
+			button {
+				width: 100%;
+				margin-top: 18px;
+				padding: 13px 16px;
+				border: none;
+				border-radius: 12px;
+				font-family: inherit;
+				font-size: 0.98rem;
+				font-weight: 600;
+				cursor: pointer;
+				background: linear-gradient(120deg, #ff3ea5, #a855f7 45%, #22d3ee);
+				color: #0a0616;
+			}
+			button:disabled {
+				opacity: 0.45;
+				cursor: not-allowed;
+			}
+			.err {
+				color: #ff3ea5;
+				font-size: 0.85rem;
+				min-height: 1.2em;
+				margin-top: 10px;
+			}
+			.ok {
+				color: #37e0a0;
+				font-size: 0.95rem;
+				margin-top: 10px;
+			}
+			a {
+				color: #22d3ee;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="card">
+			<h1>Reset your password</h1>
+			<p class="sub">Byler Cowrite</p>
+			<div id="form">
+				<label for="pw">New password (min 4 characters)</label>
+				<input id="pw" type="password" minlength="4" autocomplete="new-password" />
+				<label for="pw2">Repeat new password</label>
+				<input id="pw2" type="password" minlength="4" autocomplete="new-password" />
+				<button id="go">Set new password</button>
+				<div class="err" id="err"></div>
+			</div>
+			<div id="done" style="display: none">
+				<p class="ok">Password updated! You've been signed out everywhere.</p>
+				<p><a href="/">← Back to Byler Cowrite to log in</a></p>
+			</div>
+		</div>
+		<script>
+			const $ = (id) => document.getElementById(id)
+			const token = new URLSearchParams(location.search).get("token")
+			if (!token) $("err").textContent = "This reset link is missing its token — use the link from your email."
+			$("go").onclick = async () => {
+				const pw = $("pw").value
+				if (pw.length < 4) return ($("err").textContent = "Password must be at least 4 characters.")
+				if (pw !== $("pw2").value) return ($("err").textContent = "Passwords don't match.")
+				$("go").disabled = true
+				try {
+					const r = await fetch("/api/reset", {
+						method: "POST",
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify({ token, password: pw }),
+					})
+					const d = await r.json()
+					if (!r.ok) throw new Error(d.error || "Reset failed.")
+					$("form").style.display = "none"
+					$("done").style.display = "block"
+				} catch (e) {
+					$("err").textContent = e.message
+					$("go").disabled = false
+				}
+			}
+			;["pw", "pw2"].forEach((id) =>
+				$(id).addEventListener("keydown", (e) => {
+					if (e.key === "Enter") $("go").click()
+				}),
+			)
+		</script>
+	</body>
+</html>

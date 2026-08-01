@@ -1168,6 +1168,76 @@
 				min-width: auto;
 				padding: 12px 18px;
 			}
+			/* ---------- Account / auth ---------- */
+			.auth-tabs {
+				display: flex;
+				gap: 6px;
+				margin-bottom: 2px;
+			}
+			.auth-tabs button {
+				flex: 1;
+				min-width: 0;
+				padding: 9px 10px;
+				font-size: 0.85rem;
+			}
+			.auth-tabs button.sel {
+				border-color: var(--accent-2);
+				color: var(--ink);
+			}
+			.badge-chip {
+				font-family: var(--font-mono);
+				font-size: 0.68rem;
+				background: var(--chip);
+				border: 1px solid var(--chip-brd);
+				color: var(--accent);
+				border-radius: 20px;
+				padding: 2px 8px;
+				letter-spacing: 0.5px;
+				white-space: nowrap;
+			}
+			.me-row {
+				display: flex;
+				align-items: center;
+				gap: 10px;
+				flex-wrap: wrap;
+			}
+			.me-row .me-name {
+				font-weight: 700;
+				font-size: 1.15rem;
+			}
+			.me-row button {
+				margin-left: auto;
+				flex: 0 0 auto;
+				min-width: 0;
+				padding: 8px 12px;
+				font-size: 0.8rem;
+			}
+			.me-games {
+				display: flex;
+				gap: 6px;
+				flex-wrap: wrap;
+				margin-top: 8px;
+			}
+			.me-games button {
+				flex: 0 0 auto;
+				min-width: 0;
+				padding: 6px 10px;
+				font-family: var(--font-mono);
+				font-size: 0.8rem;
+			}
+			.swatches.locked {
+				pointer-events: none;
+				opacity: 0.6;
+			}
+			ul.roster .badge-chip,
+			.chat-log .badge-chip {
+				font-size: 0.6rem;
+				padding: 1px 6px;
+			}
+			.chat-log .badge-chip {
+				margin-right: 6px;
+			}
+
 			h3 {
 				font-family: var(--font-display);
 				margin: 0 0 12px;
@@ -1256,6 +1326,53 @@
 			<div class="main">
 					<!-- LOBBY -->
 					<div id="lobby" class="card">
+						<!-- signed OUT: login / signup / forgot-password -->
+						<div id="authOut">
+							<div class="auth-tabs">
+								<button class="ghost sel" data-auth-tab="login">Log in</button>
+								<button class="ghost" data-auth-tab="signup">Sign up</button>
+								<button class="ghost" data-auth-tab="forgot">Forgot?</button>
+							</div>
+							<div data-auth-pane="login">
+								<label for="liUser">Username or email</label>
+								<input id="liUser" autocomplete="username" />
+								<label for="liPass">Password</label>
+								<input id="liPass" type="password" autocomplete="current-password" />
+								<div class="row"><button class="primary" id="liBtn">Log in</button></div>
+							</div>
+							<div data-auth-pane="signup" class="hidden">
+								<label for="suEmail">Email</label>
+								<input id="suEmail" type="email" autocomplete="email" />
+								<label for="suUser">Username (min 4 characters)</label>
+								<input id="suUser" maxlength="24" autocomplete="username" />
+								<label for="suPass">Password (min 4 characters)</label>
+								<input id="suPass" type="password" autocomplete="new-password" />
+								<div class="row"><button class="primary" id="suBtn">Create account</button></div>
+							</div>
+							<div data-auth-pane="forgot" class="hidden">
+								<label for="fgEmail">Your email</label>
+								<input id="fgEmail" type="email" autocomplete="email" />
+								<div class="row"><button class="ghost" id="fgFind">Find my account</button></div>
+								<div id="fgResult" class="hidden">
+									<p class="subtle" style="margin-top: 14px">Your username is <b id="fgUser"></b></p>
+									<div class="row"><button class="primary" id="fgSend">Send reset link</button></div>
+								</div>
+							</div>
+							<div class="err" id="authErr"></div>
+							<div class="divider">— OR PLAY AS GUEST —</div>
+						</div>
+						<!-- signed IN: profile, badges, past games -->
+						<div id="authIn" class="hidden">
+							<div class="me-row">
+								<span class="me-name" id="meName"></span>
+								<span class="badge-chip" id="meBadge"></span>
+								<button class="ghost" id="logoutBtn">Log out</button>
+							</div>
+							<p class="subtle" id="meStats" style="text-align: left; margin: 8px 0 0"></p>
+							<div class="me-games" id="meGames"></div>
+							<div class="divider">— PLAY —</div>
+						</div>
+
 						<label for="name">Your name</label>
 						<input id="name" placeholder="e.g. willthewise" maxlength="24" />
 						<label>Your color</label>
@@ -1419,6 +1536,143 @@
 				}
 			}
 
+			// ---- Account / auth ----
+			let authToken = localStorage.getItem("cowriteAuth") || null
+			let me = null
+			async function authApi(path, body, method = "POST") {
+				const r = await fetch(path, {
+					method,
+					headers: {
+						"Content-Type": "application/json",
+						...(authToken ? { Authorization: "Bearer " + authToken } : {}),
+					},
+					body: body ? JSON.stringify(body) : undefined,
+				})
+				const d = await r.json().catch(() => ({}))
+				if (!r.ok) throw new Error(d.error || "Something went wrong.")
+				return d
+			}
+			function setMe(user, token) {
+				me = user
+				if (token) {
+					authToken = token
+					try {
+						localStorage.setItem("cowriteAuth", token)
+					} catch (e) {}
+				}
+				renderAuth()
+			}
+			function clearMe() {
+				me = null
+				authToken = null
+				try {
+					localStorage.removeItem("cowriteAuth")
+				} catch (e) {}
+				renderAuth()
+			}
+			function renderAuth() {
+				$("authOut").classList.toggle("hidden", !!me)
+				$("authIn").classList.toggle("hidden", !me)
+				$("authErr").textContent = ""
+				const nameInput = $("name"),
+					swatches = $("swatches")
+				if (me) {
+					$("meName").textContent = me.username
+					$("meName").style.color = safeColor(me.color)
+					$("meBadge").textContent = me.currentBadge || "no badge yet"
+					$("meStats").textContent =
+						`${me.wordCount} words written · ${me.badges.length} badge${me.badges.length === 1 ? "" : "s"}` +
+						(me.nextBadge
+							? ` · ${me.nextBadge.min - me.wordCount} word${me.nextBadge.min - me.wordCount === 1 ? "" : "s"} to ${me.nextBadge.name}`
+							: "")
+					const gamesBox = $("meGames")
+					gamesBox.innerHTML = ""
+					;(me.games || []).forEach((code) => {
+						const b = document.createElement("button")
+						b.className = "ghost"
+						b.textContent = "📖 " + code
+						b.onclick = () => window.showArchivedGame?.(code)
+						gamesBox.appendChild(b)
+					})
+					// account identity drives the game identity
+					nameInput.value = me.username
+					nameInput.disabled = true
+					myColor = safeColor(me.color)
+					document.querySelectorAll(".swatch").forEach((x) => x.classList.toggle("sel", x.dataset.color === myColor))
+					swatches.classList.add("locked")
+				} else {
+					nameInput.disabled = false
+					swatches.classList.remove("locked")
+				}
+			}
+			document.querySelectorAll("[data-auth-tab]").forEach((b) => {
+				b.onclick = () => {
+					document.querySelectorAll("[data-auth-tab]").forEach((x) => x.classList.toggle("sel", x === b))
+					document
+						.querySelectorAll("[data-auth-pane]")
+						.forEach((p) => p.classList.toggle("hidden", p.dataset.authPane !== b.dataset.authTab))
+					$("authErr").textContent = ""
+				}
+			})
+			$("liBtn").onclick = async () => {
+				try {
+					const d = await authApi("/api/login", { user: $("liUser").value.trim(), password: $("liPass").value })
+					setMe(d.user, d.token)
+				} catch (e) {
+					$("authErr").textContent = e.message
+				}
+			}
+			$("suBtn").onclick = async () => {
+				try {
+					const d = await authApi("/api/signup", {
+						email: $("suEmail").value.trim(),
+						username: $("suUser").value.trim(),
+						password: $("suPass").value,
+						color: myColor,
+					})
+					setMe(d.user, d.token)
+				} catch (e) {
+					$("authErr").textContent = e.message
+				}
+			}
+			// Forgot password: email -> show the account's username + a
+			// "Send reset link" button (the link goes to their email).
+			$("fgFind").onclick = async () => {
+				try {
+					const d = await authApi("/api/forgot", { email: $("fgEmail").value.trim() })
+					$("fgUser").textContent = d.username
+					$("fgSend").textContent = "Send reset link"
+					$("fgSend").disabled = false
+					show("fgResult")
+					$("authErr").textContent = ""
+				} catch (e) {
+					hide("fgResult")
+					$("authErr").textContent = e.message
+				}
+			}
+			$("fgSend").onclick = async () => {
+				try {
+					await authApi("/api/send-reset", { email: $("fgEmail").value.trim() })
+					$("fgSend").textContent = "Link sent — check your email"
+					$("fgSend").disabled = true
+				} catch (e) {
+					$("authErr").textContent = e.message
+				}
+			}
+			$("logoutBtn").onclick = async () => {
+				try {
+					await authApi("/api/logout")
+				} catch (e) {}
+				clearMe()
+			}
+			function refreshMe() {
+				if (!authToken) return
+				authApi("/api/me", null, "GET")
+					.then((d) => setMe(d.user))
+					.catch(() => clearMe())
+			}
+			refreshMe()
+
 			// ---- Color picker ----
 			const sw = $("swatches")
 			PALETTE.forEach((c, i) => {
@@ -1473,14 +1727,14 @@
 
 			// ---- Lobby ----
 			$("createBtn").onclick = () =>
-				socket.emit("create-session", { name: $("name").value.trim(), color: myColor }, (res) => {
+				socket.emit("create-session", { name: $("name").value.trim(), color: myColor, auth: authToken }, (res) => {
 					if (!res?.ok) return ($("lobbyErr").textContent = res?.error || "Error")
 					enterSession(res)
 				})
 			$("joinBtn").onclick = () => {
 				const code = $("code").value.trim().toUpperCase()
 				if (code.length !== 4) return ($("lobbyErr").textContent = "Enter a 4-letter code.")
-				socket.emit("join-session", { name: $("name").value.trim(), color: myColor, code }, (res) => {
+				socket.emit("join-session", { name: $("name").value.trim(), color: myColor, code, auth: authToken }, (res) => {
 					if (!res?.ok) return ($("lobbyErr").textContent = res?.error || "Error")
 					enterSession(res)
 				})
@@ -1517,6 +1771,7 @@
 					li.innerHTML =
 						`<span class="dot" style="background:${col};box-shadow:0 0 8px ${col}"></span>` +
 						`<span class="rname" style="color:${col}">${esc(w.name)}</span>` +
+						`${w.badge ? `<span class="badge-chip">${esc(w.badge)}</span>` : ""}` +
 						`${w.connected === false ? '<span class="badge">away</span>' : w.isHost ? '<span class="badge">host</span>' : ""}`
 					list.appendChild(li)
 				}
@@ -1739,6 +1994,7 @@
 				renderStory($("overStory"), story, false)
 				buildExports(prompt, story)
 				updateHostView()
+				refreshMe() // word count / badges / games list may have changed
 			})
 			$("continueBtn").onclick = () =>
 				socket.emit("continue-writing", { turnSeconds: $("contSecs").value, rounds: $("contRounds").value }, (res) => {
@@ -1805,7 +2061,10 @@
 				const col = safeColor(m.color)
 				const p = document.createElement("p")
 				p.className = m.sys ? "msg sys" : "msg"
-				p.innerHTML = `<span class="cn" style="color:${col}">${esc(m.name)}</span>${esc(m.text)}`
+				p.innerHTML =
+					`<span class="cn" style="color:${col}">${esc(m.name)}</span>` +
+					`${m.badge && !m.sys ? `<span class="badge-chip">${esc(m.badge)}</span>` : ""}` +
+					esc(m.text)
 				log.appendChild(p)
 				log.scrollTop = log.scrollHeight
 				if ($("chatCard").classList.contains("collapsed")) {
@@ -2144,6 +2403,11 @@
 					closeNav()
 					if (archiveOpen) closeArchive()
 				})
+				// Profile "past games" chips jump straight to a game's archive detail.
+				window.showArchivedGame = function (code) {
+					if (!archiveOpen) openArchive()
+					openGameDetail(code)
+				}
 				document.getElementById("archiveBack").addEventListener("click", function () {
 					var det = document.getElementById("archiveDetail")
 					if (!det.classList.contains("hidden")) showArchiveList()
