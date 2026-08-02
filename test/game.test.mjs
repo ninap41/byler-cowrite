@@ -57,6 +57,26 @@ test("full round: vote -> lines -> game over; badge + word credit; sanitize", as
   assert.ok(me.data.user.games.includes(code));
 });
 
+test("sanitizer: block formats and alignment classes survive, everything else stays inert", async () => {
+  const { A, B, state } = await startedGame(ctx, { rounds: 1 });
+  const cur = state.current.currentId === A.id ? A : B;
+  await ctx.emit(cur, "submit-line", {
+    text:
+      '<h2>Chapter</h2><p class="al-c">centered</p><hr><p class="al-r">right</p>' +
+      '<p class="al-x">evil class</p><h1 onclick="x()">attr</h1><img src=x onerror=alert(1)>done',
+  });
+  await ctx.wait(150);
+  const html = state.current.story[0].html;
+  assert.ok(html.includes("<h2>Chapter</h2>"), "h2 allowed");
+  assert.ok(html.includes('<p class="al-c">centered</p>'), "center alignment allowed");
+  assert.ok(html.includes("<hr>"), "hr allowed");
+  assert.ok(html.includes('<p class="al-r">right</p>'), "right alignment allowed");
+  assert.ok(!html.includes('class="al-x"'), "unknown class escaped");
+  assert.ok(!html.includes("<h1 "), "attribute-bearing heading escaped");
+  assert.ok(!html.includes("<img"), "img stays escaped");
+  assert.ok(html.includes("&lt;img"), "img visible as inert text");
+});
+
 test("submit-line rejected when not your turn; rules host-only", async () => {
   const { A, B, state } = await startedGame(ctx);
   const notCurrent = state.current.currentId === A.id ? B : A;

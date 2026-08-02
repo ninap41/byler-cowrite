@@ -18,14 +18,16 @@ const PALETTE = ["#e63946", "#6c8cff", "#3ddc84", "#f4a261", "#e879c9", "#38bdf8
 const cleanColor = (c) => (PALETTE.includes(c) ? c : PALETTE[Math.floor(Math.random() * PALETTE.length)]);
 
 // Rich-text sanitizer (the trust boundary): escape everything, then re-enable a
-// tiny allowlist of formatting tags with no attributes. Anything else stays escaped.
+// tiny allowlist — inline formatting, block formats (h1-h3/p/hr), and exactly
+// two alignment classes on blocks. No other attribute ever survives.
 function sanitizeRich(html) {
-  let out = String(html).slice(0, 4000)
+  let out = String(html).slice(0, 8000)
     .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
   out = out
-    .replace(/&lt;(\/?)(b|i|u|strong|em)&gt;/g, "<$1$2>")
-    .replace(/&lt;br\s*\/?&gt;/g, "<br>");
+    .replace(/&lt;(\/?)(b|i|u|strong|em|h1|h2|h3|p)&gt;/g, "<$1$2>")
+    .replace(/&lt;(h1|h2|h3|p) class=&quot;al-(c|r)&quot;&gt;/g, '<$1 class="al-$2">')
+    .replace(/&lt;(br|hr)\s*\/?&gt;/g, "<$1>");
   return out;
 }
 const stripTags = (html) => html.replace(/<[^>]+>/g, "").replace(/&[a-z#0-9]+;/gi, " ").trim();

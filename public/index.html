@@ -1269,6 +1269,38 @@
 				display: flex;
 				gap: 6px;
 				margin-top: 12px;
+				flex-wrap: wrap;
+			}
+			.toolbar select {
+				flex: 0 0 auto;
+				padding: 8px 10px;
+				border-radius: 12px;
+				background: var(--panel-2);
+				color: var(--ink);
+				border: 1px solid var(--line);
+				font-family: inherit;
+				font-size: 0.9rem;
+				cursor: pointer;
+			}
+			/* rich block formats (story, editor, live preview, archive) */
+			.story h1, .editor h1, .live h1 { font-size: 1.55em; line-height: 1.25; margin: 0.35em 0 0.25em; }
+			.story h2, .editor h2, .live h2 { font-size: 1.3em; line-height: 1.3; margin: 0.35em 0 0.2em; }
+			.story h3, .editor h3, .live h3 { font-size: 1.12em; line-height: 1.3; margin: 0.3em 0 0.15em; }
+			.story hr, .editor hr, .live hr {
+				border: 0;
+				border-top: 1px solid var(--line);
+				margin: 0.8em 0;
+			}
+			.story .al-c, .editor .al-c, .live .al-c { text-align: center; }
+			.story .al-r, .editor .al-r, .live .al-r { text-align: right; }
+			.story-line {
+				margin: 0 0 0.7em;
+			}
+			.story-line:last-child {
+				margin-bottom: 0;
+			}
+			.story-line p {
+				margin: 0 0 0.4em;
 			}
 			.toolbar button {
 				flex: 0 0 auto;
@@ -1287,7 +1319,9 @@
 			}
 			.editor {
 				width: 100%;
-				min-height: 90px;
+				min-height: 170px;
+				max-height: 46vh;
+				resize: vertical;
 				margin-top: 8px;
 				padding: 16px;
 				overflow-y: auto;
@@ -1903,9 +1937,19 @@
 					</div>
 					<div id="myTurn" class="hidden">
 						<div class="toolbar">
+							<select id="blockFormat" class="ghost" title="Paragraph style">
+								<option value="p">Paragraph</option>
+								<option value="h1">Heading 1</option>
+								<option value="h2">Heading 2</option>
+								<option value="h3">Heading 3</option>
+							</select>
 							<button class="ghost tb-b" data-cmd="bold" title="Bold">B</button>
 							<button class="ghost tb-i" data-cmd="italic" title="Italic">I</button>
 							<button class="ghost tb-u" data-cmd="underline" title="Underline">U</button>
+							<button class="ghost" data-cmd="justifyLeft" title="Align left">⇤</button>
+							<button class="ghost" data-cmd="justifyCenter" title="Align center">↔</button>
+							<button class="ghost" data-cmd="justifyRight" title="Align right">⇥</button>
+							<button class="ghost" data-cmd="insertHorizontalRule" title="Horizontal rule">―</button>
 						</div>
 						<div class="editor" id="writerEditor" contenteditable="true" data-placeholder="Add the next line…"></div>
 						<div class="hint">
@@ -2720,7 +2764,7 @@
 					.map((l, i) => {
 						const col = safeColor(l.color)
 						// l.html is already sanitized server-side — safe to inject.
-						return `<p class="${animateNew && i >= lastStoryLen ? "fresh" : ""}">${statusDot(l.name)}${whoMarks(l)}<span class="who" style="color:${col}">${esc(l.name)}</span>${l.html || ""}</p>`
+						return `<div class="story-line ${animateNew && i >= lastStoryLen ? "fresh" : ""}">${statusDot(l.name)}${whoMarks(l)}<span class="who" style="color:${col}">${esc(l.name)}</span>${l.html || ""}</div>`
 					})
 					.join("")
 				refreshStatusDots()
@@ -2750,9 +2794,15 @@
 				tickInterval = setInterval(tick, 250)
 			}
 
-			// Convert the contenteditable into a safe minimal HTML subset.
+			// Convert the contenteditable into the safe subset the server re-enables:
+			// b/i/u inline, h1-h3/p blocks (alignment as al-c / al-r classes), br, hr.
 			function cleanHtml(el) {
-				const map = { B: "b", STRONG: "b", I: "i", EM: "i", U: "u" }
+				const inline = { B: "b", STRONG: "b", I: "i", EM: "i", U: "u" }
+				const blocks = { H1: "h1", H2: "h2", H3: "h3", P: "p", DIV: "p" }
+				const alignCls = (n) => {
+					const a = (n.style && n.style.textAlign) || n.getAttribute?.("align") || ""
+					return a === "center" ? ' class="al-c"' : a === "right" ? ' class="al-r"' : ""
+				}
 				const walk = (node) => {
 					let out = ""
 					node.childNodes.forEach((n) => {
@@ -2761,10 +2811,11 @@
 						} else if (n.nodeType === 1) {
 							const tag = n.nodeName
 							if (tag === "BR") out += "<br>"
-							else if (map[tag]) out += `<${map[tag]}>` + walk(n) + `</${map[tag]}>`
-							else if (tag === "DIV" || tag === "P") {
-								if (out && !out.endsWith("<br>")) out += "<br>"
-								out += walk(n)
+							else if (tag === "HR") out += "<hr>"
+							else if (inline[tag]) out += `<${inline[tag]}>` + walk(n) + `</${inline[tag]}>`
+							else if (blocks[tag]) {
+								const inner = walk(n)
+								if (inner.trim() || inner.includes("<hr>")) out += `<${blocks[tag]}${alignCls(n)}>` + inner + `</${blocks[tag]}>`
 							} else out += walk(n)
 						}
 					})
@@ -2786,7 +2837,25 @@
 					e.preventDefault()
 					document.execCommand(b.dataset.cmd, false, null)
 					$("writerEditor").focus()
+					$("writerEditor").dispatchEvent(new Event("input")) // hr/align count as typing
 				})
+			})
+			$("blockFormat").addEventListener("change", () => {
+				document.execCommand("formatBlock", false, "<" + $("blockFormat").value + ">")
+				$("writerEditor").focus()
+				$("writerEditor").dispatchEvent(new Event("input"))
+			})
+			// keep the dropdown in sync with wherever the caret sits
+			document.addEventListener("selectionchange", () => {
+				const sel = document.getSelection()
+				if (!sel || !sel.anchorNode || !$("writerEditor").contains(sel.anchorNode)) return
+				let n = sel.anchorNode
+				while (n && n !== $("writerEditor")) {
+					const t = n.nodeName
+					if (t === "H1" || t === "H2" || t === "H3") return ($("blockFormat").value = t.toLowerCase())
+					n = n.parentNode
+				}
+				$("blockFormat").value = "p"
 			})
 			$("writerEditor").addEventListener("keydown", (e) => {
 				if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
@@ -2847,8 +2916,11 @@
 			// Build both a formatted-HTML and a plain-text version of the story —
 			// prose only, with formatting preserved and NO usernames.
 			function buildExports(prompt, story) {
-				const body = story.map((l) => `<p>${l.html || ""}</p>`).join("\n")
-				window._html = `<h3><em>${esc(prompt)}</em></h3>\n${body}`
+				// block-formatted lines stand on their own; inline-only lines get a <p>
+				const body = story
+					.map((l) => (/^<(h1|h2|h3|p|hr)[ >]/.test(l.html || "") ? l.html : `<p>${l.html || ""}</p>`))
+					.join("\n")
+				window._html = `<h3 class="prompt"><em>${esc(prompt)}</em></h3>\n${body}`
 				const tmp = document.createElement("div")
 				window._plain =
 					`${prompt}\n\n` +
@@ -2885,7 +2957,9 @@
 					`<!doctype html><html><head><meta charset="utf-8"><title>Byler Cowrite</title>` +
 					`<style>body{font-family:Georgia,'Times New Roman',serif;max-width:640px;margin:48px auto;` +
 					`padding:0 20px;line-height:1.75;font-size:18px;color:#1a1a1a}` +
-					`h3{font-style:italic;color:#666;font-weight:normal;margin-bottom:1.5em}p{margin:0 0 1em}</style>` +
+					`h3.prompt{font-style:italic;color:#666;font-weight:normal;margin-bottom:1.5em}p{margin:0 0 1em}` +
+					`h1{font-size:1.6em}h2{font-size:1.35em}h3:not(.prompt){font-size:1.15em}` +
+					`hr{border:0;border-top:1px solid #ccc;margin:1.4em 0}.al-c{text-align:center}.al-r{text-align:right}</style>` +
 					`</head><body>${window._html || ""}</body></html>`
 				const blob = new Blob([doc], { type: "text/html" })
 				const a = document.createElement("a")
@@ -3513,7 +3587,7 @@
 					var box = document.getElementById(id)
 					if (!box) return
 					new MutationObserver(function () {
-						box.querySelectorAll("p.fresh").forEach(function (p) {
+						box.querySelectorAll(".fresh").forEach(function (p) {
 							if (p.dataset.animd) return
 							p.dataset.animd = "1"
 							gsap.fromTo(
