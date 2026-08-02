@@ -97,6 +97,24 @@ const publicUser = (u) => ({
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// Logged-in dashboard: who's online + games currently running.
+app.get("/api/dashboard", (req, res) => {
+  const u = authedUser(req);
+  if (!u) return res.status(401).json({ error: "Sign in first." });
+  const ids = new Set(onlineSockets.values());
+  const onlineUsers = store.users
+    .filter((x) => ids.has(x.id))
+    .map((x) => ({ username: x.username, color: x.color, badge: badgeName(x.currentBadge), me: x.id === u.id }));
+  const liveGames = [...sessions.values()]
+    .filter((g) => g.phase !== "over")
+    .map((g) => ({
+      code: g.code, name: g.name || "", phase: g.phase,
+      hostName: g.writers.get(g.hostId)?.name ?? g.hostName ?? null,
+      players: [...g.writers.values()].map((w) => ({ name: w.name, connected: w.connected !== false })),
+    }));
+  res.json({ onlineUsers, liveGames });
+});
+
 app.post("/api/signup", (req, res) => {
   const { email, username, password, color } = req.body || {};
   const em = String(email || "").toLowerCase().trim();
@@ -253,6 +271,7 @@ app.post("/api/reset", (req, res) => {
 });
 
 const sessions = new Map(); // code -> session (in-memory; fine for a party game)
+const onlineSockets = new Map(); // socket.id -> userId (signed-in presence for the dashboard)
 
 // ---- Previous-games archive (read-only, backed by saves/*.json snapshots) ----
 // No database on purpose: saveSnapshot() already persists every paused/finished
@@ -358,7 +377,7 @@ function loadSession(code) {
     turnSeconds: d.turnSeconds || 60, deadline: 0,
     paused: phase === "writing", remaining: d.remaining || (d.turnSeconds || 60) * 1000,
     timer: null, chat: d.chat || [], lastTyping: "",
-    name: d.name || "", pending: new Map(),
+    name: d.name || "", pending: new Map(), denied: new Map(),
     gated: true, // a continued game: the host must approve each re-entry
     hostName: d.hostName ?? null, hostUserId: d.hostUserId ?? null,
   };
@@ -373,6 +392,15 @@ const MAX_OPTIONS = 8;
 // Disconnected writers linger as reclaimable "ghosts" this long. The client
 // holds {code, token} in localStorage and rejoins via `rejoin-session`.
 const GHOST_MS = 90_000;
+// A denied join request can't retry for this long (anti-spam).
+const DENY_COOLDOWN_MS = 5 * 60_000;
+const denyKeyFor = (sock, userId) => userId ?? sock.handshake.address;
+function checkDenied(s, key) {
+  const until = s.denied?.get(key);
+  if (!until || until <= Date.now()) return null;
+  const min = Math.ceil((until - Date.now()) / 60_000);
+  return `The host turned you away — you can ask again in ${min} minute${min === 1 ? "" : "s"}.`;
+}
 
 const connectedCount = (s) => [...s.writers.values()].filter((w) => w.connected).length;
 
@@ -668,7 +696,10 @@ function gateOrSeat(sock, s, oldId, w, ack) {
   const hostConnected = io.sockets.sockets.has(s.hostId) && s.writers.get(s.hostId)?.connected;
   const isTrueHost = w.token === s.hostToken;
   if (s.gated && !w.approved && !isTrueHost && hostConnected) {
-    s.pending.set(sock.id, { name: w.name, color: w.color, seatOldId: oldId });
+    const key = denyKeyFor(sock, w.userId);
+    const coolMsg = checkDenied(s, key);
+    if (coolMsg) return ack?.({ ok: false, error: coolMsg });
+    s.pending.set(sock.id, { name: w.name, color: w.color, seatOldId: oldId, key });
     sock.data.pendingCode = s.code;
     io.sockets.sockets.get(s.hostId)?.emit("join-request", { id: sock.id, name: w.name, returning: true });
     return ack?.({ ok: true, pending: true });
@@ -693,6 +724,7 @@ io.on("connection", (socket) => {
       story: [], prompt: "", options: [], votes: new Map(),
       turnSeconds: 60, deadline: 0, paused: false, remaining: 0, timer: null, chat: [], lastTyping: "",
       pending: new Map(), // join requests awaiting host approval
+      denied: new Map(), // denyKey -> retry-after timestamp (5-min cooldown)
     };
     sessions.set(code, s);
     socket.data.joinedCode = code;
@@ -722,7 +754,10 @@ io.on("connection", (socket) => {
       if (!hostSock)
         return ack?.({ ok: false, error: "This game has already started and its host isn't here to let you in." });
       const reqName = String(name || "").trim().slice(0, 24) || "Writer";
-      s.pending.set(socket.id, { name: reqName, color, auth });
+      const key = denyKeyFor(socket, userByToken(auth)?.id);
+      const coolMsg = checkDenied(s, key);
+      if (coolMsg) return ack?.({ ok: false, error: coolMsg });
+      s.pending.set(socket.id, { name: reqName, color, auth, key });
       socket.data.pendingCode = code;
       hostSock.emit("join-request", { id: socket.id, name: reqName });
       return ack?.({ ok: true, pending: true });
@@ -747,6 +782,7 @@ io.on("connection", (socket) => {
     if (!target) return ack?.({ ok: false, error: "They already left." });
     delete target.data.pendingCode;
     if (!allow) {
+      if (req.key) s.denied.set(req.key, Date.now() + DENY_COOLDOWN_MS);
       target.emit("join-denied");
       return ack?.({ ok: true });
     }
@@ -966,7 +1002,15 @@ io.on("connection", (socket) => {
     io.to(s.code).emit("chat", msg);
   });
 
+  // Presence for the dashboard: bind/unbind this socket to an account.
+  socket.on("identify", ({ auth }) => {
+    const u = userByToken(auth);
+    if (u) onlineSockets.set(socket.id, u.id);
+    else onlineSockets.delete(socket.id);
+  });
+
   socket.on("disconnect", () => {
+    onlineSockets.delete(socket.id);
     const p = sessions.get(socket.data.pendingCode);
     if (p && p.pending.delete(socket.id))
       io.sockets.sockets.get(p.hostId)?.emit("join-request-cancel", { id: socket.id });

@@ -340,6 +340,94 @@
 				background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 			}
 
+			/* ---------- Hero landing ---------- */
+			.hero {
+				position: fixed;
+				inset: 0;
+				z-index: 80;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				background: var(--bg);
+				background-image: var(--grad-hero);
+				text-align: center;
+				padding: 20px;
+			}
+			.hero.hidden {
+				display: none;
+			}
+			.hero-inner {
+				max-width: 900px;
+			}
+			.hero-title {
+				font-family: var(--font-display);
+				font-weight: 900;
+				font-size: clamp(3rem, 11vw, 7.5rem);
+				line-height: 1.05;
+				margin: 0 0 18px;
+				background: var(--grad-1);
+				-webkit-background-clip: text;
+				background-clip: text;
+				color: transparent;
+				filter: drop-shadow(0 6px 30px var(--glow));
+			}
+			.hero-title .hero-word {
+				display: inline-block;
+				white-space: nowrap;
+			}
+			.hero-title .hero-char {
+				display: inline-block;
+			}
+			.hero-tag {
+				color: var(--muted);
+				font-family: var(--font-mono);
+				font-size: clamp(0.85rem, 2vw, 1.05rem);
+				margin: 0 0 34px;
+			}
+			.hero-btns {
+				display: flex;
+				justify-content: center;
+			}
+			.hero-btns button {
+				flex: none;
+				min-width: 220px;
+				font-size: 1.1rem;
+				padding: 16px 34px;
+			}
+
+			/* ---------- Dashboard (logged in) ---------- */
+			.live-game {
+				display: flex;
+				align-items: center;
+				gap: 10px;
+				border: 1px solid var(--line);
+				border-radius: 12px;
+				padding: 10px 12px;
+				margin-bottom: 8px;
+				background: var(--panel-2);
+			}
+			.live-game .lg-info {
+				flex: 1;
+				min-width: 0;
+				font-size: 0.86rem;
+				text-align: left;
+			}
+			.live-game .lg-sub {
+				display: block;
+				color: var(--muted);
+				font-family: var(--font-mono);
+				font-size: 0.7rem;
+				margin-top: 2px;
+			}
+			.live-game button {
+				flex: none;
+				min-width: 0;
+				padding: 8px 16px;
+			}
+			.dash-h {
+				margin: 18px 0 8px !important;
+			}
+
 			/* ---------- Top bar: signed-in user chip + theme switcher ---------- */
 			.topbar {
 				position: fixed;
@@ -1472,6 +1560,17 @@
 			</div>
 		</div>
 
+		<!-- HERO LANDING -->
+		<div class="hero" id="hero">
+			<div class="hero-inner">
+				<h1 class="hero-title" id="heroTitle">Byler Cowrite</h1>
+				<p class="hero-tag" id="heroTag">One story. One line at a time. One ticking clock.</p>
+				<div class="hero-btns" id="heroBtns">
+					<button class="primary" id="heroEnter">Enter →</button>
+				</div>
+			</div>
+		</div>
+
 		<div class="join-reqs" id="joinReqs"></div>
 
 		<div class="topbar">
@@ -1577,7 +1676,15 @@
 						</div>
 						<div class="err" id="meErr"></div>
 						<p class="subtle" id="meStats" style="text-align: left; margin: 8px 0 0"></p>
+						<h3 class="dash-h">Online now</h3>
+						<div class="me-games" id="dashOnline"></div>
+						<h3 class="dash-h">Games in progress</h3>
+						<div id="dashLive"></div>
+						<h3 class="dash-h">Previous games</h3>
 						<div class="me-games" id="meGames"></div>
+						<p class="subtle" style="text-align: left; margin-top: 10px">
+							<a href="#" class="linky" id="dashArchiveLink">See all previous games →</a>
+						</p>
 						<div class="divider">— PLAY —</div>
 					</div>
 
@@ -1855,6 +1962,7 @@
 						localStorage.setItem("cowriteAuth", token)
 					} catch (e) {}
 				}
+				socket.emit("identify", { auth: authToken })
 				renderAuth()
 			}
 			function clearMe() {
@@ -1863,6 +1971,7 @@
 				try {
 					localStorage.removeItem("cowriteAuth")
 				} catch (e) {}
+				socket.emit("identify", { auth: null })
 				renderAuth()
 			}
 			// Lobby step flow: choice screen -> a single auth pane OR the play box.
@@ -1952,6 +2061,7 @@
 					myColor = safeColor(me.color)
 					document.querySelectorAll(".swatch").forEach((x) => x.classList.toggle("sel", x.dataset.color === myColor))
 					showPlay()
+					loadDashboard()
 				} else {
 					nameInput.disabled = false
 					showChoice()
@@ -2058,6 +2168,58 @@
 				} else if (e.key === "Escape") closeRename()
 			})
 			$("meNameInput").addEventListener("blur", saveRename)
+			// ---- Dashboard (online users + games in progress) ----
+			async function loadDashboard() {
+				if (!me || $("lobby").classList.contains("hidden")) return
+				let d
+				try {
+					d = await authApi("/api/dashboard", null, "GET")
+				} catch (e) {
+					return
+				}
+				$("dashOnline").innerHTML =
+					d.onlineUsers
+						.map(
+							(u) =>
+								`<span class="player-chip"><span class="st-dot on" title="Online"></span>` +
+								`<span style="color:${safeColor(u.color)}">${esc(u.username)}${u.me ? " (you)" : ""}</span>` +
+								`${u.badge ? `<span class="badge-chip">${esc(u.badge)}</span>` : ""}</span>`,
+						)
+						.join("") || '<span class="subtle">Nobody online right now.</span>'
+				const box = $("dashLive")
+				if (!d.liveGames.length) {
+					box.innerHTML = '<p class="subtle" style="text-align:left;margin:0">No games running right now.</p>'
+				} else {
+					box.innerHTML = ""
+					d.liveGames.forEach((g) => {
+						const row = document.createElement("div")
+						row.className = "live-game"
+						const on = g.players.filter((pl) => pl.connected).length
+						const PHASES = { waiting: "gathering writers", choosing: "voting", writing: "writing" }
+						row.innerHTML =
+							`<span class="lg-info"><b>${esc(g.name || g.code)}</b>` +
+							`<span class="lg-sub">${esc(g.code)} · ${PHASES[g.phase] || g.phase}` +
+							`${g.hostName ? " · 👑 " + esc(g.hostName) : ""} · ${on}/${g.players.length} online · ` +
+							`${esc(g.players.map((pl) => pl.name).join(", "))}</span></span>`
+						const btn = document.createElement("button")
+						btn.className = "ghost"
+						btn.textContent = "Join"
+						btn.onclick = () => {
+							btn.textContent = "…"
+							joinByCode(g.code)
+							setTimeout(() => (btn.textContent = "Join"), 1500)
+						}
+						row.appendChild(btn)
+						box.appendChild(row)
+					})
+				}
+			}
+			setInterval(loadDashboard, 10_000)
+			$("dashArchiveLink").onclick = (e) => {
+				e.preventDefault()
+				window.showArchivedGame ? document.getElementById("navPrevGames").click() : null
+			}
+
 			function refreshMe() {
 				if (!authToken) return
 				authApi("/api/me", null, "GET")
@@ -2065,6 +2227,12 @@
 					.catch(() => clearMe())
 			}
 			refreshMe()
+
+			// ---- Hero fallback: without GSAP the Enter button just closes it ----
+			$("heroEnter").onclick = () => {
+				if (window._heroExit) window._heroExit()
+				else $("hero").classList.add("hidden")
+			}
 
 			// ---- Session bar: name (host-editable) + copyable code ----
 			let myCode = "",
@@ -2191,11 +2359,13 @@
 				} catch (e) {}
 			}
 			socket.on("connect", () => {
+				socket.emit("identify", { auth: authToken }) // dashboard presence
 				if (!rejoinInfo || !rejoinInfo.code || !rejoinInfo.token) return
 				socket.emit("rejoin-session", { ...rejoinInfo, auth: authToken }, (res) => {
 					if (!res?.ok) return clearRejoin() // dead game or expired seat: stay in lobby
 					if (res.pending)
 						return ($("lobbyErr").textContent = "This story was continued — waiting for the host to let you back in…")
+					document.getElementById("hero").classList.add("hidden") // straight back into the game
 					myId = socket.id
 					hostId = res.hostId
 					if (res.color) {
@@ -3091,6 +3261,87 @@
 					}).observe(el, { attributes: true, attributeFilter: ["class"] })
 					if (!wasHidden && id !== "lobby") enterCard(el) // lobby gets its own intro below
 				})
+
+				/* ----- Hero: split "Byler Cowrite" into chars, stagger in, revert after ----- */
+				var heroEl = document.getElementById("hero")
+				function splitChars(el) {
+					var text = el.textContent
+					el.textContent = ""
+					var chars = []
+					text.split(" ").forEach(function (word, wi) {
+						if (wi) el.appendChild(document.createTextNode(" "))
+						var w = document.createElement("span")
+						w.className = "hero-word"
+						word.split("").forEach(function (ch) {
+							var c = document.createElement("span")
+							c.className = "hero-char"
+							c.textContent = ch
+							w.appendChild(c)
+							chars.push(c)
+						})
+						el.appendChild(w)
+					})
+					return chars
+				}
+				var heroChars = null
+				if (heroEl && !heroEl.classList.contains("hidden")) {
+					heroChars = splitChars(document.getElementById("heroTitle"))
+					gsap.set(["#heroTag", "#heroBtns"], { opacity: 0, y: 16 })
+					gsap.fromTo(
+						heroChars,
+						{ yPercent: 130, opacity: 0, rotationX: -90 },
+						{
+							yPercent: 0, opacity: 1, rotationX: 0,
+							duration: 0.9, stagger: 0.045, ease: "back.out(1.6)", delay: 0.15,
+							clearProps: "transform", // revert after animation — gradient text stays crisp
+						},
+					)
+					gsap.to(["#heroTag", "#heroBtns"], {
+						opacity: 1, y: 0, duration: 0.6, stagger: 0.15, delay: 0.9, ease: "power2.out",
+						clearProps: "transform",
+					})
+				}
+				window._heroExit = function () {
+					if (heroEl.classList.contains("hidden")) return
+					// safety net: if rAF is throttled (background tab), force-hide anyway
+					setTimeout(function () {
+						heroEl.classList.add("hidden")
+						gsap.set(heroEl, { clearProps: "opacity" })
+					}, 1600)
+					var chars = heroChars || [document.getElementById("heroTitle")]
+					gsap.killTweensOf([chars, "#heroTag", "#heroBtns", heroEl])
+					gsap.to(chars, {
+						yPercent: -120,
+						opacity: 0,
+						rotationX: 90,
+						duration: 0.5,
+						stagger: { each: 0.02, from: "center" },
+						ease: "power2.in",
+					})
+					gsap.to(["#heroTag", "#heroBtns"], { opacity: 0, y: 14, duration: 0.35, ease: "power2.in" })
+					gsap.to(heroEl, {
+						opacity: 0,
+						duration: 0.5,
+						delay: 0.45,
+						ease: "power2.in",
+						onComplete: function () {
+							heroEl.classList.add("hidden")
+							gsap.set(heroEl, { clearProps: "opacity" })
+							// hand off into the lobby with its own entrance
+							if (lobbyEl && !lobbyEl.classList.contains("hidden")) {
+								gsap.fromTo(
+									lobbyEl,
+									{ y: 42, opacity: 0, scale: 0.93 },
+									{ y: 0, opacity: 1, scale: 1, duration: 0.7, ease: "power3.out", clearProps: "transform" },
+								)
+								var vis = ["authChoice", "authPanes", "authIn", "playBox"]
+									.map(function (id) { return document.getElementById(id) })
+									.find(function (el) { return el && !el.classList.contains("hidden") })
+								if (vis) lobbyStepIn(vis)
+							}
+						},
+					})
+				}
 
 				/* Lobby intro: the login/signup card pops in centered, children cascading. */
 				var lobbyEl = document.getElementById("lobby")
