@@ -41,7 +41,7 @@ app.use(express.json());
 // User accounts — JSON file store (data/users.json), no database on purpose.
 // ~100 users; every mutation just rewrites the file.
 // ---------------------------------------------------------------------------
-const DATA_DIR = join(__dirname, "data");
+const DATA_DIR = process.env.COWRITE_DATA_DIR || join(__dirname, "data");
 mkdirSync(DATA_DIR, { recursive: true });
 const USERS_PATH = join(DATA_DIR, "users.json");
 let store = { users: [], sessions: {}, resets: {} };
@@ -321,7 +321,7 @@ app.get("/api/games/:code", (req, res) => {
 
 // Paused/finished games are snapshotted to disk so they survive a server
 // restart and can be picked up later. Seats are identified by writer token.
-const SAVE_DIR = join(__dirname, "saves");
+const SAVE_DIR = process.env.COWRITE_SAVE_DIR || join(__dirname, "saves");
 mkdirSync(SAVE_DIR, { recursive: true });
 
 function saveSnapshot(s) {
