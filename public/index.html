@@ -359,24 +359,31 @@
 			.hero-inner {
 				max-width: 900px;
 			}
-			.hero-title {
-				font-family: var(--font-display);
-				font-weight: 900;
-				font-size: clamp(3rem, 11vw, 7.5rem);
-				line-height: 1.05;
-				margin: 0 0 18px;
-				background: var(--grad-1);
-				-webkit-background-clip: text;
-				background-clip: text;
-				color: transparent;
+			.hero-svg {
+				width: min(760px, 92vw);
+				overflow: visible;
+				margin: 0 0 10px;
 				filter: drop-shadow(0 6px 30px var(--glow));
 			}
-			.hero-title .hero-word {
-				display: inline-block;
-				white-space: nowrap;
+			.hero-svg .hero-word-svg {
+				font-family: var(--font-display);
+				font-weight: 900;
+				font-size: 104px;
+				letter-spacing: 3px;
+				text-anchor: middle;
+				fill: url(#heroGrad);
+				stroke: url(#heroGrad);
+				stroke-width: 1.6;
+				paint-order: stroke;
 			}
-			.hero-title .hero-char {
-				display: inline-block;
+			.hero-svg .hg1 {
+				stop-color: var(--accent);
+			}
+			.hero-svg .hg2 {
+				stop-color: var(--accent-2);
+			}
+			.hero-svg .hg3 {
+				stop-color: var(--good);
 			}
 			.hero-tag {
 				color: var(--muted);
@@ -1563,7 +1570,25 @@
 		<!-- HERO LANDING -->
 		<div class="hero" id="hero">
 			<div class="hero-inner">
-				<h1 class="hero-title" id="heroTitle">Byler Cowrite</h1>
+				<svg class="hero-svg" id="heroSvg" viewBox="0 0 900 300" aria-label="Byler Cowrite" role="img">
+					<defs>
+						<linearGradient id="heroGrad" x1="0" y1="0" x2="1" y2="0.35">
+							<stop offset="0" class="hg1"></stop>
+							<stop offset="0.55" class="hg2"></stop>
+							<stop offset="1" class="hg3"></stop>
+						</linearGradient>
+					</defs>
+					<text id="heroWord1" class="hero-word-svg" x="450" y="110">Byler</text>
+					<text id="heroWord2" class="hero-word-svg" x="450" y="230">Cowrite</text>
+					<path
+						id="heroUnderline"
+						d="M 160 268 C 320 288, 560 250, 740 266"
+						fill="none"
+						stroke="url(#heroGrad)"
+						stroke-width="5"
+						stroke-linecap="round"
+					></path>
+				</svg>
 				<p class="hero-tag" id="heroTag">One story. One line at a time. One ticking clock.</p>
 				<div class="hero-btns" id="heroBtns">
 					<button class="primary" id="heroEnter">Enter →</button>
@@ -3262,44 +3287,39 @@
 					if (!wasHidden && id !== "lobby") enterCard(el) // lobby gets its own intro below
 				})
 
-				/* ----- Hero: split "Byler Cowrite" into chars, stagger in, revert after ----- */
+				/* ----- Hero: SVG "writing" animation — the title's letter outlines
+				   draw themselves in (stroke-dashoffset), the ink fills, and a pen
+				   swoosh underlines it. Without GSAP the title just sits complete. ----- */
 				var heroEl = document.getElementById("hero")
-				function splitChars(el) {
-					var text = el.textContent
-					el.textContent = ""
-					var chars = []
-					text.split(" ").forEach(function (word, wi) {
-						if (wi) el.appendChild(document.createTextNode(" "))
-						var w = document.createElement("span")
-						w.className = "hero-word"
-						word.split("").forEach(function (ch) {
-							var c = document.createElement("span")
-							c.className = "hero-char"
-							c.textContent = ch
-							w.appendChild(c)
-							chars.push(c)
-						})
-						el.appendChild(w)
+				var HERO_DASH = 460 // longer than any glyph subpath, so every stroke draws fully
+				function heroWriteIn() {
+					var words = ["#heroWord1", "#heroWord2"]
+					var underline = document.getElementById("heroUnderline")
+					var uLen = underline.getTotalLength()
+					gsap.set(words, {
+						fillOpacity: 0,
+						strokeDasharray: HERO_DASH,
+						strokeDashoffset: HERO_DASH,
+						strokeWidth: 2.2,
 					})
-					return chars
-				}
-				var heroChars = null
-				if (heroEl && !heroEl.classList.contains("hidden")) {
-					heroChars = splitChars(document.getElementById("heroTitle"))
+					gsap.set(underline, { strokeDasharray: uLen, strokeDashoffset: uLen })
 					gsap.set(["#heroTag", "#heroBtns"], { opacity: 0, y: 16 })
-					gsap.fromTo(
-						heroChars,
-						{ yPercent: 130, opacity: 0, rotationX: -90 },
-						{
-							yPercent: 0, opacity: 1, rotationX: 0,
-							duration: 0.9, stagger: 0.045, ease: "back.out(1.6)", delay: 0.15,
-							clearProps: "transform", // revert after animation — gradient text stays crisp
-						},
-					)
-					gsap.to(["#heroTag", "#heroBtns"], {
-						opacity: 1, y: 0, duration: 0.6, stagger: 0.15, delay: 0.9, ease: "power2.out",
-						clearProps: "transform",
-					})
+					var tl = gsap.timeline({ delay: 0.2 })
+					tl.to("#heroWord1", { strokeDashoffset: 0, duration: 1.5, ease: "power1.inOut" })
+						.to("#heroWord2", { strokeDashoffset: 0, duration: 1.7, ease: "power1.inOut" }, "-=0.9")
+						.to(underline, { strokeDashoffset: 0, duration: 0.55, ease: "power2.out" }, "-=0.35")
+						.to(words, { fillOpacity: 1, strokeWidth: 1.6, duration: 0.9, ease: "power2.out" }, "-=0.25")
+						.to(
+							["#heroTag", "#heroBtns"],
+							{ opacity: 1, y: 0, duration: 0.6, stagger: 0.15, ease: "power2.out", clearProps: "transform" },
+							"-=0.5",
+						)
+					return tl
+				}
+				if (heroEl && !heroEl.classList.contains("hidden")) {
+					// wait for the display font so the strokes trace the real glyphs
+					if (document.fonts && document.fonts.ready) document.fonts.ready.then(heroWriteIn)
+					else heroWriteIn()
 				}
 				window._heroExit = function () {
 					if (heroEl.classList.contains("hidden")) return
@@ -3308,16 +3328,12 @@
 						heroEl.classList.add("hidden")
 						gsap.set(heroEl, { clearProps: "opacity" })
 					}, 1600)
-					var chars = heroChars || [document.getElementById("heroTitle")]
-					gsap.killTweensOf([chars, "#heroTag", "#heroBtns", heroEl])
-					gsap.to(chars, {
-						yPercent: -120,
-						opacity: 0,
-						rotationX: 90,
-						duration: 0.5,
-						stagger: { each: 0.02, from: "center" },
-						ease: "power2.in",
-					})
+					var words = ["#heroWord1", "#heroWord2"]
+					var underline = document.getElementById("heroUnderline")
+					gsap.killTweensOf([words, underline, "#heroTag", "#heroBtns", heroEl])
+					gsap.to(underline, { strokeDashoffset: underline.getTotalLength(), duration: 0.35, ease: "power2.in" })
+					gsap.to(words, { fillOpacity: 0, duration: 0.35, ease: "power2.in" })
+					gsap.to(words, { strokeDashoffset: HERO_DASH, duration: 0.55, delay: 0.1, ease: "power2.in" })
 					gsap.to(["#heroTag", "#heroBtns"], { opacity: 0, y: 14, duration: 0.35, ease: "power2.in" })
 					gsap.to(heroEl, {
 						opacity: 0,
