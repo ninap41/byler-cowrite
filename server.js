@@ -505,6 +505,7 @@ function broadcastGame(s) {
     turnCount: s.turnCount,
     maxTurns: s.maxTurns,
     players: names(s),
+    writers: roster(s), // incl. connected flags -> online/offline dots
     hostId: s.hostId,
     hostName: s.writers.get(s.hostId)?.name ?? null,
   });
