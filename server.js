@@ -468,7 +468,7 @@ const names = (s) =>
 function roster(s) {
   return [...s.writers.entries()].map(([id, w]) => ({
     id, name: w.name, color: w.color, badge: w.badge ?? null,
-    isHost: id === s.hostId, connected: w.connected !== false,
+    isHost: id === s.hostId, guest: !w.userId, connected: w.connected !== false,
   }));
 }
 const broadcastRoster = (s) =>
@@ -545,7 +545,10 @@ function advance(s, writer, html) {
   if (html) {
     const clean = sanitizeRich(html);
     if (stripTags(clean)) {
-      s.story.push({ name: writer?.name, color: writer?.color, html: clean });
+      s.story.push({
+        name: writer?.name, color: writer?.color, html: clean,
+        guest: !writer?.userId, host: writer === s.writers.get(s.hostId),
+      });
       creditLine(s, writer, clean);
     }
   }
@@ -952,6 +955,8 @@ io.on("connection", (socket) => {
       name: w?.name ?? "?",
       color: w?.color ?? PALETTE[0],
       badge: w?.badge ?? null,
+      guest: !w?.userId,
+      host: socket.id === s.hostId,
       text: String(text).slice(0, 500).trim(),
       ts: Date.now(),
     };

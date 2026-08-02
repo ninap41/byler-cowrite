@@ -340,12 +340,41 @@
 				background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 			}
 
-			/* ---------- Theme switcher (dropdown, 3D flip fold) ---------- */
-			.theme-switch {
+			/* ---------- Top bar: signed-in user chip + theme switcher ---------- */
+			.topbar {
 				position: fixed;
 				top: 16px;
 				right: 72px; /* hamburger owns the corner */
 				z-index: 50;
+				display: flex;
+				align-items: flex-start;
+				gap: 10px;
+			}
+			.user-chip {
+				display: flex;
+				align-items: center;
+				gap: 8px;
+				padding: 9px 14px;
+				border-radius: 14px;
+				background: var(--panel);
+				border: 1px solid var(--panel-brd);
+				box-shadow: var(--panel-glow);
+				backdrop-filter: blur(14px);
+				-webkit-backdrop-filter: blur(14px);
+				font-size: 0.85rem;
+				font-weight: 700;
+				white-space: nowrap;
+			}
+			.user-chip.hidden {
+				display: none;
+			}
+			@media (max-width: 600px) {
+				.user-chip {
+					display: none;
+				}
+			}
+			.theme-switch {
+				position: relative;
 				perspective: 700px;
 			}
 			.theme-switch button {
@@ -440,7 +469,7 @@
 				background: var(--chip);
 			}
 			@media (max-width: 760px) {
-				.theme-switch {
+				.topbar {
 					top: 12px;
 					right: 62px;
 				}
@@ -1168,6 +1197,12 @@
 				min-width: auto;
 				padding: 12px 18px;
 			}
+			.who-mark {
+				cursor: default;
+				margin-right: 3px;
+				font-style: normal;
+			}
+
 			/* ---------- Session bar (name + copyable code) ---------- */
 			.session-bar {
 				display: flex;
@@ -1395,7 +1430,12 @@
 
 		<div class="join-reqs" id="joinReqs"></div>
 
-		<div class="theme-switch" id="themeSwitch">
+		<div class="topbar">
+			<div class="user-chip hidden" id="userChip">
+				<span id="ucName"></span>
+				<span class="badge-chip" id="ucBadge"></span>
+			</div>
+			<div class="theme-switch" id="themeSwitch">
 			<button type="button" class="theme-toggle" id="themeToggle" aria-haspopup="listbox" aria-expanded="false">
 				<i class="sw sw-neon" id="themeCurSw"></i><span id="themeCurLabel">Neon Dusk</span><i class="chev">&#9662;</i>
 			</button>
@@ -1405,6 +1445,7 @@
 				</button>
 				<button type="button" data-theme-btn="aurora" role="option"><i class="sw sw-aurora"></i><span>Aurora</span></button>
 				<button type="button" data-theme-btn="ink" role="option"><i class="sw sw-ink"></i><span>Inkwell</span></button>
+			</div>
 			</div>
 		</div>
 
@@ -1672,6 +1713,10 @@
 			const esc = (s) =>
 				String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c])
 			const safeColor = (c) => (PALETTE.includes(c) ? c : PALETTE[0])
+			// 👑 host / 👤 guest markers with tooltips, used beside names everywhere
+			const whoMarks = (o) =>
+				(o?.host || o?.isHost ? '<span class="who-mark" title="Host">👑</span>' : "") +
+				(o?.guest ? '<span class="who-mark" title="Guest">👤</span>' : "")
 			const onlyShow = (id) =>
 				["lobby", "waiting", "choosing", "game", "over"].forEach((x) => (x === id ? show(x) : hide(x)))
 
@@ -1797,7 +1842,11 @@
 			function renderAuth() {
 				const nameInput = $("name"),
 					swatches = $("swatches")
+				$("userChip").classList.toggle("hidden", !me)
 				if (me) {
+					$("ucName").textContent = me.username
+					$("ucName").style.color = safeColor(me.color)
+					$("ucBadge").textContent = me.currentBadge || "no badge yet"
 					$("meName").textContent = me.username
 					$("meName").style.color = safeColor(me.color)
 					$("meBadge").textContent = me.currentBadge || "no badge yet"
@@ -1941,7 +1990,7 @@
 				sessHost = ""
 			function updateSessionBar() {
 				document.querySelectorAll("[data-sess-host]").forEach((el) => {
-					el.textContent = sessHost ? "👑 " + sessHost : ""
+					el.innerHTML = sessHost ? `<span class="who-mark" title="Host">👑</span>${esc(sessHost)}` : ""
 				})
 				document.querySelectorAll("[data-sess-name]").forEach((el) => {
 					el.textContent = sessName || "Untitled story"
@@ -2142,9 +2191,10 @@
 					if (w.connected === false) li.style.opacity = "0.45"
 					li.innerHTML =
 						`<span class="dot" style="background:${col};box-shadow:0 0 8px ${col}"></span>` +
+						whoMarks(w) +
 						`<span class="rname" style="color:${col}">${esc(w.name)}</span>` +
 						`${w.badge ? `<span class="badge-chip">${esc(w.badge)}</span>` : ""}` +
-						`${w.connected === false ? '<span class="badge">away</span>' : w.isHost ? '<span class="badge">host</span>' : ""}`
+						`${w.connected === false ? '<span class="badge">away</span>' : ""}`
 					list.appendChild(li)
 				}
 				hostId = writers.find((w) => w.isHost)?.id ?? hostId
@@ -2268,7 +2318,7 @@
 					.map((l, i) => {
 						const col = safeColor(l.color)
 						// l.html is already sanitized server-side — safe to inject.
-						return `<p class="${animateNew && i >= lastStoryLen ? "fresh" : ""}"><span class="who" style="color:${col}">${esc(l.name)}</span>${l.html || ""}</p>`
+						return `<p class="${animateNew && i >= lastStoryLen ? "fresh" : ""}">${whoMarks(l)}<span class="who" style="color:${col}">${esc(l.name)}</span>${l.html || ""}</p>`
 					})
 					.join("")
 				lastStoryLen = story.length
@@ -2482,6 +2532,7 @@
 				const p = document.createElement("p")
 				p.className = m.sys ? "msg sys" : "msg"
 				p.innerHTML =
+					(m.sys ? "" : whoMarks(m)) +
 					`<span class="cn" style="color:${col}">${esc(m.name)}</span>` +
 					`${m.badge && !m.sys ? `<span class="badge-chip">${esc(m.badge)}</span>` : ""}` +
 					esc(m.text)
@@ -2784,7 +2835,7 @@
 								? g.story
 										.map(function (l) {
 											var col = safeColor(l.color)
-											return '<p><span class="who" style="color:' + col + '">' + esc(l.name) + "</span>" + (l.html || "") + "</p>"
+											return "<p>" + whoMarks(l) + '<span class="who" style="color:' + col + '">' + esc(l.name) + "</span>" + (l.html || "") + "</p>"
 										})
 										.join("")
 								: '<p class="empty">Nothing written yet.</p>'
