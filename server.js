@@ -34,6 +34,7 @@ const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer);
 app.use(express.static(join(__dirname, "public")));
+app.use("/sounds", express.static(join(__dirname, "sounds")));
 app.use(express.json());
 
 // ---------------------------------------------------------------------------
@@ -786,6 +787,7 @@ io.on("connection", (socket) => {
     if (!s || !text || !text.trim()) return;
     const w = s.writers.get(socket.id);
     const msg = {
+      id: socket.id, // lets clients tell their own echo from others' messages (sounds)
       name: w?.name ?? "?",
       color: w?.color ?? PALETTE[0],
       badge: w?.badge ?? null,
