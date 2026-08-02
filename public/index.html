@@ -391,6 +391,74 @@
 				font-size: clamp(0.85rem, 2vw, 1.05rem);
 				margin: 0 0 34px;
 			}
+			.hero-tag {
+				cursor: pointer;
+			}
+			.hero-tag:hover {
+				color: var(--ink);
+			}
+			.type-caret {
+				display: inline-block;
+				width: 2px;
+				height: 1.1em;
+				background: var(--accent-2);
+				margin-left: 3px;
+				vertical-align: -3px;
+				animation: blink 1s steps(1) infinite;
+			}
+			.features-modal {
+				position: fixed;
+				inset: 0;
+				z-index: 90;
+				background: rgba(0, 0, 0, 0.55);
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				padding: 24px;
+			}
+			.features-modal.hidden {
+				display: none;
+			}
+			.features-card {
+				max-width: 640px;
+				max-height: 84vh;
+				overflow-y: auto;
+				background: var(--panel);
+				border: 1px solid var(--panel-brd);
+				border-radius: 20px;
+				box-shadow: var(--panel-glow);
+				backdrop-filter: blur(18px);
+				-webkit-backdrop-filter: blur(18px);
+				padding: 28px;
+			}
+			.features-card h2 {
+				font-family: var(--font-display);
+				margin: 0 0 6px;
+				background: var(--grad-1);
+				-webkit-background-clip: text;
+				background-clip: text;
+				color: transparent;
+			}
+			.feat-sub {
+				color: var(--muted);
+				font-family: var(--font-mono);
+				font-size: 0.82rem;
+				margin: 0 0 16px;
+			}
+			.feat-list {
+				list-style: none;
+				padding: 0;
+				margin: 0 0 6px;
+			}
+			.feat-list li {
+				padding: 7px 0;
+				border-bottom: 1px solid var(--line);
+				font-size: 0.9rem;
+				line-height: 1.5;
+			}
+			.feat-list li:last-child {
+				border-bottom: 0;
+			}
 			.hero-btns {
 				display: flex;
 				justify-content: center;
@@ -1589,10 +1657,37 @@
 						stroke-linecap="round"
 					></path>
 				</svg>
-				<p class="hero-tag" id="heroTag">One story. One line at a time. One ticking clock.</p>
+				<p class="hero-tag" id="heroTag" title="Click for the full tour">
+					<span id="heroTagText">If we're both going crazy, we might as well write it down.</span><span class="type-caret" id="heroCaret"></span>
+				</p>
 				<div class="hero-btns" id="heroBtns">
 					<button class="primary" id="heroEnter">Enter →</button>
 				</div>
+			</div>
+		</div>
+
+		<!-- FEATURES RUNDOWN (opens from the hero tagline) -->
+		<div class="features-modal hidden" id="featuresModal">
+			<div class="features-card">
+				<h2>What is Byler Cowrite?</h2>
+				<p class="feat-sub">A real-time, round-robin writing game for Byler fanfiction. Everyone holds the pen.</p>
+				<ul class="feat-list">
+					<li>✍️ <b>Round-robin writing</b> — take turns adding one line each under a ticking countdown. The server owns the clock: when time's up, whatever you were typing is committed and play moves on.</li>
+					<li>🗳️ <b>Scenario votes</b> — every game opens with a group vote on curated Byler prompts, and anyone can add their own scenario to the ballot.</li>
+					<li>⌨️ <b>Live typing</b> — watch the current writer's line appear as they type it, with rich text (bold / italic / underline).</li>
+					<li>💬 <b>Docked chat</b> — a collapsible chat panel with unread counts and message sounds, plus incoming/outgoing line sounds.</li>
+					<li>👤 <b>Guests or accounts</b> — play instantly as a guest, or sign up (email + username + password) to keep a profile, a color, and your history. Hosting needs an account.</li>
+					<li>🏆 <b>Badges</b> — word-count achievements from ✏️ Inkling (1 word) to 🏆 Living Legend (10,000), announced in chat and worn next to your name.</li>
+					<li>📚 <b>Previous games</b> — a private archive of every game you wrote in, with a Continue button to pick any story back up.</li>
+					<li>🔑 <b>Permanent codes</b> — every game keeps its 4-letter code forever. Signed-in writers can rejoin from any device just by logging in and entering the code.</li>
+					<li>🚪 <b>Host-gated joins</b> — started or continued games require host approval for new (or returning) writers, with a 5-minute cooldown if the host says no.</li>
+					<li>👑 <b>Host controls</b> — name the story, pause/resume, retune turn length and rounds mid-game, approve joins, end &amp; reveal, and continue after the reveal.</li>
+					<li>🌐 <b>Dashboard</b> — signed in, the lobby shows who's online, games in progress with Join buttons, and your recent stories.</li>
+					<li>🟢 <b>Presence everywhere</b> — live online/offline dots beside every name: roster, chat, story lines, even old messages update in place.</li>
+					<li>📤 <b>Export</b> — when the story's done, copy it as formatted rich text or download a clean, styled HTML file (bylines stripped, prose only).</li>
+					<li>🎨 <b>Three themes</b> — Neon Dusk, Aurora, and Inkwell, with GSAP-animated everything.</li>
+				</ul>
+				<div class="row"><button class="primary" id="featuresClose">Let's write →</button></div>
 			</div>
 		</div>
 
@@ -2252,6 +2347,16 @@
 					.catch(() => clearMe())
 			}
 			refreshMe()
+
+			// ---- Features modal (opens from the hero tagline) ----
+			$("heroTag").onclick = () => $("featuresModal").classList.remove("hidden")
+			$("featuresClose").onclick = () => $("featuresModal").classList.add("hidden")
+			$("featuresModal").addEventListener("click", (e) => {
+				if (e.target === $("featuresModal")) $("featuresModal").classList.add("hidden")
+			})
+			document.addEventListener("keydown", (e) => {
+				if (e.key === "Escape") $("featuresModal").classList.add("hidden")
+			})
 
 			// ---- Hero fallback: without GSAP the Enter button just closes it ----
 			$("heroEnter").onclick = () => {
@@ -3303,17 +3408,32 @@
 						strokeWidth: 2.2,
 					})
 					gsap.set(underline, { strokeDasharray: uLen, strokeDashoffset: uLen })
-					gsap.set(["#heroTag", "#heroBtns"], { opacity: 0, y: 16 })
+					// tagline types itself out, character by character
+					var tagSpan = document.getElementById("heroTagText")
+					var tagFull = tagSpan.textContent
+					tagSpan.textContent = ""
+					gsap.set("#heroTag", { opacity: 0 })
+					gsap.set("#heroBtns", { opacity: 0, y: 16 })
+					var typer = { n: 0 }
 					var tl = gsap.timeline({ delay: 0.2 })
 					tl.to("#heroWord1", { strokeDashoffset: 0, duration: 1.5, ease: "power1.inOut" })
 						.to("#heroWord2", { strokeDashoffset: 0, duration: 1.7, ease: "power1.inOut" }, "-=0.9")
 						.to(underline, { strokeDashoffset: 0, duration: 0.55, ease: "power2.out" }, "-=0.35")
 						.to(words, { fillOpacity: 1, strokeWidth: 1.6, duration: 0.9, ease: "power2.out" }, "-=0.25")
+						.set("#heroTag", { opacity: 1 }, "-=0.4")
 						.to(
-							["#heroTag", "#heroBtns"],
-							{ opacity: 1, y: 0, duration: 0.6, stagger: 0.15, ease: "power2.out", clearProps: "transform" },
-							"-=0.5",
+							typer,
+							{
+								n: tagFull.length,
+								duration: tagFull.length * 0.038,
+								ease: "none",
+								onUpdate: function () {
+									tagSpan.textContent = tagFull.slice(0, Math.round(typer.n))
+								},
+							},
+							"-=0.35",
 						)
+						.to("#heroBtns", { opacity: 1, y: 0, duration: 0.6, ease: "power2.out", clearProps: "transform" }, "-=0.2")
 					return tl
 				}
 				if (heroEl && !heroEl.classList.contains("hidden")) {
