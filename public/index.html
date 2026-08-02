@@ -1233,10 +1233,6 @@
 				font-family: var(--font-mono);
 				font-size: 0.8rem;
 			}
-			.swatches.locked {
-				pointer-events: none;
-				opacity: 0.6;
-			}
 			ul.roster .badge-chip,
 			.chat-log .badge-chip {
 				font-size: 0.6rem;
@@ -1701,11 +1697,9 @@
 					nameInput.disabled = true
 					myColor = safeColor(me.color)
 					document.querySelectorAll(".swatch").forEach((x) => x.classList.toggle("sel", x.dataset.color === myColor))
-					swatches.classList.add("locked")
 					showPlay()
 				} else {
 					nameInput.disabled = false
-					swatches.classList.remove("locked")
 					showChoice()
 				}
 			}
@@ -1791,6 +1785,14 @@
 				d.onclick = () => {
 					myColor = c
 					document.querySelectorAll(".swatch").forEach((x) => x.classList.toggle("sel", x.dataset.color === c))
+					// signed in: the pick becomes the account color (server reads it from there)
+					if (me)
+						authApi("/api/account/color", { color: c })
+							.then((d2) => {
+								me = d2.user
+								$("meName").style.color = safeColor(me.color)
+							})
+							.catch(() => {})
 				}
 				sw.appendChild(d)
 			})

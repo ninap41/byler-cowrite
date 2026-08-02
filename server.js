@@ -153,6 +153,15 @@ app.post("/api/logout", (req, res) => {
   res.json({ ok: true });
 });
 
+// Signed-in players pick a color like guests do — it just saves to the account.
+app.post("/api/account/color", (req, res) => {
+  const u = authedUser(req);
+  if (!u) return res.status(401).json({ error: "Not signed in." });
+  u.color = cleanColor(req.body?.color);
+  saveStore();
+  res.json({ user: publicUser(u) });
+});
+
 app.get("/api/me", (req, res) => {
   const u = authedUser(req);
   if (!u) return res.status(401).json({ error: "Not signed in." });
