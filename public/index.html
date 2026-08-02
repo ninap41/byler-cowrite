@@ -1198,11 +1198,17 @@
 				padding: 12px 18px;
 			}
 			.st-dot {
+				display: inline-block;
 				width: 8px;
 				height: 8px;
 				border-radius: 50%;
 				flex: none;
 				cursor: default;
+				margin-right: 5px;
+				vertical-align: baseline;
+			}
+			.st-dot.unknown {
+				display: none;
 			}
 			.st-dot.on {
 				background: var(--good);
@@ -1773,6 +1779,26 @@
 			const whoMarks = (o) =>
 				(o?.host || o?.isHost ? '<span class="who-mark" title="Host">👑</span>' : "") +
 				(o?.guest ? '<span class="who-mark" title="Guest">👤</span>' : "")
+			// Live online/offline map (name -> connected), refreshed from every
+			// roster / game-state broadcast; statusDot() renders a dot that
+			// refreshStatusDots() keeps current everywhere — even old chat lines.
+			const liveStatus = new Map()
+			const statusDot = (name) => `<span class="st-dot unknown" data-status-name="${esc(name || "")}"></span>`
+			function refreshStatusDots() {
+				document.querySelectorAll("[data-status-name]").forEach((el) => {
+					const st = liveStatus.get(el.dataset.statusName)
+					el.classList.toggle("unknown", st === undefined)
+					el.classList.toggle("on", st === true)
+					el.classList.toggle("off", st === false)
+					el.title = st === undefined ? "" : st ? "Online" : "Offline"
+				})
+			}
+			function updateLiveStatus(writers) {
+				if (!Array.isArray(writers)) return
+				liveStatus.clear()
+				writers.forEach((w) => liveStatus.set(w.name, w.connected !== false))
+				refreshStatusDots()
+			}
 			const onlyShow = (id) =>
 				["lobby", "waiting", "choosing", "game", "over"].forEach((x) => (x === id ? show(x) : hide(x)))
 
@@ -2046,8 +2072,11 @@
 				sessHost = ""
 			function updateSessionBar() {
 				document.querySelectorAll("[data-sess-host]").forEach((el) => {
-					el.innerHTML = sessHost ? `<span class="who-mark" title="Host">👑</span>${esc(sessHost)}` : ""
+					el.innerHTML = sessHost
+						? `${statusDot(sessHost)}<span class="who-mark" title="Host">👑</span>${esc(sessHost)}`
+						: ""
 				})
+				refreshStatusDots()
 				document.querySelectorAll("[data-sess-name]").forEach((el) => {
 					el.textContent = sessName || "Untitled story"
 					el.classList.toggle("unnamed", !sessName)
@@ -2236,6 +2265,7 @@
 				})
 
 			socket.on("roster", ({ writers, code, name }) => {
+				updateLiveStatus(writers)
 				if (code) myCode = code
 				if (name != null) sessName = name
 				const list = $("rosterList")
@@ -2262,6 +2292,7 @@
 			// ---- Phase router ----
 			let lastStoryLen = 0
 			socket.on("game-state", (st) => {
+				updateLiveStatus(st.writers)
 				hostId = st.hostId ?? hostId
 				if (st.code) myCode = st.code
 				if (st.name != null) sessName = st.name
@@ -2269,6 +2300,7 @@
 				updateSessionBar()
 				if (st.phase === "choosing") renderChoosing(st)
 				else if (st.phase === "writing") renderWriting(st)
+				refreshStatusDots() // dots created during render resolve against the fresh map
 			})
 
 			// ---- Choosing (vote) ----
@@ -2346,7 +2378,9 @@
 				}
 				const myTurn = st.currentId === myId,
 					host = myId === hostId
-				$("whoTurn").textContent = myTurn ? "Your turn — write!" : `Waiting for ${st.currentName || "…"}`
+				$("whoTurn").innerHTML = myTurn
+					? "Your turn — write!"
+					: `Waiting for ${statusDot(st.currentName)}${esc(st.currentName || "…")}`
 				$("whoTurn").style.color = myTurn ? "var(--good)" : "var(--ink)"
 				$("myTurn").classList.toggle("hidden", !myTurn)
 				$("hostGame").classList.toggle("hidden", !host)
@@ -2387,9 +2421,10 @@
 					.map((l, i) => {
 						const col = safeColor(l.color)
 						// l.html is already sanitized server-side — safe to inject.
-						return `<p class="${animateNew && i >= lastStoryLen ? "fresh" : ""}">${whoMarks(l)}<span class="who" style="color:${col}">${esc(l.name)}</span>${l.html || ""}</p>`
+						return `<p class="${animateNew && i >= lastStoryLen ? "fresh" : ""}">${statusDot(l.name)}${whoMarks(l)}<span class="who" style="color:${col}">${esc(l.name)}</span>${l.html || ""}</p>`
 					})
 					.join("")
+				refreshStatusDots()
 				lastStoryLen = story.length
 				box.scrollTop = box.scrollHeight
 			}
@@ -2474,7 +2509,8 @@
 					box.innerHTML = ""
 					return
 				}
-				box.innerHTML = `<span class="who" style="color:${curColor}">${esc(curName)}</span>${html}<span class="caret"></span>`
+				box.innerHTML = `${statusDot(curName)}<span class="who" style="color:${curColor}">${esc(curName)}</span>${html}<span class="caret"></span>`
+				refreshStatusDots()
 				box.classList.remove("hidden")
 			})
 			$("pauseBtn").onclick = () =>
@@ -2601,11 +2637,12 @@
 				const p = document.createElement("p")
 				p.className = m.sys ? "msg sys" : "msg"
 				p.innerHTML =
-					(m.sys ? "" : whoMarks(m)) +
+					(m.sys ? "" : statusDot(m.name) + whoMarks(m)) +
 					`<span class="cn" style="color:${col}">${esc(m.name)}</span>` +
 					`${m.badge && !m.sys ? `<span class="badge-chip">${esc(m.badge)}</span>` : ""}` +
 					esc(m.text)
 				log.appendChild(p)
+				refreshStatusDots()
 				log.scrollTop = log.scrollHeight
 				if ($("chatCard").classList.contains("collapsed")) {
 					chatUnread++
