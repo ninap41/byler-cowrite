@@ -1476,9 +1476,14 @@
 						<div id="authIn" class="hidden">
 							<div class="me-row">
 								<span class="me-name" id="meName"></span>
+								<button class="ghost" id="meRename" title="Change username" style="margin-left: 0; padding: 5px 9px; font-size: 0.75rem">
+									&#9998;
+								</button>
+								<input id="meNameInput" class="hidden" maxlength="24" style="flex: 1 1 120px; width: auto; padding: 7px 10px" />
 								<span class="badge-chip" id="meBadge"></span>
 								<button class="ghost" id="logoutBtn">Log out</button>
 							</div>
+							<div class="err" id="meErr"></div>
 							<p class="subtle" id="meStats" style="text-align: left; margin: 8px 0 0"></p>
 							<div class="me-games" id="meGames"></div>
 							<div class="divider">— PLAY —</div>
@@ -1885,6 +1890,43 @@
 				} catch (e) {}
 				clearMe()
 			}
+			// Change username inline from the profile card.
+			$("meRename").onclick = () => {
+				$("meErr").textContent = ""
+				$("meName").classList.add("hidden")
+				$("meRename").classList.add("hidden")
+				const inp = $("meNameInput")
+				inp.value = me?.username || ""
+				inp.classList.remove("hidden")
+				inp.focus()
+				inp.select()
+			}
+			function closeRename() {
+				$("meNameInput").classList.add("hidden")
+				$("meName").classList.remove("hidden")
+				$("meRename").classList.remove("hidden")
+			}
+			async function saveRename() {
+				const inp = $("meNameInput")
+				if (inp.classList.contains("hidden")) return
+				const v = inp.value.trim()
+				if (!v || v === me?.username) return closeRename()
+				try {
+					const d = await authApi("/api/account/username", { username: v })
+					closeRename()
+					setMe(d.user)
+				} catch (e) {
+					$("meErr").textContent = e.message
+					inp.focus()
+				}
+			}
+			$("meNameInput").addEventListener("keydown", (e) => {
+				if (e.key === "Enter") {
+					e.preventDefault()
+					saveRename()
+				} else if (e.key === "Escape") closeRename()
+			})
+			$("meNameInput").addEventListener("blur", saveRename)
 			function refreshMe() {
 				if (!authToken) return
 				authApi("/api/me", null, "GET")

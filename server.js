@@ -104,6 +104,8 @@ app.post("/api/signup", (req, res) => {
   if (!EMAIL_RE.test(em)) return res.status(400).json({ error: "Enter a valid email." });
   if (un.length < 4 || un.length > 24)
     return res.status(400).json({ error: "Username must be 4–24 characters." });
+  if (un.includes("@"))
+    return res.status(400).json({ error: "Usernames can't contain @ — that's for emails." });
   if (String(password || "").length < 4)
     return res.status(400).json({ error: "Password must be at least 4 characters." });
   if (findByEmail(em)) return res.status(400).json({ error: "That email already has an account." });
@@ -151,6 +153,22 @@ app.post("/api/logout", (req, res) => {
     saveStore();
   }
   res.json({ ok: true });
+});
+
+// Change the display username (same rules as signup; frees the old name).
+app.post("/api/account/username", (req, res) => {
+  const u = authedUser(req);
+  if (!u) return res.status(401).json({ error: "Not signed in." });
+  const un = String(req.body?.username || "").trim();
+  if (un.length < 4 || un.length > 24)
+    return res.status(400).json({ error: "Username must be 4–24 characters." });
+  if (un.includes("@"))
+    return res.status(400).json({ error: "Usernames can't contain @ — that's for emails." });
+  const taken = findByUsername(un);
+  if (taken && taken.id !== u.id) return res.status(400).json({ error: "That username is taken." });
+  u.username = un;
+  saveStore();
+  res.json({ user: publicUser(u) });
 });
 
 // Signed-in players pick a color like guests do — it just saves to the account.
@@ -245,7 +263,7 @@ const CODE_RE = /^[A-Z0-9]{4}$/;
 const gameSummary = (d) => ({
   code: d.code, name: d.name || "", phase: d.phase, prompt: d.prompt || "",
   savedAt: d.savedAt || 0, lines: (d.story || []).length,
-  hostName: d.hostName || null,
+  hostName: store.users.find((u) => u.id === d.hostUserId)?.username ?? d.hostName ?? null,
   writers: (d.writers || []).map((w) => ({
     name: w.name, color: cleanColor(w.color), isHost: d.hostUserId != null && w.userId === d.hostUserId,
   })),
