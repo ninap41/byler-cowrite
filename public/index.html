@@ -1168,6 +1168,82 @@
 				min-width: auto;
 				padding: 12px 18px;
 			}
+			/* ---------- Session bar (name + copyable code) ---------- */
+			.session-bar {
+				display: flex;
+				align-items: center;
+				gap: 8px;
+				margin-bottom: 14px;
+				flex-wrap: wrap;
+			}
+			.session-bar .sess-name {
+				font-weight: 700;
+				font-size: 1.05rem;
+				min-width: 0;
+				overflow: hidden;
+				text-overflow: ellipsis;
+			}
+			.session-bar .sess-name.unnamed {
+				color: var(--muted);
+				font-weight: 500;
+				font-style: italic;
+			}
+			.session-bar .sess-input {
+				flex: 1 1 140px;
+				width: auto;
+				padding: 7px 10px;
+				font-size: 0.95rem;
+			}
+			.session-bar button {
+				flex: 0 0 auto;
+				min-width: 0;
+				padding: 6px 11px;
+				font-size: 0.8rem;
+				font-family: var(--font-mono);
+			}
+			.session-bar [data-sess-code] {
+				margin-left: auto;
+				letter-spacing: 2px;
+				font-weight: 700;
+			}
+			#codeDisplay {
+				cursor: pointer;
+			}
+			/* host's pending join-request popups */
+			.join-reqs {
+				position: fixed;
+				top: 70px;
+				left: 50%;
+				transform: translateX(-50%);
+				z-index: 66;
+				display: flex;
+				flex-direction: column;
+				gap: 8px;
+				width: min(420px, 92vw);
+			}
+			.join-req {
+				display: flex;
+				align-items: center;
+				gap: 10px;
+				background: var(--panel);
+				border: 1px solid var(--panel-brd);
+				border-radius: 14px;
+				padding: 12px 14px;
+				box-shadow: var(--panel-glow);
+				backdrop-filter: blur(14px);
+				-webkit-backdrop-filter: blur(14px);
+			}
+			.join-req span {
+				flex: 1;
+				font-size: 0.92rem;
+			}
+			.join-req button {
+				flex: 0 0 auto;
+				min-width: 0;
+				padding: 8px 12px;
+				font-size: 0.8rem;
+			}
+
 			/* ---------- Account / auth ---------- */
 			/* The lobby (login/signup/guest) card sits centered on desktop. */
 			#lobby {
@@ -1310,6 +1386,8 @@
 			</div>
 		</div>
 
+		<div class="join-reqs" id="joinReqs"></div>
+
 		<div class="theme-switch" id="themeSwitch">
 			<button type="button" class="theme-toggle" id="themeToggle" aria-haspopup="listbox" aria-expanded="false">
 				<i class="sw sw-neon" id="themeCurSw"></i><span id="themeCurLabel">Neon Dusk</span><i class="chev">&#9662;</i>
@@ -1417,7 +1495,13 @@
 
 					<!-- WAITING ROOM -->
 					<div id="waiting" class="card hidden">
-						<p class="subtle">Game code — share it with your writers</p>
+						<div class="session-bar">
+							<span class="sess-name" data-sess-name></span>
+							<input class="sess-input hidden" data-sess-input maxlength="40" placeholder="Name this story..." />
+							<button class="ghost hidden" data-sess-edit title="Rename story" type="button">&#9998;</button>
+							<button class="ghost" data-sess-code title="Copy game code" type="button">&middot;&middot;&middot;&middot; &#x2398;</button>
+						</div>
+						<p class="subtle">Game code — click it to copy, share it with your writers</p>
 						<div class="codechip" id="codeDisplay">----</div>
 						<ul class="roster" id="rosterList"></ul>
 						<div id="hostControls" class="hidden">
@@ -1437,6 +1521,12 @@
 
 					<!-- CHOOSING (GROUP VOTE) -->
 					<div id="choosing" class="card hidden">
+						<div class="session-bar">
+							<span class="sess-name" data-sess-name></span>
+							<input class="sess-input hidden" data-sess-input maxlength="40" placeholder="Name this story..." />
+							<button class="ghost hidden" data-sess-edit title="Rename story" type="button">&#9998;</button>
+							<button class="ghost" data-sess-code title="Copy game code" type="button">&middot;&middot;&middot;&middot; &#x2398;</button>
+						</div>
 						<h3>Vote for your scenario</h3>
 						<div id="optionsBox"></div>
 						<label for="customPrompt" style="margin-top: 4px">Add your own scenario</label>
@@ -1453,6 +1543,12 @@
 
 					<!-- GAME (WRITING) -->
 					<div id="game" class="card hidden">
+						<div class="session-bar">
+							<span class="sess-name" data-sess-name></span>
+							<input class="sess-input hidden" data-sess-input maxlength="40" placeholder="Name this story..." />
+							<button class="ghost hidden" data-sess-edit title="Rename story" type="button">&#9998;</button>
+							<button class="ghost" data-sess-code title="Copy game code" type="button">&middot;&middot;&middot;&middot; &#x2398;</button>
+						</div>
 						<div class="prompt-banner" id="gamePrompt"></div>
 						<div class="story" id="storyBox"></div>
 						<div class="live hidden" id="livePreview"></div>
@@ -1495,6 +1591,12 @@
 
 					<!-- GAME OVER -->
 					<div id="over" class="card hidden">
+						<div class="session-bar">
+							<span class="sess-name" data-sess-name></span>
+							<input class="sess-input hidden" data-sess-input maxlength="40" placeholder="Name this story..." />
+							<button class="ghost hidden" data-sess-edit title="Rename story" type="button">&#9998;</button>
+							<button class="ghost" data-sess-code title="Copy game code" type="button">&middot;&middot;&middot;&middot; &#x2398;</button>
+						</div>
 						<h3 style="color: var(--accent-2)">The finished story</h3>
 						<div class="prompt-banner" id="overPrompt"></div>
 						<div class="story" id="overStory" style="max-height: 48vh"></div>
@@ -1775,6 +1877,83 @@
 			}
 			refreshMe()
 
+			// ---- Session bar: name (host-editable) + copyable code ----
+			let myCode = "",
+				sessName = ""
+			function updateSessionBar() {
+				document.querySelectorAll("[data-sess-name]").forEach((el) => {
+					el.textContent = sessName || "Untitled story"
+					el.classList.toggle("unnamed", !sessName)
+				})
+				document.querySelectorAll("[data-sess-code]").forEach((el) => {
+					if (!el.dataset.copied) el.textContent = (myCode || "····") + " ⧉"
+				})
+				document.querySelectorAll("[data-sess-edit]").forEach((el) => el.classList.toggle("hidden", myId !== hostId))
+			}
+			async function copyCode(feedbackEl, resetText) {
+				try {
+					await navigator.clipboard.writeText(myCode)
+				} catch (e) {
+					try {
+						const ta = document.createElement("textarea")
+						ta.value = myCode
+						document.body.appendChild(ta)
+						ta.select()
+						document.execCommand("copy")
+						ta.remove()
+					} catch (e2) {
+						return
+					}
+				}
+				if (feedbackEl) {
+					feedbackEl.dataset.copied = "1"
+					feedbackEl.textContent = "Copied ✓"
+					setTimeout(() => {
+						delete feedbackEl.dataset.copied
+						if (resetText) feedbackEl.textContent = resetText()
+						updateSessionBar()
+					}, 1200)
+				}
+			}
+			document.querySelectorAll("[data-sess-code]").forEach((b) => (b.onclick = () => copyCode(b)))
+			document.querySelectorAll("[data-sess-edit]").forEach((b) => {
+				b.onclick = () => {
+					const bar = b.closest(".session-bar")
+					bar.querySelector("[data-sess-name]").classList.add("hidden")
+					b.classList.add("hidden")
+					const inp = bar.querySelector("[data-sess-input]")
+					inp.value = sessName
+					inp.classList.remove("hidden")
+					inp.focus()
+				}
+			})
+			document.querySelectorAll("[data-sess-input]").forEach((inp) => {
+				const close = () => {
+					inp.classList.add("hidden")
+					inp.closest(".session-bar").querySelector("[data-sess-name]").classList.remove("hidden")
+					updateSessionBar()
+				}
+				const save = () => {
+					if (inp.classList.contains("hidden")) return
+					socket.emit("rename-session", { name: inp.value }, (res) => {
+						if (res?.ok) {
+							sessName = res.name
+							updateSessionBar()
+						}
+					})
+					close()
+				}
+				inp.addEventListener("keydown", (e) => {
+					if (e.key === "Enter") {
+						e.preventDefault()
+						save()
+					} else if (e.key === "Escape") close()
+				})
+				inp.addEventListener("blur", save)
+			})
+			$("codeDisplay").onclick = () =>
+				copyCode($("codeDisplay"), () => myCode)
+
 			// ---- Color picker ----
 			const sw = $("swatches")
 			PALETTE.forEach((c, i) => {
@@ -1826,6 +2005,7 @@
 						myColor = res.color
 						document.querySelectorAll(".swatch").forEach((x) => x.classList.toggle("sel", x.dataset.color === myColor))
 					}
+					myCode = res.code
 					$("codeDisplay").textContent = res.code
 					show("chatCard")
 					// waiting is the only phase the server doesn't follow up with a
@@ -1846,6 +2026,8 @@
 				if (code.length !== 4) return ($("lobbyErr").textContent = "Enter a 4-letter code.")
 				socket.emit("join-session", { name: $("name").value.trim(), color: myColor, code, auth: authToken }, (res) => {
 					if (!res?.ok) return ($("lobbyErr").textContent = res?.error || "Error")
+					if (res.pending)
+						return ($("lobbyErr").textContent = "This story is underway — waiting for the host to let you in…")
 					enterSession(res)
 				})
 			}
@@ -1857,12 +2039,14 @@
 					myColor = safeColor(res.color)
 					document.querySelectorAll(".swatch").forEach((x) => x.classList.toggle("sel", x.dataset.color === myColor))
 				}
+				myCode = res.code
 				$("codeDisplay").textContent = res.code
 				// An account seat-reclaim can land mid-game: the server follows the ack
 				// with game-state / game-over, which shows the right card itself.
 				if (!res.phase || res.phase === "waiting") onlyShow("waiting")
 				show("chatCard")
 				updateHostView()
+				updateSessionBar()
 			}
 			function updateHostView() {
 				const host = myId === hostId
@@ -1877,7 +2061,9 @@
 					if (!res?.ok) alert(res?.error || "Could not start.")
 				})
 
-			socket.on("roster", ({ writers }) => {
+			socket.on("roster", ({ writers, code, name }) => {
+				if (code) myCode = code
+				if (name != null) sessName = name
 				const list = $("rosterList")
 				list.innerHTML = ""
 				for (const w of writers) {
@@ -1893,12 +2079,16 @@
 				}
 				hostId = writers.find((w) => w.isHost)?.id ?? hostId
 				updateHostView()
+				updateSessionBar()
 			})
 
 			// ---- Phase router ----
 			let lastStoryLen = 0
 			socket.on("game-state", (st) => {
 				hostId = st.hostId ?? hostId
+				if (st.code) myCode = st.code
+				if (st.name != null) sessName = st.name
+				updateSessionBar()
 				if (st.phase === "choosing") renderChoosing(st)
 				else if (st.phase === "writing") renderWriting(st)
 			})
@@ -2121,6 +2311,7 @@
 				renderStory($("overStory"), story, false)
 				buildExports(prompt, story)
 				updateHostView()
+				updateSessionBar()
 				refreshMe() // word count / badges / games list may have changed
 			})
 			$("continueBtn").onclick = () =>
@@ -2181,6 +2372,35 @@
 				clearRejoin() // otherwise the reload auto-rejoins straight back here
 				location.reload()
 			}
+
+			// ---- Gated join: approval outcomes + the host's request popups ----
+			socket.on("join-approved", (res) => {
+				$("lobbyErr").textContent = ""
+				enterSession(res)
+			})
+			socket.on("join-denied", () => {
+				$("lobbyErr").textContent = "The host declined to let you in."
+			})
+			socket.on("join-request", ({ id, name }) => {
+				const row = document.createElement("div")
+				row.className = "join-req"
+				row.dataset.reqId = id
+				row.innerHTML = `<span><b>${esc(name)}</b> wants to join the story</span>`
+				const yes = document.createElement("button")
+				yes.className = "primary"
+				yes.textContent = "Let in"
+				const no = document.createElement("button")
+				no.className = "ghost"
+				no.textContent = "Deny"
+				yes.onclick = () => socket.emit("approve-join", { id, allow: true }, () => row.remove())
+				no.onclick = () => socket.emit("approve-join", { id, allow: false }, () => row.remove())
+				row.append(yes, no)
+				$("joinReqs").appendChild(row)
+				playSound("incomingmessage")
+			})
+			socket.on("join-request-cancel", ({ id }) => {
+				document.querySelector(`[data-req-id="${id}"]`)?.remove()
+			})
 
 			// ---- Chat ----
 			function addChat(m, silent) {
@@ -2448,6 +2668,7 @@
 						var b = document.createElement("button")
 						b.className = "game-card"
 						b.innerHTML =
+							(g.name ? '<p class="gc-prompt" style="font-weight:700">' + esc(g.name) + "</p>" : "") +
 							'<p class="gc-prompt">' + (esc(g.prompt) || "<em>No prompt yet</em>") + "</p>" +
 							'<span class="gc-meta">' +
 							"<span>" + esc(g.code) + "</span>" +
