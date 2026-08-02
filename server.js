@@ -241,17 +241,26 @@ const sessions = new Map(); // code -> session (in-memory; fine for a party game
 // game to disk, so the archive is just a directory listing + file reads.
 const CODE_RE = /^[A-Z0-9]{4}$/;
 
-app.get("/api/games", (_req, res) => {
+// Previous games are private: you only see games your account holds a seat in.
+const gameSummary = (d) => ({
+  code: d.code, name: d.name || "", phase: d.phase, prompt: d.prompt || "",
+  savedAt: d.savedAt || 0, lines: (d.story || []).length,
+  hostName: d.hostName || null,
+  writers: (d.writers || []).map((w) => ({
+    name: w.name, color: cleanColor(w.color), isHost: d.hostUserId != null && w.userId === d.hostUserId,
+  })),
+});
+const inGame = (d, u) => (d.writers || []).some((w) => w.userId === u.id);
+
+app.get("/api/games", (req, res) => {
+  const u = authedUser(req);
+  if (!u) return res.status(401).json({ error: "Sign in to see your previous games." });
   const out = [];
   for (const f of readdirSync(SAVE_DIR)) {
     if (!f.endsWith(".json")) continue;
     try {
       const d = JSON.parse(readFileSync(join(SAVE_DIR, f), "utf-8"));
-      out.push({
-        code: d.code, name: d.name || "", phase: d.phase, prompt: d.prompt || "",
-        savedAt: d.savedAt || 0, lines: (d.story || []).length,
-        writers: (d.writers || []).map((w) => ({ name: w.name, color: cleanColor(w.color) })),
-      });
+      if (inGame(d, u)) out.push(gameSummary(d));
     } catch { /* skip unreadable snapshot */ }
   }
   out.sort((a, b) => b.savedAt - a.savedAt);
@@ -259,16 +268,15 @@ app.get("/api/games", (_req, res) => {
 });
 
 app.get("/api/games/:code", (req, res) => {
+  const u = authedUser(req);
+  if (!u) return res.status(401).json({ error: "Sign in to see your previous games." });
   const code = String(req.params.code || "").toUpperCase();
   if (!CODE_RE.test(code)) return res.status(400).json({ error: "Bad code." });
   try {
     // Story html in snapshots already passed through sanitizeRich() when written.
     const d = JSON.parse(readFileSync(join(SAVE_DIR, code + ".json"), "utf-8"));
-    res.json({
-      code: d.code, name: d.name || "", phase: d.phase, prompt: d.prompt || "", savedAt: d.savedAt || 0,
-      story: d.story || [],
-      writers: (d.writers || []).map((w) => ({ name: w.name, color: cleanColor(w.color) })),
-    });
+    if (!inGame(d, u)) return res.status(403).json({ error: "That game isn't yours to view." });
+    res.json({ ...gameSummary(d), story: d.story || [] });
   } catch {
     res.status(404).json({ error: "Not found." });
   }
@@ -290,6 +298,8 @@ function saveSnapshot(s) {
       })),
       turnOrderTokens: s.turnOrder.map((id) => s.writers.get(id)?.token).filter(Boolean),
       hostToken: s.writers.get(s.hostId)?.token ?? s.hostToken ?? null,
+      hostName: s.writers.get(s.hostId)?.name ?? s.hostName ?? null,
+      hostUserId: s.writers.get(s.hostId)?.userId ?? s.hostUserId ?? null,
       savedAt: Date.now(),
     }));
   } catch (e) {
@@ -312,6 +322,7 @@ function loadSession(code) {
     {
       name: w.name, color: cleanColor(w.color), token: w.token,
       userId: w.userId ?? null, badge: w.badge ?? null, connected: false, ghostTimer: null,
+      approved: false, // continued games gate every returning writer (host approves)
     },
   ]));
   // waiting revives as waiting; a half-done vote (choosing) restarts as a
@@ -330,6 +341,8 @@ function loadSession(code) {
     paused: phase === "writing", remaining: d.remaining || (d.turnSeconds || 60) * 1000,
     timer: null, chat: d.chat || [], lastTyping: "",
     name: d.name || "", pending: new Map(),
+    gated: true, // a continued game: the host must approve each re-entry
+    hostName: d.hostName ?? null, hostUserId: d.hostUserId ?? null,
   };
   sessions.set(code, s);
   return s;
@@ -366,6 +379,7 @@ const newWriter = (name, color, fallbackName, authToken) => {
     userId: acct?.id ?? null,
     badge: acct ? badgeName(acct.currentBadge) : null,
     token: randomUUID(), connected: true, ghostTimer: null,
+    approved: true, // gating only applies to seats revived from a save
   };
 };
 
@@ -391,7 +405,9 @@ function markDisconnected(s, id) {
   if (!w) return;
   w.connected = false;
   if (s.hostId === id) {
-    const next = [...s.writers.entries()].find(([, ww]) => ww.connected);
+    const entries = [...s.writers.entries()];
+    const next =
+      entries.find(([, ww]) => ww.connected && ww.userId) ?? entries.find(([, ww]) => ww.connected);
     if (next) s.hostId = next[0];
   }
   clearTimeout(w.ghostTimer);
@@ -472,6 +488,7 @@ function broadcastGame(s) {
     maxTurns: s.maxTurns,
     players: names(s),
     hostId: s.hostId,
+    hostName: s.writers.get(s.hostId)?.name ?? null,
   });
 }
 
@@ -563,7 +580,9 @@ function removeWriter(s, id) {
     return;
   }
   if (wasHost) {
-    s.hostId = ([...s.writers.entries()].find(([, w]) => w.connected) ?? [...s.writers.entries()][0])[0];
+    const entries = [...s.writers.entries()];
+    s.hostId = (entries.find(([, w]) => w.connected && w.userId) ??
+      entries.find(([, w]) => w.connected) ?? entries[0])[0];
     s.hostToken = s.writers.get(s.hostId)?.token ?? null; // permanent transfer
   }
 
@@ -591,12 +610,58 @@ function removeWriter(s, id) {
   }
 }
 
+// Put a socket into an existing seat: swaps the new socket id into every
+// place the old one appears, restores host role, and syncs the right phase.
+// Used by token rejoin, account reclaim, and host-approved re-entries.
+function seatSocket(sock, s, oldId, w, ack) {
+  if (oldId !== sock.id) {
+    io.sockets.sockets.get(oldId)?.disconnect(true); // stale duplicate tab
+    s.writers.delete(oldId);
+    s.writers.set(sock.id, w);
+    const pos = s.turnOrder.indexOf(oldId);
+    if (pos !== -1) s.turnOrder[pos] = sock.id;
+    if (s.votes.has(oldId)) { s.votes.set(sock.id, s.votes.get(oldId)); s.votes.delete(oldId); }
+    if (s.hostId === oldId) s.hostId = sock.id;
+  }
+  clearTimeout(w.ghostTimer);
+  w.connected = true;
+  w.approved = true;
+  // The original host reclaims the role on return; otherwise the first
+  // person back into a rehydrated game hosts until they do.
+  if (w.token === s.hostToken || !s.writers.has(s.hostId)) s.hostId = sock.id;
+  sock.data.joinedCode = s.code;
+  sock.join(s.code);
+  ack?.({ ok: true, code: s.code, hostId: s.hostId, name: w.name, color: w.color, phase: s.phase, token: w.token });
+  sock.emit("chat-history", s.chat);
+  if (s.phase === "waiting") broadcastRoster(s);
+  else if (s.phase === "over") {
+    broadcastRoster(s); // everyone learns the (possibly restored) hostId
+    sock.emit("game-over", { prompt: s.prompt, story: s.story });
+  } else broadcastGame(s);
+}
+
+// In a gated (continued) game with a host present, a returning seat that
+// hasn't been re-approved yet becomes a pending request instead of seating.
+function gateOrSeat(sock, s, oldId, w, ack) {
+  const hostConnected = io.sockets.sockets.has(s.hostId) && s.writers.get(s.hostId)?.connected;
+  const isTrueHost = w.token === s.hostToken;
+  if (s.gated && !w.approved && !isTrueHost && hostConnected) {
+    s.pending.set(sock.id, { name: w.name, color: w.color, seatOldId: oldId });
+    sock.data.pendingCode = s.code;
+    io.sockets.sockets.get(s.hostId)?.emit("join-request", { id: sock.id, name: w.name, returning: true });
+    return ack?.({ ok: true, pending: true });
+  }
+  seatSocket(sock, s, oldId, w, ack);
+}
+
 io.on("connection", (socket) => {
   // socket.data (not a closure) so other handlers — e.g. the host approving a
   // join request — can seat this socket into a session.
   const mySession = () => sessions.get(socket.data.joinedCode);
 
   socket.on("create-session", ({ name, color, auth }, ack) => {
+    // Hosts are always tied to an account (userId + username).
+    if (!userByToken(auth)) return ack?.({ ok: false, error: "Sign in to host a game." });
     const code = makeCode();
     const host = newWriter(name, color, "Host", auth);
     const s = {
@@ -616,35 +681,6 @@ io.on("connection", (socket) => {
     saveSnapshot(s); // the code is claimable/revivable from the moment it exists
   });
 
-  // Put this socket into an existing seat: swaps the new socket id into every
-  // place the old one appears, restores host role, and syncs the right phase.
-  // Used by rejoin-session (seat token) and by join-session's account reclaim.
-  function reclaimSeat(s, oldId, w, ack) {
-    if (oldId !== socket.id) {
-      io.sockets.sockets.get(oldId)?.disconnect(true); // stale duplicate tab
-      s.writers.delete(oldId);
-      s.writers.set(socket.id, w);
-      const pos = s.turnOrder.indexOf(oldId);
-      if (pos !== -1) s.turnOrder[pos] = socket.id;
-      if (s.votes.has(oldId)) { s.votes.set(socket.id, s.votes.get(oldId)); s.votes.delete(oldId); }
-      if (s.hostId === oldId) s.hostId = socket.id;
-    }
-    clearTimeout(w.ghostTimer);
-    w.connected = true;
-    // The original host reclaims the role on return; otherwise the first
-    // person back into a rehydrated game hosts until they do.
-    if (w.token === s.hostToken || !s.writers.has(s.hostId)) s.hostId = socket.id;
-    socket.data.joinedCode = s.code;
-    socket.join(s.code);
-    ack?.({ ok: true, code: s.code, hostId: s.hostId, name: w.name, color: w.color, phase: s.phase, token: w.token });
-    socket.emit("chat-history", s.chat);
-    if (s.phase === "waiting") broadcastRoster(s);
-    else if (s.phase === "over") {
-      broadcastRoster(s); // everyone learns the (possibly restored) hostId
-      socket.emit("game-over", { prompt: s.prompt, story: s.story });
-    } else broadcastGame(s);
-  }
-
   const seatByAccount = (s, auth) => {
     const acct = userByToken(auth);
     return acct ? [...s.writers.entries()].find(([, w]) => w.userId === acct.id) : null;
@@ -657,7 +693,7 @@ io.on("connection", (socket) => {
     // Account-based seat reclaim: a signed-in player who lost their device
     // token can re-enter a running game by code — their account finds the seat.
     const mine = seatByAccount(s, auth);
-    if (mine) return reclaimSeat(s, mine[0], mine[1], ack);
+    if (mine) return gateOrSeat(socket, s, mine[0], mine[1], ack);
     if (s.phase !== "waiting") {
       // Started games are gated: a NEW writer needs the host to let them in.
       const hostSock = io.sockets.sockets.get(s.hostId);
@@ -692,6 +728,15 @@ io.on("connection", (socket) => {
       target.emit("join-denied");
       return ack?.({ ok: true });
     }
+    // returning writer of a continued game: re-seat their existing chair
+    if (req.seatOldId) {
+      const seat = s.writers.get(req.seatOldId);
+      if (!seat) return ack?.({ ok: false, error: "Their seat is gone." });
+      seatSocket(target, s, req.seatOldId, seat, (payload) => target.emit("join-approved", payload));
+      announce(s, seat, "rejoined the story");
+      saveSnapshot(s);
+      return ack?.({ ok: true });
+    }
     const w = newWriter(req.name, req.color, "Writer", req.auth);
     s.writers.set(id, w);
     // new writers slot in at the end of the rotation
@@ -720,7 +765,7 @@ io.on("connection", (socket) => {
     const entry =
       (token && [...s.writers.entries()].find(([, w]) => w.token === token)) || seatByAccount(s, auth);
     if (!entry) return ack?.({ ok: false, error: "Seat expired." });
-    reclaimSeat(s, entry[0], entry[1], ack);
+    gateOrSeat(socket, s, entry[0], entry[1], ack);
   });
 
   socket.on("start-game", ({ turnSeconds, rounds }, ack) => {

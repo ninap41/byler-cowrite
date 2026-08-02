@@ -1201,6 +1201,12 @@
 				font-size: 0.8rem;
 				font-family: var(--font-mono);
 			}
+			.session-bar .sess-host {
+				font-family: var(--font-mono);
+				font-size: 0.72rem;
+				color: var(--muted);
+				white-space: nowrap;
+			}
 			.session-bar [data-sess-code] {
 				margin-left: auto;
 				letter-spacing: 2px;
@@ -1382,6 +1388,7 @@
 					<div class="prompt-banner" id="archPrompt"></div>
 					<p class="gc-meta" id="archMeta" style="margin: 10px 0 0"></p>
 					<div class="story" id="archStory" style="max-height: none"></div>
+					<div class="row"><button class="primary" id="archContinue">Continue this story →</button></div>
 				</div>
 			</div>
 		</div>
@@ -1483,7 +1490,10 @@
 							<input id="name" placeholder="e.g. willthewise" maxlength="24" />
 							<label>Your color</label>
 							<div class="swatches" id="swatches"></div>
-							<div class="row"><button class="primary" id="createBtn">Start a game</button></div>
+							<div class="row" id="createRow"><button class="primary" id="createBtn">Start a game</button></div>
+							<p class="subtle hidden" id="guestHostNote" style="margin-top: 14px">
+								Hosting needs an account — sign in to start your own game. Guests can join with a code below.
+							</p>
 							<div class="divider">— or join one —</div>
 							<label for="code">Game code</label>
 							<input id="code" class="code" placeholder="XXXX" maxlength="4" />
@@ -1497,6 +1507,7 @@
 					<div id="waiting" class="card hidden">
 						<div class="session-bar">
 							<span class="sess-name" data-sess-name></span>
+							<span class="sess-host" data-sess-host></span>
 							<input class="sess-input hidden" data-sess-input maxlength="40" placeholder="Name this story..." />
 							<button class="ghost hidden" data-sess-edit title="Rename story" type="button">&#9998;</button>
 							<button class="ghost" data-sess-code title="Copy game code" type="button">&middot;&middot;&middot;&middot; &#x2398;</button>
@@ -1523,6 +1534,7 @@
 					<div id="choosing" class="card hidden">
 						<div class="session-bar">
 							<span class="sess-name" data-sess-name></span>
+							<span class="sess-host" data-sess-host></span>
 							<input class="sess-input hidden" data-sess-input maxlength="40" placeholder="Name this story..." />
 							<button class="ghost hidden" data-sess-edit title="Rename story" type="button">&#9998;</button>
 							<button class="ghost" data-sess-code title="Copy game code" type="button">&middot;&middot;&middot;&middot; &#x2398;</button>
@@ -1545,6 +1557,7 @@
 					<div id="game" class="card hidden">
 						<div class="session-bar">
 							<span class="sess-name" data-sess-name></span>
+							<span class="sess-host" data-sess-host></span>
 							<input class="sess-input hidden" data-sess-input maxlength="40" placeholder="Name this story..." />
 							<button class="ghost hidden" data-sess-edit title="Rename story" type="button">&#9998;</button>
 							<button class="ghost" data-sess-code title="Copy game code" type="button">&middot;&middot;&middot;&middot; &#x2398;</button>
@@ -1593,6 +1606,7 @@
 					<div id="over" class="card hidden">
 						<div class="session-bar">
 							<span class="sess-name" data-sess-name></span>
+							<span class="sess-host" data-sess-host></span>
 							<input class="sess-input hidden" data-sess-input maxlength="40" placeholder="Name this story..." />
 							<button class="ghost hidden" data-sess-edit title="Rename story" type="button">&#9998;</button>
 							<button class="ghost" data-sess-code title="Copy game code" type="button">&middot;&middot;&middot;&middot; &#x2398;</button>
@@ -1745,6 +1759,8 @@
 				$("authIn").classList.toggle("hidden", !me)
 				show("playBox")
 				$("guestBackRow").classList.toggle("hidden", !!me) // signed-in users have no "back"
+				$("createRow").classList.toggle("hidden", !me) // hosting requires an account
+				$("guestHostNote").classList.toggle("hidden", !!me)
 			}
 			$("chLogin").onclick = () => showPane("login")
 			$("chSignup").onclick = () => showPane("signup")
@@ -1879,8 +1895,12 @@
 
 			// ---- Session bar: name (host-editable) + copyable code ----
 			let myCode = "",
-				sessName = ""
+				sessName = "",
+				sessHost = ""
 			function updateSessionBar() {
+				document.querySelectorAll("[data-sess-host]").forEach((el) => {
+					el.textContent = sessHost ? "👑 " + sessHost : ""
+				})
 				document.querySelectorAll("[data-sess-name]").forEach((el) => {
 					el.textContent = sessName || "Untitled story"
 					el.classList.toggle("unnamed", !sessName)
@@ -1999,6 +2019,8 @@
 				if (!rejoinInfo || !rejoinInfo.code || !rejoinInfo.token) return
 				socket.emit("rejoin-session", { ...rejoinInfo, auth: authToken }, (res) => {
 					if (!res?.ok) return clearRejoin() // dead game or expired seat: stay in lobby
+					if (res.pending)
+						return ($("lobbyErr").textContent = "This story was continued — waiting for the host to let you back in…")
 					myId = socket.id
 					hostId = res.hostId
 					if (res.color) {
@@ -2021,16 +2043,22 @@
 					if (!res?.ok) return ($("lobbyErr").textContent = res?.error || "Error")
 					enterSession(res)
 				})
-			$("joinBtn").onclick = () => {
-				const code = $("code").value.trim().toUpperCase()
-				if (code.length !== 4) return ($("lobbyErr").textContent = "Enter a 4-letter code.")
+			function joinByCode(code) {
 				socket.emit("join-session", { name: $("name").value.trim(), color: myColor, code, auth: authToken }, (res) => {
 					if (!res?.ok) return ($("lobbyErr").textContent = res?.error || "Error")
 					if (res.pending)
 						return ($("lobbyErr").textContent = "This story is underway — waiting for the host to let you in…")
+					$("lobbyErr").textContent = ""
 					enterSession(res)
 				})
 			}
+			$("joinBtn").onclick = () => {
+				const code = $("code").value.trim().toUpperCase()
+				if (code.length !== 4) return ($("lobbyErr").textContent = "Enter a 4-letter code.")
+				joinByCode(code)
+			}
+			// Archive "Continue" lands here: reclaim/revive the game by code.
+			window.continueGameByCode = (code) => joinByCode(code)
 			function enterSession(res) {
 				myId = socket.id
 				hostId = res.hostId
@@ -2078,6 +2106,7 @@
 					list.appendChild(li)
 				}
 				hostId = writers.find((w) => w.isHost)?.id ?? hostId
+				sessHost = writers.find((w) => w.isHost)?.name ?? sessHost
 				updateHostView()
 				updateSessionBar()
 			})
@@ -2088,6 +2117,7 @@
 				hostId = st.hostId ?? hostId
 				if (st.code) myCode = st.code
 				if (st.name != null) sessName = st.name
+				if (st.hostName != null) sessHost = st.hostName
 				updateSessionBar()
 				if (st.phase === "choosing") renderChoosing(st)
 				else if (st.phase === "writing") renderWriting(st)
@@ -2381,11 +2411,11 @@
 			socket.on("join-denied", () => {
 				$("lobbyErr").textContent = "The host declined to let you in."
 			})
-			socket.on("join-request", ({ id, name }) => {
+			socket.on("join-request", ({ id, name, returning }) => {
 				const row = document.createElement("div")
 				row.className = "join-req"
 				row.dataset.reqId = id
-				row.innerHTML = `<span><b>${esc(name)}</b> wants to join the story</span>`
+				row.innerHTML = `<span><b>${esc(name)}</b> wants to ${returning ? "rejoin" : "join"} the story</span>`
 				const yes = document.createElement("button")
 				yes.className = "primary"
 				yes.textContent = "Let in"
@@ -2665,18 +2695,32 @@
 					}
 					list.innerHTML = ""
 					games.forEach(function (g) {
-						var b = document.createElement("button")
+						var b = document.createElement("div")
 						b.className = "game-card"
+						b.style.cursor = "pointer"
 						b.innerHTML =
 							(g.name ? '<p class="gc-prompt" style="font-weight:700">' + esc(g.name) + "</p>" : "") +
 							'<p class="gc-prompt">' + (esc(g.prompt) || "<em>No prompt yet</em>") + "</p>" +
 							'<span class="gc-meta">' +
 							"<span>" + esc(g.code) + "</span>" +
+							(g.hostName ? "<span>👑 " + esc(g.hostName) + "</span>" : "") +
 							"<span>" + g.lines + " line" + (g.lines === 1 ? "" : "s") + "</span>" +
 							"<span>" + (g.phase === "over" ? "finished" : "paused") + "</span>" +
-							"<span>" + esc(g.writers.map(function (w) { return w.name }).join(", ")) + "</span>" +
+							"<span>" +
+							esc(g.writers.map(function (w) { return (w.isHost ? "👑 " : "") + w.name }).join(", ")) +
+							"</span>" +
 							"<span>" + fmtWhen(g.savedAt) + "</span>" +
 							"</span>"
+						var cont = document.createElement("button")
+						cont.className = "primary"
+						cont.textContent = "Continue →"
+						cont.style.cssText = "margin-top:10px;flex:none;min-width:0;padding:8px 14px;font-size:.85rem"
+						cont.onclick = function (e) {
+							e.stopPropagation()
+							closeArchive()
+							window.continueGameByCode(g.code)
+						}
+						b.appendChild(cont)
 						b.onclick = function () {
 							openGameDetail(g.code)
 						}
@@ -2686,7 +2730,7 @@
 					})
 				}
 				function openGameDetail(code) {
-					fetch("/api/games/" + encodeURIComponent(code))
+					fetch("/api/games/" + encodeURIComponent(code), { headers: archiveHeaders() })
 						.then(function (r) { return r.json() })
 						.then(function (g) {
 							if (!g || g.error) return
@@ -2709,15 +2753,27 @@
 						})
 						.catch(function () {})
 				}
+				function archiveHeaders() {
+					var t = localStorage.getItem("cowriteAuth")
+					return t ? { Authorization: "Bearer " + t } : {}
+				}
 				function openArchive() {
 					archiveOpen = true
 					showArchiveList()
 					document.getElementById("archiveList").innerHTML = '<p class="archive-empty">Loading…</p>'
-					fetch("/api/games")
-						.then(function (r) { return r.json() })
+					fetch("/api/games", { headers: archiveHeaders() })
+						.then(function (r) {
+							if (r.status === 401) throw new Error("signin")
+							return r.json()
+						})
 						.then(renderGameCards)
-						.catch(function () {
-							document.getElementById("archiveList").innerHTML = '<p class="archive-empty">Could not load saved games.</p>'
+						.catch(function (e) {
+							document.getElementById("archiveList").innerHTML =
+								'<p class="archive-empty">' +
+								(e.message === "signin"
+									? "Sign in to see your previous games — only games you wrote in show up here."
+									: "Could not load saved games.") +
+								"</p>"
 						})
 					if (hasGsap) {
 						gsap.killTweensOf(archive)
