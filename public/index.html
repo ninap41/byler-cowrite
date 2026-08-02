@@ -2276,7 +2276,6 @@
 					if (w.connected === false) li.style.opacity = "0.45"
 					li.innerHTML =
 						`<span class="st-dot ${w.connected === false ? "off" : "on"}" title="${w.connected === false ? "Offline" : "Online"}"></span>` +
-						`<span class="dot" style="background:${col};box-shadow:0 0 8px ${col}"></span>` +
 						whoMarks(w) +
 						`<span class="rname" style="color:${col}">${esc(w.name)}</span>` +
 						`${w.badge ? `<span class="badge-chip">${esc(w.badge)}</span>` : ""}` +
