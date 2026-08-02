@@ -1818,7 +1818,7 @@
 			}
 			socket.on("connect", () => {
 				if (!rejoinInfo || !rejoinInfo.code || !rejoinInfo.token) return
-				socket.emit("rejoin-session", rejoinInfo, (res) => {
+				socket.emit("rejoin-session", { ...rejoinInfo, auth: authToken }, (res) => {
 					if (!res?.ok) return clearRejoin() // dead game or expired seat: stay in lobby
 					myId = socket.id
 					hostId = res.hostId
@@ -1853,8 +1853,14 @@
 				myId = socket.id
 				hostId = res.hostId
 				if (res.token) saveRejoin(res.code, res.token)
+				if (res.color) {
+					myColor = safeColor(res.color)
+					document.querySelectorAll(".swatch").forEach((x) => x.classList.toggle("sel", x.dataset.color === myColor))
+				}
 				$("codeDisplay").textContent = res.code
-				onlyShow("waiting")
+				// An account seat-reclaim can land mid-game: the server follows the ack
+				// with game-state / game-over, which shows the right card itself.
+				if (!res.phase || res.phase === "waiting") onlyShow("waiting")
 				show("chatCard")
 				updateHostView()
 			}

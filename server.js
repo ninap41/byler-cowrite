@@ -599,29 +599,10 @@ io.on("connection", (socket) => {
     broadcastRoster(s);
   });
 
-  socket.on("join-session", ({ name, color, code, auth }, ack) => {
-    code = (code || "").toUpperCase().trim();
-    const s = sessions.get(code);
-    if (!s) return ack?.({ ok: false, error: "Game not found." });
-    if (s.phase !== "waiting")
-      return ack?.({ ok: false, error: "This game has already started." });
-    s.writers.set(socket.id, newWriter(name, color, "Writer", auth));
-    joinedCode = code;
-    socket.join(code);
-    ack?.({ ok: true, code, hostId: s.hostId, token: s.writers.get(socket.id).token });
-    socket.emit("chat-history", s.chat);
-    broadcastRoster(s);
-  });
-
-  // Reclaim a seat (page refresh / transient reconnect) using the localStorage token.
-  // Swaps the new socket id into every place the old one appears.
-  socket.on("rejoin-session", ({ code, token }, ack) => {
-    code = (code || "").toUpperCase().trim();
-    const s = sessions.get(code) ?? loadSession(code);
-    if (!s || !token) return ack?.({ ok: false, error: "Game not found." });
-    const entry = [...s.writers.entries()].find(([, w]) => w.token === token);
-    if (!entry) return ack?.({ ok: false, error: "Seat expired." });
-    const [oldId, w] = entry;
+  // Put this socket into an existing seat: swaps the new socket id into every
+  // place the old one appears, restores host role, and syncs the right phase.
+  // Used by rejoin-session (seat token) and by join-session's account reclaim.
+  function reclaimSeat(s, oldId, w, ack) {
     if (oldId !== socket.id) {
       io.sockets.sockets.get(oldId)?.disconnect(true); // stale duplicate tab
       s.writers.delete(oldId);
@@ -636,15 +617,50 @@ io.on("connection", (socket) => {
     // The original host reclaims the role on return; otherwise the first
     // person back into a rehydrated game hosts until they do.
     if (w.token === s.hostToken || !s.writers.has(s.hostId)) s.hostId = socket.id;
-    joinedCode = code;
-    socket.join(code);
-    ack?.({ ok: true, code, hostId: s.hostId, name: w.name, color: w.color, phase: s.phase, token: w.token });
+    joinedCode = s.code;
+    socket.join(s.code);
+    ack?.({ ok: true, code: s.code, hostId: s.hostId, name: w.name, color: w.color, phase: s.phase, token: w.token });
     socket.emit("chat-history", s.chat);
     if (s.phase === "waiting") broadcastRoster(s);
     else if (s.phase === "over") {
       broadcastRoster(s); // everyone learns the (possibly restored) hostId
       socket.emit("game-over", { prompt: s.prompt, story: s.story });
     } else broadcastGame(s);
+  }
+
+  const seatByAccount = (s, auth) => {
+    const acct = userByToken(auth);
+    return acct ? [...s.writers.entries()].find(([, w]) => w.userId === acct.id) : null;
+  };
+
+  socket.on("join-session", ({ name, color, code, auth }, ack) => {
+    code = (code || "").toUpperCase().trim();
+    const s = sessions.get(code) ?? loadSession(code);
+    if (!s) return ack?.({ ok: false, error: "Game not found." });
+    // Account-based seat reclaim: a signed-in player who lost their device
+    // token can re-enter a running game by code — their account finds the seat.
+    const mine = seatByAccount(s, auth);
+    if (mine) return reclaimSeat(s, mine[0], mine[1], ack);
+    if (s.phase !== "waiting")
+      return ack?.({ ok: false, error: "This game has already started." });
+    s.writers.set(socket.id, newWriter(name, color, "Writer", auth));
+    joinedCode = code;
+    socket.join(code);
+    ack?.({ ok: true, code, hostId: s.hostId, token: s.writers.get(socket.id).token });
+    socket.emit("chat-history", s.chat);
+    broadcastRoster(s);
+  });
+
+  // Reclaim a seat (page refresh / transient reconnect) using the localStorage
+  // seat token, falling back to the signed-in account's seat.
+  socket.on("rejoin-session", ({ code, token, auth }, ack) => {
+    code = (code || "").toUpperCase().trim();
+    const s = sessions.get(code) ?? loadSession(code);
+    if (!s || (!token && !auth)) return ack?.({ ok: false, error: "Game not found." });
+    const entry =
+      (token && [...s.writers.entries()].find(([, w]) => w.token === token)) || seatByAccount(s, auth);
+    if (!entry) return ack?.({ ok: false, error: "Seat expired." });
+    reclaimSeat(s, entry[0], entry[1], ack);
   });
 
   socket.on("start-game", ({ turnSeconds, rounds }, ack) => {
