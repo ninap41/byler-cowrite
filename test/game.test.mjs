@@ -156,6 +156,45 @@ test("edit-line: authors revise their own lines only; sanitized once; marked edi
   assert.equal(line.edited, true);
 });
 
+test("add-header: host-only chapter headers, centered, no words credited", async () => {
+  const { host, A, B, state } = await startedGame(ctx);
+  const denied = await ctx.emit(B, "add-header", { text: "nope" });
+  assert.equal(denied.ok, false, "non-host cannot add headers");
+  const empty = await ctx.emit(A, "add-header", { text: "  " });
+  assert.equal(empty.ok, false);
+  const wordsBefore = (await ctx.api("/api/me", null, host.token, "GET")).data.user.wordCount;
+  const ok = await ctx.emit(A, "add-header", { text: "Chapter One <b>bold?</b>" });
+  assert.equal(ok.ok, true);
+  await ctx.wait(150);
+  const line = state.current.story.at(-1);
+  assert.equal(line.header, true);
+  assert.ok(line.html.startsWith('<h2 class="al-c">'), "centered heading");
+  assert.ok(!line.html.includes("<b>"), "header text is plain");
+  const me = (await ctx.api("/api/me", null, host.token, "GET")).data.user;
+  assert.equal(me.wordCount, wordsBefore, "headers don't credit words");
+});
+
+test("delete-game: host-only, snapshot removed, live players notified", async () => {
+  const { host, mike, A, B, code } = await startedGame(ctx);
+  const { existsSync } = await import("node:fs");
+  const { join } = await import("node:path");
+  const snap = join(ctx.saveDir, code + ".json");
+  assert.ok(existsSync(snap));
+  const notHost = await ctx.api("/api/games/" + code, null, mike.token, "DELETE");
+  assert.equal(notHost.status, 403, "seat-holder but not host cannot delete");
+  const stranger = await signup(ctx, "delstranger", "dstr@x.com");
+  assert.equal((await ctx.api("/api/games/" + code, null, stranger.token, "DELETE")).status, 403);
+  const deletedP = new Promise((r) => B.on("game-deleted", r));
+  const ok = await ctx.api("/api/games/" + code, null, host.token, "DELETE");
+  assert.equal(ok.status, 200);
+  await deletedP; // other player told live
+  assert.equal(existsSync(snap), false, "snapshot gone");
+  assert.equal((await ctx.api("/api/games/" + code, null, host.token, "GET")).status, 404);
+  const C = await ctx.conn();
+  const rejoin = await ctx.emit(C, "join-session", { code, auth: host.token });
+  assert.equal(rejoin.ok, false, "the code is dead");
+});
+
 test("host leaving mid-writing pauses the game and announces it", async () => {
   const { A, B, state } = await startedGame(ctx);
   const chats = [];

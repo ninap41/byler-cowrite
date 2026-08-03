@@ -49,7 +49,10 @@ test("chrome menu lists every theme and switching updates data-theme + storage",
   // intensified scenery layers
   assert.equal(document.querySelectorAll(".bg-set.arcade .galaga").length, 4, "galaga fleet");
   assert.ok(document.querySelector(".bg-set.arcade .ship") && document.querySelector(".bg-set.arcade .shot"));
-  assert.ok(document.querySelector(".bg-set.starcourt .retro-sun"), "80s striped sun");
+  assert.equal(document.querySelectorAll(".bg-set.starcourt .tri").length, 2, "starcourt triangles");
+  assert.equal(document.querySelectorAll(".bg-set.starcourt .ring").length, 2, "starcourt circles");
+  assert.equal(document.querySelectorAll(".bg-set.starcourt .zig").length, 2, "starcourt zigzags");
+  assert.ok(document.querySelector(".bg-set.starcourt .memdots"), "starcourt dot grid");
   assert.equal(document.querySelectorAll(".bg-set.upside .dust").length, 3, "upside dust layers");
   assert.ok(document.querySelector(".bg-set.upside .vines") && document.querySelectorAll(".bg-set.upside .mtn").length === 2,
     "upside landscape: vines + two mountain ridges");

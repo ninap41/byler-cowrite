@@ -48,9 +48,15 @@ test("ladderHtml: fresh account shows first tier progress, rest locked", () => {
   assert.equal((out.match(/>locked</g) || []).length, 2);
 });
 
-test("usageCaseHtml: earned chips + mystery slots, never reveals triggers", () => {
-  const out = usageCaseHtml(["🐺 Omega Badge"], 4);
-  assert.ok(out.includes("🐺 Omega Badge"));
-  assert.equal((out.match(/hidden badge/g) || []).length, 3);
-  assert.ok(!/puppy|cock|moan|michael/i.test(out));
+test("usageCaseHtml: every badge listed with its how-to-earn tooltip; unearned locked", () => {
+  const all = [
+    { name: "🐺 Omega Badge", desc: 'Write "puppy" into a story line.' },
+    { name: "😏 Smutty Buddy", desc: "Get a moan into the story." },
+  ];
+  const out = usageCaseHtml(all, ["🐺 Omega Badge"]);
+  const [omega, smutty] = out.split("</span>");
+  assert.ok(omega.includes("earned") && !omega.includes("🔒"), "earned badge glows");
+  assert.ok(omega.includes('title="Write &quot;puppy&quot; into a story line."'), "tooltip carries the how (escaped)");
+  assert.ok(smutty.includes("next") && smutty.includes("🔒"), "unearned badge locked");
+  assert.ok(smutty.includes("Get a moan into the story."), "unearned still explains how to earn it");
 });

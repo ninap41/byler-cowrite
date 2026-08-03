@@ -39,7 +39,7 @@ async function sendResetEmail(to, link) {
 }
 
 export function registerRoutes(app, game) {
-  const { sessions, onlineSockets, SAVE_DIR, gameSummary, inGame, myGamesFor, recentGamesFor } = game;
+  const { sessions, onlineSockets, SAVE_DIR, gameSummary, inGame, myGamesFor, recentGamesFor, deleteGame } = game;
 
   // Logged-in dashboard: who's online + games currently running.
   app.get("/api/dashboard", (req, res) => {
@@ -143,11 +143,13 @@ export function registerRoutes(app, game) {
     res.json({ user: publicUser(u) });
   });
 
-  // Public achievement metadata for the profile page: the full word ladder,
-  // but only a COUNT of usage badges — their triggers stay a surprise.
+  // Public achievement metadata for the profile page: every badge with its
+  // description ("what it means and how to earn it" — see achievements.json).
+  // Raw trigger word lists still never ship.
   app.get("/api/achievements", (_req, res) => {
     res.json({
       wordTiers: WORD_TIERS.map((t) => ({ name: t.name, min: t.min, desc: t.desc })),
+      usage: USAGE.map((b) => ({ name: b.name, desc: b.desc })),
       usageCount: USAGE.length,
     });
   });
@@ -295,6 +297,23 @@ export function registerRoutes(app, game) {
     }
     out.sort((a, b) => b.savedAt - a.savedAt);
     res.json(out);
+  });
+
+  // Only the game's true host may delete a story — for everyone, forever.
+  app.delete("/api/games/:code", (req, res) => {
+    const u = authedUser(req);
+    if (!u) return res.status(401).json({ error: "Sign in first." });
+    const code = String(req.params.code || "").toUpperCase();
+    if (!CODE_RE.test(code)) return res.status(400).json({ error: "Bad code." });
+    let d;
+    try {
+      d = JSON.parse(readFileSync(join(SAVE_DIR, code + ".json"), "utf-8"));
+    } catch {
+      return res.status(404).json({ error: "Not found." });
+    }
+    if (d.hostUserId !== u.id) return res.status(403).json({ error: "Only the host can delete this story." });
+    deleteGame(code);
+    res.json({ ok: true });
   });
 
   app.get("/api/games/:code", (req, res) => {

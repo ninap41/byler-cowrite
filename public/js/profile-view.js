@@ -46,15 +46,14 @@ export function avatarHtml(p) {
 		: esc((p.username || "?").charAt(0).toUpperCase())
 }
 
-// The usage-badge case: earned collectibles (hover shows how they happened)
-// + mystery slots for the rest. Unearned triggers are never shown.
-export function usageCaseHtml(earnedNames, totalCount, descs = {}) {
-	const earned = earnedNames
-		.map((n) => `<span class="ach earned" title="${esc(descs[n] || "Earned")}">${esc(n)}</span>`)
+// The usage-badge case: every collectible is listed with its description as
+// a tooltip (what it means + how to earn it, straight from achievements.json);
+// earned ones glow, unearned ones sit locked.
+export function usageCaseHtml(allUsage, earnedNames) {
+	return allUsage
+		.map((b) => {
+			const earned = earnedNames.includes(b.name)
+			return `<span class="ach ${earned ? "earned" : "next"}" title="${esc(b.desc || "")}">${earned ? "" : "🔒 "}${esc(b.name)}</span>`
+		})
 		.join("")
-	const locked = Array.from(
-		{ length: Math.max(0, totalCount - earnedNames.length) },
-		() => `<span class="ach next" title="Secret — earn it by writing the right thing">？ hidden badge</span>`,
-	).join("")
-	return earned + locked
 }

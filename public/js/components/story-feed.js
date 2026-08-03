@@ -13,6 +13,14 @@ export function storyHtml(story, { freshFrom = Infinity, mineId = null } = {}) {
 		.map((l, i) => {
 			const col = safeColor(l.color)
 			const mine = mineId && l.userId === mineId
+			// chapter headers: centered, no byline — just the heading (+ edit for its author)
+			if (l.header)
+				return (
+					`<div class="story-line header-line ${i >= freshFrom ? "fresh" : ""}" data-idx="${i}">` +
+					(mine ? '<button class="line-edit" title="Edit your header" type="button">✎</button>' : "") +
+					(l.html || "") +
+					`</div>`
+				)
 			return (
 				`<div class="story-line ${i >= freshFrom ? "fresh" : ""}" data-idx="${i}">` +
 				`${statusDot(l.name)}${whoMarks(l)}<span class="who" style="color:${col}">${esc(l.name)}</span>` +

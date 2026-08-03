@@ -2426,3 +2426,126 @@ h3 {
 	from { opacity: 0.75; }
 	to { opacity: 1; }
 }
+
+/* ---------- Confirmation modal + danger buttons ---------- */
+.confirm-modal {
+	position: fixed;
+	inset: 0;
+	z-index: 90;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: rgba(0, 0, 0, 0.55);
+	backdrop-filter: blur(6px);
+	-webkit-backdrop-filter: blur(6px);
+	padding: 20px;
+}
+.confirm-card {
+	background: var(--panel);
+	border: 1px solid var(--panel-brd);
+	border-radius: 18px;
+	box-shadow: var(--panel-glow);
+	padding: 22px 24px;
+	max-width: 440px;
+	width: 100%;
+}
+.confirm-card h3 {
+	margin: 0 0 8px;
+	font-family: var(--font-display);
+}
+button.danger,
+.primary.danger {
+	background: #d33131 !important;
+	color: #fff !important;
+	border-color: #d33131 !important;
+}
+.ghost.danger {
+	background: transparent !important;
+	color: #e05555 !important;
+	border-color: rgba(224, 85, 85, 0.5) !important;
+}
+
+/* ---------- Chapter headers in the story feed ---------- */
+.story-line.header-line {
+	text-align: center;
+	border-bottom: 0;
+}
+
+/* ---------- Starcourt v2: Memphis shapes instead of the radial sun ---------- */
+.bg-set.starcourt .retro-sun {
+	display: none; /* superseded by the shape confetti */
+}
+.bg-set.starcourt .tri {
+	position: absolute;
+	width: 0;
+	height: 0;
+	border-left: 34px solid transparent;
+	border-right: 34px solid transparent;
+	border-bottom: 58px solid rgba(255, 184, 107, 0.4);
+}
+.bg-set.starcourt .t1 {
+	left: 22%;
+	top: 24%;
+}
+.bg-set.starcourt .t2 {
+	right: 26%;
+	bottom: 18%;
+	border-bottom-color: rgba(180, 85, 255, 0.32);
+	transform: rotate(24deg) scale(0.7);
+}
+.bg-set.starcourt .ring {
+	position: absolute;
+	border-radius: 50%;
+	border: 12px solid rgba(255, 95, 162, 0.3);
+}
+.bg-set.starcourt .r1 {
+	left: 7%;
+	bottom: 24%;
+	width: 110px;
+	height: 110px;
+}
+.bg-set.starcourt .r2 {
+	right: 8%;
+	top: 44%;
+	width: 62px;
+	height: 62px;
+	border-color: rgba(0, 180, 190, 0.35);
+	border-width: 8px;
+}
+.bg-set.starcourt .memdots {
+	position: absolute;
+	left: 58%;
+	top: 12%;
+	width: 150px;
+	height: 100px;
+	background-image: radial-gradient(circle 4px, rgba(53, 40, 74, 0.28) 60%, transparent 61%);
+	background-size: 26px 26px;
+	transform: rotate(-8deg);
+}
+@media (prefers-reduced-motion: no-preference) {
+	.bg-set.starcourt .tri {
+		animation: shape-tumble 8s ease-in-out infinite alternate;
+	}
+	.bg-set.starcourt .t2 {
+		animation-duration: 11s;
+		animation-delay: -4s;
+	}
+	.bg-set.starcourt .ring {
+		animation: shape-pop 6s ease-in-out infinite alternate;
+	}
+	.bg-set.starcourt .r2 {
+		animation-duration: 9s;
+		animation-delay: -3s;
+	}
+	.bg-set.starcourt .memdots {
+		animation: shape-tumble 13s ease-in-out infinite alternate;
+	}
+}
+@keyframes shape-tumble {
+	from { transform: translateY(-30px) rotate(-16deg); }
+	to { transform: translateY(30px) rotate(18deg); }
+}
+@keyframes shape-pop {
+	from { transform: scale(0.85) translateX(-22px); }
+	to { transform: scale(1.12) translateX(22px); }
+}

@@ -24,11 +24,33 @@
 					<div class="prompt-banner" id="archPrompt"></div>
 					<p class="gc-meta" id="archMeta" style="margin: 10px 0 0; align-items: center"></p>
 					<div class="story" id="archStory" style="max-height: none"></div>
-					<div class="row"><button class="primary" id="archContinue">Continue this story →</button></div>
+					<div class="row">
+						<button class="primary" id="archContinue">Continue this story →</button>
+						<button class="ghost danger hidden" id="archDelete">🗑 Delete story…</button>
+					</div>
 					<p class="subtle" style="text-align: left; margin-top: 12px">
 						<a href="#" class="linky" id="archListLink">← All previous games</a>
 					</p>
 				</div>
+			</div>
+		</div>
+
+		<!-- delete confirmation (with a last chance to save a copy) -->
+		<div class="confirm-modal hidden" id="delModal">
+			<div class="confirm-card">
+				<h3>Delete “<span id="delName"></span>”?</h3>
+				<p class="subtle" style="text-align: left">
+					This permanently removes the story and its code — for every writer in it. Maybe keep a copy first?
+				</p>
+				<div class="row">
+					<button class="ghost" id="delHtml">⬇ Download .html</button>
+					<button class="ghost" id="delPdf">🖨 Save as PDF</button>
+				</div>
+				<div class="row">
+					<button class="ghost" id="delCancel">Cancel</button>
+					<button class="primary danger" id="delConfirm">Delete forever</button>
+				</div>
+				<div class="err" id="delErr"></div>
 			</div>
 		</div>
 
@@ -37,6 +59,7 @@
 			import { mountChrome, setUserChip } from "/js/chrome.js"
 			import { requireAuth } from "/js/auth-guard.js"
 			import { gameCardHtml, archiveMetaText, archiveStoryHtml } from "/js/archive-view.js"
+			import { buildExports, exportDocument } from "/js/export.js"
 
 			mountChrome({ page: "archive" })
 			const me = await requireAuth("/")
@@ -81,6 +104,7 @@
 				})
 			}
 
+			let curG = null
 			async function openGameDetail(code) {
 				let g
 				try {
@@ -88,11 +112,13 @@
 				} catch (e) {
 					return
 				}
+				curG = g
 				$("archPrompt").textContent = g.prompt || "(no prompt)"
 				$("archMeta").textContent = archiveMetaText(g)
 				// story html was sanitized server-side by sanitizeRich() before being saved
 				$("archStory").innerHTML = archiveStoryHtml(g.story)
 				$("archContinue").onclick = () => (location.href = "/game?code=" + encodeURIComponent(g.code))
+				$("archDelete").classList.toggle("hidden", g.hostName !== me.username)
 				$("archiveList").classList.add("hidden")
 				const det = $("archiveDetail")
 				det.classList.remove("hidden")
@@ -104,6 +130,43 @@
 			$("archListLink").onclick = (e) => {
 				e.preventDefault()
 				showList()
+			}
+
+			// ---- delete flow: confirm modal with a last-chance export ----
+			const exportDoc = () => exportDocument(buildExports(curG.prompt || "", curG.story || []).html)
+			$("archDelete").onclick = () => {
+				$("delName").textContent = curG.name || curG.prompt || curG.code
+				$("delErr").textContent = ""
+				$("delModal").classList.remove("hidden")
+			}
+			$("delCancel").onclick = () => $("delModal").classList.add("hidden")
+			$("delModal").addEventListener("click", (e) => {
+				if (e.target === $("delModal")) $("delModal").classList.add("hidden")
+			})
+			$("delHtml").onclick = () => {
+				const blob = new Blob([exportDoc()], { type: "text/html" })
+				const a = document.createElement("a")
+				a.href = URL.createObjectURL(blob)
+				a.download = "byler-cowrite-" + curG.code + ".html"
+				a.click()
+				URL.revokeObjectURL(a.href)
+			}
+			$("delPdf").onclick = () => {
+				// print dialog on a clean copy — "Save as PDF" lives there
+				const w = window.open("", "_blank")
+				if (!w) return
+				w.document.write(exportDoc())
+				w.document.close()
+				w.focus()
+				w.print()
+			}
+			$("delConfirm").onclick = async () => {
+				try {
+					await api("/api/games/" + encodeURIComponent(curG.code), null, "DELETE")
+					location.href = "/archive"
+				} catch (e) {
+					$("delErr").textContent = e.message
+				}
 			}
 
 			if (me) {

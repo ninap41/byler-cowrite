@@ -62,7 +62,7 @@
 					<!-- usage badges -->
 					<div class="card">
 						<h3 class="dash-h" style="margin-top: 0">Secret badges</h3>
-						<p class="subtle" style="text-align: left; margin: 4px 0 0">Earned by writing… the right thing. No hints.</p>
+						<p class="subtle" style="text-align: left; margin: 4px 0 0">Earned by writing… the right thing. Hover a badge for the how.</p>
 						<div class="ach-strip" id="usageCase"></div>
 					</div>
 
@@ -124,7 +124,7 @@
 					$("aboutBox").innerHTML = aboutHtml(p)
 					$("aboutEditHint").classList.toggle("hidden", !itsMe)
 					$("ladder").innerHTML = ladderHtml(meta.wordTiers, p)
-					$("usageCase").innerHTML = usageCaseHtml(p.usageBadges, meta.usageCount, p.badgeDescs || {})
+					$("usageCase").innerHTML = usageCaseHtml(meta.usage, p.usageBadges)
 					$("streakBox").innerHTML =
 						streakRingHtml(p.streak, Math.max(p.bestStreak, 1)) +
 						`<div class="streak-meta"><b>${p.streak} day${p.streak === 1 ? "" : "s"}</b> current streak<br>Best: ${p.bestStreak} day${p.bestStreak === 1 ? "" : "s"}</div>`

@@ -28,9 +28,12 @@ test("clean URLs serve each page", async () => {
   assert.equal(game.status, 200);
   assert.ok(game.body.includes('id="writerEditor"'));
   assert.ok(game.body.includes('id="playersRow"'));
+  assert.ok(game.body.includes('id="headerInput"'), "chapter-header control");
   const arch = await page("/archive");
   assert.equal(arch.status, 200);
   assert.ok(arch.body.includes('id="archiveList"'));
+  for (const id of ["delModal", "archDelete", "delHtml", "delPdf", "delConfirm", "delCancel"])
+    assert.ok(arch.body.includes(`id="${id}"`), id + " in the delete flow");
   const prof = await page("/profile");
   assert.equal(prof.status, 200);
   assert.ok(prof.body.includes('id="ladder"') && prof.body.includes('id="usageCase"'));

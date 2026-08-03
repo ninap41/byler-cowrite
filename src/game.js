@@ -1,7 +1,7 @@
 // The live game: session state machine, persistence (saves/*.json), and all
 // Socket.IO handlers. createGame(io) owns the in-memory maps and returns the
 // pieces the HTTP routes need (sessions, archive helpers, presence).
-import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync } from "fs";
+import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync, unlinkSync } from "fs";
 import { randomUUID } from "crypto";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
@@ -654,6 +654,26 @@ export function createGame(io) {
       ack?.({ ok: true });
     });
 
+    // Host inserts a chapter header into the story — no turn consumed, no
+    // words credited; plain text, rendered as a centered heading.
+    socket.on("add-header", ({ text }, ack) => {
+      const s = mySession();
+      if (!s || s.hostId !== socket.id) return ack?.({ ok: false, error: "Host only." });
+      if (s.phase !== "writing" && s.phase !== "over") return ack?.({ ok: false });
+      const t = stripTags(String(text || "")).slice(0, 80).trim();
+      if (!t) return ack?.({ ok: false, error: "A header can't be empty." });
+      const w = s.writers.get(socket.id);
+      s.story.push({
+        name: w?.name, color: w?.color,
+        html: sanitizeRich(`<h2 class="al-c">${t}</h2>`),
+        userId: w?.userId ?? null, header: true, host: true,
+      });
+      saveSnapshot(s);
+      if (s.phase === "over") io.to(s.code).emit("game-over", { prompt: s.prompt, story: s.story });
+      else broadcastGame(s);
+      ack?.({ ok: true });
+    });
+
     socket.on("submit-line", ({ text }, ack) => {
       const s = mySession();
       if (!s || s.phase !== "writing" || s.paused) return ack?.({ ok: false });
@@ -844,5 +864,20 @@ export function createGame(io) {
     return out.slice(0, cap);
   }
 
-  return { sessions, onlineSockets, SAVE_DIR, gameSummary, inGame, myGamesFor, recentGamesFor };
+  // Permanently remove a game: kill the live session (players are told),
+  // then delete the snapshot so the code truly dies.
+  function deleteGame(code) {
+    const s = sessions.get(code);
+    if (s) {
+      clearTimeout(s.timer);
+      for (const w of s.writers.values()) clearTimeout(w.ghostTimer);
+      io.to(code).emit("game-deleted");
+      sessions.delete(code);
+    }
+    try {
+      unlinkSync(join(SAVE_DIR, code + ".json"));
+    } catch { /* already gone */ }
+  }
+
+  return { sessions, onlineSockets, SAVE_DIR, gameSummary, inGame, myGamesFor, recentGamesFor, deleteGame };
 }

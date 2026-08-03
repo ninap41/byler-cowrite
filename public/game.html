@@ -128,6 +128,10 @@
 						<button class="ghost" id="pauseBtn">⏸ Pause</button>
 						<button class="ghost" id="endBtn">End game &amp; reveal</button>
 					</div>
+					<div id="hostHeader" class="chat-row hidden">
+						<input id="headerInput" maxlength="80" placeholder="Add a chapter header…" />
+						<button class="ghost" id="addHeaderBtn" style="flex: 0 0 auto; min-width: auto">Add header</button>
+					</div>
 					<div id="hostRules" class="grid2 hidden">
 						<div>
 							<label for="liveSecs">Seconds per turn (next turn)</label
@@ -516,6 +520,7 @@
 				$("whoTurn").style.color = myTurn ? "var(--good)" : "var(--ink)"
 				$("myTurn").classList.toggle("hidden", !myTurn)
 				$("hostGame").classList.toggle("hidden", !host)
+				$("hostHeader").classList.toggle("hidden", !host)
 				$("hostRules").classList.toggle("hidden", !host)
 				if (document.activeElement !== $("liveSecs")) $("liveSecs").value = st.turnSeconds
 				$("pauseBtn").textContent = st.paused ? "▶ Resume" : "⏸ Pause"
@@ -671,6 +676,21 @@
 				refreshStatusDots()
 				box.classList.remove("hidden")
 			})
+			// Host: insert a chapter header (server sanitizes + broadcasts)
+			function sendHeader() {
+				const v = $("headerInput").value.trim()
+				if (!v) return
+				socket.emit("add-header", { text: v }, (res) => {
+					if (res?.ok) $("headerInput").value = ""
+				})
+			}
+			$("addHeaderBtn").onclick = sendHeader
+			$("headerInput").addEventListener("keydown", (e) => {
+				if (e.key === "Enter") {
+					e.preventDefault()
+					sendHeader()
+				}
+			})
 			$("pauseBtn").onclick = () =>
 				socket.emit($("pauseBtn").textContent.includes("Resume") ? "resume-game" : "pause-game")
 			$("endBtn").onclick = () => socket.emit("end-game")
@@ -744,6 +764,16 @@
 				clearRejoin() // otherwise /game auto-rejoins straight back here
 				location.href = "/dashboard"
 			}
+
+			// ---- The host deleted this story ----
+			socket.on("game-deleted", () => {
+				clearRejoin()
+				clearInterval(tickInterval)
+				vecnaClock.stop()
+				onlyShow("none") // hide every phase card
+				hide("chatCard")
+				gameMsg("The host deleted this story.")
+			})
 
 			// ---- Badge unlock toasts (server targets just the earner) ----
 			socket.on("badge-earned", ({ badge, desc }) => {

@@ -45,8 +45,10 @@ test("achievements metadata is public: ladder + usage count only", async () => {
   assert.equal(r.data.wordTiers[1].min, 5000);
   assert.equal(r.data.usageCount, 4);
   assert.ok(r.data.wordTiers[1].desc.includes("5,000"), "ladder descs are public");
-  assert.equal(JSON.stringify(r.data).includes("trigger"), false, "triggers stay secret");
-  assert.equal(JSON.stringify(r.data).includes("moan"), false, "usage descs never ship unearned");
+  // every badge ships its "what it means / how to earn it" description
+  assert.equal(r.data.usage.length, 4);
+  assert.ok(r.data.usage.every((b) => b.name && b.desc), "usage badges carry descriptions");
+  assert.equal(JSON.stringify(r.data).includes("triggers"), false, "raw trigger lists still never ship");
 });
 
 test("usage badge awards once from a committed line and announces in chat", async () => {

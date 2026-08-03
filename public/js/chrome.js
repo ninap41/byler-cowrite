@@ -29,7 +29,12 @@ const BG = `
 			<div class="spore drift s1"></div><div class="spore drift s2"></div><div class="spore drift s3"></div><div class="spore drift s4"></div>
 		</div>
 		<div class="bg-set starcourt">
-			<div class="sunset"></div><div class="retro-sun"></div><div class="zig z1"></div><div class="zig z2"></div><div class="squiggle drift q1"></div><div class="squiggle drift q2"></div>
+			<div class="sunset"></div>
+			<div class="tri t1"></div><div class="tri t2"></div>
+			<div class="ring r1"></div><div class="ring r2"></div>
+			<div class="memdots"></div>
+			<div class="zig z1"></div><div class="zig z2"></div>
+			<div class="squiggle drift q1"></div><div class="squiggle drift q2"></div>
 		</div>
 		<div class="bg-set arcade">
 			<div class="carpet"></div><div class="astars a1"></div><div class="astars a2"></div>
