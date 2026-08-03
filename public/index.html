@@ -293,7 +293,7 @@
 					var typer = { n: 0 }
 					var tl = gsap.timeline({ delay: 0.2 })
 					if (logoEl && logoQuill && logoCoil) {
-						var DRAW_SCALE = 0.72 // the pen works small, like the source mark
+						var DRAW_SCALE = 1 // the pen writes at full size — as big as the mark itself
 						logoCoil.setAttribute("d", "")
 						var strokes = [{ taper: coil, el: logoCoil, len: coil.len }].concat(
 							logoRays.map(function (p) {
@@ -304,7 +304,7 @@
 							}),
 						)
 						gsap.set(logoEl, { opacity: 1 })
-						gsap.set(logoQuill, { opacity: 0, scale: 0.6, rotation: -7, x: 0, y: 0, svgOrigin: NIB.x + " " + NIB.y })
+						gsap.set(logoQuill, { opacity: 0, scale: 0.8, rotation: -7, x: 0, y: 0, svgOrigin: NIB.x + " " + NIB.y })
 						tl.to(logoQuill, { opacity: 1, scale: DRAW_SCALE, rotation: 0, duration: 0.45, ease: "power3.out" }, 0)
 						strokes.forEach(function (s, i) {
 							var start = s.taper ? s.taper.pointAt(0) : s.el.getPointAtLength(0)
@@ -325,7 +325,7 @@
 							})
 						})
 						// the pen's work is done: it lifts and flies off the page
-						tl.to(logoQuill, { x: "+=70", y: "-=110", rotation: 14, scale: 0.9, opacity: 0, duration: 0.6, ease: "power2.in" }, "+=0.1")
+						tl.to(logoQuill, { x: "+=70", y: "-=110", rotation: 14, scale: 1.1, opacity: 0, duration: 0.6, ease: "power2.in" }, "+=0.1")
 						// and the finished spiral keeps turning, slowly, forever
 						if (logoGlyph) gsap.to(logoGlyph, { rotation: 360, duration: 40, ease: "none", repeat: -1, svgOrigin: "110 100", delay: 1.4 })
 					}
