@@ -24,6 +24,18 @@ test('usage matcher: "Michael?" requires the question mark', () => {
   assert.deepEqual(usageMatches("michael?!"), ["ughmike"]);
 });
 
+test("usage matcher: combos need every word of one combination, any order", () => {
+  assert.deepEqual(usageMatches("this is crazy"), [], "half a combo is nothing");
+  assert.deepEqual(usageMatches("we stick together"), [], "the other half alone is nothing too");
+  assert.deepEqual(usageMatches("crazier altogether"), [], "whole words only");
+  assert.deepEqual(usageMatches("If we're both going CRAZY, we go crazy together."), ["crazycombo"]);
+  assert.deepEqual(usageMatches("together, then, and a little crazy"), ["crazycombo"], "order-free");
+});
+
+test("usage matcher: combos and plain triggers can fire from the same line", () => {
+  assert.deepEqual(usageMatches("the puppy went crazy together with Will").sort(), ["crazycombo", "omega"]);
+});
+
 test("usage matcher: one line can earn several", () => {
   assert.deepEqual(usageMatches('"Michael?" the puppy moaning softly'), ["omega", "smuttybuddy", "ughmike"]);
 });

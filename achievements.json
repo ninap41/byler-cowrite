@@ -1,5 +1,5 @@
 {
-  "_readme": "Edit badge names/descriptions freely — the server reads this at startup. wordTiers award by total words written (min). usage badges award ONCE the first time a committed story line contains one of the trigger words/phrases (case-insensitive, whole words; a trailing ? or ! in a trigger is required literally). Keep ids stable — they're stored on user accounts.",
+  "_readme": "Edit badge names/descriptions freely — the server reads this at startup. wordTiers award by total words written (min). usage badges award ONCE the first time a committed story line matches: 'triggers' fires on ANY listed word/phrase; 'combos' fires when EVERY word of one listed combination appears in the same line, in any order. A badge may carry either or both (case-insensitive, whole words; a trailing ? or ! in a trigger is required literally). Unlocks announce in session chat and toast every connected player. Keep ids stable — they're stored on user accounts.",
   "wordTiers": [
     { "id": "outloud", "name": "🔫 There. Out Loud.", "min": 0, "desc": "Made an account. Said it — there, out loud." },
     { "id": "puppymike", "name": "🐶 Puppy Mike", "min": 5000, "desc": "Write 5,000 words." },
@@ -18,6 +18,7 @@
     { "id": "omega", "name": "🐺 Omega Badge", "triggers": ["puppy"], "desc": "Write “puppy” into a story line. Good boy." },
     { "id": "justthetip", "name": "🐓 Just the tip.", "triggers": ["cock"], "desc": "Write it into a story line. Just the tip, though." },
     { "id": "smuttybuddy", "name": "😏 Smutty Buddy", "triggers": ["moan", "moaning"], "desc": "Get a moan into the story." },
-    { "id": "ughmike", "name": "🙄 Ugh, Mike...", "triggers": ["michael?"], "desc": "Write “Michael?” — question mark and all." }
+    { "id": "ughmike", "name": "🙄 Ugh, Mike...", "triggers": ["michael?"], "desc": "Write “Michael?” — question mark and all." },
+    { "id": "crazycombo", "name": "🌀 If We're Both Going Crazy", "combos": [["crazy", "together"]], "desc": "Get “crazy” and “together” into the same story line." }
   ]
 }

@@ -154,12 +154,13 @@ export function createGame(io) {
     if (!u.games.includes(s.code)) u.games.push(s.code);
     const before = u.currentBadge;
     awardWordBadges(u);
-    // A personal unlock notification (toast) for the earner, on top of the
-    // public chat announcement.
-    const notifyEarned = (id) => {
-      const sockId = [...s.writers.entries()].find(([, ww]) => ww === writer)?.[0];
-      if (sockId) io.to(sockId).emit("badge-earned", { badge: badgeName(id), desc: badgeDesc(id) });
-    };
+    // Unlock notification (toast) for EVERYONE in the session — writers and
+    // spectators alike — on top of the system chat announcement.
+    const notifyEarned = (id) =>
+      io.to(s.code).emit("badge-earned", {
+        badge: badgeName(id), desc: badgeDesc(id),
+        name: writer.name, color: writer.color,
+      });
     // word-usage collectibles: awarded once, the first line that says the word
     for (const id of usageMatches(text)) {
       if (!u.badges.includes(id)) {

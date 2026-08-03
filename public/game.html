@@ -806,13 +806,14 @@
 				gameMsg("The host deleted this story.")
 			})
 
-			// ---- Badge unlock toasts (server targets just the earner) ----
-			socket.on("badge-earned", ({ badge, desc }) => {
+			// ---- Badge unlock toasts (broadcast to the whole session) ----
+			socket.on("badge-earned", ({ badge, desc, name }) => {
 				const box = $("toasts")
 				const el = document.createElement("div")
 				el.className = "toast"
 				const title = document.createElement("b")
-				title.textContent = `🎉 Badge unlocked: ${badge}`
+				const mine = name && me?.username === name
+				title.textContent = mine || !name ? `🎉 Badge unlocked: ${badge}` : `🎉 ${name} unlocked: ${badge}`
 				const sub = document.createElement("span")
 				sub.textContent = desc || ""
 				el.append(title, sub)

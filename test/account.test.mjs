@@ -43,12 +43,13 @@ test("achievements metadata is public: ladder + usage count only", async () => {
   assert.equal(r.data.wordTiers[0].name, "🔫 There. Out Loud.");
   assert.equal(r.data.wordTiers[0].min, 0);
   assert.equal(r.data.wordTiers[1].min, 5000);
-  assert.equal(r.data.usageCount, 4);
+  assert.equal(r.data.usageCount, 5);
   assert.ok(r.data.wordTiers[1].desc.includes("5,000"), "ladder descs are public");
   // every badge ships its "what it means / how to earn it" description
-  assert.equal(r.data.usage.length, 4);
+  assert.equal(r.data.usage.length, 5);
   assert.ok(r.data.usage.every((b) => b.name && b.desc), "usage badges carry descriptions");
   assert.equal(JSON.stringify(r.data).includes("triggers"), false, "raw trigger lists still never ship");
+  assert.equal(JSON.stringify(r.data).includes("combos"), false, "combo word lists never ship either");
 });
 
 test("usage badge awards once from a committed line and announces in chat", async () => {
@@ -72,11 +73,30 @@ test("usage badge awards once from a committed line and announces in chat", asyn
   assert.equal(me.currentBadge, "🔫 There. Out Loud.", "usage badges never change the word rank");
   const awards = chats.filter((m) => m.sys && /earned the/.test(m.text));
   assert.equal(awards.length, 3, "each badge announced exactly once");
-  // personal unlock notifications went to the earner only, with hover descs
+  // unlock notifications broadcast to EVERYONE in the session (A and B both)
+  const each = ["🐺 Omega Badge", "😏 Smutty Buddy", "🙄 Ugh, Mike..."];
   assert.deepEqual(
     toasts.map((t) => t.badge).sort(),
-    ["🐺 Omega Badge", "😏 Smutty Buddy", "🙄 Ugh, Mike..."].sort(),
-    "one badge-earned event per unlock",
+    [...each, ...each].sort(),
+    "one badge-earned event per unlock, per connected player",
   );
   assert.ok(toasts.every((t) => t.desc && t.desc.length > 0), "toasts carry descriptions");
+  assert.ok(toasts.every((t) => t.name && t.color), "toasts name the earner");
+});
+
+test("combo badge: fires only when every word lands in one line; everyone is toasted", async () => {
+  const { A, B, state } = await startedGame(ctx);
+  const toastsA = [], toastsB = [];
+  A.on("badge-earned", (b) => toastsA.push(b));
+  B.on("badge-earned", (b) => toastsB.push(b));
+  const cur = () => (state.current.currentId === A.id ? A : B);
+  await ctx.emit(cur(), "submit-line", { text: "This is <b>crazy</b>." }); // half a combo: nothing
+  await ctx.wait(200);
+  const earner = state.current.currentName;
+  await ctx.emit(cur(), "submit-line", { text: "Then together we go crazy." }); // order-free
+  await ctx.wait(200);
+  for (const [who, toasts] of [["A", toastsA], ["B", toastsB]]) {
+    assert.deepEqual(toasts.map((t) => t.badge), ["🌀 If We're Both Going Crazy"], who + " got exactly one toast");
+    assert.equal(toasts[0].name, earner, who + "'s toast names the earner");
+  }
 });
