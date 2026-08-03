@@ -17,6 +17,7 @@ test("homepage serves the hero + auth card", async () => {
   assert.ok(body.includes('id="hero"'));
   assert.ok(body.includes('id="authChoice"'));
   assert.ok(!body.includes("Play as guest"), "guest path fully removed");
+  assert.ok(body.includes('id="liveWatch"'), "spectate list on the homepage");
 });
 
 test("clean URLs serve each page", async () => {

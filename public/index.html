@@ -131,6 +131,12 @@
 						<p class="subtle" style="margin-top: 14px"><a href="#" class="linky" id="authBack">← Back</a></p>
 					</div>
 				</div>
+				<!-- LIVE STORIES: anyone can watch, no account needed -->
+				<div id="liveWatch" class="card hidden">
+					<h3 class="dash-h" style="margin-top: 0">Live right now</h3>
+					<p class="subtle" style="text-align: left; margin: 4px 0 0">Stories being written this minute — watch without an account.</p>
+					<div id="liveWatchList"></div>
+				</div>
 			</div>
 			<!-- /main -->
 		</div>
@@ -171,6 +177,41 @@
 				if (window._heroExit) window._heroExit()
 				else $("hero").classList.add("hidden")
 			}
+
+			// ---- Live stories: spectate without an account ----
+			const PHASE_LABEL = { waiting: "gathering writers", choosing: "voting", writing: "writing now" }
+			async function loadLive() {
+				let d
+				try {
+					d = await fetch("/api/live").then((r) => r.json())
+				} catch (e) {
+					return
+				}
+				const card = $("liveWatch")
+				const box = $("liveWatchList")
+				card.classList.toggle("hidden", !d.games.length)
+				box.innerHTML = ""
+				d.games.forEach((g) => {
+					const row = document.createElement("div")
+					row.className = "live-game"
+					const info = document.createElement("span")
+					info.className = "lg-info"
+					const b = document.createElement("b")
+					b.textContent = g.name || g.code
+					const sub = document.createElement("span")
+					sub.className = "lg-sub"
+					sub.textContent = `${PHASE_LABEL[g.phase] || g.phase} · ${g.players} writer${g.players === 1 ? "" : "s"}` + (g.hostName ? ` · 👑 ${g.hostName}` : "")
+					info.append(b, sub)
+					const btn = document.createElement("button")
+					btn.className = "ghost"
+					btn.textContent = "👁 Watch"
+					btn.onclick = () => (location.href = "/game?spectate=" + encodeURIComponent(g.code))
+					row.append(info, btn)
+					box.appendChild(row)
+				})
+			}
+			loadLive()
+			setInterval(loadLive, 15_000)
 		</script>
 		<!-- GSAP hero + entrance animations (additive; degrades gracefully) -->
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>

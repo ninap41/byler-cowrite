@@ -9,7 +9,7 @@ import { io } from "socket.io-client";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
-export async function startServer() {
+export async function startServer(extraEnv = {}) {
   const dataDir = mkdtempSync(join(tmpdir(), "cowrite-data-"));
   const saveDir = mkdtempSync(join(tmpdir(), "cowrite-saves-"));
   // Random ports can collide across parallel test files — retry on a fresh
@@ -19,7 +19,15 @@ export async function startServer() {
     port = 4100 + Math.floor(Math.random() * 20000);
     child = spawn("node", ["server.js"], {
       cwd: ROOT,
-      env: { ...process.env, PORT: String(port), COWRITE_DATA_DIR: dataDir, COWRITE_SAVE_DIR: saveDir },
+      env: {
+        ...process.env,
+        PORT: String(port),
+        COWRITE_DATA_DIR: dataDir,
+        COWRITE_SAVE_DIR: saveDir,
+        // tests accumulate sessions freely; the cap test lowers this itself
+        COWRITE_MAX_ACTIVE: "500",
+        ...extraEnv,
+      },
       stdio: ["ignore", "pipe", "inherit"],
     });
     try {

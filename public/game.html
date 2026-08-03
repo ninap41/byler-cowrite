@@ -214,7 +214,9 @@
 			import { countdownView } from "/js/components/countdown.js"
 			import { buildExports, exportDocument } from "/js/export.js"
 			mountChrome({ page: "game" })
-			const me = await requireAuth("/") // redirects signed-out visitors home
+			// Spectators need no account: ?spectate=CODE watches a story read-only.
+			const spectateCode = (new URLSearchParams(location.search).get("spectate") || "").trim().toUpperCase()
+			const me = spectateCode ? null : await requireAuth("/") // redirects signed-out visitors home
 			setUserChip(me)
 			const socket = io()
 			let myId = null,
@@ -350,6 +352,19 @@
 			}
 			let entered = false
 			socket.on("connect", () => {
+				if (spectateCode) {
+					// read-only: join the broadcast room, no seat, no auth needed
+					socket.emit("spectate-session", { code: spectateCode }, (res) => {
+						if (!res?.ok) return gameMsg(res?.error || "That story isn't running.")
+						gameMsg("")
+						myId = "spectator" // never matches a writer id -> no edit ✎, never "your turn"
+						show("chatCard")
+						document.querySelector("#chatCard .chat-row").classList.add("hidden") // watch, don't talk
+						$("whoTurn").textContent = "Spectating…"
+						if (res.phase === "waiting") onlyShow("waiting")
+					})
+					return
+				}
 				socket.emit("identify", { auth: getToken() }) // dashboard presence
 				const rejoinInfo = loadRejoin()
 				if (entered) {

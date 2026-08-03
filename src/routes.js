@@ -59,6 +59,19 @@ export function registerRoutes(app, game) {
     res.json({ onlineUsers, liveGames, myGames: myGamesFor(u), recentGames: recentGamesFor(u), stats: publicUser(u) });
   });
 
+  // Public list of running stories, for homepage spectating — names and
+  // counts only, no auth, no tokens, no story content.
+  app.get("/api/live", (_req, res) => {
+    const games = [...sessions.values()]
+      .filter((g) => g.phase !== "over")
+      .map((g) => ({
+        code: g.code, name: g.name || "", phase: g.phase,
+        players: g.writers.size,
+        hostName: g.writers.get(g.hostId)?.name ?? g.hostName ?? null,
+      }));
+    res.json({ games });
+  });
+
   app.post("/api/signup", (req, res) => {
     const { email, username, password, color } = req.body || {};
     const em = String(email || "").toLowerCase().trim();

@@ -27,6 +27,9 @@ const GHOST_MS = 90_000;
 // A denied join request can't retry for this long (anti-spam).
 // Keyed by account id — every writer is signed in.
 const DENY_COOLDOWN_MS = 5 * 60_000;
+// At most this many stories can be running at once (small server on purpose;
+// COWRITE_MAX_ACTIVE overrides — the test harness raises it).
+const MAX_ACTIVE_SESSIONS = Number(process.env.COWRITE_MAX_ACTIVE || 5);
 
 export function createGame(io) {
   const sessions = new Map(); // code -> session (in-memory; fine for a party game)
@@ -450,6 +453,9 @@ export function createGame(io) {
     socket.on("create-session", ({ auth }, ack) => {
       const acct = userByToken(auth);
       if (!acct) return ack?.({ ok: false, error: "Sign in to host a game." });
+      const active = [...sessions.values()].filter((x) => x.phase !== "over").length;
+      if (active >= MAX_ACTIVE_SESSIONS)
+        return ack?.({ ok: false, error: `${MAX_ACTIVE_SESSIONS} stories are already running — wait for one to wrap up.`, cap: MAX_ACTIVE_SESSIONS });
       const code = makeCode();
       const host = newWriter(acct);
       const s = {
@@ -781,6 +787,23 @@ export function createGame(io) {
       s.chat.push(msg);
       if (s.chat.length > CHAT_LIMIT) s.chat.shift();
       io.to(s.code).emit("chat", msg);
+    });
+
+    // Watch a running story WITHOUT a seat (no account needed). Spectators
+    // join the broadcast room but hold no writer entry, so every game action
+    // (vote, submit, chat, host controls) no-ops for them — mySession() is
+    // keyed by joinedCode, which spectators never get.
+    socket.on("spectate-session", ({ code }, ack) => {
+      code = (code || "").toUpperCase().trim();
+      const s = sessions.get(code) ?? loadSession(code);
+      if (!s) return ack?.({ ok: false, error: "Game not found." });
+      socket.data.spectating = code;
+      socket.join(code);
+      ack?.({ ok: true, code, phase: s.phase, name: s.name || "" });
+      socket.emit("chat-history", s.chat);
+      if (s.phase === "over") socket.emit("game-over", { prompt: s.prompt, story: s.story });
+      else if (s.phase === "waiting") broadcastRoster(s);
+      else broadcastGame(s);
     });
 
     // Presence for the dashboard: bind/unbind this socket to an account.
