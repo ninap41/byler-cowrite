@@ -34,16 +34,17 @@
 					</div>
 
 					<div class="settings-section">
-						<label for="setAbout">About you (shown on your public profile)</label>
-						<textarea id="setAbout" maxlength="500" rows="4" style="width: 100%; resize: vertical"></textarea>
+						<label for="setAvatar">Profile picture (external image link)</label>
+						<input id="setAvatar" placeholder="https://…/me.png" />
+						<label for="setAbout" style="margin-top: 10px">About you (shown on your public profile)</label>
+						<textarea id="setAbout" maxlength="2000" rows="5" style="width: 100%; resize: vertical"></textarea>
+						<p class="subtle" style="text-align: left; margin: 6px 0 0; font-size: 0.78rem">
+							Embed images inline with <code>&lt;img src="https://…"&gt;</code> — other html shows as plain text.
+						</p>
 						<label style="margin-top: 10px">Links (up to three)</label>
 						<div class="chat-row"><input id="link1Label" placeholder="Label" maxlength="40" /><input id="link1Url" placeholder="https://…" /></div>
 						<div class="chat-row"><input id="link2Label" placeholder="Label" maxlength="40" /><input id="link2Url" placeholder="https://…" /></div>
 						<div class="chat-row"><input id="link3Label" placeholder="Label" maxlength="40" /><input id="link3Url" placeholder="https://…" /></div>
-						<label style="margin-top: 10px">Images (up to three, direct image URLs)</label>
-						<input id="img1" placeholder="https://…" />
-						<input id="img2" placeholder="https://…" />
-						<input id="img3" placeholder="https://…" />
 						<div class="row"><button class="ghost" id="saveProfile">Save profile</button></div>
 					</div>
 
@@ -90,16 +91,26 @@
 				$("setErr").textContent = ok ? "" : msg
 				$("setOk").textContent = ok ? msg : ""
 			}
+			// The stored About is server-sanitized html; turn it back into the
+			// editable source (plain <img src="…"> tags, entities unescaped).
+			const aboutSource = (html) =>
+				String(html || "")
+					.replace(/<img class="about-img" src="(.*?)" alt="" loading="lazy">/g, '<img src="$1">')
+					.replace(/&lt;/g, "<")
+					.replace(/&gt;/g, ">")
+					.replace(/&quot;/g, '"')
+					.replace(/&#39;/g, "'")
+					.replace(/&amp;/g, "&")
 			function fill() {
 				if (!me) return
 				setUserChip(me)
 				$("setUsername").value = me.username
 				$("setEmail").value = me.email
-				$("setAbout").value = me.about || ""
+				$("setAvatar").value = me.avatar || ""
+				$("setAbout").value = aboutSource(me.about)
 				;[1, 2, 3].forEach((n) => {
 					$("link" + n + "Label").value = me.links?.[n - 1]?.label || ""
 					$("link" + n + "Url").value = me.links?.[n - 1]?.url || ""
-					$("img" + n).value = me.images?.[n - 1] || ""
 				})
 				document.querySelectorAll(".swatch").forEach((x) => x.classList.toggle("sel", x.dataset.color === safeColor(me.color)))
 			}
@@ -136,8 +147,11 @@
 					const links = [1, 2, 3]
 						.map((n) => ({ label: $("link" + n + "Label").value.trim(), url: $("link" + n + "Url").value.trim() }))
 						.filter((l) => l.url)
-					const images = [1, 2, 3].map((n) => $("img" + n).value.trim()).filter(Boolean)
-					const r = await api("/api/account/profile", { about: $("setAbout").value, links, images })
+					const r = await api("/api/account/profile", {
+						about: $("setAbout").value,
+						links,
+						avatar: $("setAvatar").value.trim(),
+					})
 					me = { ...me, ...r.user }
 					fill()
 					say(true, "Profile saved.")

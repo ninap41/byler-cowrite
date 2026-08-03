@@ -1,19 +1,25 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { ladderHtml, usageCaseHtml, aboutHtml } from "../public/js/profile-view.js";
+import { ladderHtml, usageCaseHtml, aboutHtml, avatarHtml } from "../public/js/profile-view.js";
 
-test("aboutHtml: escapes text/labels/urls, safe link rel, empty state", () => {
+test("aboutHtml: server-sanitized about injected as-is, links escaped, empty state", () => {
   const out = aboutHtml({
-    about: 'I write <b>fics</b> & things',
-    links: [{ label: '<script>', url: 'https://a.com/?q="x"' }],
-    images: ["https://img.com/1.png"],
+    // this is what the server stores: pre-escaped text + re-enabled img
+    about: 'escaped &lt;b&gt; text<img class="about-img" src="https://img.com/1.png" alt="" loading="lazy">',
+    links: [{ label: "<script>", url: 'https://a.com/?q="x"' }],
   });
-  assert.ok(out.includes("I write &lt;b&gt;fics&lt;/b&gt; &amp; things"));
-  assert.ok(out.includes("&lt;script&gt;"));
+  assert.ok(out.includes("escaped &lt;b&gt; text"), "sanitized about untouched");
+  assert.ok(out.includes('<img class="about-img" src="https://img.com/1.png"'), "inline embed kept");
+  assert.ok(out.includes("&lt;script&gt;"), "link label escaped");
   assert.ok(out.includes('href="https://a.com/?q=&quot;x&quot;"'), "url attr escaped");
   assert.ok(out.includes('rel="noopener noreferrer nofollow"'));
-  assert.ok(out.includes('<img class="about-img" src="https://img.com/1.png"'));
-  assert.match(aboutHtml({ about: "", links: [], images: [] }), /Nothing here yet/);
+  assert.match(aboutHtml({ about: "", links: [] }), /Nothing here yet/);
+});
+
+test("avatarHtml: external pic when set, escaped initial otherwise", () => {
+  assert.ok(avatarHtml({ username: "will", avatar: "https://img.com/me.png" }).includes('src="https://img.com/me.png"'));
+  assert.equal(avatarHtml({ username: "will", avatar: "" }), "W");
+  assert.equal(avatarHtml({ username: "<x>" }), "&lt;");
 });
 
 const TIERS = [

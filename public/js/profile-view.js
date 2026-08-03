@@ -24,18 +24,25 @@ export function ladderHtml(tiers, u) {
 		.join("")
 }
 
-// The About section: plain-text bio + up to three links and three images.
-// URLs were validated http/https server-side; everything is still escaped
-// here before touching the DOM.
+// The About section: bio with inline <img> embeds + up to three links.
+// p.about is already server-sanitized (sanitizeAbout: everything escaped,
+// only validated <img src="http(s)…"> re-enabled) — inject it as-is, exactly
+// like story lines. Link labels/urls are still escaped here.
 export function aboutHtml(p) {
 	const about = p.about
-		? `<p class="about-text">${esc(p.about)}</p>`
+		? `<div class="about-text">${p.about}</div>`
 		: `<p class="subtle" style="text-align:left;margin:8px 0 0">Nothing here yet.</p>`
 	const links = (p.links || [])
 		.map((l) => `<a class="about-link" href="${esc(l.url)}" target="_blank" rel="noopener noreferrer nofollow">🔗 ${esc(l.label)}</a>`)
 		.join("")
-	const imgs = (p.images || []).map((src) => `<img class="about-img" src="${esc(src)}" alt="" loading="lazy">`).join("")
-	return about + (links ? `<div class="about-links">${links}</div>` : "") + (imgs ? `<div class="about-images">${imgs}</div>` : "")
+	return about + (links ? `<div class="about-links">${links}</div>` : "")
+}
+
+// Avatar helper: external picture when set, otherwise the tinted initial.
+export function avatarHtml(p) {
+	return p.avatar
+		? `<img class="avatar-img" src="${esc(p.avatar)}" alt="" loading="lazy">`
+		: esc((p.username || "?").charAt(0).toUpperCase())
 }
 
 // The usage-badge case: earned collectibles (hover shows how they happened)

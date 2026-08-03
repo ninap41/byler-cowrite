@@ -311,11 +311,28 @@ a.rg-row {
 }
 
 /* ---- profile About section ---- */
+.avatar {
+	overflow: hidden;
+}
+.avatar-img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	border-radius: 50%;
+	display: block;
+}
 .about-text {
 	margin: 8px 0 0;
 	text-align: left;
 	white-space: pre-wrap;
 	line-height: 1.6;
+}
+.about-text .about-img {
+	display: block;
+	max-width: min(100%, 420px);
+	max-height: 320px;
+	object-fit: cover;
+	margin: 10px 0;
 }
 .about-links {
 	display: flex;

@@ -6,33 +6,38 @@ let ctx;
 before(async () => (ctx = await startServer()));
 after(async () => ctx.stop());
 
-test("profile content: about/links/images validated and saved", async () => {
+test("profile content: about html sanitized (only http img embeds survive), links, avatar", async () => {
   const u = await signup(ctx, "aboutuser1", "a1@x.com");
   const evil = await ctx.api("/api/account/profile", {
     about: "hi", links: [{ label: "x", url: "javascript:alert(1)" }],
   }, u.token);
   assert.equal(evil.status, 400, "javascript: links rejected");
-  const dataUrl = await ctx.api("/api/account/profile", { images: ["data:text/html,<script>"] }, u.token);
-  assert.equal(dataUrl.status, 400, "data: images rejected");
+  const badPic = await ctx.api("/api/account/profile", { avatar: "data:text/html,<script>" }, u.token);
+  assert.equal(badPic.status, 400, "non-http profile pics rejected");
 
   const ok = await ctx.api("/api/account/profile", {
-    about: "  I write <b>byler</b> fics.  " + "x".repeat(600),
+    about:
+      'I write <b>byler</b> fics & art.\n<img src="https://img.example.com/1.png">\n' +
+      '<img src="javascript:alert(1)"> <script>x()</script>',
     links: [
       { label: "AO3", url: "https://archiveofourown.org/u/me" },
       { label: "", url: "http://example.com" },
       { label: "extra", url: "https://a.com" },
       { label: "fourth", url: "https://dropped.com" },
     ],
-    images: ["https://img.example.com/1.png", "", "https://img.example.com/2.png"],
+    avatar: "https://img.example.com/me.png",
   }, u.token);
   assert.equal(ok.status, 200);
   const p = ok.data.user;
-  assert.ok(!p.about.includes("<b>"), "about is plain text");
-  assert.ok(p.about.length <= 500, "about capped");
+  assert.ok(p.about.includes("&lt;b&gt;byler&lt;/b&gt;"), "non-img html shows as text");
+  assert.ok(p.about.includes("&amp; art"), "escaped once");
+  assert.ok(p.about.includes('<img class="about-img" src="https://img.example.com/1.png"'), "http img embed survives");
+  assert.ok(p.about.includes("&lt;img src=&quot;javascript:"), "javascript: img stays inert text");
+  assert.ok(p.about.includes("&lt;script&gt;"), "script inert");
+  assert.equal(p.avatar, "https://img.example.com/me.png");
   assert.equal(p.links.length, 3, "max three links");
   assert.equal(p.links[1].label, "http://example.com", "empty label falls back to url");
   assert.ok(!p.links.some((l) => l.url.includes("dropped")), "fourth link dropped");
-  assert.deepEqual(p.images, ["https://img.example.com/1.png", "https://img.example.com/2.png"]);
 });
 
 test("writers directory: auth-gated, everyone listed with online flags", async () => {

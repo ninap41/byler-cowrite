@@ -102,7 +102,7 @@ const publicUser = (u) => ({
   badgeDescs: Object.fromEntries(u.badges.map((id) => [badgeName(id), badgeDesc(id)])),
   nextBadge: nextTierFor(u),
   streak: u.streak || 0, bestStreak: u.bestStreak || 0, lastWroteDay: u.lastWroteDay ?? null,
-  about: u.about || "", links: u.links || [], images: u.images || [],
+  about: u.about || "", links: u.links || [], avatar: u.avatar || "",
 });
 
 // What OTHER signed-in players may see: everything public-facing, never the
@@ -116,7 +116,7 @@ const profileOf = (u, onlineIds) => ({
   nextBadge: nextTierFor(u),
   streak: u.streak || 0, bestStreak: u.bestStreak || 0,
   stories: (u.games || []).length,
-  about: u.about || "", links: u.links || [], images: u.images || [],
+  about: u.about || "", links: u.links || [], avatar: u.avatar || "",
   online: onlineIds.has(u.id),
 });
 
@@ -325,10 +325,27 @@ const httpUrl = (v) => {
     return false;
   }
 };
+// About sanitizer (trust boundary, like sanitizeRich): escape EVERYTHING,
+// then re-enable only <img src="http(s)://…"> tags whose src validates —
+// so users can embed images inline in their About with plain html.
+const unescapeEntities = (s) =>
+  s.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+const escAttr = (s) =>
+  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+function sanitizeAbout(input) {
+  let out = String(input).slice(0, 2000)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  out = out.replace(/&lt;img\s+src=&quot;(.+?)&quot;\s*\/?&gt;/gi, (whole, escapedSrc) => {
+    const src = unescapeEntities(escapedSrc);
+    return httpUrl(src) ? `<img class="about-img" src="${escAttr(src)}" alt="" loading="lazy">` : whole;
+  });
+  return out.trim();
+}
+
 app.post("/api/account/profile", (req, res) => {
   const u = authedUser(req);
   if (!u) return res.status(401).json({ error: "Not signed in." });
-  const about = stripTags(String(req.body?.about ?? "")).slice(0, 500).trim();
   const links = [];
   for (const l of (Array.isArray(req.body?.links) ? req.body.links : []).slice(0, 3)) {
     const url = String(l?.url ?? "").trim();
@@ -337,16 +354,13 @@ app.post("/api/account/profile", (req, res) => {
     const label = stripTags(String(l?.label ?? "")).slice(0, 40).trim();
     links.push({ label: label || url.slice(0, 40), url });
   }
-  const images = [];
-  for (const raw of (Array.isArray(req.body?.images) ? req.body.images : []).slice(0, 3)) {
-    const url = String(raw ?? "").trim();
-    if (!url) continue;
-    if (!httpUrl(url)) return res.status(400).json({ error: "Image links must start with http:// or https://." });
-    images.push(url);
-  }
-  u.about = about;
+  const avatar = String(req.body?.avatar ?? "").trim();
+  if (avatar && !httpUrl(avatar))
+    return res.status(400).json({ error: "The profile picture must be an http:// or https:// image link." });
+  u.about = sanitizeAbout(req.body?.about ?? "");
   u.links = links;
-  u.images = images;
+  u.avatar = avatar;
+  delete u.images; // superseded by inline <img> embeds in About
   saveStore();
   res.json({ user: publicUser(u) });
 });
@@ -358,7 +372,7 @@ app.get("/api/users", (req, res) => {
   const users = store.users
     .map((x) => ({
       username: x.username, color: x.color, badge: badgeName(x.currentBadge),
-      wordCount: x.wordCount, online: ids.has(x.id),
+      wordCount: x.wordCount, online: ids.has(x.id), avatar: x.avatar || "",
     }))
     .sort((a, b) => (b.online - a.online) || a.username.localeCompare(b.username));
   res.json({ users });

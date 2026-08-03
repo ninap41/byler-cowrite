@@ -86,7 +86,7 @@
 			import { requireAuth } from "/js/auth-guard.js"
 			import { safeColor } from "/js/util.js"
 			import { streakRingHtml } from "/js/dashboard-view.js"
-			import { ladderHtml, usageCaseHtml, aboutHtml } from "/js/profile-view.js"
+			import { ladderHtml, usageCaseHtml, aboutHtml, avatarHtml } from "/js/profile-view.js"
 
 			mountChrome({ page: "profile" })
 			const $ = (id) => document.getElementById(id)
@@ -112,7 +112,7 @@
 					$("meName").textContent = p.username
 					$("meName").style.color = safeColor(p.color)
 					$("meBadge").textContent = p.currentBadge || "no badge yet"
-					$("avatar").textContent = p.username.charAt(0).toUpperCase()
+					$("avatar").innerHTML = avatarHtml(p)
 					$("avatar").style.background = safeColor(p.color)
 					$("onlineChip").classList.toggle("hidden", itsMe || !p.online)
 					$("profileSub").textContent = p.nextBadge

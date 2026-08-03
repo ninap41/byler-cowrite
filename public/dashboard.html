@@ -133,6 +133,7 @@
 				streakRingHtml,
 				writerRowHtml,
 			} from "/js/dashboard-view.js"
+			import { avatarHtml } from "/js/profile-view.js"
 
 			mountChrome({ page: "dashboard" })
 			const $ = (id) => document.getElementById(id)
@@ -148,7 +149,7 @@
 				$("meName").textContent = me.username
 				$("meName").style.color = safeColor(me.color)
 				$("meBadge").textContent = me.currentBadge || "no badge yet"
-				$("avatar").textContent = (me.username || "?").charAt(0).toUpperCase()
+				$("avatar").innerHTML = avatarHtml(me)
 				$("avatar").style.background = safeColor(me.color)
 				$("statWords").textContent = me.wordCount.toLocaleString()
 				$("statBadges").textContent = me.badges.length
