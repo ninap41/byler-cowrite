@@ -191,7 +191,7 @@ app.post("/api/account/username", (req, res) => {
   res.json({ user: publicUser(u) });
 });
 
-// Signed-in players pick a color like guests do — it just saves to the account.
+// Pick a name color — saved to the account.
 app.post("/api/account/color", (req, res) => {
   const u = authedUser(req);
   if (!u) return res.status(401).json({ error: "Not signed in." });
@@ -395,8 +395,8 @@ const MAX_OPTIONS = 8;
 // holds {code, token} in localStorage and rejoins via `rejoin-session`.
 const GHOST_MS = 90_000;
 // A denied join request can't retry for this long (anti-spam).
+// Keyed by account id — every writer is signed in.
 const DENY_COOLDOWN_MS = 5 * 60_000;
-const denyKeyFor = (sock, userId) => userId ?? sock.handshake.address;
 function checkDenied(s, key) {
   const until = s.denied?.get(key);
   if (!until || until <= Date.now()) return null;
@@ -417,19 +417,16 @@ function announce(s, writer, text) {
   io.to(s.code).emit("chat", msg);
 }
 
-// Signed-in players (valid auth token) get their account's name, color, and
-// badge, and their lines count toward word-count achievements.
-const newWriter = (name, color, fallbackName, authToken) => {
-  const acct = userByToken(authToken);
-  return {
-    name: acct?.username || name || fallbackName,
-    color: cleanColor(acct?.color ?? color),
-    userId: acct?.id ?? null,
-    badge: acct ? badgeName(acct.currentBadge) : null,
-    token: randomUUID(), connected: true, ghostTimer: null,
-    approved: true, // gating only applies to seats revived from a save
-  };
-};
+// Every writer is a signed-in account: name, color, and badge come from the
+// account, and committed lines count toward word-count achievements.
+const newWriter = (acct) => ({
+  name: acct.username,
+  color: cleanColor(acct.color),
+  userId: acct.id,
+  badge: badgeName(acct.currentBadge),
+  token: randomUUID(), connected: true, ghostTimer: null,
+  approved: true, // gating only applies to seats revived from a save
+});
 
 // Credit a committed line to the writer's account: word count, games list,
 // and any newly crossed badge tier (announced in chat).
@@ -498,7 +495,7 @@ const names = (s) =>
 function roster(s) {
   return [...s.writers.entries()].map(([id, w]) => ({
     id, name: w.name, color: w.color, badge: w.badge ?? null,
-    isHost: id === s.hostId, guest: !w.userId, connected: w.connected !== false,
+    isHost: id === s.hostId, connected: w.connected !== false,
   }));
 }
 const broadcastRoster = (s) =>
@@ -578,7 +575,7 @@ function advance(s, writer, html) {
     if (stripTags(clean)) {
       s.story.push({
         name: writer?.name, color: writer?.color, html: clean,
-        guest: !writer?.userId, host: writer === s.writers.get(s.hostId),
+        host: writer === s.writers.get(s.hostId),
       });
       creditLine(s, writer, clean);
     }
@@ -698,7 +695,7 @@ function gateOrSeat(sock, s, oldId, w, ack) {
   const hostConnected = io.sockets.sockets.has(s.hostId) && s.writers.get(s.hostId)?.connected;
   const isTrueHost = w.token === s.hostToken;
   if (s.gated && !w.approved && !isTrueHost && hostConnected) {
-    const key = denyKeyFor(sock, w.userId);
+    const key = w.userId;
     const coolMsg = checkDenied(s, key);
     if (coolMsg) return ack?.({ ok: false, error: coolMsg });
     s.pending.set(sock.id, { name: w.name, color: w.color, seatOldId: oldId, key });
@@ -714,11 +711,11 @@ io.on("connection", (socket) => {
   // join request — can seat this socket into a session.
   const mySession = () => sessions.get(socket.data.joinedCode);
 
-  socket.on("create-session", ({ name, color, auth }, ack) => {
-    // Hosts are always tied to an account (userId + username).
-    if (!userByToken(auth)) return ack?.({ ok: false, error: "Sign in to host a game." });
+  socket.on("create-session", ({ auth }, ack) => {
+    const acct = userByToken(auth);
+    if (!acct) return ack?.({ ok: false, error: "Sign in to host a game." });
     const code = makeCode();
-    const host = newWriter(name, color, "Host", auth);
+    const host = newWriter(acct);
     const s = {
       code, name: "", hostId: socket.id, hostToken: host.token, phase: "waiting",
       writers: new Map([[socket.id, host]]),
@@ -742,12 +739,14 @@ io.on("connection", (socket) => {
     return acct ? [...s.writers.entries()].find(([, w]) => w.userId === acct.id) : null;
   };
 
-  socket.on("join-session", ({ name, color, code, auth }, ack) => {
+  socket.on("join-session", ({ code, auth }, ack) => {
     code = (code || "").toUpperCase().trim();
+    const acct = userByToken(auth);
+    if (!acct) return ack?.({ ok: false, error: "Sign in to join a game." });
     const s = sessions.get(code) ?? loadSession(code);
     if (!s) return ack?.({ ok: false, error: "Game not found." });
-    // Account-based seat reclaim: a signed-in player who lost their device
-    // token can re-enter a running game by code — their account finds the seat.
+    // Account-based seat reclaim: a player who lost their device token can
+    // re-enter a running game by code — their account finds the seat.
     const mine = seatByAccount(s, auth);
     if (mine) return gateOrSeat(socket, s, mine[0], mine[1], ack);
     if (s.phase !== "waiting") {
@@ -755,16 +754,14 @@ io.on("connection", (socket) => {
       const hostSock = io.sockets.sockets.get(s.hostId);
       if (!hostSock)
         return ack?.({ ok: false, error: "This game has already started and its host isn't here to let you in." });
-      const reqName = String(name || "").trim().slice(0, 24) || "Writer";
-      const key = denyKeyFor(socket, userByToken(auth)?.id);
-      const coolMsg = checkDenied(s, key);
+      const coolMsg = checkDenied(s, acct.id);
       if (coolMsg) return ack?.({ ok: false, error: coolMsg });
-      s.pending.set(socket.id, { name: reqName, color, auth, key });
+      s.pending.set(socket.id, { auth, key: acct.id });
       socket.data.pendingCode = code;
-      hostSock.emit("join-request", { id: socket.id, name: reqName });
+      hostSock.emit("join-request", { id: socket.id, name: acct.username });
       return ack?.({ ok: true, pending: true });
     }
-    s.writers.set(socket.id, newWriter(name, color, "Writer", auth));
+    s.writers.set(socket.id, newWriter(acct));
     socket.data.joinedCode = code;
     socket.join(code);
     ack?.({ ok: true, code, hostId: s.hostId, token: s.writers.get(socket.id).token });
@@ -797,7 +794,12 @@ io.on("connection", (socket) => {
       saveSnapshot(s);
       return ack?.({ ok: true });
     }
-    const w = newWriter(req.name, req.color, "Writer", req.auth);
+    const acct = userByToken(req.auth);
+    if (!acct) {
+      target.emit("join-denied");
+      return ack?.({ ok: false, error: "Their sign-in expired." });
+    }
+    const w = newWriter(acct);
     s.writers.set(id, w);
     // new writers slot in at the end of the rotation
     if (s.phase === "choosing" || s.phase === "writing") s.turnOrder.push(id);
@@ -994,7 +996,6 @@ io.on("connection", (socket) => {
       name: w?.name ?? "?",
       color: w?.color ?? PALETTE[0],
       badge: w?.badge ?? null,
-      guest: !w?.userId,
       host: socket.id === s.hostId,
       text: String(text).slice(0, 500).trim(),
       ts: Date.now(),

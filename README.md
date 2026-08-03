@@ -17,7 +17,7 @@ turns adding one line each under a ticking clock.
   rules, with live typing visible to the whole room.
 - **Accounts (optional)** — email + username + password, password reset by
   email, colors, word-count badges (✏️ Inkling → 🏆 Living Legend), and a
-  private archive of your games. Guests can play; hosting needs an account.
+  private archive of your games. Playing and hosting both require an account.
 - **Permanent game codes** — every game snapshots to disk continuously; any
   code can be rejoined or continued later, from any device (signed-in seat
   reclaim). Started/continued games gate new entries behind host approval,

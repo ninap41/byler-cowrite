@@ -6,9 +6,9 @@ let ctx;
 before(async () => (ctx = await startServer()));
 after(async () => ctx.stop());
 
-test("guests cannot host; signed-in create works and announces start", async () => {
+test("signed-out sockets cannot host; signed-in create works and announces start", async () => {
   const G = await ctx.conn();
-  const denied = await ctx.emit(G, "create-session", { name: "guest", color: "#e63946" });
+  const denied = await ctx.emit(G, "create-session", {});
   assert.equal(denied.ok, false);
   assert.match(denied.error, /Sign in to host/);
 
@@ -16,7 +16,7 @@ test("guests cannot host; signed-in create works and announces start", async () 
   const A = await ctx.conn();
   const chats = [];
   A.on("chat", (m) => chats.push(m));
-  const c = await ctx.emit(A, "create-session", { name: "ignored", color: "#e63946", auth: u.token });
+  const c = await ctx.emit(A, "create-session", { auth: u.token });
   assert.equal(c.ok, true);
   assert.match(c.code, /^[A-Z0-9]{4}$/);
   await ctx.emit(A, "start-game", { turnSeconds: 60, rounds: 1 });
@@ -36,7 +36,7 @@ test("full round: vote -> lines -> game over; badge + word credit; sanitize", as
     const sock = state.current.currentId === A.id ? A : B;
     const isHost = sock === A;
     const res = await ctx.emit(sock, "submit-line", {
-      text: isHost ? 'Five words <b>bold</b> here now <script>alert(1)</script>' : "guest line",
+      text: isHost ? 'Five words <b>bold</b> here now <script>alert(1)</script>' : "second writer line",
     });
     assert.equal(res.ok, true);
     await ctx.wait(150);
@@ -48,8 +48,7 @@ test("full round: vote -> lines -> game over; badge + word credit; sanitize", as
   assert.ok(!hostLine.html.includes("<script>"), "script neutralized");
   assert.ok(hostLine.html.includes("&lt;script&gt;"), "script escaped inert");
   assert.equal(hostLine.host, true);
-  assert.equal(hostLine.guest, false);
-  assert.equal(ov.story.find((l) => l.name === "GuestMike").guest, true);
+  assert.equal(ov.story.find((l) => l.name === "mikewheeler").host, false);
 
   const me = await ctx.api("/api/me", null, host.token, "GET");
   assert.ok(me.data.user.wordCount >= 5, "host words credited");
@@ -83,7 +82,7 @@ test("submit-line rejected when not your turn; rules host-only", async () => {
   const r = await ctx.emit(notCurrent, "submit-line", { text: "sneaky" });
   assert.equal(r.ok, false);
   const rules = await ctx.emit(B, "update-rules", { turnSeconds: 600 });
-  assert.equal(rules.ok, false, "guest cannot change rules");
+  assert.equal(rules.ok, false, "non-host cannot change rules");
   const ok = await ctx.emit(A, "update-rules", { turnSeconds: 120 });
   assert.equal(ok.ok, true);
 });
@@ -121,13 +120,12 @@ test("session rename: host-only, sanitized, broadcast", async () => {
   assert.equal(state.current.name, "The Tale");
 });
 
-test("chat: length cap, echo id, badges/guest flags", async () => {
+test("chat: length cap, echo id, host flag", async () => {
   const { A, B } = await startedGame(ctx);
   const got = new Promise((r) => B.on("chat", r));
   A.emit("chat", { text: "  hello there  " + "x".repeat(600) });
   const m = await got;
   assert.equal(m.id, A.id);
   assert.ok(m.text.length <= 500);
-  assert.equal(m.guest, false);
   assert.equal(m.host, true);
 });

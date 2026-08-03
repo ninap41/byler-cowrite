@@ -73,19 +73,20 @@ export async function signup(ctx, username = "willthewise", email = "will@byers.
   return login.data;
 }
 
-// Common fixture: host (account) + one guest in a started, writing-phase game.
+// Common fixture: two accounts (host + one writer) in a started, writing-phase game.
 export async function startedGame(ctx, { turnSeconds = 60, rounds = 2 } = {}) {
   const host = await signup(ctx);
+  const mike = await signup(ctx, "mikewheeler", "mike@wheeler.com", "#e63946");
   const A = await ctx.conn();
   const B = await ctx.conn();
   const state = { current: null };
   A.on("game-state", (st) => (state.current = st));
-  const c = await ctx.emit(A, "create-session", { name: "x", color: "#6c8cff", auth: host.token });
-  const j = await ctx.emit(B, "join-session", { name: "GuestMike", color: "#e63946", code: c.code });
+  const c = await ctx.emit(A, "create-session", { auth: host.token });
+  const j = await ctx.emit(B, "join-session", { code: c.code, auth: mike.token });
   await ctx.emit(A, "start-game", { turnSeconds, rounds });
   await ctx.wait(150);
   A.emit("vote", { prompt: state.current.options[0] });
   B.emit("vote", { prompt: state.current.options[0] });
   await ctx.wait(200);
-  return { host, A, B, code: c.code, hostSeatToken: c.token, guestSeatToken: j.token, state };
+  return { host, mike, A, B, code: c.code, hostSeatToken: c.token, mikeSeatToken: j.token, state };
 }

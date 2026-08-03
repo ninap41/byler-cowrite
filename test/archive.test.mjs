@@ -53,9 +53,8 @@ test("game-state carries per-writer connected flags for status dots", async () =
   const { B, state } = await startedGame(ctx);
   assert.ok(Array.isArray(state.current.writers));
   assert.ok(state.current.writers.every((w) => w.connected === true));
-  const mike = state.current.writers.find((w) => w.name === "GuestMike");
-  assert.equal(mike.guest, true);
+  assert.ok(state.current.writers.find((w) => w.name === "mikewheeler"));
   B.disconnect();
   await ctx.wait(250);
-  assert.equal(state.current.writers.find((w) => w.name === "GuestMike").connected, false);
+  assert.equal(state.current.writers.find((w) => w.name === "mikewheeler").connected, false);
 });
