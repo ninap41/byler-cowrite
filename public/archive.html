@@ -19,6 +19,7 @@
 					<a class="ghost" href="/dashboard" id="archiveBack" style="text-decoration: none; padding: 10px 16px; border-radius: 12px">← Back</a>
 					<h2>Previous Games</h2>
 				</div>
+				<p class="hidden" id="archNotice" style="color: var(--good); text-align: left; margin: 0 0 12px"></p>
 				<div id="archiveList"></div>
 				<div id="archiveDetail" class="hidden">
 					<div class="prompt-banner" id="archPrompt"></div>
@@ -162,8 +163,18 @@
 			}
 			$("delConfirm").onclick = async () => {
 				try {
+					const title = curG.name || curG.prompt || curG.code
 					await api("/api/games/" + encodeURIComponent(curG.code), null, "DELETE")
-					location.href = "/archive"
+					$("delModal").classList.add("hidden")
+					showList()
+					// refresh the list without the deleted story + confirm it's gone
+					try {
+						renderGameCards(await api("/api/games", null, "GET"))
+					} catch (e) {}
+					const note = $("archNotice")
+					note.textContent = `🗑 “${title}” was deleted.`
+					note.classList.remove("hidden")
+					setTimeout(() => note.classList.add("hidden"), 6000)
 				} catch (e) {
 					$("delErr").textContent = e.message
 				}

@@ -42,7 +42,7 @@ test("clean URLs serve each page", async () => {
   const arch = await page("/archive");
   assert.equal(arch.status, 200);
   assert.ok(arch.body.includes('id="archiveList"'));
-  for (const id of ["delModal", "archDelete", "delHtml", "delPdf", "delConfirm", "delCancel"])
+  for (const id of ["delModal", "archDelete", "delHtml", "delPdf", "delConfirm", "delCancel", "archNotice"])
     assert.ok(arch.body.includes(`id="${id}"`), id + " in the delete flow");
   const prof = await page("/profile");
   assert.equal(prof.status, 200);
