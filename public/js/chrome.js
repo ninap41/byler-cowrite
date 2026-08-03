@@ -1,7 +1,7 @@
 // Shared page chrome for the multi-page app: decorative background layers,
 // top bar (user chip + theme switch), and the hamburger nav drawer. Injected
 // by every page so the markup lives in exactly one place.
-import { initTheme } from "./theme.js"
+import { initTheme, THEMES, THEME_LABELS } from "./theme.js"
 import { initNav } from "./nav.js"
 import { safeColor } from "./util.js"
 
@@ -16,6 +16,24 @@ const BG = `
 		</div>
 		<div class="bg-set ink">
 			<div class="blot b1"></div><div class="blot b2"></div><div class="paper"></div><div class="vignette"></div>
+		</div>
+		<div class="bg-set wall">
+			<div class="wallpaper"></div><div class="lights"></div>
+		</div>
+		<div class="bg-set snowball">
+			<div class="flakes f1"></div><div class="flakes f2"></div><div class="glint"></div>
+		</div>
+		<div class="bg-set upside">
+			<div class="veins"></div><div class="spore drift s1"></div><div class="spore drift s2"></div><div class="spore drift s3"></div><div class="spore drift s4"></div>
+		</div>
+		<div class="bg-set starcourt">
+			<div class="sunset"></div><div class="squiggle drift q1"></div><div class="squiggle drift q2"></div>
+		</div>
+		<div class="bg-set arcade">
+			<div class="carpet"></div><div class="cab-glow drift"></div>
+		</div>
+		<div class="bg-set cerebro">
+			<div class="waves"></div><div class="signal"></div>
 		</div>
 		<div class="grain"></div>
 	</div>`
@@ -45,9 +63,10 @@ const TOPBAR = `
 				<i class="sw sw-neon" id="themeCurSw"></i><span id="themeCurLabel">Neon Dusk</span><i class="chev">&#9662;</i>
 			</button>
 			<div class="theme-menu" id="themeMenu" role="listbox" aria-label="Theme">
-				<button type="button" data-theme-btn="neon" class="active" role="option"><i class="sw sw-neon"></i><span>Neon Dusk</span></button>
-				<button type="button" data-theme-btn="aurora" role="option"><i class="sw sw-aurora"></i><span>Aurora</span></button>
-				<button type="button" data-theme-btn="ink" role="option"><i class="sw sw-ink"></i><span>Inkwell</span></button>
+				${THEMES.map(
+					(id, i) =>
+						`<button type="button" data-theme-btn="${id}"${i === 0 ? ' class="active"' : ""} role="option"><i class="sw sw-${id}"></i><span>${THEME_LABELS[id]}</span></button>`,
+				).join("\n\t\t\t\t")}
 			</div>
 		</div>
 	</div>`

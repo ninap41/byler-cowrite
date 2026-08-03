@@ -9,9 +9,7 @@ export function installDom() {
   globalThis.document = dom.window.document;
   globalThis.Node = dom.window.Node;
   globalThis.Event = dom.window.Event;
-  globalThis.localStorage ??= {
-    getItem: () => null, setItem: () => {}, removeItem: () => {},
-  };
+  globalThis.localStorage = dom.window.localStorage;
   return dom;
 }
 

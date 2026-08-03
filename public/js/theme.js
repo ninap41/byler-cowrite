@@ -1,8 +1,19 @@
 // Theme switching (Neon Dusk / Aurora / Inkwell) + animated backgrounds.
 // GSAP is optional: without it (or with prefers-reduced-motion) everything
 // falls back to static CSS.
-export const THEMES = ["neon", "aurora", "ink"]
-const LABELS = { neon: "Neon Dusk", aurora: "Aurora", ink: "Inkwell" }
+export const THEMES = ["neon", "aurora", "ink", "wall", "snowball", "upside", "starcourt", "arcade", "cerebro"]
+export const THEME_LABELS = {
+	neon: "Neon Dusk",
+	aurora: "Aurora",
+	ink: "Inkwell",
+	wall: "The Wall",
+	snowball: "Snow Ball",
+	upside: "Upside Down",
+	starcourt: "Starcourt",
+	arcade: "Palace Arcade",
+	cerebro: "Cerebro",
+}
+const LABELS = THEME_LABELS
 
 export function initTheme() {
 	const root = document.documentElement
@@ -45,6 +56,21 @@ export function initTheme() {
 						x: i % 2 ? 40 : -40,
 						y: i % 2 ? 30 : -30,
 						duration: 12 + i * 3,
+						repeat: -1,
+						yoyo: true,
+						ease: "sine.inOut",
+					}),
+				)
+			})
+		} else {
+			// newer themes mark their floating elements with .drift
+			document.querySelectorAll(`.bg-set.${theme} .drift`).forEach((o, i) => {
+				floatTweens.push(
+					gsap.to(o, {
+						x: i % 2 ? 50 : -50,
+						y: i % 2 ? -40 : 40,
+						rotation: i % 2 ? 8 : -8,
+						duration: 10 + i * 2,
 						repeat: -1,
 						yoyo: true,
 						ease: "sine.inOut",

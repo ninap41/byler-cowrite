@@ -1,9 +1,50 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { installDom } from "./dom.mjs";
 
 installDom();
 const { mountChrome, mountKofi, KOFI_ACCOUNT, KOFI_CONFIG } = await import("../public/js/chrome.js");
+const { THEMES, THEME_LABELS, initTheme } = await import("../public/js/theme.js");
+
+test("theme registry: all nine themes present with labels", () => {
+  assert.equal(THEMES.length, 9);
+  for (const id of ["neon", "aurora", "ink", "wall", "snowball", "upside", "starcourt", "arcade", "cerebro"])
+    assert.ok(THEMES.includes(id), id + " registered");
+  assert.equal(THEME_LABELS.wall, "The Wall");
+  assert.equal(THEME_LABELS.snowball, "Snow Ball");
+  assert.equal(THEME_LABELS.upside, "Upside Down");
+  assert.equal(THEME_LABELS.starcourt, "Starcourt");
+  assert.equal(THEME_LABELS.arcade, "Palace Arcade");
+  assert.equal(THEME_LABELS.cerebro, "Cerebro");
+});
+
+test("every theme has CSS tokens, a background set, and a picker swatch", () => {
+  const css = readFileSync(new URL("../public/css/base.css", import.meta.url), "utf-8");
+  for (const id of THEMES) {
+    assert.ok(css.includes(`[data-theme="${id}"] {`), id + " token block");
+    assert.ok(css.includes(`[data-theme="${id}"] .bg-set.${id}`), id + " background reveal rule");
+    assert.ok(css.includes(`.sw-${id}`), id + " swatch");
+  }
+});
+
+test("chrome menu lists every theme and switching updates data-theme + storage", () => {
+  document.body.innerHTML = "";
+  localStorage.removeItem("cowriteTheme");
+  const theme = mountChrome({ page: "game" });
+  const buttons = [...document.querySelectorAll("[data-theme-btn]")];
+  assert.equal(buttons.length, THEMES.length, "one menu entry per theme");
+  for (const id of THEMES) {
+    assert.ok(buttons.some((b) => b.getAttribute("data-theme-btn") === id), id + " button");
+    assert.ok(document.querySelector(`.bg-set.${id}`), id + " background layers injected");
+  }
+  theme.applyTheme("snowball");
+  assert.equal(document.documentElement.getAttribute("data-theme"), "snowball");
+  assert.equal(localStorage.getItem("cowriteTheme"), "snowball");
+  assert.equal(theme.current, "snowball");
+  assert.ok(document.querySelector('[data-theme-btn="snowball"]').classList.contains("active"));
+  assert.equal(document.getElementById("themeCurLabel").textContent, "Snow Ball");
+});
 
 test("mountChrome injects shared chrome + the ko-fi widget loader", () => {
   document.body.innerHTML = "";

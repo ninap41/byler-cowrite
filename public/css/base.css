@@ -1723,3 +1723,390 @@ h3 {
 	letter-spacing: 1.5px;
 	font-size: 0.82rem;
 }
+
+/* ==========================================================================
+   Extra themes: The Wall, Snow Ball, Upside Down, Starcourt, Palace Arcade,
+   Cerebro. Same token contract as the original three.
+   ========================================================================== */
+
+/* ---------- The Wall (Byers living room: dark florals + christmas lights) */
+[data-theme="wall"] {
+	--bg: #17100c;
+	--bg-2: #261912;
+	--panel: rgba(40, 27, 19, 0.6);
+	--panel-2: rgba(54, 37, 26, 0.65);
+	--story-bg: rgba(30, 20, 14, 0.65);
+	--ink: #f3e6d3;
+	--muted: #b39a7e;
+	--line: rgba(214, 164, 110, 0.22);
+	--accent: #ff5545;
+	--accent-2: #ffc857;
+	--good: #7fd069;
+	--glow: rgba(255, 85, 69, 0.35);
+	--grad-1: linear-gradient(120deg, #ff5545, #ffc857 50%, #6fb3ff);
+	--grad-hero: radial-gradient(120% 130% at 50% 0%, rgba(255, 200, 87, 0.14), transparent 70%);
+	--panel-brd: rgba(214, 164, 110, 0.28);
+	--panel-glow: 0 18px 44px rgba(8, 4, 2, 0.55), inset 0 1px 0 rgba(255, 230, 190, 0.06);
+	--btn-ink: #1a120c;
+	--chip: rgba(255, 200, 87, 0.12);
+	--chip-brd: rgba(255, 200, 87, 0.4);
+	--scroll-thumb: rgba(214, 164, 110, 0.4);
+	--font-display: "Fraunces", serif;
+	--font-body: "Plus Jakarta Sans", sans-serif;
+	--font-story: "Newsreader", serif;
+	--font-mono: "Inconsolata", ui-monospace, monospace;
+}
+[data-theme="wall"] .bg-set.wall {
+	opacity: 1;
+}
+.bg-set.wall .wallpaper {
+	position: absolute;
+	inset: 0;
+	background-image:
+		radial-gradient(circle at 25% 25%, rgba(255, 200, 87, 0.06) 2px, transparent 3px),
+		radial-gradient(circle at 75% 75%, rgba(255, 85, 69, 0.05) 2px, transparent 3px),
+		radial-gradient(120% 100% at 50% 120%, rgba(0, 0, 0, 0.5), transparent 60%);
+	background-size:
+		46px 46px,
+		62px 62px,
+		100% 100%;
+}
+.bg-set.wall .lights {
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 110px;
+	filter: drop-shadow(0 0 14px rgba(255, 200, 87, 0.6));
+	background-image:
+		radial-gradient(circle 5px at 4% 34px, #ff5959 60%, transparent 61%),
+		radial-gradient(circle 5px at 14% 52px, #ffd23f 60%, transparent 61%),
+		radial-gradient(circle 5px at 24% 36px, #6fb3ff 60%, transparent 61%),
+		radial-gradient(circle 5px at 34% 54px, #7fd069 60%, transparent 61%),
+		radial-gradient(circle 5px at 44% 34px, #ff8ac2 60%, transparent 61%),
+		radial-gradient(circle 5px at 54% 52px, #ff5959 60%, transparent 61%),
+		radial-gradient(circle 5px at 64% 36px, #ffd23f 60%, transparent 61%),
+		radial-gradient(circle 5px at 74% 54px, #6fb3ff 60%, transparent 61%),
+		radial-gradient(circle 5px at 84% 36px, #7fd069 60%, transparent 61%),
+		radial-gradient(circle 5px at 94% 50px, #ff8ac2 60%, transparent 61%);
+}
+@media (prefers-reduced-motion: no-preference) {
+	.bg-set.wall .lights {
+		animation: wall-flicker 5s ease-in-out infinite;
+	}
+}
+@keyframes wall-flicker {
+	0%, 100% { opacity: 1; }
+	42% { opacity: 0.75; }
+	46% { opacity: 1; }
+	72% { opacity: 0.85; }
+}
+
+/* ---------- Snow Ball (gym at night: snowfall + disco glint) */
+[data-theme="snowball"] {
+	--bg: #0a1128;
+	--bg-2: #14224e;
+	--panel: rgba(18, 30, 64, 0.55);
+	--panel-2: rgba(26, 40, 80, 0.6);
+	--story-bg: rgba(12, 20, 46, 0.62);
+	--ink: #eaf1ff;
+	--muted: #9fb0d9;
+	--line: rgba(150, 180, 255, 0.22);
+	--accent: #f0a6c8;
+	--accent-2: #8fb6ff;
+	--good: #63e6b5;
+	--glow: rgba(143, 182, 255, 0.35);
+	--grad-1: linear-gradient(120deg, #f0a6c8, #b9c8ff 50%, #8fb6ff);
+	--grad-hero: radial-gradient(120% 130% at 50% 0%, rgba(143, 182, 255, 0.16), transparent 72%);
+	--panel-brd: rgba(150, 180, 255, 0.3);
+	--panel-glow: 0 18px 48px rgba(4, 8, 24, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+	--btn-ink: #0a1128;
+	--chip: rgba(240, 166, 200, 0.13);
+	--chip-brd: rgba(240, 166, 200, 0.4);
+	--scroll-thumb: rgba(150, 180, 255, 0.4);
+	--font-display: "Fraunces", serif;
+	--font-body: "Plus Jakarta Sans", sans-serif;
+	--font-story: "Newsreader", serif;
+	--font-mono: "Inconsolata", ui-monospace, monospace;
+}
+[data-theme="snowball"] .bg-set.snowball {
+	opacity: 1;
+}
+.bg-set.snowball .flakes {
+	position: absolute;
+	inset: -260px 0 0;
+	background-image:
+		radial-gradient(circle 2px at 22% 18%, rgba(255, 255, 255, 0.8) 60%, transparent 61%),
+		radial-gradient(circle 1.5px at 58% 44%, rgba(255, 255, 255, 0.6) 60%, transparent 61%),
+		radial-gradient(circle 2.5px at 81% 72%, rgba(255, 255, 255, 0.7) 60%, transparent 61%),
+		radial-gradient(circle 1.5px at 8% 82%, rgba(255, 255, 255, 0.5) 60%, transparent 61%);
+	background-size: 260px 260px;
+}
+.bg-set.snowball .flakes.f2 {
+	background-size: 420px 420px;
+	opacity: 0.6;
+}
+@media (prefers-reduced-motion: no-preference) {
+	.bg-set.snowball .flakes.f1 {
+		animation: snow-fall 18s linear infinite;
+	}
+	.bg-set.snowball .flakes.f2 {
+		animation: snow-fall 34s linear infinite;
+	}
+	.bg-set.snowball .glint {
+		animation: glint-sweep 9s ease-in-out infinite;
+	}
+}
+@keyframes snow-fall {
+	to { transform: translateY(260px); }
+}
+.bg-set.snowball .glint {
+	position: absolute;
+	inset: 0;
+	background: linear-gradient(64deg, transparent 42%, rgba(255, 255, 255, 0.07) 50%, transparent 58%);
+}
+@keyframes glint-sweep {
+	0%, 100% { transform: translateX(-30%); }
+	50% { transform: translateX(30%); }
+}
+
+/* ---------- Upside Down (toxic dark: spores + red veins) */
+[data-theme="upside"] {
+	--bg: #050b0a;
+	--bg-2: #0c1d18;
+	--panel: rgba(10, 26, 22, 0.6);
+	--panel-2: rgba(14, 34, 28, 0.62);
+	--story-bg: rgba(6, 16, 13, 0.66);
+	--ink: #dcefe6;
+	--muted: #7fa695;
+	--line: rgba(90, 160, 130, 0.22);
+	--accent: #ff3b3b;
+	--accent-2: #7adcc3;
+	--good: #61e2a2;
+	--glow: rgba(255, 59, 59, 0.35);
+	--grad-1: linear-gradient(120deg, #ff3b3b, #b56576 45%, #7adcc3);
+	--grad-hero: radial-gradient(120% 130% at 50% 0%, rgba(255, 59, 59, 0.12), transparent 70%);
+	--panel-brd: rgba(90, 160, 130, 0.28);
+	--panel-glow: 0 18px 48px rgba(0, 4, 3, 0.6), 0 0 34px rgba(255, 59, 59, 0.06), inset 0 1px 0 rgba(200, 255, 230, 0.05);
+	--btn-ink: #04100c;
+	--chip: rgba(255, 59, 59, 0.12);
+	--chip-brd: rgba(255, 59, 59, 0.4);
+	--scroll-thumb: rgba(90, 160, 130, 0.4);
+	--font-display: "Space Grotesk", sans-serif;
+	--font-body: "Space Grotesk", sans-serif;
+	--font-story: "Newsreader", serif;
+	--font-mono: "Inconsolata", ui-monospace, monospace;
+}
+[data-theme="upside"] .bg-set.upside {
+	opacity: 1;
+}
+.bg-set.upside .veins {
+	position: absolute;
+	inset: 0;
+	background:
+		radial-gradient(55% 45% at 0% 100%, rgba(255, 40, 40, 0.14), transparent 62%),
+		radial-gradient(55% 45% at 100% 100%, rgba(255, 40, 40, 0.12), transparent 62%),
+		radial-gradient(60% 35% at 50% 0%, rgba(30, 90, 70, 0.2), transparent 65%);
+}
+@media (prefers-reduced-motion: no-preference) {
+	.bg-set.upside .veins {
+		animation: vein-pulse 7s ease-in-out infinite alternate;
+	}
+}
+@keyframes vein-pulse {
+	from { opacity: 0.65; }
+	to { opacity: 1; }
+}
+.bg-set.upside .spore {
+	position: absolute;
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+	background: rgba(215, 255, 235, 0.5);
+	filter: blur(1px);
+	box-shadow: 0 0 12px rgba(215, 255, 235, 0.4);
+}
+.bg-set.upside .s1 { left: 18%; top: 30%; }
+.bg-set.upside .s2 { left: 66%; top: 18%; width: 6px; height: 6px; }
+.bg-set.upside .s3 { left: 42%; top: 64%; width: 14px; height: 14px; opacity: 0.5; }
+.bg-set.upside .s4 { left: 84%; top: 56%; width: 7px; height: 7px; }
+
+/* ---------- Starcourt (1985 mall pastels) */
+[data-theme="starcourt"] {
+	--bg: #fdf3ec;
+	--bg-2: #ffe3ef;
+	--panel: rgba(255, 255, 255, 0.6);
+	--panel-2: rgba(255, 255, 255, 0.68);
+	--story-bg: rgba(255, 252, 248, 0.58);
+	--ink: #35284a;
+	--muted: #8a7398;
+	--line: rgba(0, 180, 190, 0.28);
+	--accent: #ff5fa2;
+	--accent-2: #00b4be;
+	--good: #29a36a;
+	--glow: rgba(255, 95, 162, 0.3);
+	--grad-1: linear-gradient(120deg, #ff5fa2, #ffb86b 50%, #00b4be);
+	--grad-hero: linear-gradient(135deg, rgba(255, 95, 162, 0.22), rgba(0, 180, 190, 0.16));
+	--panel-brd: rgba(255, 255, 255, 0.9);
+	--panel-glow: 0 18px 50px rgba(230, 140, 180, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+	--btn-ink: #ffffff;
+	--chip: rgba(0, 180, 190, 0.12);
+	--chip-brd: rgba(0, 180, 190, 0.35);
+	--scroll-thumb: rgba(255, 95, 162, 0.35);
+	--font-display: "Fraunces", serif;
+	--font-body: "Plus Jakarta Sans", sans-serif;
+	--font-story: "Plus Jakarta Sans", sans-serif;
+	--font-mono: "Inconsolata", ui-monospace, monospace;
+}
+[data-theme="starcourt"] .bg-set.starcourt {
+	opacity: 1;
+}
+.bg-set.starcourt .sunset {
+	position: absolute;
+	inset: 0;
+	background: radial-gradient(60% 45% at 50% 104%, rgba(255, 150, 90, 0.4), rgba(255, 95, 162, 0.2) 55%, transparent 75%);
+}
+.bg-set.starcourt .squiggle {
+	position: absolute;
+	border-radius: 999px;
+}
+.bg-set.starcourt .q1 {
+	left: 8%;
+	top: 16%;
+	width: 150px;
+	height: 56px;
+	border: 10px solid rgba(0, 180, 190, 0.18);
+	transform: rotate(-18deg);
+}
+.bg-set.starcourt .q2 {
+	right: 10%;
+	top: 30%;
+	width: 100px;
+	height: 100px;
+	border: 12px dotted rgba(255, 95, 162, 0.22);
+}
+
+/* ---------- Palace Arcade (cabinet glow + 80s carpet) */
+[data-theme="arcade"] {
+	--bg: #12081f;
+	--bg-2: #24103c;
+	--panel: rgba(38, 18, 64, 0.55);
+	--panel-2: rgba(52, 26, 86, 0.6);
+	--story-bg: rgba(24, 12, 40, 0.64);
+	--ink: #f6edff;
+	--muted: #b9a3d9;
+	--line: rgba(255, 210, 63, 0.22);
+	--accent: #ffd23f;
+	--accent-2: #ff4f79;
+	--good: #46e08c;
+	--glow: rgba(255, 210, 63, 0.3);
+	--grad-1: linear-gradient(120deg, #ffd23f, #ff4f79 50%, #4fa8ff);
+	--grad-hero: radial-gradient(120% 130% at 50% 0%, rgba(255, 210, 63, 0.14), transparent 72%);
+	--panel-brd: rgba(255, 210, 63, 0.26);
+	--panel-glow: 0 18px 48px rgba(6, 2, 12, 0.6), 0 0 34px rgba(255, 79, 121, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+	--btn-ink: #1a0b2e;
+	--chip: rgba(255, 79, 121, 0.13);
+	--chip-brd: rgba(255, 79, 121, 0.4);
+	--scroll-thumb: rgba(255, 210, 63, 0.35);
+	--font-display: "Orbitron", sans-serif;
+	--font-body: "Space Grotesk", sans-serif;
+	--font-story: "Space Grotesk", sans-serif;
+	--font-mono: "Inconsolata", ui-monospace, monospace;
+}
+[data-theme="arcade"] .bg-set.arcade {
+	opacity: 1;
+}
+.bg-set.arcade .carpet {
+	position: absolute;
+	inset: 0;
+	opacity: 0.55;
+	background-image:
+		radial-gradient(circle 3px at 12% 22%, rgba(255, 210, 63, 0.5) 60%, transparent 61%),
+		radial-gradient(circle 2px at 44% 64%, rgba(255, 79, 121, 0.5) 60%, transparent 61%),
+		radial-gradient(circle 3px at 76% 34%, rgba(79, 168, 255, 0.5) 60%, transparent 61%),
+		radial-gradient(circle 2px at 90% 82%, rgba(70, 224, 140, 0.45) 60%, transparent 61%);
+	background-size: 130px 130px;
+}
+.bg-set.arcade .cab-glow {
+	position: absolute;
+	left: 55%;
+	bottom: -140px;
+	width: 480px;
+	height: 320px;
+	border-radius: 50%;
+	background: radial-gradient(closest-side, rgba(255, 79, 121, 0.25), rgba(255, 210, 63, 0.1) 60%, transparent);
+	filter: blur(30px);
+}
+
+/* ---------- Cerebro (ham-radio amber on black) */
+[data-theme="cerebro"] {
+	--bg: #0c0803;
+	--bg-2: #1e1306;
+	--panel: rgba(32, 21, 9, 0.6);
+	--panel-2: rgba(44, 29, 12, 0.62);
+	--story-bg: rgba(24, 15, 6, 0.66);
+	--ink: #ffdfae;
+	--muted: #b98f5a;
+	--line: rgba(255, 176, 0, 0.22);
+	--accent: #ffb000;
+	--accent-2: #ff7a3d;
+	--good: #a8d95a;
+	--glow: rgba(255, 176, 0, 0.3);
+	--grad-1: linear-gradient(120deg, #ffb000, #ff7a3d 60%, #ffdfae);
+	--grad-hero: radial-gradient(120% 130% at 50% 0%, rgba(255, 176, 0, 0.14), transparent 70%);
+	--panel-brd: rgba(255, 176, 0, 0.26);
+	--panel-glow: 0 18px 44px rgba(4, 2, 0, 0.6), 0 0 30px rgba(255, 176, 0, 0.07), inset 0 1px 0 rgba(255, 220, 160, 0.06);
+	--btn-ink: #140c04;
+	--chip: rgba(255, 176, 0, 0.12);
+	--chip-brd: rgba(255, 176, 0, 0.4);
+	--scroll-thumb: rgba(255, 176, 0, 0.35);
+	--font-display: "Inconsolata", ui-monospace, monospace;
+	--font-body: "Space Grotesk", sans-serif;
+	--font-story: "Inconsolata", ui-monospace, monospace;
+	--font-mono: "Inconsolata", ui-monospace, monospace;
+}
+[data-theme="cerebro"] .bg-set.cerebro {
+	opacity: 1;
+}
+.bg-set.cerebro .waves {
+	position: absolute;
+	inset: 0;
+	background: repeating-linear-gradient(0deg, transparent 0 26px, rgba(255, 176, 0, 0.05) 26px 27px);
+}
+.bg-set.cerebro .signal {
+	position: absolute;
+	top: 42%;
+	left: -40%;
+	width: 40%;
+	height: 2px;
+	background: linear-gradient(90deg, transparent, rgba(255, 176, 0, 0.55), transparent);
+	box-shadow: 0 0 24px 6px rgba(255, 176, 0, 0.18);
+}
+@media (prefers-reduced-motion: no-preference) {
+	.bg-set.cerebro .signal {
+		animation: signal-sweep 7s linear infinite;
+	}
+}
+@keyframes signal-sweep {
+	to { transform: translateX(350vw); }
+}
+
+/* ---------- Theme swatches for the picker ---------- */
+.sw-wall {
+	background: linear-gradient(120deg, #ff5545, #ffc857);
+}
+.sw-snowball {
+	background: linear-gradient(120deg, #f0a6c8, #8fb6ff);
+}
+.sw-upside {
+	background: linear-gradient(120deg, #ff3b3b, #7adcc3);
+}
+.sw-starcourt {
+	background: linear-gradient(120deg, #ff5fa2, #00b4be);
+}
+.sw-arcade {
+	background: linear-gradient(120deg, #ffd23f, #ff4f79);
+}
+.sw-cerebro {
+	background: linear-gradient(120deg, #ffb000, #ff7a3d);
+}
