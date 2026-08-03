@@ -38,6 +38,14 @@ test("chrome menu lists every theme and switching updates data-theme + storage",
     assert.ok(buttons.some((b) => b.getAttribute("data-theme-btn") === id), id + " button");
     assert.ok(document.querySelector(`.bg-set.${id}`), id + " background layers injected");
   }
+  // intensified scenery layers
+  assert.equal(document.querySelectorAll(".bg-set.arcade .galaga").length, 4, "galaga fleet");
+  assert.ok(document.querySelector(".bg-set.arcade .ship") && document.querySelector(".bg-set.arcade .shot"));
+  assert.ok(document.querySelector(".bg-set.starcourt .retro-sun"), "80s striped sun");
+  assert.equal(document.querySelectorAll(".bg-set.upside .dust").length, 3, "upside dust layers");
+  assert.ok(document.querySelector(".bg-set.upside .vines") && document.querySelectorAll(".bg-set.upside .mtn").length === 2,
+    "upside landscape: vines + two mountain ridges");
+  assert.equal(document.querySelectorAll(".bg-set.wall .lights").length, 2, "chasing light strings");
   theme.applyTheme("snowball");
   assert.equal(document.documentElement.getAttribute("data-theme"), "snowball");
   assert.equal(localStorage.getItem("cowriteTheme"), "snowball");

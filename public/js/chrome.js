@@ -18,22 +18,26 @@ const BG = `
 			<div class="blot b1"></div><div class="blot b2"></div><div class="paper"></div><div class="vignette"></div>
 		</div>
 		<div class="bg-set wall">
-			<div class="wallpaper"></div><div class="lights"></div>
+			<div class="wallpaper"></div><div class="lights"></div><div class="lights lights2"></div>
 		</div>
 		<div class="bg-set snowball">
 			<div class="flakes f1"></div><div class="flakes f2"></div><div class="glint"></div>
 		</div>
 		<div class="bg-set upside">
-			<div class="veins"></div><div class="spore drift s1"></div><div class="spore drift s2"></div><div class="spore drift s3"></div><div class="spore drift s4"></div>
+			<div class="veins"></div><div class="mtn m1"></div><div class="mtn m2"></div><div class="vines"></div>
+			<div class="dust d1"></div><div class="dust d2"></div><div class="dust d3"></div>
+			<div class="spore drift s1"></div><div class="spore drift s2"></div><div class="spore drift s3"></div><div class="spore drift s4"></div>
 		</div>
 		<div class="bg-set starcourt">
-			<div class="sunset"></div><div class="squiggle drift q1"></div><div class="squiggle drift q2"></div>
+			<div class="sunset"></div><div class="retro-sun"></div><div class="zig z1"></div><div class="zig z2"></div><div class="squiggle drift q1"></div><div class="squiggle drift q2"></div>
 		</div>
 		<div class="bg-set arcade">
-			<div class="carpet"></div><div class="cab-glow drift"></div>
+			<div class="carpet"></div><div class="astars a1"></div><div class="astars a2"></div>
+			<div class="fleet"><i class="galaga g1"></i><i class="galaga g2"></i><i class="galaga g3"></i><i class="galaga g4"></i></div>
+			<div class="ship"></div><div class="shot"></div><div class="cab-glow drift"></div>
 		</div>
 		<div class="bg-set cerebro">
-			<div class="waves"></div><div class="signal"></div>
+			<div class="waves"></div><div class="signal"></div><div class="signal signal2"></div>
 		</div>
 		<div class="grain"></div>
 	</div>`

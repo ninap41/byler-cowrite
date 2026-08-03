@@ -67,10 +67,10 @@ export function initTheme() {
 			document.querySelectorAll(`.bg-set.${theme} .drift`).forEach((o, i) => {
 				floatTweens.push(
 					gsap.to(o, {
-						x: i % 2 ? 50 : -50,
-						y: i % 2 ? -40 : 40,
-						rotation: i % 2 ? 8 : -8,
-						duration: 10 + i * 2,
+						x: i % 2 ? 90 : -90,
+						y: i % 2 ? -70 : 70,
+						rotation: i % 2 ? 14 : -14,
+						duration: 7 + i * 2,
 						repeat: -1,
 						yoyo: true,
 						ease: "sine.inOut",
