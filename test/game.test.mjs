@@ -84,8 +84,12 @@ test("submit-line rejected when not your turn; rules host-only", async () => {
   assert.equal(r.ok, false);
   const rules = await ctx.emit(B, "update-rules", { turnSeconds: 600 });
   assert.equal(rules.ok, false, "non-host cannot change rules");
+  const before = state.current.deadline;
   const ok = await ctx.emit(A, "update-rules", { turnSeconds: 120 });
   assert.equal(ok.ok, true);
+  await ctx.wait(120);
+  assert.equal(state.current.turnSeconds, 120);
+  assert.ok(state.current.deadline > before, "Apply restarts the running clock at the new length immediately");
 });
 
 test("pause/resume host-only and clock freezing", async () => {

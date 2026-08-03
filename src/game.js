@@ -747,12 +747,23 @@ export function createGame(io) {
     socket.on("update-rules", ({ turnSeconds, addRounds }, ack) => {
       const s = mySession();
       if (!s || s.hostId !== socket.id || s.phase !== "writing") return ack?.({ ok: false });
-      if (turnSeconds != null && Number(turnSeconds) > 0)
-        s.turnSeconds = Math.min(600, Math.max(10, Number(turnSeconds)));
+      const newSeconds = turnSeconds != null && Number(turnSeconds) > 0;
+      if (newSeconds) s.turnSeconds = Math.min(600, Math.max(10, Number(turnSeconds)));
       const r = Number(addRounds);
       if (r > 0) {
         const extra = r * Math.max(1, s.turnOrder.length);
         s.maxTurns = s.maxTurns == null ? s.turnCount + extra : s.maxTurns + extra;
+      }
+      // Apply hits NOW: the current turn's clock restarts at the new full
+      // length (the writer keeps whatever they've typed). A paused game just
+      // updates its stored remainder; resume rearms from it.
+      if (newSeconds) {
+        if (s.paused) s.remaining = s.turnSeconds * 1000;
+        else {
+          clearTimeout(s.timer);
+          s.deadline = Date.now() + s.turnSeconds * 1000;
+          s.timer = setTimeout(() => timeUp(s), s.turnSeconds * 1000);
+        }
       }
       broadcastGame(s);
       ack?.({ ok: true });
