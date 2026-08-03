@@ -116,10 +116,11 @@ no framework:
 Export (game-over copy/download) moves to `js/export.js`; test the produced
 HTML/plain text (names stripped, formatting kept) in `export.test.mjs`.
 
-## Phase 3 — page split — **DONE** (core; dashboard visual redesign to the
-mockup layout still pending — it currently reuses the old lobby card UI, and
-the `myGames`/`recentGames`/`stats`/streaks server additions below are still
-to do)
+## Phase 3 — page split — **DONE**, including the dashboard redesign to the
+mockup layout (`css/dashboard.css`, `dashboard-view.js` builders) and its
+server support: `/api/dashboard` now returns `myGames` (with `myTurn`),
+`recentGames`, and `stats`; writing streaks live in `lib/streak.js`
+(UTC-calendar-day based, bumped in `creditLine`, exposed via `publicUser`).
 
 - `game.html` (phase 2 output), `index.html` shrinks to hero + auth forms
   (`js/components/auth-forms.js`, `js/hero.js`), `dashboard.html` +

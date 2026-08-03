@@ -1,0 +1,352 @@
+/* Dashboard layout (mockup-derived) — all colors come from the theme tokens
+   in base.css so it works across Neon Dusk / Aurora / Inkwell. */
+
+.dash-wrap {
+	max-width: 1180px;
+	margin: 0 auto;
+	padding: 0 20px 60px;
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) 330px;
+	gap: 20px;
+	align-items: start;
+	position: relative;
+	z-index: 1;
+}
+.dash-col,
+.dash-rail {
+	display: grid;
+	gap: 20px;
+	min-width: 0;
+}
+@media (max-width: 900px) {
+	.dash-wrap {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
+.dash-wrap .card {
+	margin: 0;
+	width: auto;
+	max-width: none;
+}
+
+/* ---- welcome card ---- */
+.welcome {
+	display: flex;
+	gap: 18px;
+	align-items: center;
+	flex-wrap: wrap;
+}
+.avatar {
+	flex: none;
+	width: 74px;
+	height: 74px;
+	border-radius: 50%;
+	display: grid;
+	place-items: center;
+	font-family: var(--font-display);
+	font-size: 1.7rem;
+	color: var(--btn-ink);
+	border: 2px solid var(--panel-brd);
+}
+.welcome-info {
+	flex: 1 1 240px;
+	min-width: 0;
+	text-align: left;
+}
+.welcome-info .me-row {
+	margin: 0 0 2px;
+}
+.welcome-sub {
+	margin: 0;
+	color: var(--muted);
+	font-size: 0.92rem;
+}
+.stat-row {
+	display: flex;
+	gap: 26px;
+	flex-wrap: wrap;
+	margin-top: 14px;
+	text-align: left;
+}
+.stat b {
+	display: block;
+	font-family: var(--font-display);
+	font-size: 1.25rem;
+	line-height: 1.2;
+}
+.stat span {
+	color: var(--muted);
+	font-size: 0.78rem;
+}
+.rank-bar {
+	flex: 1 1 170px;
+	min-width: 150px;
+	align-self: center;
+}
+.rank-bar .rank-label {
+	display: block;
+	color: var(--muted);
+	font-size: 0.78rem;
+	margin-bottom: 6px;
+	text-align: left;
+}
+.rank-track {
+	height: 8px;
+	border-radius: 99px;
+	background: var(--panel-2);
+	border: 1px solid var(--line);
+	overflow: hidden;
+}
+.rank-fill {
+	height: 100%;
+	border-radius: 99px;
+	background: var(--grad-1);
+	transition: width 0.6s var(--tsn);
+}
+
+/* ---- games in progress ---- */
+.mg-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+	gap: 14px;
+	margin-top: 12px;
+}
+.mg-card {
+	border: 1px solid var(--line);
+	border-radius: 16px;
+	overflow: hidden;
+	background: var(--panel-2);
+	display: flex;
+	flex-direction: column;
+	text-align: left;
+}
+.mg-cover {
+	height: 74px;
+	position: relative;
+	overflow: hidden;
+}
+.mg-glyph {
+	position: absolute;
+	right: 10px;
+	bottom: -18px;
+	font-family: var(--font-display);
+	font-size: 4.2rem;
+	line-height: 1;
+	color: rgba(255, 255, 255, 0.28);
+	user-select: none;
+}
+.mg-body {
+	padding: 12px 14px 6px;
+	display: grid;
+	gap: 6px;
+}
+.mg-head {
+	display: flex;
+	align-items: baseline;
+	gap: 8px;
+	justify-content: space-between;
+}
+.mg-name {
+	font-size: 0.98rem;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.mg-code {
+	font-family: var(--font-mono);
+	font-size: 0.72rem;
+	letter-spacing: 1px;
+	color: var(--muted);
+	flex: none;
+}
+.mg-status {
+	margin: 0;
+	font-size: 0.82rem;
+	color: var(--muted);
+}
+.mg-status.is-turn {
+	color: var(--good);
+	font-weight: 600;
+}
+.mg-status.is-paused {
+	color: var(--accent);
+}
+.mg-players {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
+.mg-dot {
+	width: 11px;
+	height: 11px;
+	border-radius: 50%;
+	border: 1px solid rgba(0, 0, 0, 0.25);
+	flex: none;
+}
+.mg-dot.off {
+	opacity: 0.35;
+}
+.mg-count {
+	margin-left: 6px;
+	color: var(--muted);
+	font-size: 0.75rem;
+}
+.mg-card .primary,
+.mg-card .ghost {
+	margin: 10px 14px 14px;
+	padding: 9px 12px;
+	font-size: 0.85rem;
+	min-width: 0;
+}
+.mg-open {
+	border-style: dashed;
+	background: transparent;
+	align-items: center;
+	justify-content: center;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	padding: 26px 14px;
+	color: var(--muted);
+	min-height: 170px;
+}
+.mg-open .sparkle {
+	font-size: 1.6rem;
+}
+
+/* ---- achievements + streak ---- */
+.dash-split {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+	gap: 20px;
+}
+@media (max-width: 700px) {
+	.dash-split {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+.ach-strip {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-top: 12px;
+}
+.ach {
+	border: 1px solid var(--chip-brd);
+	background: var(--chip);
+	border-radius: 99px;
+	padding: 6px 12px;
+	font-size: 0.8rem;
+}
+.ach.next {
+	border-style: dashed;
+	background: transparent;
+	color: var(--muted);
+}
+.streak-box {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+	margin-top: 12px;
+	text-align: left;
+}
+.streak-ring {
+	width: 84px;
+	height: 84px;
+	flex: none;
+}
+.ring-bg {
+	fill: none;
+	stroke: var(--panel-2);
+	stroke-width: 6;
+}
+.ring-fg {
+	fill: none;
+	stroke: var(--accent);
+	stroke-width: 6;
+	stroke-linecap: round;
+	transform: rotate(-90deg);
+	transform-origin: 50% 50%;
+}
+.ring-emoji {
+	font-size: 14px;
+	text-anchor: middle;
+}
+.ring-num {
+	font-family: var(--font-display);
+	font-size: 12px;
+	fill: var(--ink);
+	text-anchor: middle;
+}
+.streak-meta {
+	color: var(--muted);
+	font-size: 0.85rem;
+}
+.streak-meta b {
+	color: var(--ink);
+}
+
+/* ---- previous games (compact rows) ---- */
+.rg-row {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	width: 100%;
+	text-align: left;
+	background: var(--panel-2);
+	border: 1px solid var(--line);
+	border-radius: 12px;
+	padding: 9px 12px;
+	margin-top: 8px;
+	cursor: pointer;
+	color: var(--ink);
+	font: inherit;
+}
+.rg-row:hover {
+	border-color: var(--accent-2);
+}
+.rg-cover {
+	flex: none;
+	width: 40px;
+	height: 40px;
+	border-radius: 10px;
+}
+.rg-info {
+	flex: 1;
+	min-width: 0;
+	display: grid;
+}
+.rg-info b {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: 0.9rem;
+}
+.rg-sub {
+	color: var(--muted);
+	font-size: 0.75rem;
+}
+.rg-lines {
+	flex: none;
+	color: var(--muted);
+	font-size: 0.78rem;
+	font-family: var(--font-mono);
+}
+
+/* ---- right rail ---- */
+.quote-card {
+	font-family: var(--font-display);
+	font-size: 1.02rem;
+	line-height: 1.55;
+	text-align: left;
+}
+.quote-card .qmark {
+	color: var(--accent);
+	font-size: 1.8rem;
+	line-height: 1;
+	display: block;
+}
+.dash-rail .divider {
+	margin: 16px 0 12px;
+}

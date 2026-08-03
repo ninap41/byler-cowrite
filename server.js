@@ -5,6 +5,7 @@ import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync } from 
 import { randomUUID, randomBytes, scryptSync, timingSafeEqual } from "crypto";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
+import { bumpStreak } from "./lib/streak.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -100,6 +101,7 @@ const publicUser = (u) => ({
   games: u.games, wordCount: u.wordCount,
   currentBadge: badgeName(u.currentBadge), badges: u.badges.map(badgeName),
   nextBadge: BADGES.find((b) => u.wordCount < b.min) ?? null,
+  streak: u.streak || 0, bestStreak: u.bestStreak || 0, lastWroteDay: u.lastWroteDay ?? null,
 });
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -119,8 +121,58 @@ app.get("/api/dashboard", (req, res) => {
       hostName: g.writers.get(g.hostId)?.name ?? g.hostName ?? null,
       players: [...g.writers.values()].map((w) => ({ name: w.name, connected: w.connected !== false })),
     }));
-  res.json({ onlineUsers, liveGames });
+  res.json({ onlineUsers, liveGames, myGames: myGamesFor(u), recentGames: recentGamesFor(u), stats: publicUser(u) });
 });
+
+// "Games in progress" for MY dashboard: running sessions where my account
+// holds a seat, plus paused save snapshots not currently in memory.
+function myGamesFor(u) {
+  const out = new Map();
+  for (const s of sessions.values()) {
+    if (s.phase === "over") continue;
+    const mine = [...s.writers.values()].some((w) => w.userId === u.id);
+    if (!mine) continue;
+    const cur = s.phase === "writing" ? s.writers.get(s.turnOrder[s.currentIdx]) : null;
+    out.set(s.code, {
+      code: s.code, name: s.name || "", phase: s.phase, paused: !!s.paused,
+      myTurn: s.phase === "writing" && !s.paused && cur?.userId === u.id,
+      currentName: cur?.name ?? null,
+      players: [...s.writers.values()].map((w) => ({
+        name: w.name, color: cleanColor(w.color), connected: w.connected !== false,
+      })),
+      lines: s.story.length, savedAt: Date.now(), live: true,
+    });
+  }
+  for (const f of readdirSync(SAVE_DIR)) {
+    if (!f.endsWith(".json")) continue;
+    const code = f.slice(0, -5);
+    if (out.has(code) || sessions.has(code)) continue;
+    try {
+      const d = JSON.parse(readFileSync(join(SAVE_DIR, f), "utf-8"));
+      if (d.phase === "over" || !(d.writers || []).some((w) => w.userId === u.id)) continue;
+      out.set(code, {
+        code, name: d.name || "", phase: d.phase, paused: true, myTurn: false, currentName: null,
+        players: (d.writers || []).map((w) => ({ name: w.name, color: cleanColor(w.color), connected: false })),
+        lines: (d.story || []).length, savedAt: d.savedAt || 0, live: false,
+      });
+    } catch { /* skip unreadable snapshot */ }
+  }
+  return [...out.values()].sort((a, b) => b.savedAt - a.savedAt).slice(0, 8);
+}
+
+// Finished stories for the dashboard's compact "previous games" list.
+function recentGamesFor(u, cap = 5) {
+  const out = [];
+  for (const f of readdirSync(SAVE_DIR)) {
+    if (!f.endsWith(".json")) continue;
+    try {
+      const d = JSON.parse(readFileSync(join(SAVE_DIR, f), "utf-8"));
+      if (d.phase === "over" && inGame(d, u)) out.push(gameSummary(d));
+    } catch { /* skip unreadable snapshot */ }
+  }
+  out.sort((a, b) => b.savedAt - a.savedAt);
+  return out.slice(0, cap);
+}
 
 app.post("/api/signup", (req, res) => {
   const { email, username, password, color } = req.body || {};
@@ -441,6 +493,7 @@ function creditLine(s, writer, cleanHtml) {
   if (!u) return;
   const words = stripTags(cleanHtml).split(/\s+/).filter(Boolean).length;
   u.wordCount += words;
+  bumpStreak(u);
   if (!u.games.includes(s.code)) u.games.push(s.code);
   const before = u.currentBadge;
   awardBadges(u);

@@ -1,6 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { onlineUsersHtml, liveGameInfoHtml, statsText } from "../public/js/dashboard-view.js";
+import {
+  onlineUsersHtml, liveGameInfoHtml, statsText, badgeProgress, coverArt,
+  myGameStatus, myGameCardHtml, recentRowHtml, achievementsHtml, streakRingHtml,
+} from "../public/js/dashboard-view.js";
 import { gameCardHtml, archiveMetaText, archiveStoryHtml } from "../public/js/archive-view.js";
 
 // ---- dashboard ----
@@ -32,6 +35,56 @@ test("statsText: singulars, next-badge distance, ladder top", () => {
     "99 words written · 1 badge · 1 word to 🖊️ Scribbler",
   );
   assert.equal(statsText({ wordCount: 20000, badges: ["a", "b"], nextBadge: null }), "20000 words written · 2 badges");
+});
+
+test("badgeProgress: percent toward next tier, capped, topped-out ladder", () => {
+  assert.deepEqual(badgeProgress({ wordCount: 23, nextBadge: { min: 100, name: "🖊️ Scribbler" } }),
+    { pct: 23, label: "23% toward 🖊️ Scribbler" });
+  assert.equal(badgeProgress({ wordCount: 99, nextBadge: { min: 100, name: "x" } }).pct, 99);
+  assert.equal(badgeProgress({ wordCount: 50000, nextBadge: null }).pct, 100);
+});
+
+test("coverArt is deterministic per code and palette-bound", () => {
+  assert.equal(coverArt("AB12"), coverArt("AB12"));
+  assert.match(coverArt("AB12"), /^background:linear-gradient\(\d+deg, #[0-9a-f]{6}, #[0-9a-f]{6}\)$/);
+});
+
+test("myGameStatus covers every phase", () => {
+  assert.equal(myGameStatus({ phase: "waiting" }).text, "Gathering writers");
+  assert.equal(myGameStatus({ phase: "choosing" }).text, "Voting on a scenario");
+  assert.deepEqual(myGameStatus({ phase: "writing", myTurn: true }), { text: "● Your turn — write!", cls: "is-turn" });
+  assert.equal(myGameStatus({ phase: "writing", paused: true }).cls, "is-paused");
+  assert.equal(myGameStatus({ phase: "writing", currentName: "mike" }).text, "Waiting for mike");
+  assert.equal(myGameStatus({ phase: "writing" }).text, "In progress");
+});
+
+test("myGameCardHtml: escapes name, shows player dots with offline state", () => {
+  const out = myGameCardHtml({
+    code: "AB12", name: "<b>Tale</b>", phase: "writing", myTurn: true, paused: false,
+    players: [{ name: "will", color: "#6c8cff", connected: true }, { name: "mike", color: "bad", connected: false }],
+    lines: 3,
+  });
+  assert.ok(out.includes("&lt;b&gt;Tale&lt;/b&gt;"));
+  assert.ok(out.includes("is-turn"));
+  assert.ok(out.includes('mg-dot off'), "offline dot dimmed");
+  assert.ok(out.includes("2 writers · 3 lines"));
+});
+
+test("recentRowHtml + achievementsHtml + streakRingHtml", () => {
+  const row = recentRowHtml({ code: "AB12", name: "<Done>", prompt: "", lines: 1, writers: [{ name: "w" }] });
+  assert.ok(row.includes("&lt;Done&gt;"));
+  assert.ok(row.includes("1 line<"));
+
+  const ach = achievementsHtml({ badges: ["✏️ Inkling"], nextBadge: { name: "🖊️ Scribbler", min: 100 } });
+  assert.ok(ach.includes("✏️ Inkling"));
+  assert.ok(ach.includes("? 🖊️ Scribbler · 100 words"));
+  assert.match(achievementsHtml({ badges: [], nextBadge: null }), /first line/);
+
+  const ring = streakRingHtml(3, 7);
+  assert.ok(ring.includes('aria-label="3-day streak"'));
+  assert.ok(ring.includes("3d"));
+  const full = streakRingHtml(7, 7);
+  assert.ok(full.includes('stroke-dashoffset="0.0"'), "at best -> full ring");
 });
 
 // ---- archive ----
