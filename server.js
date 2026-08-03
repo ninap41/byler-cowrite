@@ -39,6 +39,11 @@ app.use(express.static(join(__dirname, "public")));
 app.use("/sounds", express.static(join(__dirname, "sounds")));
 app.use(express.json());
 
+// Clean page URLs for the multi-page app (auth is enforced client-side +
+// on every API/socket call — these are just static files).
+for (const page of ["dashboard", "game", "archive"])
+  app.get("/" + page, (_req, res) => res.sendFile(join(__dirname, "public", page + ".html")));
+
 // ---------------------------------------------------------------------------
 // User accounts — JSON file store (data/users.json), no database on purpose.
 // ~100 users; every mutation just rewrites the file.

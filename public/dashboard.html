@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en" data-theme="neon">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Byler Cowrite — Dashboard</title>
+		<link rel="icon" type="image/x-icon" href="./favicon.ico?v=2" />
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,900;1,9..144,400;1,9..144,600&family=Inconsolata:wght@400;600;700&family=Orbitron:wght@500;700;900&family=Space+Grotesk:wght@400;500;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+			rel="stylesheet"
+		/>
+		<link rel="stylesheet" href="/css/base.css" />
+	</head>
+	<body>
+		<div class="wrap">
+			<h1>Byler Cowrite</h1>
+			<p class="tag">A round-robin writing game. Write byler fan fiction together</p>
+
+			<div class="main">
+				<!-- PROFILE + DASHBOARD -->
+				<div class="card" id="dashCard">
+					<div class="me-row">
+						<span class="me-name" id="meName"></span>
+						<button class="ghost" id="meRename" title="Change username" style="margin-left: 0; padding: 5px 9px; font-size: 0.75rem">
+							&#9998;
+						</button>
+						<input id="meNameInput" class="hidden" maxlength="24" style="flex: 1 1 120px; width: auto; padding: 7px 10px" />
+						<span class="badge-chip" id="meBadge"></span>
+						<button class="ghost" id="logoutBtn">Log out</button>
+					</div>
+					<div class="err" id="meErr"></div>
+					<p class="subtle" id="meStats" style="text-align: left; margin: 8px 0 0"></p>
+					<h3 class="dash-h">Online now</h3>
+					<div class="me-games" id="dashOnline"></div>
+					<h3 class="dash-h">Games in progress</h3>
+					<div id="dashLive"></div>
+					<h3 class="dash-h">Previous games</h3>
+					<div class="me-games" id="meGames"></div>
+					<p class="subtle" style="text-align: left; margin-top: 10px">
+						<a href="/archive" class="linky">See all previous games →</a>
+					</p>
+				</div>
+
+				<!-- QUICK START -->
+				<div class="card" id="quickStart">
+					<label>Your color</label>
+					<div class="swatches" id="swatches"></div>
+					<div class="row"><button class="primary" id="createBtn">Start a game</button></div>
+					<div class="divider">— or join one —</div>
+					<label for="code">Game code</label>
+					<input id="code" class="code" placeholder="XXXX" maxlength="4" />
+					<div class="row"><button class="ghost" id="joinBtn">Join game</button></div>
+					<div class="err" id="lobbyErr"></div>
+				</div>
+			</div>
+			<!-- /main -->
+		</div>
+
+		<script src="/socket.io/socket.io.js"></script>
+		<script type="module">
+			import { api, setToken, getToken } from "/js/api.js"
+			import { mountChrome, setUserChip } from "/js/chrome.js"
+			import { requireAuth } from "/js/auth-guard.js"
+			import { PALETTE, safeColor, esc } from "/js/util.js"
+			import { onlineUsersHtml, liveGameInfoHtml, statsText } from "/js/dashboard-view.js"
+
+			mountChrome({ page: "dashboard" })
+			const $ = (id) => document.getElementById(id)
+			let me = await requireAuth("/")
+
+			// Presence: a bare socket that identifies this account as online.
+			const socket = io()
+			socket.on("connect", () => socket.emit("identify", { auth: getToken() }))
+
+			function renderMe() {
+				if (!me) return
+				setUserChip(me)
+				$("meName").textContent = me.username
+				$("meName").style.color = safeColor(me.color)
+				$("meBadge").textContent = me.currentBadge || "no badge yet"
+				$("meStats").textContent = statsText(me)
+				const gamesBox = $("meGames")
+				gamesBox.innerHTML = ""
+				;(me.games || []).forEach((code) => {
+					const b = document.createElement("button")
+					b.className = "ghost"
+					b.textContent = "📖 " + code
+					b.onclick = () => (location.href = "/archive?code=" + encodeURIComponent(code))
+					gamesBox.appendChild(b)
+				})
+				document.querySelectorAll(".swatch").forEach((x) => x.classList.toggle("sel", x.dataset.color === safeColor(me.color)))
+			}
+
+			// ---- Color picker (saves straight to the account) ----
+			const sw = $("swatches")
+			PALETTE.forEach((c) => {
+				const d = document.createElement("div")
+				d.className = "swatch"
+				d.style.background = c
+				d.dataset.color = c
+				d.onclick = () =>
+					api("/api/account/color", { color: c })
+						.then((d2) => {
+							me = d2.user
+							renderMe()
+						})
+						.catch(() => {})
+				sw.appendChild(d)
+			})
+
+			// ---- Inline username change ----
+			$("meRename").onclick = () => {
+				$("meErr").textContent = ""
+				$("meName").classList.add("hidden")
+				$("meRename").classList.add("hidden")
+				const inp = $("meNameInput")
+				inp.value = me?.username || ""
+				inp.classList.remove("hidden")
+				inp.focus()
+				inp.select()
+			}
+			function closeRename() {
+				$("meNameInput").classList.add("hidden")
+				$("meName").classList.remove("hidden")
+				$("meRename").classList.remove("hidden")
+			}
+			async function saveRename() {
+				const inp = $("meNameInput")
+				if (inp.classList.contains("hidden")) return
+				const v = inp.value.trim()
+				if (!v || v === me?.username) return closeRename()
+				try {
+					const d = await api("/api/account/username", { username: v })
+					closeRename()
+					me = d.user
+					renderMe()
+				} catch (e) {
+					$("meErr").textContent = e.message
+					inp.focus()
+				}
+			}
+			$("meNameInput").addEventListener("keydown", (e) => {
+				if (e.key === "Enter") {
+					e.preventDefault()
+					saveRename()
+				} else if (e.key === "Escape") closeRename()
+			})
+			$("meNameInput").addEventListener("blur", saveRename)
+
+			$("logoutBtn").onclick = async () => {
+				try {
+					await api("/api/logout")
+				} catch (e) {}
+				setToken(null)
+				location.href = "/"
+			}
+
+			// ---- Quick start ----
+			$("createBtn").onclick = () => (location.href = "/game?new=1")
+			$("joinBtn").onclick = () => {
+				const code = $("code").value.trim().toUpperCase()
+				if (code.length !== 4) return ($("lobbyErr").textContent = "Enter a 4-letter code.")
+				location.href = "/game?code=" + encodeURIComponent(code)
+			}
+			$("code").addEventListener("keydown", (e) => {
+				if (e.key === "Enter") {
+					e.preventDefault()
+					$("joinBtn").click()
+				}
+			})
+
+			// ---- Online users + live games (poll every 10s) ----
+			async function loadDashboard() {
+				if (!me) return
+				let d
+				try {
+					d = await api("/api/dashboard", null, "GET")
+				} catch (e) {
+					return
+				}
+				$("dashOnline").innerHTML = onlineUsersHtml(d.onlineUsers)
+				const box = $("dashLive")
+				if (!d.liveGames.length) {
+					box.innerHTML = '<p class="subtle" style="text-align:left;margin:0">No games running right now.</p>'
+				} else {
+					box.innerHTML = ""
+					d.liveGames.forEach((g) => {
+						const row = document.createElement("div")
+						row.className = "live-game"
+						row.innerHTML = liveGameInfoHtml(g)
+						const btn = document.createElement("button")
+						btn.className = "ghost"
+						btn.textContent = "Join"
+						btn.onclick = () => (location.href = "/game?code=" + encodeURIComponent(g.code))
+						row.appendChild(btn)
+						box.appendChild(row)
+					})
+				}
+			}
+			renderMe()
+			loadDashboard()
+			setInterval(loadDashboard, 10_000)
+		</script>
+		<!-- GSAP entrance (additive) -->
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+		<script type="module">
+			;(function () {
+				var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches
+				if (typeof gsap === "undefined" || reduce) return
+				gsap.fromTo("h1", { opacity: 0, y: -10 }, { opacity: 1, y: 0, duration: 0.7, ease: "power3.out" })
+				gsap.fromTo(
+					".card",
+					{ y: 24, opacity: 0 },
+					{ y: 0, opacity: 1, duration: 0.6, stagger: 0.12, ease: "power2.out", clearProps: "transform" },
+				)
+			})()
+		</script>
+	</body>
+</html>

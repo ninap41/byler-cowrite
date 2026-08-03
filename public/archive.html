@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en" data-theme="neon">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Byler Cowrite — Previous Games</title>
+		<link rel="icon" type="image/x-icon" href="./favicon.ico?v=2" />
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,900;1,9..144,400;1,9..144,600&family=Inconsolata:wght@400;600;700&family=Orbitron:wght@500;700;900&family=Space+Grotesk:wght@400;500;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+			rel="stylesheet"
+		/>
+		<link rel="stylesheet" href="/css/base.css" />
+	</head>
+	<body>
+		<div class="wrap">
+			<div class="archive-inner">
+				<div class="archive-head">
+					<a class="ghost" href="/dashboard" id="archiveBack" style="text-decoration: none; padding: 10px 16px; border-radius: 12px">← Back</a>
+					<h2>Previous Games</h2>
+				</div>
+				<div id="archiveList"></div>
+				<div id="archiveDetail" class="hidden">
+					<div class="prompt-banner" id="archPrompt"></div>
+					<p class="gc-meta" id="archMeta" style="margin: 10px 0 0; align-items: center"></p>
+					<div class="story" id="archStory" style="max-height: none"></div>
+					<div class="row"><button class="primary" id="archContinue">Continue this story →</button></div>
+					<p class="subtle" style="text-align: left; margin-top: 12px">
+						<a href="#" class="linky" id="archListLink">← All previous games</a>
+					</p>
+				</div>
+			</div>
+		</div>
+
+		<script type="module">
+			import { api } from "/js/api.js"
+			import { mountChrome, setUserChip } from "/js/chrome.js"
+			import { requireAuth } from "/js/auth-guard.js"
+			import { gameCardHtml, archiveMetaText, archiveStoryHtml } from "/js/archive-view.js"
+
+			mountChrome({ page: "archive" })
+			const me = await requireAuth("/")
+			setUserChip(me)
+			const $ = (id) => document.getElementById(id)
+			const hasGsap =
+				typeof window.gsap !== "undefined" &&
+				!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches)
+
+			function showList() {
+				$("archiveDetail").classList.add("hidden")
+				$("archiveList").classList.remove("hidden")
+				history.replaceState(null, "", "/archive")
+			}
+
+			function renderGameCards(games) {
+				const list = $("archiveList")
+				if (!games.length) {
+					list.innerHTML =
+						'<p class="archive-empty">No saved games yet — finish (or pause) a game and it will show up here.</p>'
+					return
+				}
+				list.innerHTML = ""
+				games.forEach((g) => {
+					const b = document.createElement("div")
+					b.className = "game-card"
+					b.style.cursor = "pointer"
+					b.innerHTML = gameCardHtml(g)
+					const cont = document.createElement("button")
+					cont.className = "primary"
+					cont.textContent = "Continue →"
+					cont.style.cssText = "margin-top:10px;flex:none;min-width:0;padding:8px 14px;font-size:.85rem"
+					cont.onclick = (e) => {
+						e.stopPropagation()
+						location.href = "/game?code=" + encodeURIComponent(g.code)
+					}
+					b.appendChild(cont)
+					b.onclick = () => openGameDetail(g.code)
+					list.appendChild(b)
+					if (window.gsap && hasGsap)
+						gsap.from(b, { opacity: 0, y: 18, duration: 0.45, delay: 0.05 * list.children.length, ease: "power2.out" })
+				})
+			}
+
+			async function openGameDetail(code) {
+				let g
+				try {
+					g = await api("/api/games/" + encodeURIComponent(code), null, "GET")
+				} catch (e) {
+					return
+				}
+				$("archPrompt").textContent = g.prompt || "(no prompt)"
+				$("archMeta").textContent = archiveMetaText(g)
+				// story html was sanitized server-side by sanitizeRich() before being saved
+				$("archStory").innerHTML = archiveStoryHtml(g.story)
+				$("archContinue").onclick = () => (location.href = "/game?code=" + encodeURIComponent(g.code))
+				$("archiveList").classList.add("hidden")
+				const det = $("archiveDetail")
+				det.classList.remove("hidden")
+				history.replaceState(null, "", "/archive?code=" + encodeURIComponent(g.code))
+				if (window.gsap && hasGsap)
+					gsap.fromTo(det, { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.45, ease: "power2.out" })
+			}
+
+			$("archListLink").onclick = (e) => {
+				e.preventDefault()
+				showList()
+			}
+
+			if (me) {
+				$("archiveList").innerHTML = '<p class="archive-empty">Loading…</p>'
+				try {
+					const games = await api("/api/games", null, "GET")
+					renderGameCards(games)
+					const code = new URLSearchParams(location.search).get("code")
+					if (code) openGameDetail(code.toUpperCase())
+				} catch (e) {
+					$("archiveList").innerHTML = '<p class="archive-empty">Could not load saved games.</p>'
+				}
+			}
+		</script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+	</body>
+</html>
