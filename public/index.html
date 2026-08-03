@@ -282,8 +282,8 @@
 					gsap.set("#heroTag", { opacity: 0 })
 					gsap.set("#heroBtns", { opacity: 0, y: 16 })
 					// hard guarantee: whatever happens to the timeline, the finished
-					// frame lands within 7s (and instantly if the tab goes hidden)
-					setTimeout(heroFinish, 7000)
+					// frame lands within 9s (and instantly if the tab goes hidden)
+					setTimeout(heroFinish, 9000)
 					document.addEventListener("visibilitychange", function onVis() {
 						if (document.visibilityState === "hidden" && !heroEl.classList.contains("hidden")) heroFinish()
 					})
@@ -324,15 +324,46 @@
 								},
 							})
 						})
-						// the pen's work is done: it lifts and flies off the page
-						tl.to(logoQuill, { x: "+=70", y: "-=110", rotation: 14, scale: 1.1, opacity: 0, duration: 0.6, ease: "power2.in" }, "+=0.1")
+						// the spiral is inked; the pen signs the underline below next
+						tl.addLabel("inked")
 						// and the finished spiral keeps turning, slowly, forever
 						if (logoGlyph) gsap.to(logoGlyph, { rotation: 360, duration: 40, ease: "none", repeat: -1, svgOrigin: "110 100", delay: 1.4 })
 					}
-					tl.to("#heroWord1", { strokeDashoffset: 0, duration: 1.5, ease: "power1.inOut" }, logoEl ? 1.1 : "+=0")
-						.to("#heroWord2", { strokeDashoffset: 0, duration: 1.7, ease: "power1.inOut" }, "-=0.9")
-						.to(underline, { strokeDashoffset: 0, duration: 0.55, ease: "power2.out" }, "-=0.35")
-						.to(words, { fillOpacity: 1, strokeWidth: 1.6, duration: 0.9, ease: "power2.out" }, "-=0.25")
+					var quillDraws = !!(logoEl && logoQuill && logoCoil)
+					// A point along the underline (hero-svg coords) mapped into the logo
+					// svg's coords as a nib offset — via screen space, per frame, so the
+					// pen tracks the live layout across the two svgs.
+					function nibOnUnderline(t) {
+						var p = underline.getPointAtLength(uLen * t)
+						var rh = document.getElementById("heroSvg").getBoundingClientRect()
+						var rl = logoEl.querySelector("svg").getBoundingClientRect()
+						var sH = rh.width / 900, sL = rl.width / 220
+						return { x: (rh.left + p.x * sH - rl.left) / sL - NIB.x, y: (rh.top + p.y * sH - rl.top) / sL - NIB.y }
+					}
+					tl.to("#heroWord1", { strokeDashoffset: 0, duration: 1.5, ease: "power1.inOut" }, quillDraws ? 1.1 : "+=0")
+						.to("#heroWord2", { strokeDashoffset: 0, duration: 1.7, ease: "power1.inOut" }, quillDraws ? "inked-=1.2" : "-=0.9")
+					if (quillDraws) {
+						// the pen glides down the page while "Cowrite" finishes writing…
+						tl.call(function () {
+							var tgt = nibOnUnderline(0)
+							gsap.to(logoQuill, { x: tgt.x, y: tgt.y, rotation: -4, duration: 0.75, ease: "power2.inOut" })
+						}, null, "inked")
+						// …then draws the underline itself, nib on the line
+						var stU = { t: 0 }
+						tl.to(stU, {
+							t: 1,
+							duration: 0.55,
+							ease: "power2.out",
+							onUpdate: function () {
+								var q = nibOnUnderline(stU.t)
+								gsap.set(logoQuill, { x: q.x, y: q.y })
+								underline.style.strokeDashoffset = uLen * (1 - stU.t)
+							},
+						}, "inked+=0.8")
+						// the pen's work is done: it lifts and flies off the page
+						tl.to(logoQuill, { x: "+=70", y: "-=110", rotation: 14, scale: 1.1, opacity: 0, duration: 0.6, ease: "power2.in" }, "+=0.05")
+					} else tl.to(underline, { strokeDashoffset: 0, duration: 0.55, ease: "power2.out" }, "-=0.35")
+					tl.to(words, { fillOpacity: 1, strokeWidth: 1.6, duration: 0.9, ease: "power2.out" }, quillDraws ? "inked+=0.9" : "-=0.25")
 						.set("#heroTag", { opacity: 1 }, "-=0.4")
 						.to(
 							typer,
