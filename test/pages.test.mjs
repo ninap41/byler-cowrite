@@ -8,8 +8,17 @@ after(async () => ctx.stop());
 
 const page = async (path) => {
   const r = await fetch(ctx.url + path);
-  return { status: r.status, body: await r.text() };
+  return { status: r.status, body: await r.text(), headers: r.headers };
 };
+
+test("pages/modules/css are never cached (stale-module mixing breaks handlers)", async () => {
+  for (const path of ["/", "/dashboard", "/js/chrome.js", "/js/theme.js", "/css/base.css"]) {
+    const r = await page(path);
+    assert.equal(r.headers.get("cache-control"), "no-store", path + " uncacheable");
+  }
+  const snd = await fetch(ctx.url + "/sounds/incomingline.mp3");
+  assert.match(snd.headers.get("cache-control") || "", /max-age=6048/, "sounds may cache");
+});
 
 test("homepage serves the hero + auth card", async () => {
   const { status, body } = await page("/");

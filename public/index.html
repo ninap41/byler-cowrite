@@ -225,18 +225,40 @@
 				   swoosh underlines it. Without GSAP the title just sits complete. ----- */
 				var heroEl = document.getElementById("hero")
 				var HERO_DASH = 460 // longer than any glyph subpath, so every stroke draws fully
+				var tagSpanEl = document.getElementById("heroTagText")
+				var tagFullText = tagSpanEl.textContent
+				// The hero must NEVER be an invisible click-shield: if the write-in
+				// stalls (background tab, throttled rAF), force the finished frame so
+				// the Enter button is always reachable.
+				function heroFinish() {
+					var words = ["#heroWord1", "#heroWord2"]
+					gsap.killTweensOf([words, "#heroUnderline", "#heroTag", "#heroBtns"])
+					gsap.set(words, { fillOpacity: 1, strokeDashoffset: 0, strokeWidth: 1.6, strokeDasharray: HERO_DASH })
+					gsap.set("#heroUnderline", { strokeDashoffset: 0 })
+					gsap.set(["#heroTag", "#heroBtns"], { opacity: 1, y: 0, clearProps: "transform" })
+					tagSpanEl.textContent = tagFullText
+				}
 				function heroWriteIn() {
+					if (heroEl.classList.contains("hidden")) return
+					// loaded in a hidden tab: rAF is throttled, so skip straight to done
+					if (document.visibilityState === "hidden") return heroFinish()
 					var words = ["#heroWord1", "#heroWord2"]
 					var underline = document.getElementById("heroUnderline")
 					var uLen = underline.getTotalLength()
 					gsap.set(words, { fillOpacity: 0, strokeDasharray: HERO_DASH, strokeDashoffset: HERO_DASH, strokeWidth: 2.2 })
 					gsap.set(underline, { strokeDasharray: uLen, strokeDashoffset: uLen })
 					// tagline types itself out, character by character
-					var tagSpan = document.getElementById("heroTagText")
-					var tagFull = tagSpan.textContent
+					var tagSpan = tagSpanEl
+					var tagFull = tagFullText
 					tagSpan.textContent = ""
 					gsap.set("#heroTag", { opacity: 0 })
 					gsap.set("#heroBtns", { opacity: 0, y: 16 })
+					// hard guarantee: whatever happens to the timeline, the finished
+					// frame lands within 7s (and instantly if the tab goes hidden)
+					setTimeout(heroFinish, 7000)
+					document.addEventListener("visibilitychange", function onVis() {
+						if (document.visibilityState === "hidden" && !heroEl.classList.contains("hidden")) heroFinish()
+					})
 					var typer = { n: 0 }
 					var tl = gsap.timeline({ delay: 0.2 })
 					tl.to("#heroWord1", { strokeDashoffset: 0, duration: 1.5, ease: "power1.inOut" })

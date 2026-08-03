@@ -357,6 +357,14 @@
 				// skip the entrance in hidden tabs: rAF is throttled there, which
 				// would freeze the stagger and leave cards invisible until focus
 				if (typeof gsap === "undefined" || reduce || document.visibilityState === "hidden") return
+				// recover from a stagger frozen by a background tab: on refocus,
+				// force any still-hidden card to its final state
+				document.addEventListener("visibilitychange", function () {
+					if (document.visibilityState === "visible")
+						setTimeout(function () {
+							gsap.set(".card", { clearProps: "opacity,transform" })
+						}, 900)
+				})
 				gsap.fromTo("h1", { opacity: 0, y: -10 }, { opacity: 1, y: 0, duration: 0.7, ease: "power3.out" })
 				gsap.fromTo(
 					".card",

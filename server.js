@@ -18,8 +18,15 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer);
+// Pages, ES modules, and CSS must never be served stale: a cached old module
+// mixed with a new one breaks the whole import graph (buttons render but no
+// handler attaches). Sounds are immutable-ish and may cache.
+app.use((req, res, next) => {
+  if (!req.path.startsWith("/sounds/")) res.set("Cache-Control", "no-store");
+  next();
+});
 app.use(express.static(join(__dirname, "public")));
-app.use("/sounds", express.static(join(__dirname, "sounds")));
+app.use("/sounds", express.static(join(__dirname, "sounds"), { maxAge: "7d" }));
 app.use(express.json());
 
 // Clean page URLs for the multi-page app (auth is enforced client-side +
