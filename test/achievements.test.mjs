@@ -42,6 +42,9 @@ test("ladder: tiers award at thresholds, currentBadge is the highest", () => {
   u.wordCount = 100000;
   awardWordBadges(u);
   assert.equal(badgeName(u.currentBadge), '💛 A Best "Friend"');
+  u.wordCount = 150000;
+  awardWordBadges(u);
+  assert.equal(badgeName(u.currentBadge), "🌀 Crazy Together");
   assert.equal(u.badges.length, WORD_TIERS.length, "every tier collected on the way");
   assert.equal(nextTierFor(u), null, "ladder topped out");
 });
