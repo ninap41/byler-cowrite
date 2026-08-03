@@ -3108,6 +3108,38 @@ button.danger,
 	filter: blur(1px);
 	box-shadow: 0 0 26px 6px rgba(255, 64, 64, 0.35);
 }
+/* orange lightning: a jagged bolt strikes from the top every 7 seconds */
+.bg-set.void .bolt {
+	position: absolute;
+	top: 0;
+	left: 58%;
+	width: 90px;
+	height: 48vh;
+	clip-path: polygon(
+		46% 0%, 58% 0%, 40% 22%, 62% 24%, 34% 46%, 58% 48%, 28% 72%, 50% 73%, 22% 100%, 30% 100%,
+		56% 76%, 36% 74%, 66% 50%, 44% 48%, 70% 26%, 48% 24%
+	);
+	background: linear-gradient(rgba(255, 220, 150, 0.95), rgba(255, 150, 60, 0.9) 55%, rgba(255, 100, 45, 0.8));
+	filter: drop-shadow(0 0 18px rgba(255, 150, 60, 0.8));
+	opacity: 0;
+}
+.bg-set.void .bolt2 {
+	left: 16%;
+	height: 38vh;
+	transform: scaleX(-0.8);
+}
+@media (prefers-reduced-motion: no-preference) {
+	.bg-set.void .bolt { animation: void-strike 7s linear infinite; }
+	.bg-set.void .bolt2 { animation-delay: -3.2s; }
+}
+@keyframes void-strike {
+	0%, 88% { opacity: 0; }
+	89% { opacity: 1; }
+	91% { opacity: 0.15; }
+	93% { opacity: 0.9; }
+	96%, 100% { opacity: 0; }
+}
+
 /* the upper half of the horizon: a radial orange burst domed over the line */
 .bg-set.void .glare {
 	position: absolute;
