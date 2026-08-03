@@ -192,7 +192,7 @@ percent), server tests for `myGames`/`recentGames` privacy (only MY seats),
   still works over the real server — this already exists and is the safety
   net for the whole phase.
 
-## Phase 4 — new pages: profile & settings (new server surface, TDD)
+## Phase 4 — new pages: profile & settings — **DONE** (email/password endpoints TDD-first; profile at /profile, settings at /settings)
 
 Server first, tests first:
 - `GET /api/users/:username` (public profile: username, color, badges,
@@ -208,7 +208,7 @@ Then the pages: `profile.html` (badge case, next-badge progress, game list
 linking into archive) and `settings.html` (forms over the new endpoints),
 each with a jsdom render test from fixture payloads.
 
-## Phase 4.5 — achievements system (two achievement types)
+## Phase 4.5 — achievements system — **DONE** (lib/achievements.js; the new ladder REPLACES the legacy one per the decision below; startup migration drops old ids)
 
 Rework the badge system from a single word-count ladder into a config-driven
 **achievements module** (`src/achievements.js` once Phase 5 lands; until then a

@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en" data-theme="neon">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Byler Cowrite — Settings</title>
+		<link rel="icon" type="image/x-icon" href="./favicon.ico?v=2" />
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,900;1,9..144,400;1,9..144,600&family=Inconsolata:wght@400;600;700&family=Orbitron:wght@500;700;900&family=Space+Grotesk:wght@400;500;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+			rel="stylesheet"
+		/>
+		<link rel="stylesheet" href="/css/base.css" />
+		<link rel="stylesheet" href="/css/dashboard.css" />
+	</head>
+	<body>
+		<div class="wrap">
+			<h1>Byler Cowrite</h1>
+			<p class="tag">A round-robin writing game. Write byler fan fiction together</p>
+
+			<div class="main" style="max-width: 640px">
+				<div class="card">
+					<h3 class="dash-h" style="margin-top: 0">Settings</h3>
+
+					<div class="settings-section">
+						<label for="setUsername">Username</label>
+						<input id="setUsername" maxlength="24" autocomplete="username" />
+						<div class="row"><button class="ghost" id="saveUsername">Save username</button></div>
+					</div>
+
+					<div class="settings-section">
+						<label>Your color</label>
+						<div class="swatches" id="swatches"></div>
+					</div>
+
+					<div class="settings-section">
+						<label for="setEmail">Email</label>
+						<input id="setEmail" type="email" autocomplete="email" />
+						<label for="emailPass">Confirm with your password</label>
+						<input id="emailPass" type="password" autocomplete="current-password" />
+						<div class="row"><button class="ghost" id="saveEmail">Save email</button></div>
+					</div>
+
+					<div class="settings-section">
+						<label for="oldPass">Current password</label>
+						<input id="oldPass" type="password" autocomplete="current-password" />
+						<label for="newPass">New password (min 4 characters)</label>
+						<input id="newPass" type="password" autocomplete="new-password" />
+						<div class="row"><button class="ghost" id="savePass">Change password</button></div>
+						<p class="subtle" style="text-align: left; margin: 8px 0 0; font-size: 0.78rem">
+							Changing your password signs you out everywhere else.
+						</p>
+					</div>
+
+					<div class="err" id="setErr"></div>
+					<p class="ok-msg" id="setOk"></p>
+
+					<div class="settings-section">
+						<div class="row"><button class="ghost" id="logoutBtn">Log out</button></div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<script type="module">
+			import { api, setToken } from "/js/api.js"
+			import { mountChrome, setUserChip } from "/js/chrome.js"
+			import { requireAuth } from "/js/auth-guard.js"
+			import { PALETTE, safeColor } from "/js/util.js"
+
+			mountChrome({ page: "settings" })
+			const $ = (id) => document.getElementById(id)
+			let me = await requireAuth("/")
+
+			const say = (ok, msg) => {
+				$("setErr").textContent = ok ? "" : msg
+				$("setOk").textContent = ok ? msg : ""
+			}
+			function fill() {
+				if (!me) return
+				setUserChip(me)
+				$("setUsername").value = me.username
+				$("setEmail").value = me.email
+				document.querySelectorAll(".swatch").forEach((x) => x.classList.toggle("sel", x.dataset.color === safeColor(me.color)))
+			}
+
+			const sw = $("swatches")
+			PALETTE.forEach((c) => {
+				const d = document.createElement("div")
+				d.className = "swatch"
+				d.style.background = c
+				d.dataset.color = c
+				d.onclick = () =>
+					api("/api/account/color", { color: c })
+						.then((r) => {
+							me = { ...me, ...r.user }
+							fill()
+							say(true, "Color saved.")
+						})
+						.catch((e) => say(false, e.message))
+				sw.appendChild(d)
+			})
+
+			$("saveUsername").onclick = async () => {
+				try {
+					const r = await api("/api/account/username", { username: $("setUsername").value.trim() })
+					me = { ...me, ...r.user }
+					fill()
+					say(true, "Username saved.")
+				} catch (e) {
+					say(false, e.message)
+				}
+			}
+			$("saveEmail").onclick = async () => {
+				try {
+					const r = await api("/api/account/email", { email: $("setEmail").value.trim(), password: $("emailPass").value })
+					me = { ...me, ...r.user }
+					$("emailPass").value = ""
+					fill()
+					say(true, "Email saved.")
+				} catch (e) {
+					say(false, e.message)
+				}
+			}
+			$("savePass").onclick = async () => {
+				try {
+					await api("/api/account/password", { oldPassword: $("oldPass").value, newPassword: $("newPass").value })
+					$("oldPass").value = $("newPass").value = ""
+					say(true, "Password changed — other devices were signed out.")
+				} catch (e) {
+					say(false, e.message)
+				}
+			}
+			$("logoutBtn").onclick = async () => {
+				try {
+					await api("/api/logout")
+				} catch (e) {}
+				setToken(null)
+				location.href = "/"
+			}
+			fill()
+		</script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+		<script type="module">
+			;(function () {
+				var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches
+				if (typeof gsap === "undefined" || reduce || document.visibilityState === "hidden") return
+				gsap.fromTo("h1", { opacity: 0, y: -10 }, { opacity: 1, y: 0, duration: 0.7, ease: "power3.out" })
+				gsap.fromTo(".card", { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.55, ease: "power2.out", clearProps: "transform,opacity" })
+			})()
+		</script>
+	</body>
+</html>

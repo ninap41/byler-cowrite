@@ -334,6 +334,80 @@
 	font-family: var(--font-mono);
 }
 
+/* ---- profile: word ladder + settings forms (shares this sheet) ---- */
+.tier {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 10px 12px;
+	border: 1px solid var(--line);
+	border-radius: 12px;
+	background: var(--panel-2);
+	margin-top: 8px;
+	opacity: 0.55;
+	text-align: left;
+}
+.tier.earned {
+	opacity: 1;
+}
+.tier.current {
+	border-color: var(--accent-2);
+	box-shadow: 0 0 0 1px var(--accent-2) inset;
+	opacity: 1;
+}
+.tier-name {
+	flex: 1;
+	min-width: 0;
+	font-weight: 600;
+	font-size: 0.92rem;
+}
+.tier-min {
+	color: var(--muted);
+	font-size: 0.75rem;
+	font-family: var(--font-mono);
+	flex: none;
+}
+.tier-bar {
+	flex: 0 0 90px;
+	height: 7px;
+	border-radius: 99px;
+	background: var(--panel);
+	border: 1px solid var(--line);
+	overflow: hidden;
+}
+.tier-bar i {
+	display: block;
+	height: 100%;
+	background: var(--grad-1);
+	border-radius: 99px;
+}
+.tier-pct,
+.tier-state {
+	flex: none;
+	color: var(--muted);
+	font-size: 0.72rem;
+	font-family: var(--font-mono);
+	letter-spacing: 1px;
+	text-transform: uppercase;
+}
+.settings-section {
+	border-top: 1px solid var(--line);
+	margin-top: 18px;
+	padding-top: 14px;
+	text-align: left;
+}
+.settings-section:first-of-type {
+	border-top: 0;
+	margin-top: 4px;
+	padding-top: 0;
+}
+.ok-msg {
+	color: var(--good);
+	font-size: 0.85rem;
+	margin-top: 8px;
+	text-align: left;
+}
+
 /* ---- right rail ---- */
 .quote-card {
 	font-family: var(--font-display);

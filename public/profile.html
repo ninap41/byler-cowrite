@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en" data-theme="neon">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Byler Cowrite — Profile</title>
+		<link rel="icon" type="image/x-icon" href="./favicon.ico?v=2" />
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,900;1,9..144,400;1,9..144,600&family=Inconsolata:wght@400;600;700&family=Orbitron:wght@500;700;900&family=Space+Grotesk:wght@400;500;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+			rel="stylesheet"
+		/>
+		<link rel="stylesheet" href="/css/base.css" />
+		<link rel="stylesheet" href="/css/dashboard.css" />
+	</head>
+	<body>
+		<div class="wrap">
+			<h1>Byler Cowrite</h1>
+			<p class="tag">A round-robin writing game. Write byler fan fiction together</p>
+
+			<div class="dash-wrap">
+				<div class="dash-col">
+					<!-- identity -->
+					<div class="card">
+						<div class="welcome">
+							<div class="avatar" id="avatar">?</div>
+							<div class="welcome-info">
+								<div class="me-row">
+									<span class="me-name" id="meName"></span>
+									<span class="badge-chip" id="meBadge"></span>
+								</div>
+								<p class="welcome-sub" id="profileSub"></p>
+							</div>
+						</div>
+						<div class="stat-row">
+							<div class="stat"><b id="statWords">0</b><span>words written</span></div>
+							<div class="stat"><b id="statBadges">0</b><span>badges earned</span></div>
+							<div class="stat"><b id="statStories">0</b><span>stories written in</span></div>
+						</div>
+					</div>
+
+					<!-- word ladder -->
+					<div class="card">
+						<h3 class="dash-h" style="margin-top: 0">Word-count ranks</h3>
+						<p class="subtle" style="text-align: left; margin: 4px 0 0">Every word you commit to a story climbs this ladder.</p>
+						<div id="ladder"></div>
+					</div>
+				</div>
+
+				<div class="dash-rail">
+					<!-- usage badges -->
+					<div class="card">
+						<h3 class="dash-h" style="margin-top: 0">Secret badges</h3>
+						<p class="subtle" style="text-align: left; margin: 4px 0 0">Earned by writing… the right thing. No hints.</p>
+						<div class="ach-strip" id="usageCase"></div>
+					</div>
+
+					<!-- streak -->
+					<div class="card">
+						<h3 class="dash-h" style="margin-top: 0">Writing streak</h3>
+						<div class="streak-box" id="streakBox"></div>
+					</div>
+
+					<div class="card quote-card">
+						<span class="qmark">“</span>
+						Keep writing, keep earning. ✒
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<script type="module">
+			import { api } from "/js/api.js"
+			import { mountChrome, setUserChip } from "/js/chrome.js"
+			import { requireAuth } from "/js/auth-guard.js"
+			import { safeColor } from "/js/util.js"
+			import { streakRingHtml } from "/js/dashboard-view.js"
+			import { ladderHtml, usageCaseHtml } from "/js/profile-view.js"
+
+			mountChrome({ page: "profile" })
+			const $ = (id) => document.getElementById(id)
+			const me = await requireAuth("/")
+			if (me) {
+				setUserChip(me)
+				const meta = await api("/api/achievements", null, "GET")
+				$("meName").textContent = me.username
+				$("meName").style.color = safeColor(me.color)
+				$("meBadge").textContent = me.currentBadge || "no badge yet"
+				$("avatar").textContent = me.username.charAt(0).toUpperCase()
+				$("avatar").style.background = safeColor(me.color)
+				$("profileSub").textContent = me.nextBadge
+					? `${(me.nextBadge.min - me.wordCount).toLocaleString()} words to ${me.nextBadge.name}`
+					: "Top of the ladder — a true legend."
+				$("statWords").textContent = me.wordCount.toLocaleString()
+				$("statBadges").textContent = me.badges.length
+				$("statStories").textContent = (me.games || []).length
+				$("ladder").innerHTML = ladderHtml(meta.wordTiers, me)
+				$("usageCase").innerHTML = usageCaseHtml(me.usageBadges, meta.usageCount)
+				$("streakBox").innerHTML =
+					streakRingHtml(me.streak, Math.max(me.bestStreak, 1)) +
+					`<div class="streak-meta"><b>${me.streak} day${me.streak === 1 ? "" : "s"}</b> current streak<br>Best: ${me.bestStreak} day${me.bestStreak === 1 ? "" : "s"}</div>`
+			}
+		</script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+		<script type="module">
+			;(function () {
+				var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches
+				if (typeof gsap === "undefined" || reduce || document.visibilityState === "hidden") return
+				gsap.fromTo("h1", { opacity: 0, y: -10 }, { opacity: 1, y: 0, duration: 0.7, ease: "power3.out" })
+				gsap.fromTo(
+					".card",
+					{ y: 20, opacity: 0 },
+					{ y: 0, opacity: 1, duration: 0.55, stagger: 0.08, ease: "power2.out", clearProps: "transform,opacity" },
+				)
+			})()
+		</script>
+	</body>
+</html>

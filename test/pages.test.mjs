@@ -30,4 +30,10 @@ test("clean URLs serve each page", async () => {
   const arch = await page("/archive");
   assert.equal(arch.status, 200);
   assert.ok(arch.body.includes('id="archiveList"'));
+  const prof = await page("/profile");
+  assert.equal(prof.status, 200);
+  assert.ok(prof.body.includes('id="ladder"') && prof.body.includes('id="usageCase"'));
+  const set = await page("/settings");
+  assert.equal(set.status, 200);
+  assert.ok(set.body.includes('id="savePass"'));
 });

@@ -52,7 +52,8 @@ test("full round: vote -> lines -> game over; badge + word credit; sanitize", as
 
   const me = await ctx.api("/api/me", null, host.token, "GET");
   assert.ok(me.data.user.wordCount >= 5, "host words credited");
-  assert.equal(me.data.user.currentBadge, "✏️ Inkling");
+  assert.equal(me.data.user.currentBadge, null, "word ladder starts at 5000 words");
+  assert.ok(me.data.user.nextBadge && me.data.user.nextBadge.min === 5000);
   assert.ok(me.data.user.games.includes(code));
 });
 

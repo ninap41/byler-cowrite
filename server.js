@@ -6,6 +6,10 @@ import { randomUUID, randomBytes, scryptSync, timingSafeEqual } from "crypto";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import { bumpStreak } from "./lib/streak.js";
+import {
+  WORD_TIERS, USAGE, badgeName, isUsageId, usageMatches,
+  awardWordBadges, nextTierFor, migrateBadges,
+} from "./lib/achievements.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -42,7 +46,7 @@ app.use(express.json());
 
 // Clean page URLs for the multi-page app (auth is enforced client-side +
 // on every API/socket call — these are just static files).
-for (const page of ["dashboard", "game", "archive"])
+for (const page of ["dashboard", "game", "archive", "profile", "settings"])
   app.get("/" + page, (_req, res) => res.sendFile(join(__dirname, "public", page + ".html")));
 
 // ---------------------------------------------------------------------------
@@ -75,20 +79,12 @@ const checkPassword = (pw, stored) => {
   return a.length === b.length && timingSafeEqual(a, b);
 };
 
-// Achievement badges, earned by total words written while signed in.
-// currentBadge is always the highest earned tier.
-const BADGES = [
-  { id: "inkling", name: "✏️ Inkling", min: 1 },
-  { id: "scribbler", name: "🖊️ Scribbler", min: 100 },
-  { id: "wordsmith", name: "📜 Wordsmith", min: 500 },
-  { id: "storyteller", name: "📖 Storyteller", min: 1000 },
-  { id: "novelist", name: "📚 Novelist", min: 5000 },
-  { id: "legend", name: "🏆 Living Legend", min: 10000 },
-];
-const badgeName = (id) => BADGES.find((b) => b.id === id)?.name ?? null;
-function awardBadges(u) {
-  for (const b of BADGES) if (u.wordCount >= b.min && !u.badges.includes(b.id)) u.badges.push(b.id);
-  u.currentBadge = [...BADGES].reverse().find((b) => u.badges.includes(b.id))?.id ?? null;
+// Achievements live in lib/achievements.js (word-count ladder + word-usage
+// collectibles). One-time migration off the legacy Inkling→Legend ladder:
+{
+  let changed = false;
+  for (const u of store.users) if (migrateBadges(u)) changed = true;
+  if (changed) saveStore();
 }
 
 const findByEmail = (e) => store.users.find((u) => u.email === String(e || "").toLowerCase().trim());
@@ -100,7 +96,9 @@ const publicUser = (u) => ({
   id: u.id, email: u.email, username: u.username, color: u.color,
   games: u.games, wordCount: u.wordCount,
   currentBadge: badgeName(u.currentBadge), badges: u.badges.map(badgeName),
-  nextBadge: BADGES.find((b) => u.wordCount < b.min) ?? null,
+  wordBadges: u.badges.filter((id) => !isUsageId(id)).map(badgeName),
+  usageBadges: u.badges.filter(isUsageId).map(badgeName),
+  nextBadge: nextTierFor(u),
   streak: u.streak || 0, bestStreak: u.bestStreak || 0, lastWroteDay: u.lastWroteDay ?? null,
 });
 
@@ -253,6 +251,46 @@ app.post("/api/account/color", (req, res) => {
   const u = authedUser(req);
   if (!u) return res.status(401).json({ error: "Not signed in." });
   u.color = cleanColor(req.body?.color);
+  saveStore();
+  res.json({ user: publicUser(u) });
+});
+
+// Public achievement metadata for the profile page: the full word ladder,
+// but only a COUNT of usage badges — their triggers stay a surprise.
+app.get("/api/achievements", (_req, res) => {
+  res.json({
+    wordTiers: WORD_TIERS.map((t) => ({ name: t.name, min: t.min })),
+    usageCount: USAGE.length,
+  });
+});
+
+// Change the account email (password-confirmed; same rules as signup).
+app.post("/api/account/email", (req, res) => {
+  const u = authedUser(req);
+  if (!u) return res.status(401).json({ error: "Not signed in." });
+  if (!checkPassword(String(req.body?.password || ""), u.passHash))
+    return res.status(401).json({ error: "Wrong password." });
+  const em = String(req.body?.email || "").toLowerCase().trim();
+  if (!EMAIL_RE.test(em)) return res.status(400).json({ error: "Enter a valid email." });
+  const taken = findByEmail(em);
+  if (taken && taken.id !== u.id) return res.status(400).json({ error: "That email already has an account." });
+  u.email = em;
+  saveStore();
+  res.json({ user: publicUser(u) });
+});
+
+// Change the password (old password confirmed; other sessions signed out).
+app.post("/api/account/password", (req, res) => {
+  const t = (req.headers.authorization || "").replace(/^Bearer\s+/i, "");
+  const u = userByToken(t);
+  if (!u) return res.status(401).json({ error: "Not signed in." });
+  if (!checkPassword(String(req.body?.oldPassword || ""), u.passHash))
+    return res.status(401).json({ error: "Wrong password." });
+  const pw = String(req.body?.newPassword || "");
+  if (pw.length < 4) return res.status(400).json({ error: "Password must be at least 4 characters." });
+  u.passHash = hashPassword(pw);
+  for (const [tok, id] of Object.entries(store.sessions))
+    if (id === u.id && tok !== t) delete store.sessions[tok]; // keep only this session
   saveStore();
   res.json({ user: publicUser(u) });
 });
@@ -491,12 +529,20 @@ function creditLine(s, writer, cleanHtml) {
   if (!writer?.userId) return;
   const u = store.users.find((x) => x.id === writer.userId);
   if (!u) return;
-  const words = stripTags(cleanHtml).split(/\s+/).filter(Boolean).length;
+  const text = stripTags(cleanHtml);
+  const words = text.split(/\s+/).filter(Boolean).length;
   u.wordCount += words;
   bumpStreak(u);
   if (!u.games.includes(s.code)) u.games.push(s.code);
   const before = u.currentBadge;
-  awardBadges(u);
+  awardWordBadges(u);
+  // word-usage collectibles: awarded once, the first line that says the word
+  for (const id of usageMatches(text)) {
+    if (!u.badges.includes(id)) {
+      u.badges.push(id);
+      announce(s, writer, `earned the ${badgeName(id)} badge!`);
+    }
+  }
   saveStore();
   writer.badge = badgeName(u.currentBadge);
   if (u.currentBadge !== before) announce(s, writer, `earned the ${writer.badge} badge!`);
