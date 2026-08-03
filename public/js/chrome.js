@@ -56,7 +56,8 @@ const BG = `
 			<div class="clockface"></div><div class="cvines"></div><div class="embers drift"></div>
 		</div>
 		<div class="bg-set void">
-			<div class="ripple"></div><div class="vspot drift"></div>
+			<div class="stars"></div><div class="stars st2"></div>
+			<div class="horizon"></div><div class="rocks"></div>
 		</div>
 		<div class="bg-set video">
 			<div class="vscan"></div><div class="track"></div><div class="vhsglow drift"></div>
