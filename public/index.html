@@ -334,6 +334,7 @@
 						<span class="who-turn" id="whoTurn">…</span>
 						<span class="timer" id="timer">--</span>
 					</div>
+					<div class="players-row" id="playersRow"></div>
 					<div id="myTurn" class="hidden">
 						<div class="toolbar">
 							<select id="blockFormat" class="ghost" title="Paragraph style">
@@ -435,6 +436,12 @@
 			import { api as authApi, getToken, setToken } from "/js/api.js"
 			import { loadRejoin, saveRejoin, clearRejoin } from "/js/socket-client.js"
 			import { createSounds, createLineChime, shouldChimeChat } from "/js/sounds.js"
+			import { statusDot, refreshStatusDots, updateLiveStatus } from "/js/status.js"
+			import { cleanHtml } from "/js/components/editor.js"
+			import { storyHtml, livePreviewHtml } from "/js/components/story-feed.js"
+			import { chatMessageHtml } from "/js/components/chat-view.js"
+			import { countdownView } from "/js/components/countdown.js"
+			import { buildExports, exportDocument } from "/js/export.js"
 			const socket = io()
 			let myId = null,
 				hostId = null,
@@ -445,26 +452,6 @@
 			const $ = (id) => document.getElementById(id)
 			const show = (id) => $(id).classList.remove("hidden")
 			const hide = (id) => $(id).classList.add("hidden")
-			// Live online/offline map (name -> connected), refreshed from every
-			// roster / game-state broadcast; statusDot() renders a dot that
-			// refreshStatusDots() keeps current everywhere — even old chat lines.
-			const liveStatus = new Map()
-			const statusDot = (name) => `<span class="st-dot unknown" data-status-name="${esc(name || "")}"></span>`
-			function refreshStatusDots() {
-				document.querySelectorAll("[data-status-name]").forEach((el) => {
-					const st = liveStatus.get(el.dataset.statusName)
-					el.classList.toggle("unknown", st === undefined)
-					el.classList.toggle("on", st === true)
-					el.classList.toggle("off", st === false)
-					el.title = st === undefined ? "" : st ? "Online" : "Offline"
-				})
-			}
-			function updateLiveStatus(writers) {
-				if (!Array.isArray(writers)) return
-				liveStatus.clear()
-				writers.forEach((w) => liveStatus.set(w.name, w.connected !== false))
-				refreshStatusDots()
-			}
 			const onlyShow = (id) =>
 				["lobby", "waiting", "choosing", "game", "over"].forEach((x) => (x === id ? show(x) : hide(x)))
 
@@ -1091,73 +1078,27 @@
 				startTimer(st, myTurn)
 			}
 			function renderStory(box, story, animateNew) {
-				if (!story.length) {
-					box.innerHTML = '<p class="empty">The page is blank. The first line is coming…</p>'
-					lastStoryLen = 0
-					return
-				}
-				box.innerHTML = story
-					.map((l, i) => {
-						const col = safeColor(l.color)
-						// l.html is already sanitized server-side — safe to inject.
-						return `<div class="story-line ${animateNew && i >= lastStoryLen ? "fresh" : ""}">${statusDot(l.name)}${whoMarks(l)}<span class="who" style="color:${col}">${esc(l.name)}</span>${l.html || ""}</div>`
-					})
-					.join("")
+				box.innerHTML = storyHtml(story, { freshFrom: animateNew ? lastStoryLen : Infinity })
 				refreshStatusDots()
 				lastStoryLen = story.length
-				box.scrollTop = box.scrollHeight
+				if (story.length) box.scrollTop = box.scrollHeight
 			}
 			function startTimer(st, myTurn) {
 				clearInterval(tickInterval)
 				const t = $("timer")
-				if (st.paused) {
-					t.classList.remove("low")
-					t.classList.add("paused")
-					t.textContent = "⏸ " + Math.ceil((st.remaining || 0) / 1000) + "s"
-					return // frozen: no countdown, no auto-submit
-				}
-				t.classList.remove("paused")
-				const tick = () => {
-					const left = Math.max(0, Math.ceil((st.deadline - Date.now()) / 1000))
-					t.textContent = left + "s"
-					t.classList.toggle("low", left <= 10)
-					if (left <= 0) {
+				const render = () => {
+					const v = countdownView(st)
+					t.textContent = v.text
+					t.classList.toggle("paused", v.paused)
+					t.classList.toggle("low", v.low)
+					if (v.expired) {
 						clearInterval(tickInterval)
 						if (myTurn) submitLine()
 					}
+					return v
 				}
-				tick()
-				tickInterval = setInterval(tick, 250)
-			}
-
-			// Convert the contenteditable into the safe subset the server re-enables:
-			// b/i/u inline, h1-h3/p blocks (alignment as al-c / al-r classes), br, hr.
-			function cleanHtml(el) {
-				const inline = { B: "b", STRONG: "b", I: "i", EM: "i", U: "u" }
-				const blocks = { H1: "h1", H2: "h2", H3: "h3", P: "p", DIV: "p" }
-				const alignCls = (n) => {
-					const a = (n.style && n.style.textAlign) || n.getAttribute?.("align") || ""
-					return a === "center" ? ' class="al-c"' : a === "right" ? ' class="al-r"' : ""
-				}
-				const walk = (node) => {
-					let out = ""
-					node.childNodes.forEach((n) => {
-						if (n.nodeType === 3) {
-							out += esc(n.nodeValue)
-						} else if (n.nodeType === 1) {
-							const tag = n.nodeName
-							if (tag === "BR") out += "<br>"
-							else if (tag === "HR") out += "<hr>"
-							else if (inline[tag]) out += `<${inline[tag]}>` + walk(n) + `</${inline[tag]}>`
-							else if (blocks[tag]) {
-								const inner = walk(n)
-								if (inner.trim() || inner.includes("<hr>")) out += `<${blocks[tag]}${alignCls(n)}>` + inner + `</${blocks[tag]}>`
-							} else out += walk(n)
-						}
-					})
-					return out
-				}
-				return walk(el)
+				if (render().paused) return // frozen: no countdown, no auto-submit
+				tickInterval = setInterval(render, 250)
 			}
 			function submitLine() {
 				const html = cleanHtml($("writerEditor"))
@@ -1213,7 +1154,7 @@
 					box.innerHTML = ""
 					return
 				}
-				box.innerHTML = `${statusDot(curName)}<span class="who" style="color:${curColor}">${esc(curName)}</span>${html}<span class="caret"></span>`
+				box.innerHTML = livePreviewHtml(html, curName, curColor)
 				refreshStatusDots()
 				box.classList.remove("hidden")
 			})
@@ -1240,7 +1181,7 @@
 				onlyShow("over")
 				$("overPrompt").textContent = prompt
 				renderStory($("overStory"), story, false)
-				buildExports(prompt, story)
+				rebuildExports(prompt, story)
 				updateHostView()
 				updateSessionBar()
 				refreshMe() // word count / badges / games list may have changed
@@ -1249,23 +1190,11 @@
 				socket.emit("continue-writing", { turnSeconds: $("contSecs").value, rounds: $("contRounds").value }, (res) => {
 					if (!res?.ok) alert("Could not continue — only the host can, and someone must be here.")
 				})
-			// Build both a formatted-HTML and a plain-text version of the story —
-			// prose only, with formatting preserved and NO usernames.
-			function buildExports(prompt, story) {
-				// block-formatted lines stand on their own; inline-only lines get a <p>
-				const body = story
-					.map((l) => (/^<(h1|h2|h3|p|hr)[ >]/.test(l.html || "") ? l.html : `<p>${l.html || ""}</p>`))
-					.join("\n")
-				window._html = `<h3 class="prompt"><em>${esc(prompt)}</em></h3>\n${body}`
-				const tmp = document.createElement("div")
-				window._plain =
-					`${prompt}\n\n` +
-					story
-						.map((l) => {
-							tmp.innerHTML = (l.html || "").replace(/<br\s*\/?>/g, "\n")
-							return tmp.textContent
-						})
-						.join("\n\n")
+			// Exports (js/export.js): prose only, formatting preserved, NO usernames.
+			function rebuildExports(prompt, story) {
+				const ex = buildExports(prompt, story)
+				window._html = ex.html
+				window._plain = ex.plain
 			}
 			// Copy as rich text so pasting into Docs/Word/AO3 keeps bold/italic/underline.
 			$("copyBtn").onclick = async () => {
@@ -1289,14 +1218,7 @@
 			}
 			// Download a self-contained, styled HTML file.
 			$("downloadBtn").onclick = () => {
-				const doc =
-					`<!doctype html><html><head><meta charset="utf-8"><title>Byler Cowrite</title>` +
-					`<style>body{font-family:Georgia,'Times New Roman',serif;max-width:640px;margin:48px auto;` +
-					`padding:0 20px;line-height:1.75;font-size:18px;color:#1a1a1a}` +
-					`h3.prompt{font-style:italic;color:#666;font-weight:normal;margin-bottom:1.5em}p{margin:0 0 1em}` +
-					`h1{font-size:1.6em}h2{font-size:1.35em}h3:not(.prompt){font-size:1.15em}` +
-					`hr{border:0;border-top:1px solid #ccc;margin:1.4em 0}.al-c{text-align:center}.al-r{text-align:right}</style>` +
-					`</head><body>${window._html || ""}</body></html>`
+				const doc = exportDocument(window._html || "")
 				const blob = new Blob([doc], { type: "text/html" })
 				const a = document.createElement("a")
 				a.href = URL.createObjectURL(blob)
@@ -1342,14 +1264,9 @@
 			function addChat(m, silent) {
 				if (!silent && shouldChimeChat(m, myId)) playSound("incomingmessage")
 				const log = $("chatLog")
-				const col = safeColor(m.color)
 				const p = document.createElement("p")
 				p.className = m.sys ? "msg sys" : "msg"
-				p.innerHTML =
-					(m.sys ? "" : statusDot(m.name) + whoMarks(m)) +
-					`<span class="cn" style="color:${col}">${esc(m.name)}</span>` +
-					`${m.badge && !m.sys ? `<span class="badge-chip">${esc(m.badge)}</span>` : ""}` +
-					esc(m.text)
+				p.innerHTML = chatMessageHtml(m)
 				log.appendChild(p)
 				refreshStatusDots()
 				log.scrollTop = log.scrollHeight

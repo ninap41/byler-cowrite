@@ -70,6 +70,16 @@ smoke every page.
 
 ## Phase 2 — game-page components (the monolith becomes `game.html`)
 
+> Progress: **done** — `status.js` (presence dots), `components/editor.js`
+> (cleanHtml), `components/story-feed.js` (story + live preview markup),
+> `components/chat-view.js` (message markup), `components/countdown.js`
+> (countdownView), `export.js` (buildExports/exportDocument), each with tests
+> (jsdom via `test/dom.mjs`). Also fixed a latent pre-refactor bug: the
+> `#playersRow` markup had been lost in an old layout revamp, crashing
+> renderWriting on every writing broadcast (timer never rendered). **Remaining
+> in this phase:** roster / vote-panel / session-bar / host-controls extraction
+> and the game-page orchestrator split (folds into Phase 3's `game.html`).
+
 `index.html`'s game UI splits into component modules, each exporting
 `mount(el, deps)` and returning an update function — plain functions + DOM,
 no framework:
