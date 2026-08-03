@@ -156,12 +156,18 @@ body {
 }
 
 /* ---------- Background layers (fixed, cross-fade per theme) ---------- */
+/* Strictly BEHIND all UI: negative z-index, and no descendant (animated
+   sprites, vines, fleets, …) may ever intercept a click. */
 .bg-layers {
 	position: fixed;
 	inset: 0;
-	z-index: 0;
+	z-index: -1;
 	overflow: hidden;
 	pointer-events: none;
+}
+.bg-layers,
+.bg-layers * {
+	pointer-events: none !important;
 }
 .bg-wash {
 	position: absolute;

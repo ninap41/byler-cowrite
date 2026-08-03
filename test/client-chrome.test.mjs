@@ -19,6 +19,14 @@ test("theme registry: all nine themes present with labels", () => {
   assert.equal(THEME_LABELS.cerebro, "Cerebro");
 });
 
+test("background layers sit behind the UI and never intercept clicks", () => {
+  const css = readFileSync(new URL("../public/css/base.css", import.meta.url), "utf-8");
+  const layerBlock = css.slice(css.indexOf(".bg-layers {"), css.indexOf(".bg-wash"));
+  assert.ok(layerBlock.includes("z-index: -1"), "layers stack behind all content");
+  assert.ok(/\.bg-layers,\s*\n\.bg-layers \* \{\s*\n\tpointer-events: none !important;/.test(css),
+    "every layer descendant is click-transparent");
+});
+
 test("every theme has CSS tokens, a background set, and a picker swatch", () => {
   const css = readFileSync(new URL("../public/css/base.css", import.meta.url), "utf-8");
   for (const id of THEMES) {
