@@ -3108,6 +3108,34 @@ button.danger,
 	filter: blur(1px);
 	box-shadow: 0 0 26px 6px rgba(255, 64, 64, 0.35);
 }
+/* the upper half of the horizon: a radial orange burst domed over the line */
+.bg-set.void .glare {
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 24vh;
+	height: 42vh;
+	background:
+		radial-gradient(58% 100% at 50% 100%, rgba(255, 150, 60, 0.5), rgba(255, 100, 45, 0.26) 42%, rgba(255, 70, 45, 0.1) 65%, transparent 80%),
+		radial-gradient(24% 46% at 50% 100%, rgba(255, 200, 120, 0.4), transparent 75%);
+}
+/* tall jagged mountains standing in front of the orange burst */
+.bg-set.void .mtns {
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 21vh;
+	height: 30vh;
+	background:
+		conic-gradient(from 78deg at 8% 100%, rgba(10, 5, 7, 0.95) 0 24deg, transparent 24deg),
+		conic-gradient(from 74deg at 19% 100%, rgba(14, 7, 10, 0.92) 0 32deg, transparent 32deg),
+		conic-gradient(from 80deg at 33% 100%, rgba(10, 5, 7, 0.94) 0 20deg, transparent 20deg),
+		conic-gradient(from 76deg at 46% 100%, rgba(14, 7, 10, 0.9) 0 28deg, transparent 28deg),
+		conic-gradient(from 79deg at 58% 100%, rgba(10, 5, 7, 0.95) 0 22deg, transparent 22deg),
+		conic-gradient(from 73deg at 71% 100%, rgba(14, 7, 10, 0.92) 0 34deg, transparent 34deg),
+		conic-gradient(from 80deg at 84% 100%, rgba(10, 5, 7, 0.94) 0 20deg, transparent 20deg),
+		conic-gradient(from 75deg at 95% 100%, rgba(14, 7, 10, 0.93) 0 30deg, transparent 30deg);
+}
 /* space rocks: jagged black monoliths silhouetted against the glare */
 .bg-set.void .rocks {
 	position: absolute;
@@ -3128,6 +3156,7 @@ button.danger,
 	.bg-set.void .stars { animation: void-fly 26s linear infinite; }
 	.bg-set.void .st2 { animation-duration: 44s; }
 	.bg-set.void .horizon { animation: void-glare 7s ease-in-out infinite; }
+	.bg-set.void .glare { animation: void-glare 7s ease-in-out infinite; animation-delay: -3.5s; }
 }
 @keyframes void-fly {
 	to { transform: translateX(-50vw); }
