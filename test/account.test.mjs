@@ -40,10 +40,13 @@ test("change password: old confirmed, other sessions revoked, mine kept", async 
 test("achievements metadata is public: ladder + usage count only", async () => {
   const r = await ctx.api("/api/achievements", null, undefined, "GET");
   assert.equal(r.status, 200);
-  assert.equal(r.data.wordTiers[0].name, "🐶 Puppy Mike");
-  assert.equal(r.data.wordTiers[0].min, 5000);
+  assert.equal(r.data.wordTiers[0].name, "🔫 There. Out Loud.");
+  assert.equal(r.data.wordTiers[0].min, 0);
+  assert.equal(r.data.wordTiers[1].min, 5000);
   assert.equal(r.data.usageCount, 4);
+  assert.ok(r.data.wordTiers[1].desc.includes("5,000"), "ladder descs are public");
   assert.equal(JSON.stringify(r.data).includes("trigger"), false, "triggers stay secret");
+  assert.equal(JSON.stringify(r.data).includes("moan"), false, "usage descs never ship unearned");
 });
 
 test("usage badge awards once from a committed line and announces in chat", async () => {
@@ -61,7 +64,7 @@ test("usage badge awards once from a committed line and announces in chat", asyn
   const meTok = hostFirst ? host.token : (await ctx.api("/api/login", { user: "mikewheeler", password: "1234" })).data.token;
   const me = (await ctx.api("/api/me", null, meTok, "GET")).data.user;
   assert.deepEqual(me.usageBadges.sort(), ["🐺 Omega Badge", "😏 Smutty Buddy", "🙄 Ugh, Mike..."].sort());
-  assert.equal(me.currentBadge, null, "usage badges never change the word rank");
+  assert.equal(me.currentBadge, "🔫 There. Out Loud.", "usage badges never change the word rank");
   const awards = chats.filter((m) => m.sys && /earned the/.test(m.text));
   assert.equal(awards.length, 3, "each badge announced exactly once");
 });

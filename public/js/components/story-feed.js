@@ -6,12 +6,21 @@ import { statusDot } from "../status.js"
 export const EMPTY_STORY_HTML = '<p class="empty">The page is blank. The first line is coming…</p>'
 
 // freshFrom: lines at index >= freshFrom get the "fresh" entrance animation.
-export function storyHtml(story, { freshFrom = Infinity } = {}) {
+// mineId: the signed-in account id — that author's lines get an ✎ edit button.
+export function storyHtml(story, { freshFrom = Infinity, mineId = null } = {}) {
 	if (!story.length) return EMPTY_STORY_HTML
 	return story
 		.map((l, i) => {
 			const col = safeColor(l.color)
-			return `<div class="story-line ${i >= freshFrom ? "fresh" : ""}">${statusDot(l.name)}${whoMarks(l)}<span class="who" style="color:${col}">${esc(l.name)}</span>${l.html || ""}</div>`
+			const mine = mineId && l.userId === mineId
+			return (
+				`<div class="story-line ${i >= freshFrom ? "fresh" : ""}" data-idx="${i}">` +
+				`${statusDot(l.name)}${whoMarks(l)}<span class="who" style="color:${col}">${esc(l.name)}</span>` +
+				(l.edited ? '<span class="edited-tag" title="This line was revised">edited</span>' : "") +
+				(mine ? '<button class="line-edit" title="Edit your line" type="button">✎</button>' : "") +
+				(l.html || "") +
+				`</div>`
+			)
 		})
 		.join("")
 }

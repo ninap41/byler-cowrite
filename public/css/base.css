@@ -728,6 +728,42 @@ body {
 	color: var(--accent-2);
 }
 
+/* ---------- Inline line editing + edited marker ---------- */
+.story-line .line-edit {
+	float: right;
+	flex: none;
+	min-width: 0;
+	margin-left: 8px;
+	padding: 1px 8px;
+	font-size: 0.72rem;
+	background: transparent;
+	color: var(--muted);
+	border: 1px solid var(--line);
+	border-radius: 8px;
+	opacity: 0;
+	transition: opacity 0.15s;
+	cursor: pointer;
+}
+.story-line:hover .line-edit {
+	opacity: 1;
+}
+.story-line .line-edit:hover {
+	color: var(--accent-2);
+	border-color: var(--accent-2);
+}
+.edited-tag {
+	font-family: var(--font-mono);
+	font-size: 0.62rem;
+	letter-spacing: 1px;
+	text-transform: uppercase;
+	color: var(--muted);
+	margin-right: 8px;
+}
+.line-editor {
+	margin-top: 6px;
+	min-height: 42px;
+}
+
 /* ---------- Previous-games archive page ---------- */
 .archive-page {
 	position: fixed;

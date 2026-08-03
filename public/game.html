@@ -209,7 +209,8 @@
 			import { countdownView } from "/js/components/countdown.js"
 			import { buildExports, exportDocument } from "/js/export.js"
 			mountChrome({ page: "game" })
-			setUserChip(await requireAuth("/")) // redirects signed-out visitors home
+			const me = await requireAuth("/") // redirects signed-out visitors home
+			setUserChip(me)
 			const socket = io()
 			let myId = null,
 				hostId = null,
@@ -540,12 +541,53 @@
 				}
 				startTimer(st, myTurn)
 			}
+			let lastStory = []
 			function renderStory(box, story, animateNew) {
-				box.innerHTML = storyHtml(story, { freshFrom: animateNew ? lastStoryLen : Infinity })
+				lastStory = story
+				box.innerHTML = storyHtml(story, { freshFrom: animateNew ? lastStoryLen : Infinity, mineId: me?.id })
 				refreshStatusDots()
 				lastStoryLen = story.length
 				if (story.length) box.scrollTop = box.scrollHeight
 			}
+			// Inline editing of your own committed lines (✎ in the story feed).
+			// The server re-sanitizes and re-broadcasts, which redraws the feed.
+			function wireLineEdits(boxId) {
+				const box = $(boxId)
+				box.addEventListener("click", (e) => {
+					const btn = e.target.closest(".line-edit")
+					if (!btn) return
+					const lineEl = btn.closest(".story-line")
+					if (!lineEl || lineEl.querySelector(".line-editor")) return
+					const idx = Number(lineEl.dataset.idx)
+					const orig = lastStory[idx]?.html || ""
+					lineEl.innerHTML = ""
+					const ed = document.createElement("div")
+					ed.className = "editor line-editor"
+					ed.contentEditable = "true"
+					ed.innerHTML = orig // already server-sanitized
+					const row = document.createElement("div")
+					row.className = "row"
+					const save = document.createElement("button")
+					save.className = "primary"
+					save.textContent = "Save line"
+					const cancel = document.createElement("button")
+					cancel.className = "ghost"
+					cancel.textContent = "Cancel"
+					row.append(save, cancel)
+					lineEl.append(ed, row)
+					ed.focus()
+					cancel.onclick = () => renderStory(box, lastStory, false)
+					save.onclick = () =>
+						socket.emit("edit-line", { index: idx, text: cleanHtml(ed) }, (res) => {
+							if (!res?.ok) {
+								$("gameMsg") && gameMsg(res?.error || "Could not save the edit.")
+								renderStory(box, lastStory, false)
+							}
+						})
+				})
+			}
+			wireLineEdits("storyBox")
+			wireLineEdits("overStory")
 			function startTimer(st, myTurn) {
 				clearInterval(tickInterval)
 				const t = $("timer")

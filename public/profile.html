@@ -95,7 +95,7 @@
 				$("statBadges").textContent = me.badges.length
 				$("statStories").textContent = (me.games || []).length
 				$("ladder").innerHTML = ladderHtml(meta.wordTiers, me)
-				$("usageCase").innerHTML = usageCaseHtml(me.usageBadges, meta.usageCount)
+				$("usageCase").innerHTML = usageCaseHtml(me.usageBadges, meta.usageCount, me.badgeDescs || {})
 				$("streakBox").innerHTML =
 					streakRingHtml(me.streak, Math.max(me.bestStreak, 1)) +
 					`<div class="streak-meta"><b>${me.streak} day${me.streak === 1 ? "" : "s"}</b> current streak<br>Best: ${me.bestStreak} day${me.bestStreak === 1 ? "" : "s"}</div>`

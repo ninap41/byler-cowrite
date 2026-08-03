@@ -7,7 +7,7 @@ import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import { bumpStreak } from "./lib/streak.js";
 import {
-  WORD_TIERS, USAGE, badgeName, isUsageId, usageMatches,
+  WORD_TIERS, USAGE, badgeName, badgeDesc, isUsageId, usageMatches,
   awardWordBadges, nextTierFor, migrateBadges,
 } from "./lib/achievements.js";
 
@@ -98,6 +98,8 @@ const publicUser = (u) => ({
   currentBadge: badgeName(u.currentBadge), badges: u.badges.map(badgeName),
   wordBadges: u.badges.filter((id) => !isUsageId(id)).map(badgeName),
   usageBadges: u.badges.filter(isUsageId).map(badgeName),
+  // hover text for EARNED badges only — unearned usage badges stay a mystery
+  badgeDescs: Object.fromEntries(u.badges.map((id) => [badgeName(id), badgeDesc(id)])),
   nextBadge: nextTierFor(u),
   streak: u.streak || 0, bestStreak: u.bestStreak || 0, lastWroteDay: u.lastWroteDay ?? null,
 });
@@ -190,6 +192,7 @@ app.post("/api/signup", (req, res) => {
     color: cleanColor(color), games: [], wordCount: 0, currentBadge: null, badges: [],
     createdAt: Date.now(),
   };
+  awardWordBadges(u); // the 0-word starter badge, from day one
   store.users.push(u);
   const token = randomUUID();
   store.sessions[token] = u.id;
@@ -259,7 +262,7 @@ app.post("/api/account/color", (req, res) => {
 // but only a COUNT of usage badges — their triggers stay a surprise.
 app.get("/api/achievements", (_req, res) => {
   res.json({
-    wordTiers: WORD_TIERS.map((t) => ({ name: t.name, min: t.min })),
+    wordTiers: WORD_TIERS.map((t) => ({ name: t.name, min: t.min, desc: t.desc })),
     usageCount: USAGE.length,
   });
 });
@@ -553,6 +556,15 @@ function markDisconnected(s, id) {
   const w = s.writers.get(id);
   if (!w) return;
   w.connected = false;
+  // The host leaving (closed tab, routed away) pauses a running game — the
+  // clock freezes until they return or the stand-in host resumes.
+  if (s.hostId === id && s.phase === "writing" && !s.paused) {
+    s.paused = true;
+    s.remaining = Math.max(0, s.deadline - Date.now());
+    clearTimeout(s.timer);
+    saveSnapshot(s);
+    announce(s, w, "stepped away — game paused");
+  }
   if (s.hostId === id) {
     const entries = [...s.writers.entries()];
     const next =
@@ -679,6 +691,7 @@ function advance(s, writer, html) {
     if (stripTags(clean)) {
       s.story.push({
         name: writer?.name, color: writer?.color, html: clean,
+        userId: writer?.userId ?? null, // lets the author edit this line later
         host: writer === s.writers.get(s.hostId),
       });
       creditLine(s, writer, clean);
@@ -999,6 +1012,26 @@ io.on("connection", (socket) => {
     const s = mySession();
     if (!s || s.hostId !== socket.id || s.phase !== "choosing") return ack?.({ ok: false });
     finalizeVote(s);
+    ack?.({ ok: true });
+  });
+
+  // Authors can revise their own committed lines (writing or reveal phase).
+  // Sanitized exactly once, like a fresh line; word counts are NOT re-credited.
+  socket.on("edit-line", ({ index, text }, ack) => {
+    const s = mySession();
+    if (!s || (s.phase !== "writing" && s.phase !== "over")) return ack?.({ ok: false });
+    const w = s.writers.get(socket.id);
+    const line = s.story[Number(index)];
+    if (!w || !line) return ack?.({ ok: false, error: "That line doesn't exist." });
+    if (!line.userId || line.userId !== w.userId)
+      return ack?.({ ok: false, error: "You can only edit your own lines." });
+    const clean = sanitizeRich(text);
+    if (!stripTags(clean)) return ack?.({ ok: false, error: "A line can't be empty." });
+    line.html = clean;
+    line.edited = true;
+    saveSnapshot(s);
+    if (s.phase === "over") io.to(s.code).emit("game-over", { prompt: s.prompt, story: s.story });
+    else broadcastGame(s);
     ack?.({ ok: true });
   });
 

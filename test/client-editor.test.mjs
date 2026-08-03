@@ -10,7 +10,7 @@ const { cleanHtml } = await import("../public/js/components/editor.js");
 // are pinned. cleanHtml is convenience, sanitizeRich() is the security control.
 const CASES = [
   ["plain text", "hello there", "hello there"],
-  ["text is escaped", `a <div>&"'</div>`, "a <p>&amp;&quot;&#39;</p>"],
+  ["text passes through RAW — the server escapes exactly once", `a <div>&"'</div>`, `a <p>&"'</p>`],
   ["b/strong -> b, i/em -> i, u -> u", "<b>a</b><strong>b</strong><em>c</em><i>d</i><u>e</u>", "<b>a</b><b>b</b><i>c</i><i>d</i><u>e</u>"],
   ["DIV becomes p", "<div>line</div>", "<p>line</p>"],
   ["headings pass through", "<h1>t</h1><h2>u</h2><h3>v</h3>", "<h1>t</h1><h2>u</h2><h3>v</h3>"],

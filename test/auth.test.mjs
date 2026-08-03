@@ -24,7 +24,7 @@ test("signup validation: email, username, password, duplicates, @ ban", async ()
   assert.equal(ok.status, 200);
   assert.ok(ok.data.token);
   assert.equal(ok.data.user.wordCount, 0);
-  assert.equal(ok.data.user.currentBadge, null);
+  assert.equal(ok.data.user.currentBadge, "🔫 There. Out Loud.", "starter badge from signup");
 
   const dupeEmail = await ctx.api("/api/signup", { email: "WILL@byers.com", username: "other1", password: "1234" });
   assert.match(dupeEmail.data.error, /email already has an account/i);

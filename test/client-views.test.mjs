@@ -14,6 +14,20 @@ test("storyHtml: empty story placeholder", () => {
   assert.equal(storyHtml([]), EMPTY_STORY_HTML);
 });
 
+test("storyHtml: edit button only on my lines, edited tag, data-idx", () => {
+  const story = [
+    { name: "will", color: "#6c8cff", html: "mine", userId: "u1", edited: true },
+    { name: "mike", color: "#e63946", html: "theirs", userId: "u2" },
+  ];
+  const out = storyHtml(story, { mineId: "u1" });
+  const [a, b] = out.split('data-idx="1"');
+  assert.ok(a.includes("line-edit"), "my line editable");
+  assert.ok(a.includes("edited-tag"), "revision marked");
+  assert.ok(!b.includes("line-edit"), "their line not editable");
+  assert.ok(out.includes('data-idx="0"'));
+  assert.ok(!storyHtml(story, {}).includes("line-edit"), "no editing when signed-out id missing");
+});
+
 test("storyHtml: server-sanitized html injected as-is, names escaped, fresh from index", () => {
   const story = [
     { name: "<will>", color: "#6c8cff", html: "<b>bold</b> line" },

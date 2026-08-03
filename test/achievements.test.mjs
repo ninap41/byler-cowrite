@@ -30,9 +30,12 @@ test("usage matcher: one line can earn several", () => {
 
 // ---- word ladder ----
 test("ladder: tiers award at thresholds, currentBadge is the highest", () => {
-  const u = { wordCount: 4999, badges: [] };
+  const u = { wordCount: 0, badges: [] };
   awardWordBadges(u);
-  assert.equal(u.currentBadge, null, "nothing before 5000");
+  assert.equal(badgeName(u.currentBadge), "🔫 There. Out Loud.", "starter badge at 0 words");
+  u.wordCount = 4999;
+  awardWordBadges(u);
+  assert.equal(badgeName(u.currentBadge), "🔫 There. Out Loud.", "no new tier before 5000");
   u.wordCount = 5000;
   awardWordBadges(u);
   assert.equal(badgeName(u.currentBadge), "🐶 Puppy Mike");
@@ -52,13 +55,13 @@ test("usage ids are distinct from word tiers and flagged", () => {
 test("migrateBadges drops legacy ids and recomputes from wordCount", () => {
   const u = { wordCount: 12000, badges: ["inkling", "scribbler", "legend"], currentBadge: "legend" };
   assert.equal(migrateBadges(u), true);
-  assert.deepEqual(u.badges, ["puppymike", "practice"]);
+  assert.deepEqual(u.badges, ["outloud", "puppymike", "practice"]);
   assert.equal(badgeName(u.currentBadge), "🪄 Practice");
   // keeps already-earned usage badges
   const v = { wordCount: 0, badges: ["omega", "wordsmith"], currentBadge: "wordsmith" };
   migrateBadges(v);
-  assert.deepEqual(v.badges, ["omega"]);
-  assert.equal(v.currentBadge, null);
+  assert.deepEqual(v.badges, ["omega", "outloud"]);
+  assert.equal(badgeName(v.currentBadge), "🔫 There. Out Loud.");
   // idempotent
   assert.equal(migrateBadges(v), false);
 });

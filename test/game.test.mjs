@@ -52,7 +52,7 @@ test("full round: vote -> lines -> game over; badge + word credit; sanitize", as
 
   const me = await ctx.api("/api/me", null, host.token, "GET");
   assert.ok(me.data.user.wordCount >= 5, "host words credited");
-  assert.equal(me.data.user.currentBadge, null, "word ladder starts at 5000 words");
+  assert.equal(me.data.user.currentBadge, "🔫 There. Out Loud.", "starter badge until 5000 words");
   assert.ok(me.data.user.nextBadge && me.data.user.nextBadge.min === 5000);
   assert.ok(me.data.user.games.includes(code));
 });
@@ -119,6 +119,54 @@ test("session rename: host-only, sanitized, broadcast", async () => {
   assert.equal(r.name, "The Tale");
   await ctx.wait(120);
   assert.equal(state.current.name, "The Tale");
+});
+
+test("submit-line: quotes and ampersands escape exactly once (no &quot; on screen)", async () => {
+  const { A, B, state } = await startedGame(ctx, { rounds: 1 });
+  const cur = state.current.currentId === A.id ? A : B;
+  // the client's cleanHtml now sends text RAW — the server is the only escaper
+  await ctx.emit(cur, "submit-line", { text: '"Michael?" Will said & <b>smiled</b>.' });
+  await ctx.wait(150);
+  const html = state.current.story[0].html;
+  assert.ok(html.includes("&quot;Michael?&quot;"), "quotes escaped once: " + html);
+  assert.ok(html.includes("said &amp; "), "ampersand escaped once");
+  assert.ok(html.includes("<b>smiled</b>"), "formatting kept");
+  assert.ok(!html.includes("&amp;quot;"), "not double-escaped");
+});
+
+test("edit-line: authors revise their own lines only; sanitized once; marked edited", async () => {
+  const { A, B, state } = await startedGame(ctx);
+  const first = state.current.currentId === A.id ? A : B;
+  const second = first === A ? B : A;
+  await ctx.emit(first, "submit-line", { text: "the original line" });
+  await ctx.wait(150);
+  const notAuthor = await ctx.emit(second, "edit-line", { index: 0, text: "hijacked" });
+  assert.equal(notAuthor.ok, false, "only the author can edit");
+  const missing = await ctx.emit(first, "edit-line", { index: 99, text: "x" });
+  assert.equal(missing.ok, false);
+  const empty = await ctx.emit(first, "edit-line", { index: 0, text: "  " });
+  assert.equal(empty.ok, false, "cannot blank a line");
+  const ok = await ctx.emit(first, "edit-line", { index: 0, text: '"Fixed!" he said & <b>meant it</b> <script>x</script>' });
+  assert.equal(ok.ok, true);
+  await ctx.wait(150);
+  const line = state.current.story[0];
+  assert.ok(line.html.includes("&quot;Fixed!&quot;"), "escaped exactly once");
+  assert.ok(line.html.includes("<b>meant it</b>"));
+  assert.ok(!line.html.includes("<script>"));
+  assert.equal(line.edited, true);
+});
+
+test("host leaving mid-writing pauses the game and announces it", async () => {
+  const { A, B, state } = await startedGame(ctx);
+  const chats = [];
+  B.on("chat", (m) => chats.push(m));
+  const stB = { current: null };
+  B.on("game-state", (st) => (stB.current = st));
+  A.disconnect(); // host routes away / closes the tab
+  await ctx.wait(300);
+  assert.equal(stB.current.paused, true, "clock frozen");
+  assert.ok(stB.current.remaining > 0, "remaining time stashed");
+  assert.ok(chats.some((m) => m.sys && /stepped away — game paused/.test(m.text)), "pause announced");
 });
 
 test("chat: length cap, echo id, host flag", async () => {

@@ -12,7 +12,7 @@ export function ladderHtml(tiers, u) {
 			const isNext = t.min === nextMin
 			const pct = isNext ? Math.min(99, Math.floor((u.wordCount / t.min) * 100)) : earned ? 100 : 0
 			return (
-				`<div class="tier${earned ? " earned" : ""}${current ? " current" : ""}">` +
+				`<div class="tier${earned ? " earned" : ""}${current ? " current" : ""}" title="${esc(t.desc || "")}">` +
 				`<span class="tier-name">${esc(t.name)}</span>` +
 				`<span class="tier-min">${t.min.toLocaleString()} words</span>` +
 				(isNext
@@ -24,10 +24,12 @@ export function ladderHtml(tiers, u) {
 		.join("")
 }
 
-// The usage-badge case: earned collectibles + mystery slots for the rest.
-// Triggers are never shown — finding them is the game.
-export function usageCaseHtml(earnedNames, totalCount) {
-	const earned = earnedNames.map((n) => `<span class="ach earned">${esc(n)}</span>`).join("")
+// The usage-badge case: earned collectibles (hover shows how they happened)
+// + mystery slots for the rest. Unearned triggers are never shown.
+export function usageCaseHtml(earnedNames, totalCount, descs = {}) {
+	const earned = earnedNames
+		.map((n) => `<span class="ach earned" title="${esc(descs[n] || "Earned")}">${esc(n)}</span>`)
+		.join("")
 	const locked = Array.from(
 		{ length: Math.max(0, totalCount - earnedNames.length) },
 		() => `<span class="ach next" title="Secret — earn it by writing the right thing">？ hidden badge</span>`,
