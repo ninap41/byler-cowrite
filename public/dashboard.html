@@ -54,6 +54,14 @@
 						<div class="mg-grid" id="myGames"></div>
 					</div>
 
+					<!-- writers directory -->
+					<div class="card">
+						<h3 class="dash-h" style="margin-top: 0">Writers</h3>
+						<p class="subtle" style="text-align: left; margin: 4px 0 0">Everyone with an account — click a name to see their profile.</p>
+						<input id="writerSearch" placeholder="Search writers…" style="margin-top: 10px" />
+						<div id="writersList"></div>
+					</div>
+
 					<!-- achievements + streak | previous games -->
 					<div class="dash-split">
 						<div class="card">
@@ -75,8 +83,8 @@
 				<!-- ============ RIGHT RAIL ============ -->
 				<div class="dash-rail">
 					<div class="card">
-						<h3 class="dash-h" style="margin-top: 0">Online now</h3>
-						<div class="me-games" id="dashOnline"></div>
+						<h3 class="dash-h" style="margin-top: 0">Invite a friend</h3>
+						<p class="subtle" style="text-align: left; margin: 4px 0 10px">Copies the site link — send it to your next co-writer.</p>
 						<div class="row"><button class="ghost" id="inviteBtn">➕ Invite a friend</button></div>
 					</div>
 
@@ -116,7 +124,6 @@
 			import { requireAuth } from "/js/auth-guard.js"
 			import { PALETTE, safeColor, esc } from "/js/util.js"
 			import {
-				onlineUsersHtml,
 				liveGameInfoHtml,
 				badgeProgress,
 				myGameCardHtml,
@@ -124,6 +131,7 @@
 				recentRowHtml,
 				achievementsHtml,
 				streakRingHtml,
+				writerRowHtml,
 			} from "/js/dashboard-view.js"
 
 			mountChrome({ page: "dashboard" })
@@ -282,18 +290,40 @@
 				})
 			}
 
+			// ---- Writers directory (all accounts + online dots + search) ----
+			let allWriters = []
+			function renderWriters() {
+				const q = $("writerSearch").value.trim().toLowerCase()
+				const box = $("writersList")
+				box.innerHTML = ""
+				const hits = allWriters.filter((u) => !q || u.username.toLowerCase().includes(q))
+				if (!hits.length) {
+					box.innerHTML = '<p class="subtle" style="text-align:left;margin:8px 0 0">No writers match.</p>'
+					return
+				}
+				hits.forEach((u) => {
+					const row = document.createElement("a")
+					row.className = "rg-row"
+					row.href = "/profile?user=" + encodeURIComponent(u.username)
+					row.innerHTML = writerRowHtml(u)
+					box.appendChild(row)
+				})
+			}
+			$("writerSearch").addEventListener("input", renderWriters)
+
 			// ---- Poll the dashboard payload every 10s ----
 			async function loadDashboard() {
 				if (!me) return
 				let d
 				try {
 					d = await api("/api/dashboard", null, "GET")
+					allWriters = (await api("/api/users", null, "GET")).users
 				} catch (e) {
 					return
 				}
 				me = { ...me, ...d.stats }
 				renderMe()
-				$("dashOnline").innerHTML = onlineUsersHtml(d.onlineUsers)
+				renderWriters()
 				renderMyGames(d.myGames)
 				renderRecent(d.recentGames)
 				const box = $("dashLive")

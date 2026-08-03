@@ -28,8 +28,10 @@
 								<div class="me-row">
 									<span class="me-name" id="meName"></span>
 									<span class="badge-chip" id="meBadge"></span>
+									<span class="player-chip hidden" id="onlineChip"><span class="st-dot on"></span>online</span>
 								</div>
 								<p class="welcome-sub" id="profileSub"></p>
+								<div class="err" id="profErr"></div>
 							</div>
 						</div>
 						<div class="stat-row">
@@ -39,10 +41,19 @@
 						</div>
 					</div>
 
+					<!-- about -->
+					<div class="card">
+						<h3 class="dash-h" style="margin-top: 0">About</h3>
+						<div id="aboutBox"></div>
+						<p class="subtle hidden" id="aboutEditHint" style="text-align: left; margin-top: 12px">
+							<a href="/settings" class="linky">Edit your About, links &amp; images in Settings →</a>
+						</p>
+					</div>
+
 					<!-- word ladder -->
 					<div class="card">
 						<h3 class="dash-h" style="margin-top: 0">Word-count ranks</h3>
-						<p class="subtle" style="text-align: left; margin: 4px 0 0">Every word you commit to a story climbs this ladder.</p>
+						<p class="subtle" style="text-align: left; margin: 4px 0 0">Every word committed to a story climbs this ladder.</p>
 						<div id="ladder"></div>
 					</div>
 				</div>
@@ -75,7 +86,7 @@
 			import { requireAuth } from "/js/auth-guard.js"
 			import { safeColor } from "/js/util.js"
 			import { streakRingHtml } from "/js/dashboard-view.js"
-			import { ladderHtml, usageCaseHtml } from "/js/profile-view.js"
+			import { ladderHtml, usageCaseHtml, aboutHtml } from "/js/profile-view.js"
 
 			mountChrome({ page: "profile" })
 			const $ = (id) => document.getElementById(id)
@@ -83,22 +94,41 @@
 			if (me) {
 				setUserChip(me)
 				const meta = await api("/api/achievements", null, "GET")
-				$("meName").textContent = me.username
-				$("meName").style.color = safeColor(me.color)
-				$("meBadge").textContent = me.currentBadge || "no badge yet"
-				$("avatar").textContent = me.username.charAt(0).toUpperCase()
-				$("avatar").style.background = safeColor(me.color)
-				$("profileSub").textContent = me.nextBadge
-					? `${(me.nextBadge.min - me.wordCount).toLocaleString()} words to ${me.nextBadge.name}`
-					: "Top of the ladder — a true legend."
-				$("statWords").textContent = me.wordCount.toLocaleString()
-				$("statBadges").textContent = me.badges.length
-				$("statStories").textContent = (me.games || []).length
-				$("ladder").innerHTML = ladderHtml(meta.wordTiers, me)
-				$("usageCase").innerHTML = usageCaseHtml(me.usageBadges, meta.usageCount, me.badgeDescs || {})
-				$("streakBox").innerHTML =
-					streakRingHtml(me.streak, Math.max(me.bestStreak, 1)) +
-					`<div class="streak-meta"><b>${me.streak} day${me.streak === 1 ? "" : "s"}</b> current streak<br>Best: ${me.bestStreak} day${me.bestStreak === 1 ? "" : "s"}</div>`
+				const wanted = new URLSearchParams(location.search).get("user")
+				// whose profile? mine by default, anyone else's via ?user=name
+				let p = { ...me, stories: (me.games || []).length, online: true }
+				let itsMe = true
+				if (wanted && wanted.toLowerCase() !== me.username.toLowerCase()) {
+					itsMe = false
+					try {
+						p = (await api("/api/users/" + encodeURIComponent(wanted), null, "GET")).user
+					} catch (e) {
+						$("profErr").textContent = e.message
+						p = null
+					}
+				}
+				if (p) {
+					document.title = `Byler Cowrite — ${p.username}`
+					$("meName").textContent = p.username
+					$("meName").style.color = safeColor(p.color)
+					$("meBadge").textContent = p.currentBadge || "no badge yet"
+					$("avatar").textContent = p.username.charAt(0).toUpperCase()
+					$("avatar").style.background = safeColor(p.color)
+					$("onlineChip").classList.toggle("hidden", itsMe || !p.online)
+					$("profileSub").textContent = p.nextBadge
+						? `${(p.nextBadge.min - p.wordCount).toLocaleString()} words to ${p.nextBadge.name}`
+						: "Top of the ladder — a true legend."
+					$("statWords").textContent = p.wordCount.toLocaleString()
+					$("statBadges").textContent = p.badges.length
+					$("statStories").textContent = p.stories
+					$("aboutBox").innerHTML = aboutHtml(p)
+					$("aboutEditHint").classList.toggle("hidden", !itsMe)
+					$("ladder").innerHTML = ladderHtml(meta.wordTiers, p)
+					$("usageCase").innerHTML = usageCaseHtml(p.usageBadges, meta.usageCount, p.badgeDescs || {})
+					$("streakBox").innerHTML =
+						streakRingHtml(p.streak, Math.max(p.bestStreak, 1)) +
+						`<div class="streak-meta"><b>${p.streak} day${p.streak === 1 ? "" : "s"}</b> current streak<br>Best: ${p.bestStreak} day${p.bestStreak === 1 ? "" : "s"}</div>`
+				}
 			}
 		</script>
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>

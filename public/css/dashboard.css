@@ -306,6 +306,48 @@
 .rg-row:hover {
 	border-color: var(--accent-2);
 }
+a.rg-row {
+	text-decoration: none;
+}
+
+/* ---- profile About section ---- */
+.about-text {
+	margin: 8px 0 0;
+	text-align: left;
+	white-space: pre-wrap;
+	line-height: 1.6;
+}
+.about-links {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-top: 12px;
+}
+.about-link {
+	border: 1px solid var(--line);
+	background: var(--panel-2);
+	color: var(--accent-2);
+	border-radius: 99px;
+	padding: 6px 12px;
+	font-size: 0.82rem;
+	text-decoration: none;
+}
+.about-link:hover {
+	border-color: var(--accent-2);
+}
+.about-images {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+	gap: 10px;
+	margin-top: 12px;
+}
+.about-img {
+	width: 100%;
+	max-height: 220px;
+	object-fit: cover;
+	border-radius: 12px;
+	border: 1px solid var(--line);
+}
 .rg-cover {
 	flex: none;
 	width: 40px;

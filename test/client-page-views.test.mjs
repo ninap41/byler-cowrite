@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   onlineUsersHtml, liveGameInfoHtml, statsText, badgeProgress, coverArt,
-  myGameStatus, myGameCardHtml, recentRowHtml, achievementsHtml, streakRingHtml,
+  myGameStatus, myGameCardHtml, recentRowHtml, achievementsHtml, streakRingHtml, writerRowHtml,
 } from "../public/js/dashboard-view.js";
 import { gameCardHtml, archiveMetaText, archiveStoryHtml } from "../public/js/archive-view.js";
 
@@ -37,11 +37,27 @@ test("statsText: singulars, next-badge distance, ladder top", () => {
   assert.equal(statsText({ wordCount: 20000, badges: ["a", "b"], nextBadge: null }), "20000 words written · 2 badges");
 });
 
-test("badgeProgress: percent toward next tier, capped, topped-out ladder", () => {
+test("badgeProgress: real word counts in the label, sliver fill, topped-out ladder", () => {
   assert.deepEqual(badgeProgress({ wordCount: 23, nextBadge: { min: 100, name: "🖊️ Scribbler" } }),
-    { pct: 23, label: "23% toward 🖊️ Scribbler" });
+    { pct: 23, label: "23 / 100 words to 🖊️ Scribbler" });
+  assert.equal(badgeProgress({ wordCount: 8, nextBadge: { min: 5000, name: "🐶 Puppy Mike" } }).pct, 1,
+    "any words at all show a sliver");
+  assert.match(badgeProgress({ wordCount: 8, nextBadge: { min: 5000, name: "🐶 Puppy Mike" } }).label,
+    /8 \/ 5,000 words/);
+  assert.equal(badgeProgress({ wordCount: 0, nextBadge: { min: 5000, name: "x" } }).pct, 0);
   assert.equal(badgeProgress({ wordCount: 99, nextBadge: { min: 100, name: "x" } }).pct, 99);
   assert.equal(badgeProgress({ wordCount: 50000, nextBadge: null }).pct, 100);
+});
+
+test("writerRowHtml: escapes, online dot, badge chip optional", () => {
+  const on = writerRowHtml({ username: "<will>", color: "#6c8cff", wordCount: 1234, badge: "🐶 Puppy Mike", online: true });
+  assert.ok(on.includes("&lt;will&gt;"));
+  assert.ok(on.includes("st-dot on"));
+  assert.ok(on.includes("1,234 words"));
+  assert.ok(on.includes("🐶 Puppy Mike"));
+  const off = writerRowHtml({ username: "mike", color: "bad", wordCount: 0, badge: null, online: false });
+  assert.ok(off.includes("st-dot off"));
+  assert.ok(!off.includes("badge-chip"));
 });
 
 test("coverArt is deterministic per code and palette-bound", () => {

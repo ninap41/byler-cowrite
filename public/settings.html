@@ -34,6 +34,20 @@
 					</div>
 
 					<div class="settings-section">
+						<label for="setAbout">About you (shown on your public profile)</label>
+						<textarea id="setAbout" maxlength="500" rows="4" style="width: 100%; resize: vertical"></textarea>
+						<label style="margin-top: 10px">Links (up to three)</label>
+						<div class="chat-row"><input id="link1Label" placeholder="Label" maxlength="40" /><input id="link1Url" placeholder="https://…" /></div>
+						<div class="chat-row"><input id="link2Label" placeholder="Label" maxlength="40" /><input id="link2Url" placeholder="https://…" /></div>
+						<div class="chat-row"><input id="link3Label" placeholder="Label" maxlength="40" /><input id="link3Url" placeholder="https://…" /></div>
+						<label style="margin-top: 10px">Images (up to three, direct image URLs)</label>
+						<input id="img1" placeholder="https://…" />
+						<input id="img2" placeholder="https://…" />
+						<input id="img3" placeholder="https://…" />
+						<div class="row"><button class="ghost" id="saveProfile">Save profile</button></div>
+					</div>
+
+					<div class="settings-section">
 						<label for="setEmail">Email</label>
 						<input id="setEmail" type="email" autocomplete="email" />
 						<label for="emailPass">Confirm with your password</label>
@@ -81,6 +95,12 @@
 				setUserChip(me)
 				$("setUsername").value = me.username
 				$("setEmail").value = me.email
+				$("setAbout").value = me.about || ""
+				;[1, 2, 3].forEach((n) => {
+					$("link" + n + "Label").value = me.links?.[n - 1]?.label || ""
+					$("link" + n + "Url").value = me.links?.[n - 1]?.url || ""
+					$("img" + n).value = me.images?.[n - 1] || ""
+				})
 				document.querySelectorAll(".swatch").forEach((x) => x.classList.toggle("sel", x.dataset.color === safeColor(me.color)))
 			}
 
@@ -107,6 +127,20 @@
 					me = { ...me, ...r.user }
 					fill()
 					say(true, "Username saved.")
+				} catch (e) {
+					say(false, e.message)
+				}
+			}
+			$("saveProfile").onclick = async () => {
+				try {
+					const links = [1, 2, 3]
+						.map((n) => ({ label: $("link" + n + "Label").value.trim(), url: $("link" + n + "Url").value.trim() }))
+						.filter((l) => l.url)
+					const images = [1, 2, 3].map((n) => $("img" + n).value.trim()).filter(Boolean)
+					const r = await api("/api/account/profile", { about: $("setAbout").value, links, images })
+					me = { ...me, ...r.user }
+					fill()
+					say(true, "Profile saved.")
 				} catch (e) {
 					say(false, e.message)
 				}

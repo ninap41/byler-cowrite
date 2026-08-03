@@ -102,6 +102,22 @@ const publicUser = (u) => ({
   badgeDescs: Object.fromEntries(u.badges.map((id) => [badgeName(id), badgeDesc(id)])),
   nextBadge: nextTierFor(u),
   streak: u.streak || 0, bestStreak: u.bestStreak || 0, lastWroteDay: u.lastWroteDay ?? null,
+  about: u.about || "", links: u.links || [], images: u.images || [],
+});
+
+// What OTHER signed-in players may see: everything public-facing, never the
+// email, account id, or game codes (the archive stays private per account).
+const profileOf = (u, onlineIds) => ({
+  username: u.username, color: u.color, wordCount: u.wordCount,
+  currentBadge: badgeName(u.currentBadge), badges: u.badges.map(badgeName),
+  wordBadges: u.badges.filter((id) => !isUsageId(id)).map(badgeName),
+  usageBadges: u.badges.filter(isUsageId).map(badgeName),
+  badgeDescs: Object.fromEntries(u.badges.map((id) => [badgeName(id), badgeDesc(id)])),
+  nextBadge: nextTierFor(u),
+  streak: u.streak || 0, bestStreak: u.bestStreak || 0,
+  stories: (u.games || []).length,
+  about: u.about || "", links: u.links || [], images: u.images || [],
+  online: onlineIds.has(u.id),
 });
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -296,6 +312,64 @@ app.post("/api/account/password", (req, res) => {
     if (id === u.id && tok !== t) delete store.sessions[tok]; // keep only this session
   saveStore();
   res.json({ user: publicUser(u) });
+});
+
+// Profile content shown to other players: About text + up to three links and
+// three images. URLs are validated server-side (http/https only) so nothing
+// like javascript: ever reaches another player's DOM.
+const httpUrl = (v) => {
+  try {
+    const u = new URL(String(v));
+    return u.protocol === "http:" || u.protocol === "https:";
+  } catch {
+    return false;
+  }
+};
+app.post("/api/account/profile", (req, res) => {
+  const u = authedUser(req);
+  if (!u) return res.status(401).json({ error: "Not signed in." });
+  const about = stripTags(String(req.body?.about ?? "")).slice(0, 500).trim();
+  const links = [];
+  for (const l of (Array.isArray(req.body?.links) ? req.body.links : []).slice(0, 3)) {
+    const url = String(l?.url ?? "").trim();
+    if (!url) continue;
+    if (!httpUrl(url)) return res.status(400).json({ error: "Links must start with http:// or https://." });
+    const label = stripTags(String(l?.label ?? "")).slice(0, 40).trim();
+    links.push({ label: label || url.slice(0, 40), url });
+  }
+  const images = [];
+  for (const raw of (Array.isArray(req.body?.images) ? req.body.images : []).slice(0, 3)) {
+    const url = String(raw ?? "").trim();
+    if (!url) continue;
+    if (!httpUrl(url)) return res.status(400).json({ error: "Image links must start with http:// or https://." });
+    images.push(url);
+  }
+  u.about = about;
+  u.links = links;
+  u.images = images;
+  saveStore();
+  res.json({ user: publicUser(u) });
+});
+
+// The writers directory: every account, with live online status.
+app.get("/api/users", (req, res) => {
+  if (!authedUser(req)) return res.status(401).json({ error: "Sign in first." });
+  const ids = new Set(onlineSockets.values());
+  const users = store.users
+    .map((x) => ({
+      username: x.username, color: x.color, badge: badgeName(x.currentBadge),
+      wordCount: x.wordCount, online: ids.has(x.id),
+    }))
+    .sort((a, b) => (b.online - a.online) || a.username.localeCompare(b.username));
+  res.json({ users });
+});
+
+// A single player's public profile.
+app.get("/api/users/:username", (req, res) => {
+  if (!authedUser(req)) return res.status(401).json({ error: "Sign in first." });
+  const u = findByUsername(req.params.username);
+  if (!u) return res.status(404).json({ error: "No writer by that name." });
+  res.json({ user: profileOf(u, new Set(onlineSockets.values())) });
 });
 
 app.get("/api/me", (req, res) => {

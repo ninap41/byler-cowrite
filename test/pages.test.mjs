@@ -22,7 +22,8 @@ test("homepage serves the hero + auth card", async () => {
 test("clean URLs serve each page", async () => {
   const dash = await page("/dashboard");
   assert.equal(dash.status, 200);
-  assert.ok(dash.body.includes('id="dashOnline"'));
+  assert.ok(dash.body.includes('id="writersList"'), "writers directory present");
+  assert.ok(dash.body.includes('id="inviteBtn"'));
   const game = await page("/game");
   assert.equal(game.status, 200);
   assert.ok(game.body.includes('id="writerEditor"'));

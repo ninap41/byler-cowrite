@@ -24,6 +24,20 @@ export function ladderHtml(tiers, u) {
 		.join("")
 }
 
+// The About section: plain-text bio + up to three links and three images.
+// URLs were validated http/https server-side; everything is still escaped
+// here before touching the DOM.
+export function aboutHtml(p) {
+	const about = p.about
+		? `<p class="about-text">${esc(p.about)}</p>`
+		: `<p class="subtle" style="text-align:left;margin:8px 0 0">Nothing here yet.</p>`
+	const links = (p.links || [])
+		.map((l) => `<a class="about-link" href="${esc(l.url)}" target="_blank" rel="noopener noreferrer nofollow">🔗 ${esc(l.label)}</a>`)
+		.join("")
+	const imgs = (p.images || []).map((src) => `<img class="about-img" src="${esc(src)}" alt="" loading="lazy">`).join("")
+	return about + (links ? `<div class="about-links">${links}</div>` : "") + (imgs ? `<div class="about-images">${imgs}</div>` : "")
+}
+
 // The usage-badge case: earned collectibles (hover shows how they happened)
 // + mystery slots for the rest. Unearned triggers are never shown.
 export function usageCaseHtml(earnedNames, totalCount, descs = {}) {

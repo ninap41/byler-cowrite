@@ -35,11 +35,27 @@ export function statsText(u) {
 	)
 }
 
-// Percent toward the next badge tier (100 when the ladder is topped out).
+// Progress toward the next badge tier (100 when the ladder is topped out).
+// The label carries the real word counts — "8 / 5,000 words" reads as
+// progress even when the percentage rounds to zero; any words at all show
+// at least a sliver of fill.
 export function badgeProgress(u) {
 	if (!u.nextBadge) return { pct: 100, label: "top of the ladder" }
 	const pct = Math.max(0, Math.min(99, Math.floor((u.wordCount / u.nextBadge.min) * 100)))
-	return { pct, label: `${pct}% toward ${u.nextBadge.name}` }
+	return {
+		pct: u.wordCount > 0 ? Math.max(pct, 1) : 0,
+		label: `${u.wordCount.toLocaleString()} / ${u.nextBadge.min.toLocaleString()} words to ${u.nextBadge.name}`,
+	}
+}
+
+// A row in the writers directory (link wrapping is the page's job).
+export function writerRowHtml(u) {
+	return (
+		`<span class="st-dot ${u.online ? "on" : "off"}" title="${u.online ? "Online" : "Offline"}"></span>` +
+		`<span class="rg-info"><b style="color:${safeColor(u.color)}">${esc(u.username)}</b>` +
+		`<span class="rg-sub">${u.wordCount.toLocaleString()} words</span></span>` +
+		`${u.badge ? `<span class="badge-chip">${esc(u.badge)}</span>` : ""}`
+	)
 }
 
 // Deterministic cover art for a game card: two palette colors + an angle

@@ -1,6 +1,20 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { ladderHtml, usageCaseHtml } from "../public/js/profile-view.js";
+import { ladderHtml, usageCaseHtml, aboutHtml } from "../public/js/profile-view.js";
+
+test("aboutHtml: escapes text/labels/urls, safe link rel, empty state", () => {
+  const out = aboutHtml({
+    about: 'I write <b>fics</b> & things',
+    links: [{ label: '<script>', url: 'https://a.com/?q="x"' }],
+    images: ["https://img.com/1.png"],
+  });
+  assert.ok(out.includes("I write &lt;b&gt;fics&lt;/b&gt; &amp; things"));
+  assert.ok(out.includes("&lt;script&gt;"));
+  assert.ok(out.includes('href="https://a.com/?q=&quot;x&quot;"'), "url attr escaped");
+  assert.ok(out.includes('rel="noopener noreferrer nofollow"'));
+  assert.ok(out.includes('<img class="about-img" src="https://img.com/1.png"'));
+  assert.match(aboutHtml({ about: "", links: [], images: [] }), /Nothing here yet/);
+});
 
 const TIERS = [
   { name: "🐶 Puppy Mike", min: 5000 },
