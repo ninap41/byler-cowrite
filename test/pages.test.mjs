@@ -37,4 +37,10 @@ test("clean URLs serve each page", async () => {
   const set = await page("/settings");
   assert.equal(set.status, 200);
   assert.ok(set.body.includes('id="savePass"'));
+  // color picker leads; username/email/password are collapsed behind toggles
+  assert.ok(set.body.indexOf('id="swatches"') < set.body.indexOf('data-toggle="secUsername"'), "color first");
+  for (const sec of ["secUsername", "secEmail", "secPass"]) {
+    assert.ok(set.body.includes(`data-toggle="${sec}"`), sec + " toggle");
+    assert.ok(new RegExp(`id="${sec}" class="sec-body hidden"`).test(set.body), sec + " starts collapsed");
+  }
 });

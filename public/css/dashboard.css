@@ -460,6 +460,27 @@ a.rg-row {
 	margin-top: 4px;
 	padding-top: 0;
 }
+.sec-toggle {
+	width: 100%;
+	text-align: left;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-top: 8px;
+}
+.sec-toggle[aria-expanded="true"] {
+	border-color: var(--accent-2);
+	color: var(--accent-2);
+}
+.sec-toggle[aria-expanded="true"] .chev {
+	transform: rotate(180deg);
+}
+.sec-toggle .chev {
+	transition: transform 0.25s;
+}
+.sec-body {
+	padding: 12px 4px 4px;
+}
 .ok-msg {
 	color: var(--good);
 	font-size: 0.85rem;

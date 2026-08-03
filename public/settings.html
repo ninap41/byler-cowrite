@@ -22,34 +22,47 @@
 				<div class="card">
 					<h3 class="dash-h" style="margin-top: 0">Settings</h3>
 
-					<div class="settings-section">
-						<label for="setUsername">Username</label>
-						<input id="setUsername" maxlength="24" autocomplete="username" />
-						<div class="row"><button class="ghost" id="saveUsername">Save username</button></div>
-					</div>
-
+					<!-- color first: the thing people change most -->
 					<div class="settings-section">
 						<label>Your color</label>
 						<div class="swatches" id="swatches"></div>
 					</div>
 
+					<!-- account details: collapsed behind toggles to keep the page calm -->
 					<div class="settings-section">
-						<label for="setEmail">Email</label>
-						<input id="setEmail" type="email" autocomplete="email" />
-						<label for="emailPass">Confirm with your password</label>
-						<input id="emailPass" type="password" autocomplete="current-password" />
-						<div class="row"><button class="ghost" id="saveEmail">Save email</button></div>
-					</div>
+						<button type="button" class="ghost sec-toggle" data-toggle="secUsername" aria-expanded="false">
+							✏️ Change username <i class="chev">&#9662;</i>
+						</button>
+						<div id="secUsername" class="sec-body hidden">
+							<label for="setUsername">Username</label>
+							<input id="setUsername" maxlength="24" autocomplete="username" />
+							<div class="row"><button class="ghost" id="saveUsername">Save username</button></div>
+						</div>
 
-					<div class="settings-section">
-						<label for="oldPass">Current password</label>
-						<input id="oldPass" type="password" autocomplete="current-password" />
-						<label for="newPass">New password (min 4 characters)</label>
-						<input id="newPass" type="password" autocomplete="new-password" />
-						<div class="row"><button class="ghost" id="savePass">Change password</button></div>
-						<p class="subtle" style="text-align: left; margin: 8px 0 0; font-size: 0.78rem">
-							Changing your password signs you out everywhere else.
-						</p>
+						<button type="button" class="ghost sec-toggle" data-toggle="secEmail" aria-expanded="false">
+							📧 Change email <i class="chev">&#9662;</i>
+						</button>
+						<div id="secEmail" class="sec-body hidden">
+							<label for="setEmail">Email</label>
+							<input id="setEmail" type="email" autocomplete="email" />
+							<label for="emailPass">Confirm with your password</label>
+							<input id="emailPass" type="password" autocomplete="current-password" />
+							<div class="row"><button class="ghost" id="saveEmail">Save email</button></div>
+						</div>
+
+						<button type="button" class="ghost sec-toggle" data-toggle="secPass" aria-expanded="false">
+							🔒 Change password <i class="chev">&#9662;</i>
+						</button>
+						<div id="secPass" class="sec-body hidden">
+							<label for="oldPass">Current password</label>
+							<input id="oldPass" type="password" autocomplete="current-password" />
+							<label for="newPass">New password (min 4 characters)</label>
+							<input id="newPass" type="password" autocomplete="new-password" />
+							<div class="row"><button class="ghost" id="savePass">Change password</button></div>
+							<p class="subtle" style="text-align: left; margin: 8px 0 0; font-size: 0.78rem">
+								Changing your password signs you out everywhere else.
+							</p>
+						</div>
 					</div>
 
 					<div class="settings-section">
@@ -92,6 +105,24 @@
 			mountChrome({ page: "settings" })
 			const $ = (id) => document.getElementById(id)
 			let me = await requireAuth("/")
+
+			// Collapsible account sections — one open at a time keeps the page calm.
+			const toggles = [...document.querySelectorAll(".sec-toggle")]
+			toggles.forEach((btn) => {
+				btn.onclick = () => {
+					const body = $(btn.dataset.toggle)
+					const opening = body.classList.contains("hidden")
+					toggles.forEach((b) => {
+						$(b.dataset.toggle).classList.add("hidden")
+						b.setAttribute("aria-expanded", "false")
+					})
+					if (opening) {
+						body.classList.remove("hidden")
+						btn.setAttribute("aria-expanded", "true")
+						body.querySelector("input")?.focus()
+					}
+				}
+			})
 
 			const say = (ok, msg) => {
 				$("setErr").textContent = ok ? "" : msg
