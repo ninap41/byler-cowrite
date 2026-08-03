@@ -7,9 +7,12 @@ installDom();
 const { mountChrome, mountKofi, KOFI_ACCOUNT, KOFI_CONFIG } = await import("../public/js/chrome.js");
 const { THEMES, THEME_LABELS, initTheme } = await import("../public/js/theme.js");
 
-test("theme registry: all nine themes present with labels", () => {
-  assert.equal(THEMES.length, 9);
-  for (const id of ["neon", "aurora", "ink", "wall", "snowball", "upside", "starcourt", "arcade", "cerebro"])
+test("theme registry: all nineteen themes present with labels", () => {
+  assert.equal(THEMES.length, 19);
+  for (const id of [
+    "neon", "aurora", "ink", "wall", "snowball", "upside", "starcourt", "arcade", "cerebro",
+    "hawkinslab", "castlebyers", "vecna", "void", "video", "hellfire", "rink", "camp", "bunker", "pollywog",
+  ])
     assert.ok(THEMES.includes(id), id + " registered");
   assert.equal(THEME_LABELS.wall, "The Wall");
   assert.equal(THEME_LABELS.snowball, "Snow Ball");
@@ -17,6 +20,16 @@ test("theme registry: all nine themes present with labels", () => {
   assert.equal(THEME_LABELS.starcourt, "Starcourt");
   assert.equal(THEME_LABELS.arcade, "Palace Arcade");
   assert.equal(THEME_LABELS.cerebro, "Cerebro");
+  assert.equal(THEME_LABELS.hawkinslab, "Hawkins Lab");
+  assert.equal(THEME_LABELS.castlebyers, "Castle Byers");
+  assert.equal(THEME_LABELS.vecna, "Vecna's Clock");
+  assert.equal(THEME_LABELS.void, "The Void");
+  assert.equal(THEME_LABELS.video, "Family Video");
+  assert.equal(THEME_LABELS.hellfire, "Hellfire Club");
+  assert.equal(THEME_LABELS.rink, "Rink-O-Mania");
+  assert.equal(THEME_LABELS.camp, "Camp Know Where");
+  assert.equal(THEME_LABELS.bunker, "Russian Bunker");
+  assert.equal(THEME_LABELS.pollywog, "The Pollywog");
 });
 
 test("background layers sit behind the UI and never intercept clicks", () => {

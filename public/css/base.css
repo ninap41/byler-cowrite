@@ -2777,3 +2777,603 @@ button.danger,
 		animation: none;
 	}
 }
+
+/* ==========================================================================
+   Stranger Things theme pack (10): Hawkins Lab, Castle Byers, Vecna's Clock,
+   The Void, Family Video, Hellfire Club, Rink-O-Mania, Camp Know Where,
+   Russian Bunker, The Pollywog
+   ========================================================================== */
+
+/* ---- Hawkins Lab: sterile fluorescent whites/greens, hazmat accents ---- */
+[data-theme="hawkinslab"] {
+	--bg: #eef2ee;
+	--bg-2: #dde8e0;
+	--panel: rgba(255, 255, 255, 0.66);
+	--panel-2: rgba(248, 252, 249, 0.72);
+	--story-bg: rgba(255, 255, 255, 0.6);
+	--ink: #22332b;
+	--muted: #5f7a6c;
+	--line: rgba(63, 143, 107, 0.28);
+	--accent: #3f8f6b;
+	--accent-2: #b98a1e;
+	--good: #2fa06f;
+	--glow: rgba(63, 143, 107, 0.25);
+	--grad-1: linear-gradient(120deg, #3f8f6b, #7fb89a 55%, #caa53d);
+	--grad-hero: radial-gradient(120% 120% at 50% 0%, rgba(63, 143, 107, 0.14), transparent 70%);
+	--panel-brd: rgba(63, 143, 107, 0.3);
+	--panel-glow: 0 14px 34px rgba(40, 70, 55, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+	--btn-ink: #f4faf6;
+	--chip: rgba(63, 143, 107, 0.1);
+	--chip-brd: rgba(63, 143, 107, 0.32);
+	--scroll-thumb: rgba(63, 143, 107, 0.35);
+	--font-display: "Space Grotesk", sans-serif;
+	--font-body: "Space Grotesk", sans-serif;
+	--font-story: "Newsreader", serif;
+	--font-mono: "Inconsolata", ui-monospace, monospace;
+}
+[data-theme="hawkinslab"] .bg-set.hawkinslab { opacity: 1; }
+.bg-set.hawkinslab .tiles {
+	position: absolute;
+	inset: 0;
+	background:
+		repeating-linear-gradient(0deg, transparent 0 78px, rgba(63, 143, 107, 0.08) 78px 80px),
+		repeating-linear-gradient(90deg, transparent 0 78px, rgba(63, 143, 107, 0.08) 78px 80px);
+}
+.bg-set.hawkinslab .fluoro {
+	position: absolute;
+	top: 0;
+	left: 12%;
+	width: 76%;
+	height: 8px;
+	border-radius: 0 0 8px 8px;
+	background: rgba(220, 244, 230, 0.9);
+	box-shadow: 0 0 60px 24px rgba(190, 230, 205, 0.55);
+}
+.bg-set.hawkinslab .sensors {
+	position: absolute;
+	inset: 0;
+	background-image: radial-gradient(circle 3px at 8% 30%, rgba(185, 138, 30, 0.7) 90%, transparent),
+		radial-gradient(circle 3px at 93% 22%, rgba(63, 143, 107, 0.7) 90%, transparent),
+		radial-gradient(circle 3px at 88% 78%, rgba(185, 138, 30, 0.6) 90%, transparent),
+		radial-gradient(circle 3px at 6% 82%, rgba(63, 143, 107, 0.6) 90%, transparent);
+}
+@media (prefers-reduced-motion: no-preference) {
+	.bg-set.hawkinslab .fluoro { animation: lab-flicker 6s steps(1) infinite; }
+	.bg-set.hawkinslab .sensors { animation: lab-blink 2.2s ease-in-out infinite; }
+}
+@keyframes lab-flicker {
+	0%, 91%, 94%, 100% { opacity: 1; }
+	92%, 95% { opacity: 0.4; }
+}
+@keyframes lab-blink {
+	0%, 100% { opacity: 1; }
+	50% { opacity: 0.35; }
+}
+
+/* ---- Castle Byers: night rain over the blanket fort, a flashlight beam ---- */
+[data-theme="castlebyers"] {
+	--bg: #14100a;
+	--bg-2: #241a0f;
+	--panel: rgba(38, 28, 16, 0.62);
+	--panel-2: rgba(50, 37, 21, 0.66);
+	--story-bg: rgba(28, 20, 11, 0.68);
+	--ink: #f5e8d0;
+	--muted: #b6a084;
+	--line: rgba(255, 184, 77, 0.22);
+	--accent: #ffb84d;
+	--accent-2: #7fa06a;
+	--good: #8fbf6b;
+	--glow: rgba(255, 184, 77, 0.3);
+	--grad-1: linear-gradient(120deg, #ffb84d, #d9a05b 55%, #7fa06a);
+	--grad-hero: radial-gradient(120% 130% at 50% 0%, rgba(255, 184, 77, 0.14), transparent 70%);
+	--panel-brd: rgba(255, 184, 77, 0.24);
+	--panel-glow: 0 18px 44px rgba(5, 3, 0, 0.55), 0 0 30px rgba(255, 184, 77, 0.06), inset 0 1px 0 rgba(255, 232, 190, 0.06);
+	--btn-ink: #1c130a;
+	--chip: rgba(255, 184, 77, 0.12);
+	--chip-brd: rgba(255, 184, 77, 0.38);
+	--scroll-thumb: rgba(255, 184, 77, 0.35);
+	--font-display: "Fraunces", serif;
+	--font-body: "Plus Jakarta Sans", sans-serif;
+	--font-story: "Newsreader", serif;
+	--font-mono: "Inconsolata", ui-monospace, monospace;
+}
+[data-theme="castlebyers"] .bg-set.castlebyers { opacity: 1; }
+.bg-set.castlebyers .rain {
+	position: absolute;
+	inset: -60% 0 0;
+	background: repeating-linear-gradient(
+		12deg,
+		transparent 0 46px,
+		rgba(170, 200, 230, 0.1) 46px 47px
+	);
+}
+.bg-set.castlebyers .rain2 {
+	background: repeating-linear-gradient(12deg, transparent 0 89px, rgba(170, 200, 230, 0.16) 89px 90px);
+}
+.bg-set.castlebyers .beam {
+	position: absolute;
+	left: 8%;
+	bottom: -10%;
+	width: 46vw;
+	height: 46vw;
+	background: conic-gradient(from -18deg at 0% 100%, transparent 0deg, rgba(255, 214, 140, 0.16) 12deg, transparent 30deg);
+	filter: blur(2px);
+}
+@media (prefers-reduced-motion: no-preference) {
+	.bg-set.castlebyers .rain { animation: byers-rain 1.1s linear infinite; }
+	.bg-set.castlebyers .rain2 { animation: byers-rain 1.7s linear infinite; }
+}
+@keyframes byers-rain {
+	to { transform: translateY(120px); }
+}
+
+/* ---- Vecna's Clock: crimson dark, brass, a huge slow clock ---- */
+[data-theme="vecna"] {
+	--bg: #120507;
+	--bg-2: #260a0e;
+	--panel: rgba(46, 12, 16, 0.6);
+	--panel-2: rgba(60, 16, 20, 0.64);
+	--story-bg: rgba(34, 8, 11, 0.68);
+	--ink: #ffd9d0;
+	--muted: #c08a80;
+	--line: rgba(224, 47, 47, 0.26);
+	--accent: #e02f2f;
+	--accent-2: #c98f4e;
+	--good: #7fbf6b;
+	--glow: rgba(224, 47, 47, 0.35);
+	--grad-1: linear-gradient(120deg, #e02f2f, #a4243b 55%, #c98f4e);
+	--grad-hero: radial-gradient(120% 130% at 50% 0%, rgba(224, 47, 47, 0.16), transparent 70%);
+	--panel-brd: rgba(224, 47, 47, 0.28);
+	--panel-glow: 0 18px 44px rgba(8, 1, 2, 0.6), 0 0 30px rgba(224, 47, 47, 0.08), inset 0 1px 0 rgba(255, 220, 210, 0.05);
+	--btn-ink: #1c0507;
+	--chip: rgba(224, 47, 47, 0.12);
+	--chip-brd: rgba(224, 47, 47, 0.4);
+	--scroll-thumb: rgba(224, 47, 47, 0.35);
+	--font-display: "Fraunces", serif;
+	--font-body: "Newsreader", serif;
+	--font-story: "Newsreader", serif;
+	--font-mono: "Inconsolata", ui-monospace, monospace;
+}
+[data-theme="vecna"] .bg-set.vecna { opacity: 1; }
+.bg-set.vecna .clockface {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: min(120vh, 100vw);
+	aspect-ratio: 1;
+	transform: translate(-50%, -50%);
+	border-radius: 50%;
+	border: 1px solid rgba(201, 143, 78, 0.22);
+	background:
+		radial-gradient(circle at 50% 50%, transparent 62%, rgba(201, 143, 78, 0.06) 63%, transparent 66%),
+		repeating-conic-gradient(from 0deg, rgba(201, 143, 78, 0.16) 0deg 0.7deg, transparent 0.7deg 30deg);
+	-webkit-mask: radial-gradient(circle, transparent 55%, #000 56%);
+	mask: radial-gradient(circle, transparent 55%, #000 56%);
+	opacity: 0.6;
+}
+.bg-set.vecna .cvines {
+	position: absolute;
+	inset: auto 0 0;
+	height: 34%;
+	background:
+		radial-gradient(60% 120% at 10% 100%, rgba(74, 12, 18, 0.7), transparent 70%),
+		radial-gradient(50% 110% at 90% 100%, rgba(60, 10, 14, 0.7), transparent 70%);
+}
+.bg-set.vecna .embers {
+	position: absolute;
+	inset: 0;
+	background-image: radial-gradient(circle 2px at 20% 70%, rgba(255, 120, 90, 0.5) 90%, transparent),
+		radial-gradient(circle 2px at 70% 40%, rgba(255, 120, 90, 0.4) 90%, transparent),
+		radial-gradient(circle 3px at 85% 75%, rgba(224, 47, 47, 0.4) 90%, transparent);
+}
+@media (prefers-reduced-motion: no-preference) {
+	.bg-set.vecna .clockface { animation: vecna-turn 240s linear infinite; }
+}
+@keyframes vecna-turn {
+	to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* ---- The Void: black water, one drifting spotlight ---- */
+[data-theme="void"] {
+	--bg: #050507;
+	--bg-2: #0b0b10;
+	--panel: rgba(16, 16, 22, 0.72);
+	--panel-2: rgba(22, 22, 30, 0.75);
+	--story-bg: rgba(12, 12, 17, 0.78);
+	--ink: #e8ecf2;
+	--muted: #8b93a3;
+	--line: rgba(159, 182, 255, 0.2);
+	--accent: #9fb6ff;
+	--accent-2: #6f7dff;
+	--good: #6fd3a8;
+	--glow: rgba(159, 182, 255, 0.22);
+	--grad-1: linear-gradient(120deg, #9fb6ff, #6f7dff 60%, #dfe7ff);
+	--grad-hero: radial-gradient(120% 130% at 50% 0%, rgba(159, 182, 255, 0.1), transparent 70%);
+	--panel-brd: rgba(159, 182, 255, 0.2);
+	--panel-glow: 0 18px 44px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(220, 230, 255, 0.05);
+	--btn-ink: #0a0a10;
+	--chip: rgba(159, 182, 255, 0.1);
+	--chip-brd: rgba(159, 182, 255, 0.3);
+	--scroll-thumb: rgba(159, 182, 255, 0.3);
+	--font-display: "Space Grotesk", sans-serif;
+	--font-body: "Space Grotesk", sans-serif;
+	--font-story: "Newsreader", serif;
+	--font-mono: "Inconsolata", ui-monospace, monospace;
+}
+[data-theme="void"] .bg-set.void { opacity: 1; }
+.bg-set.void .ripple {
+	position: absolute;
+	inset: auto 0 0;
+	height: 22%;
+	background: repeating-linear-gradient(0deg, rgba(159, 182, 255, 0.06) 0 1px, transparent 1px 12px);
+	-webkit-mask: linear-gradient(#000, transparent);
+	mask: linear-gradient(#000, transparent);
+}
+.bg-set.void .vspot {
+	position: absolute;
+	top: 8%;
+	left: 30%;
+	width: 40vw;
+	height: 40vw;
+	background: radial-gradient(circle, rgba(159, 182, 255, 0.1), transparent 60%);
+}
+@media (prefers-reduced-motion: no-preference) {
+	.bg-set.void .ripple { animation: void-ripple 6s ease-in-out infinite; }
+}
+@keyframes void-ripple {
+	0%, 100% { opacity: 0.7; }
+	50% { opacity: 1; }
+}
+
+/* ---- Family Video: late-80s rental teal/magenta, VHS tracking ---- */
+[data-theme="video"] {
+	--bg: #101821;
+	--bg-2: #16222e;
+	--panel: rgba(22, 36, 46, 0.62);
+	--panel-2: rgba(28, 44, 56, 0.66);
+	--story-bg: rgba(16, 28, 37, 0.7);
+	--ink: #e8f6ff;
+	--muted: #8fb2c4;
+	--line: rgba(41, 211, 199, 0.24);
+	--accent: #ff4fd8;
+	--accent-2: #29d3c7;
+	--good: #59d98c;
+	--glow: rgba(255, 79, 216, 0.32);
+	--grad-1: linear-gradient(120deg, #ff4fd8, #7d6bff 50%, #29d3c7);
+	--grad-hero: radial-gradient(120% 130% at 50% 0%, rgba(255, 79, 216, 0.14), rgba(41, 211, 199, 0.05) 55%, transparent 75%);
+	--panel-brd: rgba(41, 211, 199, 0.26);
+	--panel-glow: 0 18px 44px rgba(2, 8, 12, 0.6), 0 0 30px rgba(255, 79, 216, 0.07), inset 0 1px 0 rgba(220, 245, 255, 0.06);
+	--btn-ink: #0b1218;
+	--chip: rgba(255, 79, 216, 0.12);
+	--chip-brd: rgba(255, 79, 216, 0.4);
+	--scroll-thumb: rgba(41, 211, 199, 0.35);
+	--font-display: "Orbitron", sans-serif;
+	--font-body: "Space Grotesk", sans-serif;
+	--font-story: "Space Grotesk", sans-serif;
+	--font-mono: "Inconsolata", ui-monospace, monospace;
+}
+[data-theme="video"] .bg-set.video { opacity: 1; }
+.bg-set.video .vscan {
+	position: absolute;
+	inset: 0;
+	background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.18) 0 2px, transparent 2px 5px);
+}
+.bg-set.video .track {
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: -12%;
+	height: 26px;
+	background: linear-gradient(rgba(255, 255, 255, 0.06), rgba(41, 211, 199, 0.14), rgba(255, 255, 255, 0.06));
+	filter: blur(1px);
+}
+.bg-set.video .vhsglow {
+	position: absolute;
+	right: -8%;
+	top: 12%;
+	width: 34vw;
+	height: 34vw;
+	background: radial-gradient(circle, rgba(255, 79, 216, 0.12), transparent 60%);
+}
+@media (prefers-reduced-motion: no-preference) {
+	.bg-set.video .track { animation: vhs-track 9s linear infinite; }
+}
+@keyframes vhs-track {
+	to { transform: translateY(130vh); }
+}
+
+/* ---- Hellfire Club: D&D table — graph paper, tumbling d20s ---- */
+[data-theme="hellfire"] {
+	--bg: #0d0507;
+	--bg-2: #1c0a10;
+	--panel: rgba(36, 12, 18, 0.62);
+	--panel-2: rgba(46, 16, 22, 0.66);
+	--story-bg: rgba(26, 9, 13, 0.7);
+	--ink: #ffe3e3;
+	--muted: #bd8b93;
+	--line: rgba(224, 47, 47, 0.24);
+	--accent: #e02f2f;
+	--accent-2: #b7b7c9;
+	--good: #8fbf6b;
+	--glow: rgba(224, 47, 47, 0.32);
+	--grad-1: linear-gradient(120deg, #e02f2f, #8d2033 55%, #b7b7c9);
+	--grad-hero: radial-gradient(120% 130% at 50% 0%, rgba(224, 47, 47, 0.15), transparent 70%);
+	--panel-brd: rgba(224, 47, 47, 0.28);
+	--panel-glow: 0 18px 44px rgba(6, 1, 2, 0.6), 0 0 30px rgba(224, 47, 47, 0.08), inset 0 1px 0 rgba(255, 225, 225, 0.05);
+	--btn-ink: #180508;
+	--chip: rgba(224, 47, 47, 0.12);
+	--chip-brd: rgba(224, 47, 47, 0.4);
+	--scroll-thumb: rgba(224, 47, 47, 0.35);
+	--font-display: "Fraunces", serif;
+	--font-body: "Plus Jakarta Sans", sans-serif;
+	--font-story: "Newsreader", serif;
+	--font-mono: "Inconsolata", ui-monospace, monospace;
+}
+[data-theme="hellfire"] .bg-set.hellfire { opacity: 1; }
+.bg-set.hellfire .graph {
+	position: absolute;
+	inset: 0;
+	background:
+		repeating-linear-gradient(0deg, transparent 0 30px, rgba(224, 47, 47, 0.07) 30px 31px),
+		repeating-linear-gradient(90deg, transparent 0 30px, rgba(224, 47, 47, 0.07) 30px 31px);
+}
+.bg-set.hellfire .die {
+	position: absolute;
+	width: 90px;
+	height: 90px;
+	clip-path: polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%);
+	background: linear-gradient(150deg, rgba(224, 47, 47, 0.22), rgba(141, 32, 51, 0.16));
+	border: none;
+}
+.bg-set.hellfire .d20a { top: 18%; left: 8%; }
+.bg-set.hellfire .d20b { bottom: 14%; right: 10%; width: 62px; height: 62px; }
+
+/* ---- Rink-O-Mania: roller-disco floor, mirrorball specks ---- */
+[data-theme="rink"] {
+	--bg: #0b0716;
+	--bg-2: #170f2c;
+	--panel: rgba(32, 20, 60, 0.55);
+	--panel-2: rgba(42, 27, 76, 0.6);
+	--story-bg: rgba(20, 12, 40, 0.68);
+	--ink: #f2ecff;
+	--muted: #a99ad0;
+	--line: rgba(88, 199, 255, 0.24);
+	--accent: #ff5fd2;
+	--accent-2: #58c7ff;
+	--good: #59e0a6;
+	--glow: rgba(255, 95, 210, 0.35);
+	--grad-1: linear-gradient(120deg, #ff5fd2, #9b6bff 50%, #58c7ff);
+	--grad-hero: radial-gradient(120% 130% at 50% 0%, rgba(255, 95, 210, 0.16), rgba(88, 199, 255, 0.05) 55%, transparent 75%);
+	--panel-brd: rgba(155, 107, 255, 0.3);
+	--panel-glow: 0 18px 44px rgba(4, 2, 12, 0.6), 0 0 30px rgba(255, 95, 210, 0.08), inset 0 1px 0 rgba(240, 235, 255, 0.06);
+	--btn-ink: #120a24;
+	--chip: rgba(255, 95, 210, 0.12);
+	--chip-brd: rgba(255, 95, 210, 0.4);
+	--scroll-thumb: rgba(155, 107, 255, 0.4);
+	--font-display: "Orbitron", sans-serif;
+	--font-body: "Plus Jakarta Sans", sans-serif;
+	--font-story: "Space Grotesk", sans-serif;
+	--font-mono: "Inconsolata", ui-monospace, monospace;
+}
+[data-theme="rink"] .bg-set.rink { opacity: 1; }
+.bg-set.rink .specks {
+	position: absolute;
+	inset: 0;
+	background-image:
+		radial-gradient(circle 2px at 12% 20%, rgba(255, 255, 255, 0.5) 90%, transparent),
+		radial-gradient(circle 2px at 34% 64%, rgba(88, 199, 255, 0.5) 90%, transparent),
+		radial-gradient(circle 2px at 58% 30%, rgba(255, 95, 210, 0.5) 90%, transparent),
+		radial-gradient(circle 2px at 81% 70%, rgba(255, 255, 255, 0.45) 90%, transparent),
+		radial-gradient(circle 2px at 92% 18%, rgba(88, 199, 255, 0.4) 90%, transparent);
+}
+.bg-set.rink .p2 { transform: translate(40px, 60px) scale(1.3); opacity: 0.6; }
+.bg-set.rink .sweep {
+	position: absolute;
+	top: -20%;
+	left: 50%;
+	width: 70vw;
+	height: 140vh;
+	transform-origin: 50% 0;
+	background: conic-gradient(from 8deg at 50% 0%, transparent 0deg, rgba(155, 107, 255, 0.1) 8deg, transparent 18deg);
+}
+@media (prefers-reduced-motion: no-preference) {
+	.bg-set.rink .specks { animation: rink-twinkle 3.4s ease-in-out infinite; }
+	.bg-set.rink .p2 { animation-delay: -1.7s; }
+	.bg-set.rink .sweep { animation: rink-sweep 12s ease-in-out infinite alternate; }
+}
+@keyframes rink-twinkle {
+	0%, 100% { opacity: 1; }
+	50% { opacity: 0.35; }
+}
+@keyframes rink-sweep {
+	from { transform: translateX(-50%) rotate(-24deg); }
+	to { transform: translateX(-50%) rotate(24deg); }
+}
+
+/* ---- Camp Know Where: summer-camp greens, pines, fireflies ---- */
+[data-theme="camp"] {
+	--bg: #f0ead8;
+	--bg-2: #e2dfc4;
+	--panel: rgba(255, 252, 240, 0.7);
+	--panel-2: rgba(250, 247, 232, 0.78);
+	--story-bg: rgba(253, 250, 238, 0.72);
+	--ink: #2f3a26;
+	--muted: #6f7a58;
+	--line: rgba(79, 122, 63, 0.26);
+	--accent: #4f7a3f;
+	--accent-2: #c08a2d;
+	--good: #4f7a3f;
+	--glow: rgba(79, 122, 63, 0.25);
+	--grad-1: linear-gradient(120deg, #4f7a3f, #7fa06a 55%, #c08a2d);
+	--grad-hero: radial-gradient(120% 120% at 50% 0%, rgba(79, 122, 63, 0.14), transparent 70%);
+	--panel-brd: rgba(79, 122, 63, 0.26);
+	--panel-glow: 0 14px 34px rgba(60, 70, 40, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+	--btn-ink: #f7f8ee;
+	--chip: rgba(79, 122, 63, 0.1);
+	--chip-brd: rgba(79, 122, 63, 0.3);
+	--scroll-thumb: rgba(79, 122, 63, 0.35);
+	--font-display: "Fraunces", serif;
+	--font-body: "Plus Jakarta Sans", sans-serif;
+	--font-story: "Newsreader", serif;
+	--font-mono: "Inconsolata", ui-monospace, monospace;
+}
+[data-theme="camp"] .bg-set.camp { opacity: 1; }
+.bg-set.camp .pines {
+	position: absolute;
+	inset: auto 0 0;
+	height: 26vh;
+	background:
+		linear-gradient(to top, rgba(63, 90, 48, 0.24), transparent 80%),
+		conic-gradient(from 60deg at 6% 100%, rgba(63, 90, 48, 0.2) 0 60deg, transparent 60deg),
+		conic-gradient(from 55deg at 22% 100%, rgba(63, 90, 48, 0.16) 0 70deg, transparent 70deg),
+		conic-gradient(from 62deg at 55% 100%, rgba(63, 90, 48, 0.14) 0 56deg, transparent 56deg),
+		conic-gradient(from 55deg at 82% 100%, rgba(63, 90, 48, 0.2) 0 70deg, transparent 70deg),
+		conic-gradient(from 62deg at 97% 100%, rgba(63, 90, 48, 0.18) 0 56deg, transparent 56deg);
+}
+.bg-set.camp .fireflies {
+	position: absolute;
+	inset: 30% 0 0;
+	background-image:
+		radial-gradient(circle 2.5px at 18% 60%, rgba(230, 200, 90, 0.85) 90%, transparent),
+		radial-gradient(circle 2px at 44% 40%, rgba(230, 200, 90, 0.7) 90%, transparent),
+		radial-gradient(circle 2.5px at 72% 66%, rgba(230, 200, 90, 0.8) 90%, transparent),
+		radial-gradient(circle 2px at 90% 45%, rgba(230, 200, 90, 0.65) 90%, transparent);
+}
+.bg-set.camp .fl2 { transform: translate(30px, 40px); opacity: 0.7; }
+@media (prefers-reduced-motion: no-preference) {
+	.bg-set.camp .fireflies { animation: firefly-pulse 3s ease-in-out infinite; }
+	.bg-set.camp .fl2 { animation-delay: -1.5s; }
+}
+@keyframes firefly-pulse {
+	0%, 100% { opacity: 1; }
+	50% { opacity: 0.25; }
+}
+
+/* ---- Russian Bunker: cold concrete, amber alarm, Cyrillic stencils ---- */
+[data-theme="bunker"] {
+	--bg: #14161a;
+	--bg-2: #1e2228;
+	--panel: rgba(34, 39, 46, 0.66);
+	--panel-2: rgba(42, 48, 56, 0.7);
+	--story-bg: rgba(26, 30, 36, 0.72);
+	--ink: #e6e9ee;
+	--muted: #90999f;
+	--line: rgba(211, 63, 63, 0.24);
+	--accent: #d33f3f;
+	--accent-2: #ffb000;
+	--good: #7fbf6b;
+	--glow: rgba(211, 63, 63, 0.3);
+	--grad-1: linear-gradient(120deg, #d33f3f, #8e2f2f 55%, #ffb000);
+	--grad-hero: radial-gradient(120% 130% at 50% 0%, rgba(211, 63, 63, 0.12), transparent 70%);
+	--panel-brd: rgba(144, 153, 159, 0.26);
+	--panel-glow: 0 18px 44px rgba(2, 3, 4, 0.6), inset 0 1px 0 rgba(230, 235, 240, 0.05);
+	--btn-ink: #14161a;
+	--chip: rgba(211, 63, 63, 0.12);
+	--chip-brd: rgba(211, 63, 63, 0.4);
+	--scroll-thumb: rgba(144, 153, 159, 0.35);
+	--font-display: "Orbitron", sans-serif;
+	--font-body: "Space Grotesk", sans-serif;
+	--font-story: "Space Grotesk", sans-serif;
+	--font-mono: "Inconsolata", ui-monospace, monospace;
+}
+[data-theme="bunker"] .bg-set.bunker { opacity: 1; }
+.bg-set.bunker .concrete {
+	position: absolute;
+	inset: 0;
+	background:
+		repeating-linear-gradient(90deg, transparent 0 240px, rgba(230, 235, 240, 0.04) 240px 242px),
+		repeating-linear-gradient(0deg, transparent 0 180px, rgba(230, 235, 240, 0.04) 180px 182px);
+}
+.bg-set.bunker .alarm {
+	position: absolute;
+	top: 4%;
+	right: 6%;
+	width: 30vw;
+	height: 30vw;
+	background: radial-gradient(circle, rgba(255, 176, 0, 0.14), transparent 60%);
+}
+.bg-set.bunker .stencil {
+	position: absolute;
+	inset: 0;
+	background:
+		repeating-linear-gradient(-45deg, transparent 0 60px, rgba(211, 63, 63, 0.05) 60px 78px);
+	-webkit-mask: linear-gradient(transparent 70%, #000);
+	mask: linear-gradient(transparent 70%, #000);
+}
+@media (prefers-reduced-motion: no-preference) {
+	.bg-set.bunker .alarm { animation: bunker-alarm 3.2s ease-in-out infinite; }
+}
+@keyframes bunker-alarm {
+	0%, 100% { opacity: 0.4; }
+	50% { opacity: 1; }
+}
+
+/* ---- The Pollywog: murky tank greens, rising bubbles, a darting shadow ---- */
+[data-theme="pollywog"] {
+	--bg: #071410;
+	--bg-2: #0d241c;
+	--panel: rgba(16, 42, 34, 0.6);
+	--panel-2: rgba(20, 52, 42, 0.64);
+	--story-bg: rgba(11, 30, 24, 0.7);
+	--ink: #d9f2e6;
+	--muted: #83ab99;
+	--line: rgba(63, 174, 140, 0.24);
+	--accent: #3fae8c;
+	--accent-2: #a3c94f;
+	--good: #59d98c;
+	--glow: rgba(63, 174, 140, 0.3);
+	--grad-1: linear-gradient(120deg, #3fae8c, #2c7a68 55%, #a3c94f);
+	--grad-hero: radial-gradient(120% 130% at 50% 0%, rgba(63, 174, 140, 0.14), transparent 70%);
+	--panel-brd: rgba(63, 174, 140, 0.26);
+	--panel-glow: 0 18px 44px rgba(1, 6, 4, 0.6), 0 0 30px rgba(63, 174, 140, 0.07), inset 0 1px 0 rgba(215, 245, 230, 0.05);
+	--btn-ink: #06120d;
+	--chip: rgba(63, 174, 140, 0.12);
+	--chip-brd: rgba(63, 174, 140, 0.4);
+	--scroll-thumb: rgba(63, 174, 140, 0.35);
+	--font-display: "Space Grotesk", sans-serif;
+	--font-body: "Space Grotesk", sans-serif;
+	--font-story: "Newsreader", serif;
+	--font-mono: "Inconsolata", ui-monospace, monospace;
+}
+[data-theme="pollywog"] .bg-set.pollywog { opacity: 1; }
+.bg-set.pollywog .bubbles {
+	position: absolute;
+	inset: 0;
+	background-image:
+		radial-gradient(circle 3px at 14% 88%, rgba(215, 245, 230, 0.3) 55%, transparent 60%),
+		radial-gradient(circle 2px at 38% 94%, rgba(215, 245, 230, 0.25) 55%, transparent 60%),
+		radial-gradient(circle 4px at 66% 90%, rgba(215, 245, 230, 0.22) 55%, transparent 60%),
+		radial-gradient(circle 2px at 88% 92%, rgba(215, 245, 230, 0.28) 55%, transparent 60%);
+	background-repeat: no-repeat;
+}
+.bg-set.pollywog .bb2 { transform: translateX(24px); opacity: 0.7; }
+.bg-set.pollywog .dartfish {
+	position: absolute;
+	top: 38%;
+	left: 20%;
+	width: 70px;
+	height: 22px;
+	border-radius: 50%;
+	background: radial-gradient(ellipse, rgba(4, 14, 10, 0.75), transparent 70%);
+	filter: blur(2px);
+}
+@media (prefers-reduced-motion: no-preference) {
+	.bg-set.pollywog .bubbles { animation: bubble-rise 9s linear infinite; }
+	.bg-set.pollywog .bb2 { animation-duration: 13s; }
+}
+@keyframes bubble-rise {
+	from { transform: translateY(0); opacity: 1; }
+	to { transform: translateY(-92vh); opacity: 0; }
+}
+
+/* ---- swatches for the new pack ---- */
+.sw-hawkinslab { background: linear-gradient(120deg, #3f8f6b, #caa53d); }
+.sw-castlebyers { background: linear-gradient(120deg, #ffb84d, #7fa06a); }
+.sw-vecna { background: linear-gradient(120deg, #e02f2f, #c98f4e); }
+.sw-void { background: linear-gradient(120deg, #1a1a24, #9fb6ff); }
+.sw-video { background: linear-gradient(120deg, #ff4fd8, #29d3c7); }
+.sw-hellfire { background: linear-gradient(120deg, #e02f2f, #b7b7c9); }
+.sw-rink { background: linear-gradient(120deg, #ff5fd2, #58c7ff); }
+.sw-camp { background: linear-gradient(120deg, #4f7a3f, #c08a2d); }
+.sw-bunker { background: linear-gradient(120deg, #d33f3f, #ffb000); }
+.sw-pollywog { background: linear-gradient(120deg, #3fae8c, #a3c94f); }

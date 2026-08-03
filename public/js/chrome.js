@@ -45,6 +45,36 @@ const BG = `
 		<div class="bg-set cerebro">
 			<div class="waves"></div><div class="signal"></div><div class="signal signal2"></div>
 		</div>
+		<div class="bg-set hawkinslab">
+			<div class="tiles"></div><div class="fluoro"></div><div class="sensors"></div>
+		</div>
+		<div class="bg-set castlebyers">
+			<div class="rain"></div><div class="rain rain2"></div><div class="beam drift"></div>
+		</div>
+		<div class="bg-set vecna">
+			<div class="clockface"></div><div class="cvines"></div><div class="embers drift"></div>
+		</div>
+		<div class="bg-set void">
+			<div class="ripple"></div><div class="vspot drift"></div>
+		</div>
+		<div class="bg-set video">
+			<div class="vscan"></div><div class="track"></div><div class="vhsglow drift"></div>
+		</div>
+		<div class="bg-set hellfire">
+			<div class="graph"></div><div class="die d20a drift"></div><div class="die d20b drift"></div>
+		</div>
+		<div class="bg-set rink">
+			<div class="specks p1"></div><div class="specks p2"></div><div class="sweep"></div>
+		</div>
+		<div class="bg-set camp">
+			<div class="pines"></div><div class="fireflies fl1 drift"></div><div class="fireflies fl2 drift"></div>
+		</div>
+		<div class="bg-set bunker">
+			<div class="concrete"></div><div class="alarm"></div><div class="stencil"></div>
+		</div>
+		<div class="bg-set pollywog">
+			<div class="bubbles bb1"></div><div class="bubbles bb2"></div><div class="dartfish drift"></div>
+		</div>
 		<div class="grain"></div>
 	</div>`
 

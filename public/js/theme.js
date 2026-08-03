@@ -1,7 +1,10 @@
 // Theme switching (Neon Dusk / Aurora / Inkwell) + animated backgrounds.
 // GSAP is optional: without it (or with prefers-reduced-motion) everything
 // falls back to static CSS.
-export const THEMES = ["neon", "aurora", "ink", "wall", "snowball", "upside", "starcourt", "arcade", "cerebro"]
+export const THEMES = [
+	"neon", "aurora", "ink", "wall", "snowball", "upside", "starcourt", "arcade", "cerebro",
+	"hawkinslab", "castlebyers", "vecna", "void", "video", "hellfire", "rink", "camp", "bunker", "pollywog",
+]
 export const THEME_LABELS = {
 	neon: "Neon Dusk",
 	aurora: "Aurora",
@@ -12,6 +15,16 @@ export const THEME_LABELS = {
 	starcourt: "Starcourt",
 	arcade: "Palace Arcade",
 	cerebro: "Cerebro",
+	hawkinslab: "Hawkins Lab",
+	castlebyers: "Castle Byers",
+	vecna: "Vecna's Clock",
+	void: "The Void",
+	video: "Family Video",
+	hellfire: "Hellfire Club",
+	rink: "Rink-O-Mania",
+	camp: "Camp Know Where",
+	bunker: "Russian Bunker",
+	pollywog: "The Pollywog",
 }
 const LABELS = THEME_LABELS
 
