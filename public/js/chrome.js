@@ -46,10 +46,11 @@ const BG = `
 			<div class="waves"></div><div class="signal"></div><div class="signal signal2"></div>
 		</div>
 		<div class="bg-set hawkinslab">
-			<div class="tiles"></div><div class="fluoro"></div><div class="sensors"></div>
+			<div class="gates"></div><div class="danger"></div><div class="danger dl2"></div>
+			<div class="hazmat h1 drift"></div><div class="hazmat h2 drift"></div><div class="rift"></div>
 		</div>
 		<div class="bg-set castlebyers">
-			<div class="rain"></div><div class="rain rain2"></div><div class="beam drift"></div>
+			<div class="forest"></div><div class="fort"></div><div class="beam drift"></div>
 		</div>
 		<div class="bg-set vecna">
 			<div class="clockface"></div><div class="cvines"></div><div class="embers drift"></div>
