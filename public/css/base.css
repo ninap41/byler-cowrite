@@ -1708,10 +1708,19 @@ ul.roster li {
 @media (min-width: 761px) {
 	.main:has(#lobby:not(.hidden)) {
 		display: flex;
+		flex-direction: column; /* "Live right now" sits UNDER the auth card */
 		align-items: center;
 		justify-content: center;
+		gap: 18px;
 		min-height: calc(100vh - 220px);
 	}
+}
+/* The homepage "Live right now" card matches the auth card's footprint */
+#liveWatch {
+	width: 100%;
+	max-width: 460px;
+	margin-left: auto;
+	margin-right: auto;
 }
 .linky {
 	color: var(--accent-2);
