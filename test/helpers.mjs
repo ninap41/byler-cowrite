@@ -10,24 +10,35 @@ import { io } from "socket.io-client";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 export async function startServer() {
-  const port = 4100 + Math.floor(Math.random() * 3000);
   const dataDir = mkdtempSync(join(tmpdir(), "cowrite-data-"));
   const saveDir = mkdtempSync(join(tmpdir(), "cowrite-saves-"));
-  const child = spawn("node", ["server.js"], {
-    cwd: ROOT,
-    env: { ...process.env, PORT: String(port), COWRITE_DATA_DIR: dataDir, COWRITE_SAVE_DIR: saveDir },
-    stdio: ["ignore", "pipe", "inherit"],
-  });
-  await new Promise((resolve, reject) => {
-    const t = setTimeout(() => reject(new Error("server did not start")), 8000);
-    child.stdout.on("data", (d) => {
-      if (String(d).includes("running")) {
-        clearTimeout(t);
-        resolve();
-      }
+  // Random ports can collide across parallel test files — retry on a fresh
+  // port if the child dies before it says "running" (e.g. EADDRINUSE).
+  let port, child;
+  for (let attempt = 0; ; attempt++) {
+    port = 4100 + Math.floor(Math.random() * 20000);
+    child = spawn("node", ["server.js"], {
+      cwd: ROOT,
+      env: { ...process.env, PORT: String(port), COWRITE_DATA_DIR: dataDir, COWRITE_SAVE_DIR: saveDir },
+      stdio: ["ignore", "pipe", "inherit"],
     });
-    child.on("exit", (code) => reject(new Error("server exited early: " + code)));
-  });
+    try {
+      await new Promise((resolve, reject) => {
+        const t = setTimeout(() => reject(new Error("server did not start")), 8000);
+        child.stdout.on("data", (d) => {
+          if (String(d).includes("running")) {
+            clearTimeout(t);
+            resolve();
+          }
+        });
+        child.on("exit", (code) => reject(new Error("server exited early: " + code)));
+      });
+      break;
+    } catch (e) {
+      child.kill("SIGKILL");
+      if (attempt >= 3) throw e;
+    }
+  }
   const url = `http://localhost:${port}`;
   const sockets = [];
   const ctx = {

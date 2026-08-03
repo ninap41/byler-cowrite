@@ -270,7 +270,21 @@ line contains a trigger word/phrase):
 - Migration test: a legacy user file with old badge ids loads without
   crashing and maps per the chosen migration rule.
 
-## Phase 5 — server modularization (mechanical, tests already green)
+## Phase 5 — server modularization — **DONE**
+
+`server.js` is now a ~35-line entry point wiring `src/` modules:
+`src/sanitize.js` (sanitizeRich/stripTags/sanitizeAbout/httpUrl + palette,
+directly unit-tested in `test/sanitize.test.mjs`), `src/passwords.js`
+(scrypt, unit-tested), `src/store.js` (JSON user store, public shapes,
+startup badge migration), `src/game.js` (`createGame(io)` — sessions,
+persistence, all socket handlers, archive/dashboard read helpers), and
+`src/routes.js` (`registerRoutes(app, game)` — every HTTP API route). The
+pre-existing black-box suite passed unchanged, which is the proof the split
+was behavior-preserving. The test harness also gained a port-collision
+retry (`startServer` re-spawns on a fresh random port if the child dies
+before binding).
+
+## (original Phase 5 notes)
 
 `server.js` → `src/` ES modules, no behavior change, import-order preserved:
 - `src/sanitize.js` (sanitizeRich, stripTags) — **add direct unit tests** (fast,
