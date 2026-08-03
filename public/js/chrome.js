@@ -62,7 +62,8 @@ const BG = `
 			<div class="vscan"></div><div class="track"></div><div class="vhsglow drift"></div>
 		</div>
 		<div class="bg-set hellfire">
-			<div class="graph"></div><div class="die d20a drift"></div><div class="die d20b drift"></div>
+			<div class="graph"></div><div class="flames"></div><div class="flames fl2"></div>
+			<div class="die d20a drift"></div><div class="die d20b drift"></div>
 		</div>
 		<div class="bg-set rink">
 			<div class="specks p1"></div><div class="specks p2"></div><div class="sweep"></div>
