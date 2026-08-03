@@ -51,7 +51,7 @@ export const publicUser = (u) => ({
   badgeDescs: Object.fromEntries(u.badges.map((id) => [badgeName(id), badgeDesc(id)])),
   nextBadge: nextTierFor(u),
   streak: u.streak || 0, bestStreak: u.bestStreak || 0, lastWroteDay: u.lastWroteDay ?? null,
-  about: u.about || "", links: u.links || [], avatar: u.avatar || "",
+  about: u.about || "", links: u.links || [], avatar: u.avatar || "", avatarFit: u.avatarFit || "cover",
 });
 
 // What OTHER signed-in players may see: everything public-facing, never the
@@ -65,6 +65,6 @@ export const profileOf = (u, onlineIds) => ({
   nextBadge: nextTierFor(u),
   streak: u.streak || 0, bestStreak: u.bestStreak || 0,
   stories: (u.games || []).length,
-  about: u.about || "", links: u.links || [], avatar: u.avatar || "",
+  about: u.about || "", links: u.links || [], avatar: u.avatar || "", avatarFit: u.avatarFit || "cover",
   online: onlineIds.has(u.id),
 });

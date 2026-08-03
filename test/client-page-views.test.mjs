@@ -58,6 +58,10 @@ test("writerRowHtml: escapes, online dot, badge chip optional", () => {
   const off = writerRowHtml({ username: "mike", color: "bad", wordCount: 0, badge: null, online: false });
   assert.ok(off.includes("st-dot off"));
   assert.ok(!off.includes("badge-chip"));
+  assert.ok(!off.includes("mini-avatar"), "no avatar img without a picture");
+  const pic = writerRowHtml({ username: "el", color: "#e879c9", wordCount: 1, online: true,
+    avatar: "https://img.com/el.png", avatarFit: "contain" });
+  assert.ok(pic.includes('mini-avatar fit-contain'), "directory rows show the profile pic with fit pref");
 });
 
 test("coverArt is deterministic per code and palette-bound", () => {

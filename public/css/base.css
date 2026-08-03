@@ -728,6 +728,23 @@ body {
 	color: var(--accent-2);
 }
 
+/* ---------- Profile pictures (mini + fit preference) ---------- */
+.mini-avatar {
+	width: 20px;
+	height: 20px;
+	border-radius: 50%;
+	object-fit: cover;
+	vertical-align: middle;
+	margin-right: 6px;
+	border: 1px solid var(--line);
+	background: var(--panel-2);
+	flex: none;
+}
+.mini-avatar.fit-contain,
+.avatar-img.fit-contain {
+	object-fit: contain;
+}
+
 /* ---------- Inline line editing + edited marker ---------- */
 .story-line .line-edit {
 	float: right;

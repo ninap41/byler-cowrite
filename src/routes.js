@@ -202,6 +202,8 @@ export function registerRoutes(app, game) {
     u.about = sanitizeAbout(req.body?.about ?? "");
     u.links = links;
     u.avatar = avatar;
+    // crop-to-fill vs zoom-out-to-fit — the user's display preference
+    u.avatarFit = req.body?.avatarFit === "contain" ? "contain" : "cover";
     delete u.images; // superseded by inline <img> embeds in About
     saveStore();
     res.json({ user: publicUser(u) });
@@ -214,7 +216,8 @@ export function registerRoutes(app, game) {
     const users = store.users
       .map((x) => ({
         username: x.username, color: x.color, badge: badgeName(x.currentBadge),
-        wordCount: x.wordCount, online: ids.has(x.id), avatar: x.avatar || "",
+        wordCount: x.wordCount, online: ids.has(x.id),
+        avatar: x.avatar || "", avatarFit: x.avatarFit || "cover",
       }))
       .sort((a, b) => (b.online - a.online) || a.username.localeCompare(b.username));
     res.json({ users });

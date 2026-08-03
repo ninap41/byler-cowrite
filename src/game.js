@@ -45,6 +45,7 @@ export function createGame(io) {
         remaining: s.remaining, currentIdx: s.currentIdx,
         writers: [...s.writers.values()].map((w) => ({
           name: w.name, color: w.color, token: w.token, userId: w.userId ?? null, badge: w.badge ?? null,
+          avatar: w.avatar ?? "", avatarFit: w.avatarFit ?? "cover",
         })),
         turnOrderTokens: s.turnOrder.map((id) => s.writers.get(id)?.token).filter(Boolean),
         hostToken: s.writers.get(s.hostId)?.token ?? s.hostToken ?? null,
@@ -71,7 +72,9 @@ export function createGame(io) {
       "ghost:" + w.token,
       {
         name: w.name, color: cleanColor(w.color), token: w.token,
-        userId: w.userId ?? null, badge: w.badge ?? null, connected: false, ghostTimer: null,
+        userId: w.userId ?? null, badge: w.badge ?? null,
+        avatar: w.avatar ?? "", avatarFit: w.avatarFit ?? "cover",
+        connected: false, ghostTimer: null,
         approved: false, // continued games gate every returning writer (host approves)
       },
     ]));
@@ -125,6 +128,8 @@ export function createGame(io) {
     color: cleanColor(acct.color),
     userId: acct.id,
     badge: badgeName(acct.currentBadge),
+    avatar: acct.avatar || "",
+    avatarFit: acct.avatarFit || "cover",
     token: randomUUID(), connected: true, ghostTimer: null,
     approved: true, // gating only applies to seats revived from a save
   });
@@ -214,6 +219,7 @@ export function createGame(io) {
   function roster(s) {
     return [...s.writers.entries()].map(([id, w]) => ({
       id, name: w.name, color: w.color, badge: w.badge ?? null,
+      avatar: w.avatar ?? "", avatarFit: w.avatarFit ?? "cover",
       isHost: id === s.hostId, connected: w.connected !== false,
     }));
   }
@@ -736,6 +742,8 @@ export function createGame(io) {
         name: w?.name ?? "?",
         color: w?.color ?? PALETTE[0],
         badge: w?.badge ?? null,
+        avatar: w?.avatar ?? "",
+        avatarFit: w?.avatarFit ?? "cover",
         host: socket.id === s.hostId,
         text: String(text).slice(0, 500).trim(),
         ts: Date.now(),

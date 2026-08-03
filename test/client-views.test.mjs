@@ -50,6 +50,19 @@ test("livePreviewHtml carries a caret and escapes the name", () => {
 });
 
 // ---- chat ----
+test("chatMessageHtml: profile pic beside the name; system messages have none", () => {
+  const m = { name: "will", color: "#6c8cff", text: "hi", avatar: "https://img.com/w.png", avatarFit: "cover" };
+  assert.ok(chatMessageHtml(m).includes('mini-avatar fit-cover'));
+  assert.ok(!chatMessageHtml({ ...m, sys: true }).includes("mini-avatar"), "system lines stay bare");
+  assert.ok(!chatMessageHtml({ name: "x", color: "#6c8cff", text: "hi" }).includes("mini-avatar"));
+});
+
+test("avatarHtml carries the fit preference", async () => {
+  const { avatarHtml } = await import("../public/js/profile-view.js");
+  assert.ok(avatarHtml({ username: "w", avatar: "https://i.com/a.png", avatarFit: "contain" }).includes("fit-contain"));
+  assert.ok(avatarHtml({ username: "w", avatar: "https://i.com/a.png" }).includes("fit-cover"));
+});
+
 test("chatMessageHtml: text and badge escaped, system messages skip dot/marks", () => {
   const out = chatMessageHtml({ name: "will", color: "#6c8cff", badge: "✏️ <b>", text: "<script>hi" });
   assert.ok(out.includes("&lt;script&gt;hi"), "text escaped");

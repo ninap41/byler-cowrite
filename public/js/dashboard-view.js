@@ -1,5 +1,5 @@
 // Dashboard render helpers (pure string builders — testable without a page).
-import { esc, safeColor, PALETTE } from "./util.js"
+import { esc, safeColor, PALETTE, miniAvatar } from "./util.js"
 
 export function onlineUsersHtml(users) {
 	return (
@@ -52,6 +52,7 @@ export function badgeProgress(u) {
 export function writerRowHtml(u) {
 	return (
 		`<span class="st-dot ${u.online ? "on" : "off"}" title="${u.online ? "Online" : "Offline"}"></span>` +
+		miniAvatar(u) +
 		`<span class="rg-info"><b style="color:${safeColor(u.color)}">${esc(u.username)}</b>` +
 		`<span class="rg-sub">${u.wordCount.toLocaleString()} words</span></span>` +
 		`${u.badge ? `<span class="badge-chip">${esc(u.badge)}</span>` : ""}`

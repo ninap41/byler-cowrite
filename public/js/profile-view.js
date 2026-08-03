@@ -38,10 +38,11 @@ export function aboutHtml(p) {
 	return about + (links ? `<div class="about-links">${links}</div>` : "")
 }
 
-// Avatar helper: external picture when set, otherwise the tinted initial.
+// Avatar helper: external picture when set (fit per user preference),
+// otherwise the tinted initial.
 export function avatarHtml(p) {
 	return p.avatar
-		? `<img class="avatar-img" src="${esc(p.avatar)}" alt="" loading="lazy">`
+		? `<img class="avatar-img fit-${p.avatarFit === "contain" ? "contain" : "cover"}" src="${esc(p.avatar)}" alt="" loading="lazy">`
 		: esc((p.username || "?").charAt(0).toUpperCase())
 }
 

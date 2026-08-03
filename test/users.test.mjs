@@ -1,5 +1,7 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { startServer, signup } from "./helpers.mjs";
 
 let ctx;
@@ -38,6 +40,55 @@ test("profile content: about html sanitized (only http img embeds survive), link
   assert.equal(p.links.length, 3, "max three links");
   assert.equal(p.links[1].label, "http://example.com", "empty label falls back to url");
   assert.ok(!p.links.some((l) => l.url.includes("dropped")), "fourth link dropped");
+});
+
+test("avatar + fit ride everywhere: directory, profile, roster, chat, snapshot", async () => {
+  const host = await signup(ctx, "avatarhost", "ah@x.com");
+  const pal = await signup(ctx, "avatarpal", "ap@x.com");
+  await ctx.api("/api/account/profile", {
+    avatar: "https://img.example.com/host.png", avatarFit: "contain",
+  }, host.token);
+  const badFit = (await ctx.api("/api/account/profile", {
+    avatar: "https://img.example.com/host.png", avatarFit: "sideways",
+  }, host.token)).data.user;
+  assert.equal(badFit.avatarFit, "cover", "unknown fit falls back to cover");
+  await ctx.api("/api/account/profile", {
+    avatar: "https://img.example.com/host.png", avatarFit: "contain",
+  }, host.token);
+
+  // directory + public profile carry it
+  const dir = (await ctx.api("/api/users", null, pal.token, "GET")).data.users
+    .find((x) => x.username === "avatarhost");
+  assert.equal(dir.avatar, "https://img.example.com/host.png");
+  assert.equal(dir.avatarFit, "contain");
+  const prof = (await ctx.api("/api/users/avatarhost", null, pal.token, "GET")).data.user;
+  assert.equal(prof.avatarFit, "contain");
+
+  // in-game: roster (game-state) and chat messages carry it
+  const A = await ctx.conn();
+  const B = await ctx.conn();
+  const state = { current: null };
+  A.on("game-state", (st) => (state.current = st));
+  const rosterP = new Promise((r) => A.on("roster", r));
+  const c = await ctx.emit(A, "create-session", { auth: host.token });
+  const ros = await rosterP;
+  const seat = ros.writers.find((w) => w.name === "avatarhost");
+  assert.equal(seat.avatar, "https://img.example.com/host.png", "roster carries the pic");
+  assert.equal(seat.avatarFit, "contain");
+  await ctx.emit(B, "join-session", { code: c.code, auth: pal.token });
+  const chatP = new Promise((r) => B.on("chat", (m) => !m.sys && r(m)));
+  A.emit("chat", { text: "look at my face" });
+  const msg = await chatP;
+  assert.equal(msg.avatar, "https://img.example.com/host.png", "chat messages carry the pic");
+  assert.equal(msg.avatarFit, "contain");
+
+  // snapshots persist it (rehydrated seats keep their pictures)
+  const snap = JSON.parse(readFileSync(join(ctx.saveDir, c.code + ".json"), "utf-8"));
+  const saved = snap.writers.find((w) => w.name === "avatarhost");
+  assert.equal(saved.avatar, "https://img.example.com/host.png");
+  assert.equal(saved.avatarFit, "contain");
+  A.disconnect();
+  B.disconnect();
 });
 
 test("writers directory: auth-gated, everyone listed with online flags", async () => {

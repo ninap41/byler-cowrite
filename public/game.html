@@ -196,7 +196,7 @@
 
 		<script src="/socket.io/socket.io.js"></script>
 		<script type="module">
-			import { PALETTE, esc, safeColor, whoMarks } from "/js/util.js"
+			import { PALETTE, esc, safeColor, whoMarks, miniAvatar } from "/js/util.js"
 			import { api as authApi, getToken, setToken } from "/js/api.js"
 			import { loadRejoin, saveRejoin, clearRejoin } from "/js/socket-client.js"
 			import { createSounds, createLineChime, shouldChimeChat } from "/js/sounds.js"
@@ -414,6 +414,7 @@
 					if (w.connected === false) li.style.opacity = "0.45"
 					li.innerHTML =
 						`<span class="st-dot ${w.connected === false ? "off" : "on"}" title="${w.connected === false ? "Offline" : "Online"}"></span>` +
+						miniAvatar(w) +
 						whoMarks(w) +
 						`<span class="rname" style="color:${col}">${esc(w.name)}</span>` +
 						`${w.badge ? `<span class="badge-chip">${esc(w.badge)}</span>` : ""}` +
@@ -528,6 +529,7 @@
 						return (
 							`<span class="player-chip${w.id === st.currentId ? " now" : ""}">` +
 							`<span class="st-dot ${on ? "on" : "off"}" title="${on ? "Online" : "Offline"}"></span>` +
+							miniAvatar(w) +
 							whoMarks(w) +
 							`<span style="color:${col}">${esc(w.name)}</span></span>`
 						)

@@ -1,6 +1,17 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { PALETTE, esc, safeColor, whoMarks } from "../public/js/util.js";
+import { PALETTE, esc, safeColor, whoMarks, miniAvatar } from "../public/js/util.js";
+
+test("miniAvatar: img with fit class when set, empty otherwise, url escaped", () => {
+  const cover = miniAvatar({ avatar: "https://img.com/a.png" });
+  assert.ok(cover.includes('class="mini-avatar fit-cover"'), "cover is the default fit");
+  assert.ok(cover.includes('src="https://img.com/a.png"'));
+  assert.ok(miniAvatar({ avatar: "https://img.com/a.png", avatarFit: "contain" }).includes("fit-contain"));
+  assert.ok(miniAvatar({ avatar: "https://img.com/a.png", avatarFit: "junk" }).includes("fit-cover"), "unknown fit falls back");
+  assert.equal(miniAvatar({ avatar: "" }), "");
+  assert.equal(miniAvatar(null), "");
+  assert.ok(miniAvatar({ avatar: 'https://a.com/"x"' }).includes("&quot;x&quot;"), "attr escaped");
+});
 
 test("esc escapes every HTML-significant character", () => {
   assert.equal(esc(`<b>&"'`), "&lt;b&gt;&amp;&quot;&#39;");
