@@ -9,6 +9,7 @@ import { bumpStreak } from "../lib/streak.js";
 import { badgeName, badgeDesc, usageMatches, awardWordBadges } from "../lib/achievements.js";
 import { PALETTE, cleanColor, sanitizeRich, stripTags } from "./sanitize.js";
 import { store, saveStore, userByToken } from "./store.js";
+import { mirror, mirrorDelete } from "./persist.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -42,7 +43,7 @@ export function createGame(io) {
 
   function saveSnapshot(s) {
     try {
-      writeFileSync(join(SAVE_DIR, s.code + ".json"), JSON.stringify({
+      const doc = JSON.stringify({
         code: s.code, name: s.name || "", phase: s.phase, prompt: s.prompt, story: s.story, chat: s.chat,
         turnSeconds: s.turnSeconds, maxTurns: s.maxTurns, turnCount: s.turnCount,
         remaining: s.remaining, currentIdx: s.currentIdx,
@@ -55,7 +56,9 @@ export function createGame(io) {
         hostName: s.writers.get(s.hostId)?.name ?? s.hostName ?? null,
         hostUserId: s.writers.get(s.hostId)?.userId ?? s.hostUserId ?? null,
         savedAt: Date.now(),
-      }));
+      });
+      writeFileSync(join(SAVE_DIR, s.code + ".json"), doc);
+      mirror("save", s.code, doc); // no-op without DATABASE_URL
     } catch (e) {
       console.error("saveSnapshot failed:", e.message);
     }
@@ -101,6 +104,7 @@ export function createGame(io) {
       hostName: d.hostName ?? null, hostUserId: d.hostUserId ?? null,
     };
     sessions.set(code, s);
+    if (s.phase === "writing") armIdleEnd(s); // wakes paused — don't let it sit forever
     return s;
   }
 
@@ -183,6 +187,7 @@ export function createGame(io) {
       s.paused = true;
       s.remaining = Math.max(0, s.deadline - Date.now());
       clearTimeout(s.timer);
+      armIdleEnd(s);
       saveSnapshot(s);
       announce(s, w, "stepped away — game paused");
     }
@@ -248,6 +253,14 @@ export function createGame(io) {
     return counts;
   }
 
+  // Sockets in the session room that hold no seat — read-only watchers.
+  function spectatorCount(s) {
+    let n = 0;
+    for (const id of io.sockets.adapter.rooms.get(s.code) ?? [])
+      if (io.sockets.sockets.get(id)?.data.spectating === s.code) n++;
+    return n;
+  }
+
   function broadcastGame(s) {
     const curId = currentId(s);
     io.to(s.code).emit("game-state", {
@@ -273,11 +286,26 @@ export function createGame(io) {
       writers: roster(s), // incl. connected flags -> online/offline dots
       hostId: s.hostId,
       hostName: s.writers.get(s.hostId)?.name ?? null,
+      spectators: spectatorCount(s),
     });
+  }
+
+  // A paused writing game that sits idle this long ends itself with a reveal.
+  // Nothing is lost: the snapshot survives and the host can continue-writing
+  // from the archive any time. (Env override keeps the tests fast.)
+  const IDLE_END_MS = Number(process.env.COWRITE_IDLE_END_MS) || 30 * 60_000;
+  function armIdleEnd(s) {
+    clearTimeout(s.idleTimer);
+    s.idleTimer = setTimeout(() => {
+      if (s.phase !== "writing" || !s.paused) return;
+      announce(s, s.writers.get(s.hostId), `— idle for ${Math.round(IDLE_END_MS / 60_000)} minutes, so the story was revealed. Continue it any time from the archive.`);
+      endGame(s);
+    }, IDLE_END_MS);
   }
 
   function startTurn(s) {
     clearTimeout(s.timer);
+    clearTimeout(s.idleTimer);
     s.paused = false;
     s.remaining = 0;
     if (s.turnOrder.length === 0) return endGame(s);
@@ -291,6 +319,7 @@ export function createGame(io) {
     if (!s.writers.get(currentId(s))?.connected) {
       s.paused = true;
       s.remaining = s.turnSeconds * 1000;
+      armIdleEnd(s);
       saveSnapshot(s);
       broadcastGame(s);
       return;
@@ -349,6 +378,7 @@ export function createGame(io) {
 
   function endGame(s) {
     clearTimeout(s.timer);
+    clearTimeout(s.idleTimer);
     s.phase = "over";
     s.paused = false;
     saveSnapshot(s);
@@ -364,6 +394,7 @@ export function createGame(io) {
 
     if (s.writers.size === 0) {
       clearTimeout(s.timer);
+      clearTimeout(s.idleTimer);
       sessions.delete(s.code);
       return;
     }
@@ -660,20 +691,18 @@ export function createGame(io) {
       ack?.({ ok: true });
     });
 
-    // Host inserts a chapter header into the story — no turn consumed, no
-    // words credited; plain text, rendered as a centered heading.
-    socket.on("add-header", ({ text }, ack) => {
+    // Authors can remove their own committed lines (writing or reveal phase).
+    // Word counts are NOT clawed back, mirroring edit-line's no-re-credit rule.
+    socket.on("delete-line", ({ index }, ack) => {
       const s = mySession();
-      if (!s || s.hostId !== socket.id) return ack?.({ ok: false, error: "Host only." });
-      if (s.phase !== "writing" && s.phase !== "over") return ack?.({ ok: false });
-      const t = stripTags(String(text || "")).slice(0, 80).trim();
-      if (!t) return ack?.({ ok: false, error: "A header can't be empty." });
+      if (!s || (s.phase !== "writing" && s.phase !== "over")) return ack?.({ ok: false });
       const w = s.writers.get(socket.id);
-      s.story.push({
-        name: w?.name, color: w?.color,
-        html: sanitizeRich(`<h2 class="al-c">${t}</h2>`),
-        userId: w?.userId ?? null, header: true, host: true,
-      });
+      const i = Number(index);
+      const line = s.story[i];
+      if (!w || !line) return ack?.({ ok: false, error: "That line doesn't exist." });
+      if (!line.userId || line.userId !== w.userId)
+        return ack?.({ ok: false, error: "You can only delete your own lines." });
+      s.story.splice(i, 1);
       saveSnapshot(s);
       if (s.phase === "over") io.to(s.code).emit("game-over", { prompt: s.prompt, story: s.story });
       else broadcastGame(s);
@@ -705,6 +734,7 @@ export function createGame(io) {
       s.paused = true;
       s.remaining = Math.max(0, s.deadline - Date.now());
       clearTimeout(s.timer);
+      armIdleEnd(s);
       saveSnapshot(s);
       broadcastGame(s);
       ack?.({ ok: true });
@@ -755,6 +785,7 @@ export function createGame(io) {
         ack?.({ ok: true });
         return startTurn(s);
       }
+      clearTimeout(s.idleTimer);
       s.deadline = Date.now() + s.remaining;
       s.timer = setTimeout(() => timeUp(s), s.remaining);
       broadcastGame(s);
@@ -815,6 +846,9 @@ export function createGame(io) {
 
     socket.on("disconnect", () => {
       onlineSockets.delete(socket.id);
+      // A departing spectator changes the watcher count everyone sees.
+      const watched = sessions.get(socket.data.spectating);
+      if (watched && watched.phase !== "waiting" && watched.phase !== "over") broadcastGame(watched);
       const p = sessions.get(socket.data.pendingCode);
       if (p && p.pending.delete(socket.id))
         io.sockets.sockets.get(p.hostId)?.emit("join-request-cancel", { id: socket.id });
@@ -893,6 +927,7 @@ export function createGame(io) {
     const s = sessions.get(code);
     if (s) {
       clearTimeout(s.timer);
+      clearTimeout(s.idleTimer);
       for (const w of s.writers.values()) clearTimeout(w.ghostTimer);
       io.to(code).emit("game-deleted");
       sessions.delete(code);
@@ -900,6 +935,7 @@ export function createGame(io) {
     try {
       unlinkSync(join(SAVE_DIR, code + ".json"));
     } catch { /* already gone */ }
+    mirrorDelete("save", code); // no-op without DATABASE_URL
   }
 
   return { sessions, onlineSockets, SAVE_DIR, gameSummary, inGame, myGamesFor, recentGamesFor, deleteGame };

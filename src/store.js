@@ -1,9 +1,11 @@
-// User accounts — JSON file store (data/users.json), no database on purpose.
-// ~100 users; every mutation just rewrites the file.
+// User accounts — JSON file store (data/users.json), ~100 users; every
+// mutation just rewrites the file. When DATABASE_URL is set, src/persist.js
+// mirrors the file into Postgres so it survives Replit deploys.
 import { readFileSync, writeFileSync, mkdirSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import { badgeName, badgeDesc, isUsageId, nextTierFor, migrateBadges } from "../lib/achievements.js";
+import { mirror } from "./persist.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -18,7 +20,9 @@ try {
 
 export const saveStore = () => {
   try {
-    writeFileSync(USERS_PATH, JSON.stringify(store, null, 1));
+    const doc = JSON.stringify(store, null, 1);
+    writeFileSync(USERS_PATH, doc);
+    mirror("users", "users", doc); // no-op without DATABASE_URL
   } catch (e) {
     console.error("saveStore failed:", e.message);
   }

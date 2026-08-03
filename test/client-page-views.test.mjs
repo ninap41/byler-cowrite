@@ -115,10 +115,15 @@ test("gameCardHtml: escapes everything, marks host writers, counts lines", () =>
     writers: [{ name: "will", isHost: true }, { name: "mike", isHost: false }],
   });
   assert.ok(out.includes("&lt;b&gt;N&lt;/b&gt;"));
-  assert.ok(out.includes("&lt;i&gt;P&lt;/i&gt;"));
+  assert.ok(!out.includes("&lt;i&gt;P&lt;/i&gt;"), "named games show the name INSTEAD of the prompt");
   assert.ok(out.includes("1 line<"));
   assert.ok(out.includes("finished"));
   assert.ok(out.includes("👑 will, mike"));
+  const unnamed = gameCardHtml({
+    code: "AB12", name: "", prompt: "<i>P</i>", phase: "over", lines: 1,
+    hostName: "will", savedAt: 0, writers: [],
+  });
+  assert.ok(unnamed.includes("&lt;i&gt;P&lt;/i&gt;"), "unnamed games fall back to the prompt");
 });
 
 test("archiveMetaText + archiveStoryHtml: sanitized html as-is, names escaped, empty state", () => {

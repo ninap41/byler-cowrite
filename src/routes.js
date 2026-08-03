@@ -2,7 +2,8 @@
 // dashboard payload, and the private previous-games archive.
 import { readFileSync, readdirSync } from "fs";
 import { randomUUID } from "crypto";
-import { join } from "path";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
 import { WORD_TIERS, USAGE, badgeName, awardWordBadges } from "../lib/achievements.js";
 import { cleanColor, stripTags, httpUrl, sanitizeAbout } from "./sanitize.js";
 import { hashPassword, checkPassword } from "./passwords.js";
@@ -40,6 +41,20 @@ async function sendResetEmail(to, link) {
 
 export function registerRoutes(app, game) {
   const { sessions, onlineSockets, SAVE_DIR, gameSummary, inGame, myGamesFor, recentGamesFor, deleteGame } = game;
+
+  // Random tagline quote for the homepage hero. quotes.json (repo root, one
+  // string per entry) is hand-editable and re-read on every request, so new
+  // quotes appear without a restart. Public — the homepage has no auth.
+  const QUOTES_PATH = join(dirname(fileURLToPath(import.meta.url)), "..", "quotes.json");
+  app.get("/api/quote", (_req, res) => {
+    let quotes = [];
+    try {
+      quotes = JSON.parse(readFileSync(QUOTES_PATH, "utf-8"));
+    } catch { /* missing/invalid file -> fall through to default */ }
+    if (!Array.isArray(quotes) || !quotes.length)
+      quotes = ["If we're both going crazy, we might as well write it down."];
+    res.json({ quote: String(quotes[Math.floor(Math.random() * quotes.length)]) });
+  });
 
   // Logged-in dashboard: who's online + games currently running.
   app.get("/api/dashboard", (req, res) => {

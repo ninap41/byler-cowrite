@@ -16,6 +16,7 @@
 		<!-- HERO LANDING -->
 		<div class="hero" id="hero">
 			<div class="hero-inner">
+				<div class="hero-logo" id="heroLogo"></div>
 				<svg class="hero-svg" id="heroSvg" viewBox="0 0 900 300" aria-label="Byler Cowrite" role="img">
 					<defs>
 						<linearGradient id="heroGrad" x1="0" y1="0" x2="1" y2="0.35">
@@ -145,8 +146,11 @@
 			import { api, getToken, setToken } from "/js/api.js"
 			import { mountChrome } from "/js/chrome.js"
 			import { wireAuthForms } from "/js/components/auth-forms.js"
+			import { heroMarkHtml } from "/js/logo.js"
 
 			mountChrome({ nav: false }) // homepage: no drawer, just theme + background
+			// Spiral + quill in one svg; the GSAP script has the quill draw the spiral.
+			document.getElementById("heroLogo").innerHTML = heroMarkHtml("hero")
 			// Already signed in (valid token)? Straight to the dashboard.
 			if (getToken())
 				api("/api/me", null, "GET")
@@ -163,6 +167,14 @@
 
 			// ---- Features modal (opens from the hero tagline) ----
 			const $ = (id) => document.getElementById(id)
+			// Random tagline from quotes.json — swap it in before (or while) the
+			// hero types it out; the animation script awaits this promise.
+			window._quoteFetch = fetch("/api/quote")
+				.then((r) => r.json())
+				.then(({ quote }) => {
+					if (quote) $("heroTagText").textContent = quote
+				})
+				.catch(() => {})
 			$("heroTag").onclick = () => $("featuresModal").classList.remove("hidden")
 			$("featuresClose").onclick = () => $("featuresModal").classList.add("hidden")
 			$("featuresModal").addEventListener("click", (e) => {
@@ -216,6 +228,7 @@
 		<!-- GSAP hero + entrance animations (additive; degrades gracefully) -->
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 		<script type="module">
+			import { makeCoil, NIB } from "/js/logo.js"
 			;(function () {
 				var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches
 				if (typeof gsap === "undefined" || reduce) return
@@ -226,13 +239,28 @@
 				var heroEl = document.getElementById("hero")
 				var HERO_DASH = 460 // longer than any glyph subpath, so every stroke draws fully
 				var tagSpanEl = document.getElementById("heroTagText")
-				var tagFullText = tagSpanEl.textContent
+				var tagFullText = tagSpanEl.textContent // re-captured when the quote fetch lands
+				// The sun-spiral mark above the title (injected by the module script
+				// above): the quill traces the coil, then strikes each ray.
+				var logoEl = document.getElementById("heroLogo")
+				var logoRays = logoEl ? Array.prototype.slice.call(logoEl.querySelectorAll(".logo-rays path")) : []
+				var logoQuill = logoEl ? logoEl.querySelector(".logo-quill") : null
+				var logoGlyph = logoEl ? logoEl.querySelector(".logo-glyph") : null
+				var logoCoil = logoEl ? logoEl.querySelector(".logo-coil") : null
+				var coil = makeCoil()
+				var nibAt = function (pt) { return { x: pt.x - NIB.x, y: pt.y - NIB.y } }
 				// The hero must NEVER be an invisible click-shield: if the write-in
 				// stalls (background tab, throttled rAF), force the finished frame so
 				// the Enter button is always reachable.
 				function heroFinish() {
 					var words = ["#heroWord1", "#heroWord2"]
-					gsap.killTweensOf([words, "#heroUnderline", "#heroTag", "#heroBtns"])
+					gsap.killTweensOf([words, "#heroUnderline", "#heroTag", "#heroBtns", logoEl, logoRays, logoQuill])
+					if (logoEl) {
+						gsap.set(logoEl, { opacity: 1, clearProps: "transform" })
+						if (logoCoil) logoCoil.setAttribute("d", coil.outline(1))
+						logoRays.forEach(function (p) { p.style.strokeDashoffset = 0 })
+						if (logoQuill) gsap.set(logoQuill, { opacity: 0 }) // the pen has left the page
+					}
 					gsap.set(words, { fillOpacity: 1, strokeDashoffset: 0, strokeWidth: 1.6, strokeDasharray: HERO_DASH })
 					gsap.set("#heroUnderline", { strokeDashoffset: 0 })
 					gsap.set(["#heroTag", "#heroBtns"], { opacity: 1, y: 0, clearProps: "transform" })
@@ -259,9 +287,49 @@
 					document.addEventListener("visibilitychange", function onVis() {
 						if (document.visibilityState === "hidden" && !heroEl.classList.contains("hidden")) heroFinish()
 					})
+					// the quill draws the sun spiral: nib traces the tapered coil (the
+					// outline is rebuilt each frame under the tip — it can't lag or
+					// lead), then strikes each ray on its way round the ring
 					var typer = { n: 0 }
 					var tl = gsap.timeline({ delay: 0.2 })
-					tl.to("#heroWord1", { strokeDashoffset: 0, duration: 1.5, ease: "power1.inOut" })
+					if (logoEl && logoQuill && logoCoil) {
+						var DRAW_SCALE = 0.72 // the pen works small, like the source mark
+						logoCoil.setAttribute("d", "")
+						var strokes = [{ taper: coil, el: logoCoil, len: coil.len }].concat(
+							logoRays.map(function (p) {
+								var L = p.getTotalLength()
+								p.style.strokeDasharray = L
+								p.style.strokeDashoffset = L
+								return { el: p, len: L }
+							}),
+						)
+						gsap.set(logoEl, { opacity: 1 })
+						gsap.set(logoQuill, { opacity: 0, scale: 0.6, rotation: -7, x: 0, y: 0, svgOrigin: NIB.x + " " + NIB.y })
+						tl.to(logoQuill, { opacity: 1, scale: DRAW_SCALE, rotation: 0, duration: 0.45, ease: "power3.out" }, 0)
+						strokes.forEach(function (s, i) {
+							var start = s.taper ? s.taper.pointAt(0) : s.el.getPointAtLength(0)
+							var st = { t: 0 }
+							tl.to(logoQuill, Object.assign(nibAt(start), { duration: i === 0 ? 0.2 : 0.1, ease: "power2.inOut" })).to(st, {
+								t: 1,
+								duration: i === 0 ? 1.15 : 0.13,
+								ease: "power1.inOut",
+								onUpdate: function () {
+									if (s.taper) {
+										gsap.set(logoQuill, nibAt(s.taper.pointAt(st.t)))
+										s.el.setAttribute("d", s.taper.outline(st.t))
+									} else {
+										gsap.set(logoQuill, nibAt(s.el.getPointAtLength(s.len * st.t)))
+										s.el.style.strokeDashoffset = s.len * (1 - st.t)
+									}
+								},
+							})
+						})
+						// the pen's work is done: it lifts and flies off the page
+						tl.to(logoQuill, { x: "+=70", y: "-=110", rotation: 14, scale: 0.9, opacity: 0, duration: 0.6, ease: "power2.in" }, "+=0.1")
+						// and the finished spiral keeps turning, slowly, forever
+						if (logoGlyph) gsap.to(logoGlyph, { rotation: 360, duration: 40, ease: "none", repeat: -1, svgOrigin: "110 100", delay: 1.4 })
+					}
+					tl.to("#heroWord1", { strokeDashoffset: 0, duration: 1.5, ease: "power1.inOut" }, logoEl ? 1.1 : "+=0")
 						.to("#heroWord2", { strokeDashoffset: 0, duration: 1.7, ease: "power1.inOut" }, "-=0.9")
 						.to(underline, { strokeDashoffset: 0, duration: 0.55, ease: "power2.out" }, "-=0.35")
 						.to(words, { fillOpacity: 1, strokeWidth: 1.6, duration: 0.9, ease: "power2.out" }, "-=0.25")
@@ -282,9 +350,14 @@
 					return tl
 				}
 				if (heroEl && !heroEl.classList.contains("hidden")) {
-					// wait for the display font so the strokes trace the real glyphs
-					if (document.fonts && document.fonts.ready) document.fonts.ready.then(heroWriteIn)
-					else heroWriteIn()
+					// wait for the display font (so the strokes trace the real glyphs)
+					// AND the random quote — but never stall on a slow fetch
+					var fontsReady = document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()
+					var quoteReady = Promise.race([window._quoteFetch || Promise.resolve(), new Promise((r) => setTimeout(r, 800))])
+					Promise.all([fontsReady, quoteReady]).then(function () {
+						tagFullText = tagSpanEl.textContent // whatever won the race is what we type
+						heroWriteIn()
+					})
 				}
 				window._heroExit = function () {
 					if (heroEl.classList.contains("hidden")) return
@@ -295,7 +368,8 @@
 					}, 1600)
 					var words = ["#heroWord1", "#heroWord2"]
 					var underline = document.getElementById("heroUnderline")
-					gsap.killTweensOf([words, underline, "#heroTag", "#heroBtns", heroEl])
+					gsap.killTweensOf([words, underline, "#heroTag", "#heroBtns", heroEl, logoEl, logoRays, logoQuill])
+					if (logoEl) gsap.to(logoEl, { opacity: 0, scale: 0.7, rotation: 30, duration: 0.45, ease: "power2.in" })
 					gsap.to(underline, { strokeDashoffset: underline.getTotalLength(), duration: 0.35, ease: "power2.in" })
 					gsap.to(words, { fillOpacity: 0, duration: 0.35, ease: "power2.in" })
 					gsap.to(words, { strokeDashoffset: HERO_DASH, duration: 0.55, delay: 0.1, ease: "power2.in" })
@@ -308,6 +382,7 @@
 						onComplete: function () {
 							heroEl.classList.add("hidden")
 							gsap.set(heroEl, { clearProps: "opacity" })
+							if (logoGlyph) gsap.killTweensOf(logoGlyph) // stop the idle spin off-screen
 							// hand off into the auth card with its own entrance
 							if (lobbyEl && !lobbyEl.classList.contains("hidden")) {
 								gsap.fromTo(

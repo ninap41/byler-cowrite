@@ -93,14 +93,19 @@
 						</button>
 					</div>
 					<div class="prompt-banner" id="gamePrompt"></div>
-					<div class="story" id="storyBox"></div>
-					<div class="live hidden" id="livePreview"></div>
-					<div class="turnbar">
-						<span class="who-turn" id="whoTurn">…</span>
-						<span class="timer" id="timer">--</span>
+					<div id="doomFx" aria-hidden="true">
+						<img class="doom-img" src="/img/demogorgon.gif" alt="" />
+						<span class="doom-text">Running out of time</span>
 					</div>
-					<div class="players-row" id="playersRow"></div>
-					<div id="myTurn" class="hidden">
+					<div class="game-cols">
+						<div class="game-main">
+							<div class="story" id="storyBox"></div>
+							<div class="live hidden" id="livePreview"></div>
+							<div class="turnbar">
+								<span class="who-turn" id="whoTurn">…</span>
+								<span class="timer" id="timer">--</span>
+							</div>
+							<div id="myTurn" class="hidden">
 						<div class="toolbar">
 							<select id="blockFormat" class="ghost" title="Paragraph style">
 								<option value="p">Paragraph</option>
@@ -121,29 +126,37 @@
 							Format with the buttons · Enter for a line break · Ctrl/⌘+Enter or “Add line” to submit · auto-submits when the
 							timer ends
 						</div>
-						<div class="row"><button class="primary" id="submitBtn">Add line →</button></div>
-					</div>
-					<div class="progress" id="progress"></div>
-					<div id="hostGame" class="row hidden">
-						<button class="ghost" id="pauseBtn">⏸ Pause</button>
-						<button class="ghost" id="endBtn">End game &amp; reveal</button>
-					</div>
-					<div id="hostHeader" class="chat-row hidden">
-						<input id="headerInput" maxlength="80" placeholder="Add a chapter header…" />
-						<button class="ghost" id="addHeaderBtn" style="flex: 0 0 auto; min-width: auto">Add header</button>
-					</div>
-					<div id="hostRules" class="grid2 hidden">
-						<div>
-							<label for="liveSecs">Seconds per turn (next turn)</label
-							><input id="liveSecs" type="number" min="10" max="600" />
-						</div>
-						<div>
-							<label for="addRoundsInput">Add rounds</label>
-							<div class="chat-row">
-								<input id="addRoundsInput" type="number" min="1" max="20" placeholder="0" />
-								<button class="ghost" id="applyRulesBtn">Apply</button>
+								<div class="row"><button class="primary" id="submitBtn">Add line →</button></div>
 							</div>
+							<div class="progress" id="progress"></div>
 						</div>
+						<aside class="game-side">
+							<div class="side-sec">
+								<h4>Writers &amp; spectators</h4>
+								<div class="players-row" id="playersRow"></div>
+								<p class="subtle" id="specCount" style="margin: 8px 0 0"></p>
+							</div>
+							<div class="side-sec hidden" id="hostPanel">
+								<h4>Host controls</h4>
+								<div id="hostRules">
+									<div>
+										<label for="liveSecs">Seconds per turn (next turn)</label
+										><input id="liveSecs" type="number" min="10" max="600" />
+									</div>
+									<div>
+										<label for="addRoundsInput">Add rounds</label>
+										<div class="chat-row">
+											<input id="addRoundsInput" type="number" min="1" max="20" placeholder="0" />
+											<button class="ghost" id="applyRulesBtn">Apply</button>
+										</div>
+									</div>
+								</div>
+								<div id="hostGame" class="row">
+									<button class="ghost" id="pauseBtn">⏸ Pause</button>
+									<button class="ghost" id="endBtn">End game &amp; reveal</button>
+								</div>
+							</div>
+						</aside>
 					</div>
 				</div>
 
@@ -534,9 +547,7 @@
 					: `Waiting for ${statusDot(st.currentName)}${esc(st.currentName || "…")}`
 				$("whoTurn").style.color = myTurn ? "var(--good)" : "var(--ink)"
 				$("myTurn").classList.toggle("hidden", !myTurn)
-				$("hostGame").classList.toggle("hidden", !host)
-				$("hostHeader").classList.toggle("hidden", !host)
-				$("hostRules").classList.toggle("hidden", !host)
+				$("hostPanel").classList.toggle("hidden", !host)
 				if (document.activeElement !== $("liveSecs")) $("liveSecs").value = st.turnSeconds
 				$("pauseBtn").textContent = st.paused ? "▶ Resume" : "⏸ Pause"
 				$("progress").textContent =
@@ -556,6 +567,8 @@
 						)
 					})
 					.join("")
+				const specs = st.spectators || 0
+				$("specCount").textContent = specs ? `👁 ${specs} watching` : ""
 				$("writerEditor").setAttribute("aria-disabled", st.paused ? "true" : "false")
 				if (myTurn && !st.paused && newTurn) {
 					const e = $("writerEditor")
@@ -582,6 +595,22 @@
 					const lineEl = btn.closest(".story-line")
 					if (!lineEl || lineEl.querySelector(".line-editor")) return
 					const idx = Number(lineEl.dataset.idx)
+					if (btn.classList.contains("line-del")) {
+						// two-tap confirm: first click arms the button, second deletes
+						if (!btn.dataset.armed) {
+							btn.dataset.armed = "1"
+							btn.textContent = "Delete?"
+							setTimeout(() => {
+								btn.dataset.armed = ""
+								btn.textContent = "✕"
+							}, 2500)
+							return
+						}
+						socket.emit("delete-line", { index: idx }, (res) => {
+							if (!res?.ok) gameMsg(res?.error || "Could not delete the line.")
+						})
+						return
+					}
 					const orig = lastStory[idx]?.html || ""
 					lineEl.innerHTML = ""
 					const ed = document.createElement("div")
@@ -619,6 +648,8 @@
 					t.textContent = v.text
 					t.classList.toggle("paused", v.paused)
 					t.classList.toggle("low", v.low)
+					// the demogorgon stalks in behind the story only when time runs low
+					$("doomFx").classList.toggle("on", v.low && !v.paused && !v.expired)
 					// Vecna clock: chimes through the last 15s of MY turn, silent
 					// the instant the turn ends, pauses, or passes to someone else.
 					if (shouldChime(v, myTurn)) vecnaClock.start()
@@ -690,21 +721,6 @@
 				box.innerHTML = livePreviewHtml(html, curName, curColor)
 				refreshStatusDots()
 				box.classList.remove("hidden")
-			})
-			// Host: insert a chapter header (server sanitizes + broadcasts)
-			function sendHeader() {
-				const v = $("headerInput").value.trim()
-				if (!v) return
-				socket.emit("add-header", { text: v }, (res) => {
-					if (res?.ok) $("headerInput").value = ""
-				})
-			}
-			$("addHeaderBtn").onclick = sendHeader
-			$("headerInput").addEventListener("keydown", (e) => {
-				if (e.key === "Enter") {
-					e.preventDefault()
-					sendHeader()
-				}
 			})
 			$("pauseBtn").onclick = () =>
 				socket.emit($("pauseBtn").textContent.includes("Resume") ? "resume-game" : "pause-game")

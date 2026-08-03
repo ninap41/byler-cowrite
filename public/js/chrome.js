@@ -2,6 +2,7 @@
 // top bar (user chip + theme switch), and the hamburger nav drawer. Injected
 // by every page so the markup lives in exactly one place.
 import { initTheme, THEMES, THEME_LABELS } from "./theme.js"
+import { logoHtml, quillHtml } from "./logo.js"
 import { initNav } from "./nav.js"
 import { safeColor } from "./util.js"
 
@@ -103,6 +104,12 @@ export function mountKofi(doc = document) {
 
 export function mountChrome({ page = "", nav = true, kofi = true } = {}) {
 	document.body.insertAdjacentHTML("afterbegin", BG + (nav ? NAV(page) : "") + TOPBAR)
+	// Sun-spiral logo before the "Byler Cowrite" page title, quill after it
+	const h1 = document.querySelector(".wrap h1")
+	if (h1 && !h1.querySelector(".brand-logo")) {
+		h1.insertAdjacentHTML("afterbegin", logoHtml("hdr"))
+		h1.insertAdjacentHTML("beforeend", quillHtml("hdrq"))
+	}
 	const theme = initTheme()
 	if (nav) initNav()
 	if (kofi) mountKofi()

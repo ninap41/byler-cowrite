@@ -37,7 +37,7 @@ npm test         # full unit test suite (node --test)
 
 ## Where data lives
 
-There is deliberately **no database**. Two directories hold everything:
+The working store is plain JSON files. Two directories hold everything:
 
 | Path | Contents | Written by |
 |---|---|---|
@@ -47,63 +47,65 @@ There is deliberately **no database**. Two directories hold everything:
 Both paths can be relocated with the `COWRITE_DATA_DIR` and `COWRITE_SAVE_DIR`
 environment variables (the test suite uses this to stay isolated).
 
+**Deploy durability**: when `DATABASE_URL` is set, `src/persist.js` mirrors
+every file write into a Postgres blob table and restores the files at boot —
+see “Deploying on Replit” below. Without it (local dev, tests) the mirror is
+a no-op.
+
 To send real password-reset emails, set `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`,
 `SMTP_PASS`, `SMTP_FROM`. Without them, reset links are logged to the server
 console.
 
-## Deploying on Replit (Reserved VM) — migrating persistence to Object Storage
+## Deploying on Replit
 
-The app must run as a **Reserved VM deployment** (Autoscale is stateless and
-breaks Socket.IO rooms and the in-memory session map). The catch: Reserved VM
-filesystems are **ephemeral across redeploys** — every deploy resets the disk
-to the build snapshot, which would wipe `data/` and `saves/`.
+The app must run as a **Reserved VM deployment** — Autoscale spins up multiple
+stateless copies, which breaks Socket.IO rooms and the in-memory session map.
+One small VM easily handles ~50 concurrent writers.
 
-The fix is a thin **Object Storage mirror** that keeps the file-based design
-intact: the local filesystem stays the fast path, and a Replit Object Storage
-bucket is the durable copy.
+Reserved VM filesystems are **ephemeral across redeploys**: every deploy
+resets the disk to the build snapshot, which would wipe `data/` and `saves/`.
+The fix is already built in — `src/persist.js` mirrors both into Replit's
+PostgreSQL and restores them at boot. You only have to attach the database.
 
-### How the sync works
-
-1. **On boot** (before the server starts listening): if the
-   `REPLIT_OBJECT_STORAGE` env flag is set, download `users.json` and every
-   `saves/*.json` object from the bucket into the local `data/` and `saves/`
-   directories. A fresh deploy therefore rehydrates itself before accepting
-   its first connection.
-2. **On every write**: `saveStore()` and `saveSnapshot()` are the only two
-   functions that touch disk. After each local `writeFileSync`, the same bytes
-   are uploaded (fire-and-forget, latest-write-wins) to the bucket via
-   `@replit/object-storage`. Local dev and `npm test` skip the mirror entirely
-   because the flag is unset.
-
-Object names mirror the paths: `data/users.json`, `saves/<CODE>.json`. At
-~100 users this is well inside Object Storage's pennies-per-month range.
-
-### Migration steps
+### Steps
 
 1. Push this repository to GitHub, then in Replit choose
-   **Create Repl → Import from GitHub**.
-2. In the Replit workspace, add the dependency:
-   ```bash
-   npm install @replit/object-storage
+   **Create Repl → Import from GitHub** (or push directly into an existing
+   Repl). `npm install` pulls everything, including the `pg` driver.
+2. In the workspace, open **Tools → Database → PostgreSQL** and add it.
+   Replit provisions the database and sets `DATABASE_URL` automatically —
+   there is no other configuration.
+3. **Deploy → Reserved VM**, run command `npm start`. Make sure the
+   deployment inherits `DATABASE_URL` (Replit includes it by default; check
+   the deployment's Secrets pane if in doubt). Add the `SMTP_*` secrets too
+   if you want real password-reset emails.
+4. Deploy, then check the deployment logs for:
    ```
-3. Create a bucket via **Tools → Object Storage** in the workspace.
-4. Add the sync adapter in `server.js` (wrap `saveStore()` / `saveSnapshot()`
-   with the upload, and add the boot-time hydration described above), gated on
-   the `REPLIT_OBJECT_STORAGE` env flag.
-5. **One-time data migration**: if you have existing local `data/users.json`
-   or `saves/*.json`, upload them to the bucket once (a small script calling
-   `client.uploadFromFilename()` for each file, or drag-and-drop in the
-   Object Storage pane).
-6. Configure the deployment: **Deploy → Reserved VM**, run command
-   `npm start`, and set `REPLIT_OBJECT_STORAGE=1` in the deployment secrets
-   (plus the `SMTP_*` secrets if you want real reset emails).
-7. Deploy. Verify persistence by signing up, redeploying, and logging back in.
+   persistence: Postgres mirror active (N blobs restored)
+   ```
+   If that line is missing, `DATABASE_URL` isn't reaching the process and
+   your data will NOT survive the next deploy. If the database is unreachable
+   at boot the server exits on purpose instead of running without durability.
+5. Verify end-to-end once: sign up a test account, play a line or two,
+   **redeploy**, and confirm the account and game are still there.
+
+### How the mirror works
+
+- The JSON files stay the working store — all reads are local and synchronous.
+- On boot (before anything reads them), every blob in the `cowrite_blobs`
+  table is written back to `data/users.json` and `saves/*.json`. Any local
+  file the table doesn't know yet is uploaded, so a first deploy with
+  existing data seeds the database instead of losing it.
+- On every save, `saveStore()` / `saveSnapshot()` upsert the same bytes into
+  the table (write-through, ordered per key); deleting a game removes its row.
+- Without `DATABASE_URL` (local dev, `npm test`) the mirror is a perfect
+  no-op.
 
 ### Cost
 
-With a Replit Core subscription, the smallest Reserved VM (~$7/mo of usage) is
-covered by the plan's included monthly credits, and Object Storage at this
-scale is negligible — so hosting is effectively free on an existing Core plan.
+With a Replit Core subscription, the smallest Reserved VM (~$7/mo of usage)
+is covered by the plan's included monthly credits, and the built-in PostgreSQL
+at this scale (a few MB, a write per committed line) is pennies per month.
 
 ## Editing the prompt bank
 
@@ -111,8 +113,8 @@ Edit `prompts.json` — one scenario string per array entry. No code changes.
 
 ## Development notes
 
-- `server.js` is the whole backend (Express static + Socket.IO). Live game
-  state is in-memory; snapshots make it durable. `public/index.html` is the
-  whole frontend. See `CLAUDE.md` for the full architecture guide.
+- The backend is `server.js` + `src/` (Express static + Socket.IO); the
+  frontend is the multi-page app in `public/`. Live game state is in-memory;
+  snapshots make it durable. See `CLAUDE.md` for the full architecture guide.
 - Server-side `sanitizeRich()` is the trust boundary for all rich text —
   never render user HTML that hasn't passed through it.

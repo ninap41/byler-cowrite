@@ -156,22 +156,48 @@ test("edit-line: authors revise their own lines only; sanitized once; marked edi
   assert.equal(line.edited, true);
 });
 
-test("add-header: host-only chapter headers, centered, no words credited", async () => {
-  const { host, A, B, state } = await startedGame(ctx);
-  const denied = await ctx.emit(B, "add-header", { text: "nope" });
-  assert.equal(denied.ok, false, "non-host cannot add headers");
-  const empty = await ctx.emit(A, "add-header", { text: "  " });
-  assert.equal(empty.ok, false);
-  const wordsBefore = (await ctx.api("/api/me", null, host.token, "GET")).data.user.wordCount;
-  const ok = await ctx.emit(A, "add-header", { text: "Chapter One <b>bold?</b>" });
+test("delete-line: authors remove their own lines only; story re-broadcasts", async () => {
+  const { A, B, state } = await startedGame(ctx);
+  const first = state.current.currentId === A.id ? A : B;
+  const second = first === A ? B : A;
+  await ctx.emit(first, "submit-line", { text: "a line to delete" });
+  await ctx.wait(150);
+  await ctx.emit(second, "submit-line", { text: "a line that stays" });
+  await ctx.wait(150);
+  assert.equal(state.current.story.length, 2);
+  const notAuthor = await ctx.emit(second, "delete-line", { index: 0 });
+  assert.equal(notAuthor.ok, false, "only the author can delete");
+  const missing = await ctx.emit(first, "delete-line", { index: 99 });
+  assert.equal(missing.ok, false);
+  const ok = await ctx.emit(first, "delete-line", { index: 0 });
   assert.equal(ok.ok, true);
   await ctx.wait(150);
-  const line = state.current.story.at(-1);
-  assert.equal(line.header, true);
-  assert.ok(line.html.startsWith('<h2 class="al-c">'), "centered heading");
-  assert.ok(!line.html.includes("<b>"), "header text is plain");
-  const me = (await ctx.api("/api/me", null, host.token, "GET")).data.user;
-  assert.equal(me.wordCount, wordsBefore, "headers don't credit words");
+  assert.equal(state.current.story.length, 1);
+  assert.ok(state.current.story[0].html.includes("a line that stays"), "the right line was removed");
+});
+
+test("idle timeout: a game paused past the idle window ends with a reveal", async () => {
+  const idleCtx = await startServer({ COWRITE_IDLE_END_MS: "700" });
+  try {
+    const { A, state } = await startedGame(idleCtx);
+    let over = null;
+    A.on("game-over", (d) => (over = d));
+    await idleCtx.emit(A, "pause-game", {});
+    await idleCtx.wait(300);
+    assert.equal(over, null, "not ended before the window");
+    await idleCtx.wait(700);
+    assert.ok(over, "idle pause auto-ends with a reveal");
+    assert.equal(state.current?.phase === "over" || !!over, true);
+    // resuming inside the window must disarm the timer
+    const { A: A2, state: st2 } = await startedGame(idleCtx);
+    await idleCtx.emit(A2, "pause-game", {});
+    await idleCtx.wait(300);
+    await idleCtx.emit(A2, "resume-game", {});
+    await idleCtx.wait(700);
+    assert.equal(st2.current.phase, "writing", "resume disarms the idle end");
+  } finally {
+    await idleCtx.stop();
+  }
 });
 
 test("delete-game: host-only, snapshot removed, live players notified", async () => {

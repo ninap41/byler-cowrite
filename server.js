@@ -10,10 +10,18 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
-import { createGame } from "./src/game.js";
-import { registerRoutes } from "./src/routes.js";
+import { initPersistence } from "./src/persist.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+
+// With DATABASE_URL set (Replit Postgres), restore data/ and saves/ from the
+// blob mirror BEFORE store.js/game.js load — they read those files at import.
+await initPersistence({
+  dataDir: process.env.COWRITE_DATA_DIR || join(__dirname, "data"),
+  saveDir: process.env.COWRITE_SAVE_DIR || join(__dirname, "saves"),
+});
+const { createGame } = await import("./src/game.js");
+const { registerRoutes } = await import("./src/routes.js");
 
 const app = express();
 const httpServer = createServer(app);

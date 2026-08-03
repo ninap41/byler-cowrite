@@ -6,7 +6,7 @@ import { statusDot } from "../status.js"
 export const EMPTY_STORY_HTML = '<p class="empty">The page is blank. The first line is coming…</p>'
 
 // freshFrom: lines at index >= freshFrom get the "fresh" entrance animation.
-// mineId: the signed-in account id — that author's lines get an ✎ edit button.
+// mineId: the signed-in account id — that author's lines get ✎ edit and ✕ delete buttons.
 export function storyHtml(story, { freshFrom = Infinity, mineId = null } = {}) {
 	if (!story.length) return EMPTY_STORY_HTML
 	return story
@@ -17,7 +17,10 @@ export function storyHtml(story, { freshFrom = Infinity, mineId = null } = {}) {
 			if (l.header)
 				return (
 					`<div class="story-line header-line ${i >= freshFrom ? "fresh" : ""}" data-idx="${i}">` +
-					(mine ? '<button class="line-edit" title="Edit your header" type="button">✎</button>' : "") +
+					(mine
+						? '<button class="line-edit line-del" title="Delete your header" type="button">✕</button>' +
+							'<button class="line-edit" title="Edit your header" type="button">✎</button>'
+						: "") +
 					(l.html || "") +
 					`</div>`
 				)
@@ -25,7 +28,10 @@ export function storyHtml(story, { freshFrom = Infinity, mineId = null } = {}) {
 				`<div class="story-line ${i >= freshFrom ? "fresh" : ""}" data-idx="${i}">` +
 				`${statusDot(l.name)}${whoMarks(l)}<span class="who" style="color:${col}">${esc(l.name)}</span>` +
 				(l.edited ? '<span class="edited-tag" title="This line was revised">edited</span>' : "") +
-				(mine ? '<button class="line-edit" title="Edit your line" type="button">✎</button>' : "") +
+				(mine
+					? '<button class="line-edit line-del" title="Delete your line" type="button">✕</button>' +
+						'<button class="line-edit" title="Edit your line" type="button">✎</button>'
+					: "") +
 				(l.html || "") +
 				`</div>`
 			)

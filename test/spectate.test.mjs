@@ -56,12 +56,13 @@ test("spectators watch live but cannot contribute", async () => {
   await historyP;
   await ctx.wait(150);
   assert.equal(specState.current.phase, "writing", "sees the live state");
+  assert.equal(specState.current.spectators, 1, "watcher count is broadcast");
 
   // read-only: every contribution path no-ops
   assert.equal((await ctx.emit(spec, "submit-line", { text: "sneaky" })).ok, false);
   assert.equal((await ctx.emit(spec, "vote", { prompt: "x" })).ok, false);
   assert.equal((await ctx.emit(spec, "pause-game", {})).ok, false);
-  assert.equal((await ctx.emit(spec, "add-header", { text: "x" })).ok, false);
+  assert.equal((await ctx.emit(spec, "end-game", {})).ok ?? false, false);
   spec.emit("chat", { text: "spectator noise" });
   await ctx.wait(150);
   assert.ok(!chats.some((m) => m.text === "spectator noise"), "spectator chat goes nowhere");

@@ -29,6 +29,15 @@ test("homepage serves the hero + auth card", async () => {
   assert.ok(body.includes('id="liveWatch"'), "spectate list on the homepage");
 });
 
+test("GET /api/quote returns a quote from quotes.json", async () => {
+  const r = await fetch(ctx.url + "/api/quote");
+  assert.equal(r.status, 200);
+  const { quote } = await r.json();
+  const { readFileSync } = await import("node:fs");
+  const bank = JSON.parse(readFileSync(new URL("../quotes.json", import.meta.url), "utf-8"));
+  assert.ok(bank.includes(quote), "quote comes from the bank: " + quote);
+});
+
 test("clean URLs serve each page", async () => {
   const dash = await page("/dashboard");
   assert.equal(dash.status, 200);
@@ -38,7 +47,9 @@ test("clean URLs serve each page", async () => {
   assert.equal(game.status, 200);
   assert.ok(game.body.includes('id="writerEditor"'));
   assert.ok(game.body.includes('id="playersRow"'));
-  assert.ok(game.body.includes('id="headerInput"'), "chapter-header control");
+  assert.ok(game.body.includes('id="hostPanel"'), "host controls sidebar");
+  assert.ok(game.body.includes('id="doomFx"'), "low-time demogorgon layer");
+  assert.ok(!game.body.includes('id="headerInput"'), "chapter-header control removed");
   const arch = await page("/archive");
   assert.equal(arch.status, 200);
   assert.ok(arch.body.includes('id="archiveList"'));

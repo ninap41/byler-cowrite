@@ -826,6 +826,12 @@ body {
 	color: var(--accent-2);
 	border-color: var(--accent-2);
 }
+.story-line .line-del:hover,
+.story-line .line-del[data-armed="1"] {
+	color: #e05555;
+	border-color: rgba(224, 85, 85, 0.6);
+	opacity: 1;
+}
 .edited-tag {
 	font-family: var(--font-mono);
 	font-size: 0.62rem;
@@ -1008,6 +1014,55 @@ body {
 	.chat-log {
 		height: 200px !important;
 	}
+}
+
+/* ---- Quill-mark logo (header + hero) — every color rides the theme vars ---- */
+.brand-logo {
+	height: 1.06em;
+	width: auto;
+	vertical-align: -0.16em;
+	margin-right: 0.26em;
+	overflow: visible;
+}
+h1 .brand-logo {
+	filter: drop-shadow(0 4px 22px var(--glow));
+}
+.brand-quill {
+	height: 1.06em;
+	width: auto;
+	vertical-align: -0.16em;
+	margin-left: 0.2em;
+	overflow: visible;
+}
+h1 .brand-quill {
+	filter: drop-shadow(0 4px 22px var(--glow));
+}
+.logo-stop-a {
+	stop-color: var(--accent);
+}
+.logo-stop-b {
+	stop-color: var(--accent-2);
+}
+.logo-stop-ink {
+	stop-color: var(--ink);
+}
+.logo-barb-a {
+	fill: var(--accent);
+}
+.logo-barb-b {
+	fill: var(--accent-2);
+}
+.hero-logo {
+	display: flex;
+	justify-content: center;
+	margin: 0 0 4px;
+}
+.hero-logo .brand-logo {
+	height: auto;
+	width: clamp(86px, 13vw, 132px);
+	margin: 0;
+	vertical-align: baseline;
+	filter: drop-shadow(0 6px 30px var(--glow));
 }
 
 h1 {
@@ -2433,6 +2488,13 @@ h3 {
 	inset: 0;
 	z-index: 90;
 	display: flex;
+}
+/* .confirm-modal's display:flex outranks the global .hidden by source order —
+   without this the modal can never be closed. */
+.confirm-modal.hidden {
+	display: none;
+}
+.confirm-modal {
 	align-items: center;
 	justify-content: center;
 	background: rgba(0, 0, 0, 0.55);
@@ -2548,4 +2610,118 @@ button.danger,
 @keyframes shape-pop {
 	from { transform: scale(0.85) translateX(-22px); }
 	to { transform: scale(1.12) translateX(22px); }
+}
+
+/* ---------- Active game: two-column layout (story left, people/controls right) ---------- */
+/* The game page gets extra width so the sidebar doesn't squeeze the story. */
+.main:has(#game:not(.hidden)) {
+	max-width: 1200px;
+}
+.game-cols {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) 280px;
+	gap: 28px;
+	align-items: start;
+}
+.game-main {
+	position: relative;
+	min-width: 0;
+}
+.game-main > * {
+	position: relative;
+	z-index: 1;
+}
+.game-side {
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+	min-width: 0;
+}
+.side-sec {
+	border: 1px solid var(--panel-brd);
+	border-radius: 14px;
+	padding: 16px 18px;
+}
+.side-sec h4 {
+	margin: 0 0 10px;
+	font-size: 11px;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--muted);
+}
+.side-sec .players-row {
+	margin: 0;
+	flex-direction: column;
+	align-items: stretch;
+	gap: 6px;
+}
+.side-sec #hostRules {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	margin-bottom: 10px;
+}
+@media (max-width: 760px) {
+	.game-cols {
+		grid-template-columns: 1fr;
+	}
+}
+
+/* ---------- Low-time alarm: demogorgon left of the game card, blinking
+   vertical warning to its right. Shown only in the countdown's final stretch. ---------- */
+#game {
+	position: relative;
+}
+#doomFx {
+	display: none;
+	pointer-events: none;
+}
+#doomFx.on {
+	display: block;
+}
+#doomFx .doom-img {
+	position: absolute;
+	right: 100%;
+	margin-right: 24px;
+	top: 50%;
+	transform: translateY(-50%);
+	width: clamp(110px, 12vw, 190px);
+	height: auto;
+	animation: doom-in 0.5s ease-out;
+}
+#doomFx .doom-text {
+	position: absolute;
+	left: 100%;
+	margin-left: 24px;
+	top: 50%;
+	transform: translateY(-50%);
+	writing-mode: vertical-rl;
+	text-orientation: mixed;
+	font-family: var(--font-mono, monospace);
+	font-weight: 800;
+	font-size: 1.05rem;
+	letter-spacing: 0.35em;
+	text-transform: uppercase;
+	color: #e03131;
+	white-space: nowrap;
+	animation: doom-blink 1s step-start infinite;
+}
+@keyframes doom-blink {
+	50% { opacity: 0; }
+}
+@keyframes doom-in {
+	from { opacity: 0; transform: translateY(-50%) scale(0.85); }
+	to { opacity: 1; transform: translateY(-50%) scale(1); }
+}
+@media (max-width: 1100px) {
+	/* no room to flank the card on narrow screens */
+	#doomFx.on {
+		display: none;
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	#doomFx .doom-img,
+	#doomFx .doom-text {
+		animation: none;
+	}
 }

@@ -5,9 +5,9 @@ export const fmtWhen = (ts) =>
 	ts ? new Date(ts).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : "unknown date"
 
 export function gameCardHtml(g) {
+	// Title line: the game's name when the host set one, otherwise the prompt.
 	return (
-		(g.name ? `<p class="gc-prompt" style="font-weight:700">${esc(g.name)}</p>` : "") +
-		`<p class="gc-prompt">${esc(g.prompt) || "<em>No prompt yet</em>"}</p>` +
+		`<p class="gc-prompt"${g.name ? ' style="font-weight:700"' : ""}>${esc(g.name) || esc(g.prompt) || "<em>No prompt yet</em>"}</p>` +
 		`<span class="gc-meta">` +
 		`<span>${esc(g.code)}</span>` +
 		(g.hostName ? `<span>👑 ${esc(g.hostName)}</span>` : "") +
