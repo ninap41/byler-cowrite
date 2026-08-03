@@ -104,11 +104,24 @@ export function mountKofi(doc = document) {
 
 export function mountChrome({ page = "", nav = true, kofi = true } = {}) {
 	document.body.insertAdjacentHTML("afterbegin", BG + (nav ? NAV(page) : "") + TOPBAR)
-	// Sun-spiral logo before the "Byler Cowrite" page title, quill after it
+	// Sun-spiral logo before the "Byler Cowrite" page title, quill after it.
+	// The whole header is a link home (signed-in visitors bounce on to /dashboard).
 	const h1 = document.querySelector(".wrap h1")
 	if (h1 && !h1.querySelector(".brand-logo")) {
 		h1.insertAdjacentHTML("afterbegin", logoHtml("hdr"))
 		h1.insertAdjacentHTML("beforeend", quillHtml("hdrq"))
+		h1.classList.add("brand-link")
+		h1.setAttribute("role", "link")
+		h1.setAttribute("tabindex", "0")
+		h1.title = "Byler Cowrite — home"
+		const go = () => (location.href = "/")
+		h1.addEventListener("click", go)
+		h1.addEventListener("keydown", (e) => {
+			if (e.key === "Enter" || e.key === " ") {
+				e.preventDefault()
+				go()
+			}
+		})
 	}
 	const theme = initTheme()
 	if (nav) initNav()

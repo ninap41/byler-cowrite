@@ -117,6 +117,21 @@ export function createGame(io) {
 
   const connectedCount = (s) => [...s.writers.values()].filter((w) => w.connected).length;
 
+  // Two chat channels. Writers chat is writers-only: seated sockets join the
+  // ":writers" room, spectators never do, so nothing writer-said reaches them.
+  // Spectator chat broadcasts to the whole session room (writers see it too)
+  // and is deliberately ephemeral: in-memory ring only, never snapshotted.
+  const writersRoom = (s) => s.code + ":writers";
+  function joinAsWriter(sock, s) {
+    sock.join(s.code);
+    sock.join(writersRoom(s));
+    sock.emit("chat-history", s.chat);
+    sock.emit("spec-chat-history", s.specChat ?? []);
+  }
+  const SPEC_CHAT_LIMIT = 50;
+  // spectator name colors: stable per name, never attacker-controlled (PALETTE only)
+  const specColor = (name) => PALETTE[[...name].reduce((h, c) => h + c.charCodeAt(0), 0) % PALETTE.length];
+
   // System-style chat line ("Will started the game") — rendered muted/italic client-side.
   function announce(s, writer, text) {
     const msg = {
@@ -125,7 +140,7 @@ export function createGame(io) {
     };
     s.chat.push(msg);
     if (s.chat.length > CHAT_LIMIT) s.chat.shift();
-    io.to(s.code).emit("chat", msg);
+    io.to(writersRoom(s)).emit("chat", msg);
   }
 
   // Every writer is a signed-in account: name, color, and badge come from the
@@ -450,9 +465,8 @@ export function createGame(io) {
     // person back into a rehydrated game hosts until they do.
     if (w.token === s.hostToken || !s.writers.has(s.hostId)) s.hostId = sock.id;
     sock.data.joinedCode = s.code;
-    sock.join(s.code);
+    joinAsWriter(sock, s);
     ack?.({ ok: true, code: s.code, hostId: s.hostId, name: w.name, color: w.color, phase: s.phase, token: w.token });
-    sock.emit("chat-history", s.chat);
     if (s.phase === "waiting") broadcastRoster(s);
     else if (s.phase === "over") {
       broadcastRoster(s); // everyone learns the (possibly restored) hostId
@@ -501,9 +515,8 @@ export function createGame(io) {
       };
       sessions.set(code, s);
       socket.data.joinedCode = code;
-      socket.join(code);
+      joinAsWriter(socket, s);
       ack?.({ ok: true, code, hostId: socket.id, token: s.writers.get(socket.id).token });
-      socket.emit("chat-history", s.chat);
       broadcastRoster(s);
       saveSnapshot(s); // the code is claimable/revivable from the moment it exists
     });
@@ -537,9 +550,8 @@ export function createGame(io) {
       }
       s.writers.set(socket.id, newWriter(acct));
       socket.data.joinedCode = code;
-      socket.join(code);
+      joinAsWriter(socket, s);
       ack?.({ ok: true, code, hostId: s.hostId, token: s.writers.get(socket.id).token });
-      socket.emit("chat-history", s.chat);
       broadcastRoster(s);
       saveSnapshot(s);
     });
@@ -578,11 +590,10 @@ export function createGame(io) {
       // new writers slot in at the end of the rotation
       if (s.phase === "choosing" || s.phase === "writing") s.turnOrder.push(id);
       target.data.joinedCode = s.code;
-      target.join(s.code);
+      joinAsWriter(target, s);
       target.emit("join-approved", {
         ok: true, code: s.code, hostId: s.hostId, name: w.name, color: w.color, phase: s.phase, token: w.token,
       });
-      target.emit("chat-history", s.chat);
       announce(s, w, "joined the story");
       if (s.phase === "over") {
         broadcastRoster(s);
@@ -829,7 +840,32 @@ export function createGame(io) {
       };
       s.chat.push(msg);
       if (s.chat.length > CHAT_LIMIT) s.chat.shift();
-      io.to(s.code).emit("chat", msg);
+      io.to(writersRoom(s)).emit("chat", msg);
+    });
+
+    // Spectator chat: open to spectators AND writers, visible to the whole
+    // session room. Spectator names are client-minted (Stranger Things list +
+    // number, localStorage) so they're stripped/limited here; colors come from
+    // the palette by name hash. Never persisted — in-memory ring only.
+    socket.on("spec-chat", ({ text, name }) => {
+      const code = socket.data.joinedCode || socket.data.spectating;
+      const s = sessions.get(code);
+      if (!s || !text || !String(text).trim()) return;
+      const w = socket.data.joinedCode ? s.writers.get(socket.id) : null;
+      const body = String(text).slice(0, 500).trim();
+      const msg = w
+        ? {
+            id: socket.id, name: w.name, color: w.color, badge: w.badge ?? null,
+            avatar: w.avatar ?? "", avatarFit: w.avatarFit ?? "cover",
+            host: socket.id === s.hostId, writer: true, spec: true, text: body, ts: Date.now(),
+          }
+        : (() => {
+            const specName = String(name || "").replace(/<[^>]*>/g, "").slice(0, 28).trim() || "Spectator";
+            return { id: socket.id, name: specName, color: specColor(specName), spec: true, text: body, ts: Date.now() };
+          })();
+      (s.specChat ??= []).push(msg);
+      if (s.specChat.length > SPEC_CHAT_LIMIT) s.specChat.shift();
+      io.to(s.code).emit("spec-chat", msg);
     });
 
     // Watch a running story WITHOUT a seat (no account needed). Spectators
@@ -841,9 +877,9 @@ export function createGame(io) {
       const s = sessions.get(code) ?? loadSession(code);
       if (!s) return ack?.({ ok: false, error: "Game not found." });
       socket.data.spectating = code;
-      socket.join(code);
+      socket.join(code); // NOT the ":writers" room — writers chat never reaches spectators
       ack?.({ ok: true, code, phase: s.phase, name: s.name || "" });
-      socket.emit("chat-history", s.chat);
+      socket.emit("spec-chat-history", s.specChat ?? []);
       if (s.phase === "over") socket.emit("game-over", { prompt: s.prompt, story: s.story });
       else if (s.phase === "waiting") broadcastRoster(s);
       else broadcastGame(s);

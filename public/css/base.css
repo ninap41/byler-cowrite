@@ -938,6 +938,34 @@ body {
 }
 
 /* ---------- Docked chat panel ---------- */
+.chat-tabs {
+	display: flex;
+	gap: 6px;
+	margin-bottom: 6px;
+}
+.chat-tabs button {
+	flex: 1;
+	font-family: var(--font-mono);
+	font-size: 0.72rem;
+	padding: 5px 8px;
+	border-radius: 10px;
+	border: 1px solid var(--panel-brd);
+	background: transparent;
+	color: var(--muted);
+	cursor: pointer;
+}
+.chat-tabs button.active {
+	color: var(--ink);
+	border-color: var(--accent-2);
+}
+.chat-tabs button.unseen::after {
+	content: "•";
+	color: var(--accent);
+	margin-left: 4px;
+}
+.msg.spec-msg {
+	opacity: 0.9;
+}
 .chat-dock {
 	position: fixed;
 	right: 18px;
@@ -1081,6 +1109,15 @@ h1 {
 [data-theme="aurora"] h1,
 [data-theme="ink"] h1 {
 	letter-spacing: -1px;
+}
+h1.brand-link {
+	cursor: pointer;
+	width: fit-content;
+}
+h1.brand-link:focus-visible {
+	outline: 2px solid var(--accent-2);
+	outline-offset: 4px;
+	border-radius: 8px;
 }
 .tag {
 	color: var(--muted);
@@ -1546,6 +1583,12 @@ ul.roster li {
 	margin: 0 0 6px;
 	font-size: 0.92rem;
 	line-height: 1.4;
+}
+.chat-log .cn-host {
+	color: var(--muted);
+	font-family: var(--font-mono);
+	font-size: 0.72em;
+	margin-right: 6px;
 }
 .chat-log .cn {
 	font-weight: 700;

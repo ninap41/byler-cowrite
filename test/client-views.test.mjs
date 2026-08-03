@@ -63,14 +63,16 @@ test("avatarHtml carries the fit preference", async () => {
   assert.ok(avatarHtml({ username: "w", avatar: "https://i.com/a.png" }).includes("fit-cover"));
 });
 
-test("chatMessageHtml: text and badge escaped, system messages skip dot/marks", () => {
+test("chatMessageHtml: minimal person tag — avatar + name + (host); text escaped", () => {
   const out = chatMessageHtml({ name: "will", color: "#6c8cff", badge: "✏️ <b>", text: "<script>hi" });
   assert.ok(out.includes("&lt;script&gt;hi"), "text escaped");
-  assert.ok(out.includes("✏️ &lt;b&gt;"), "badge escaped");
-  assert.ok(out.includes("st-dot"), "status dot present");
-  const sys = chatMessageHtml({ name: "will", color: "#6c8cff", badge: "x", text: "started", sys: true });
-  assert.ok(!sys.includes("st-dot"), "no dot on system lines");
-  assert.ok(!sys.includes("badge-chip"), "no badge on system lines");
+  assert.ok(!out.includes("badge-chip"), "no badge chip in chat");
+  assert.ok(!out.includes("st-dot"), "no status dot in chat");
+  assert.ok(!out.includes("cn-host"), "no host tag for non-hosts");
+  const host = chatMessageHtml({ name: "will", color: "#6c8cff", host: true, text: "hi" });
+  assert.ok(host.includes(">(host)<"), "host tagged in parens");
+  const sys = chatMessageHtml({ name: "will", color: "#6c8cff", host: true, badge: "x", text: "started", sys: true });
+  assert.ok(!sys.includes("cn-host") && !sys.includes("mini-avatar"), "system lines stay bare");
 });
 
 // ---- countdown ----

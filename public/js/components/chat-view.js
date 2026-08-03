@@ -1,13 +1,13 @@
-// Chat message markup: names/badges/text are plain text and always esc()'d.
-import { esc, safeColor, whoMarks, miniAvatar } from "../util.js"
-import { statusDot } from "../status.js"
+// Chat message markup: names/text are plain text and always esc()'d.
+// The person tag is deliberately minimal: avatar + name + "(host)".
+import { esc, safeColor, miniAvatar } from "../util.js"
 
 export function chatMessageHtml(m) {
 	const col = safeColor(m.color)
 	return (
-		(m.sys ? "" : statusDot(m.name) + miniAvatar(m) + whoMarks(m)) +
+		(m.sys ? "" : miniAvatar(m)) +
 		`<span class="cn" style="color:${col}">${esc(m.name)}</span>` +
-		`${m.badge && !m.sys ? `<span class="badge-chip">${esc(m.badge)}</span>` : ""}` +
+		(!m.sys && (m.host || m.isHost) ? `<span class="cn-host">(host)</span>` : "") +
 		esc(m.text)
 	)
 }
