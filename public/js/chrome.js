@@ -52,10 +52,32 @@ const TOPBAR = `
 		</div>
 	</div>`
 
-export function mountChrome({ page = "", nav = true } = {}) {
+// Ko-fi tip widget (floating chat button, bottom-left) — loaded on every page.
+export const KOFI_ACCOUNT = "justthegatekeeper"
+export const KOFI_CONFIG = {
+	type: "floating-chat",
+	"floating-chat.donateButton.text": "Support me",
+	"floating-chat.donateButton.background-color": "#00b9fe",
+	"floating-chat.donateButton.text-color": "#fff",
+}
+export function mountKofi(doc = document) {
+	const s = doc.createElement("script")
+	s.src = "https://storage.ko-fi.com/cdn/scripts/overlay-widget.js"
+	s.async = true
+	s.onload = () => {
+		try {
+			;(doc.defaultView || window).kofiWidgetOverlay?.draw(KOFI_ACCOUNT, KOFI_CONFIG)
+		} catch (e) {}
+	}
+	doc.body.appendChild(s)
+	return s
+}
+
+export function mountChrome({ page = "", nav = true, kofi = true } = {}) {
 	document.body.insertAdjacentHTML("afterbegin", BG + (nav ? NAV(page) : "") + TOPBAR)
 	const theme = initTheme()
 	if (nav) initNav()
+	if (kofi) mountKofi()
 	return theme
 }
 

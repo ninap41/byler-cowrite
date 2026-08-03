@@ -53,6 +53,9 @@ test("usage badge awards once from a committed line and announces in chat", asyn
   const { host, A, B, state } = await startedGame(ctx);
   const chats = [];
   A.on("chat", (m) => chats.push(m));
+  const toasts = [];
+  A.on("badge-earned", (b) => toasts.push(b));
+  B.on("badge-earned", (b) => toasts.push(b));
   const cur = () => (state.current.currentId === A.id ? A : B);
   const hostFirst = state.current.currentName === "willthewise";
   await ctx.emit(cur(), "submit-line", { text: '"Michael?" Will said, and the puppy moaning began.' });
@@ -67,4 +70,11 @@ test("usage badge awards once from a committed line and announces in chat", asyn
   assert.equal(me.currentBadge, "🔫 There. Out Loud.", "usage badges never change the word rank");
   const awards = chats.filter((m) => m.sys && /earned the/.test(m.text));
   assert.equal(awards.length, 3, "each badge announced exactly once");
+  // personal unlock notifications went to the earner only, with hover descs
+  assert.deepEqual(
+    toasts.map((t) => t.badge).sort(),
+    ["🐺 Omega Badge", "😏 Smutty Buddy", "🙄 Ugh, Mike..."].sort(),
+    "one badge-earned event per unlock",
+  );
+  assert.ok(toasts.every((t) => t.desc && t.desc.length > 0), "toasts carry descriptions");
 });

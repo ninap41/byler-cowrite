@@ -76,15 +76,17 @@ test("chatMessageHtml: text and badge escaped, system messages skip dot/marks", 
 // ---- countdown ----
 test("countdownView: paused freezes remaining; live counts down; expires at 0", () => {
   assert.deepEqual(countdownView({ paused: true, remaining: 12400 }), {
-    text: "⏸ 13s", paused: true, low: false, expired: false,
+    text: "⏸ 13s", left: 13, paused: true, low: false, expired: false,
   });
   const now = 1_000_000;
   const v = countdownView({ paused: false, deadline: now + 30_000 }, now);
-  assert.deepEqual(v, { text: "30s", paused: false, low: false, expired: false });
+  assert.deepEqual(v, { text: "30s", left: 30, paused: false, low: false, expired: false });
   assert.equal(countdownView({ deadline: now + 9_000 }, now).low, true, "low at <=10s");
   const done = countdownView({ deadline: now - 1 }, now);
   assert.equal(done.text, "0s");
   assert.equal(done.expired, true);
+  assert.equal(done.left, 0);
+  assert.equal(countdownView({ deadline: now + 14_500 }, now).left, 15, "left exposed for the clock alarm");
   assert.equal(countdownView({ paused: true, remaining: 0 }).text, "⏸ 0s");
 });
 

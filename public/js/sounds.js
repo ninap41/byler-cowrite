@@ -9,8 +9,40 @@ export function createSounds(AudioCtor = globalThis.Audio) {
 		a.volume = 0.6
 		sounds[n] = a
 	}
+	// The Vecna clock: a LOOPED alarm for the last stretch of your own turn.
+	// start() is idempotent (no restart-stutter while already chiming);
+	// stop() halts and rewinds so the next turn starts from the first tick.
+	const clockAudio = new AudioCtor("/sounds/vecnaclock.mp3")
+	clockAudio.preload = "auto"
+	clockAudio.volume = 0.5
+	clockAudio.loop = true
+	let clockOn = false
+	const clock = {
+		get active() {
+			return clockOn
+		},
+		start() {
+			if (clockOn) return
+			clockOn = true
+			try {
+				clockAudio.currentTime = 0
+				clockAudio.play().catch(() => {})
+			} catch (e) {}
+		},
+		stop() {
+			if (!clockOn) return
+			clockOn = false
+			try {
+				clockAudio.pause()
+				clockAudio.currentTime = 0
+			} catch (e) {}
+		},
+	}
+
 	return {
 		sounds,
+		clock,
+		clockAudio,
 		play(name) {
 			const a = sounds[name]
 			if (!a) return
@@ -21,6 +53,10 @@ export function createSounds(AudioCtor = globalThis.Audio) {
 		},
 	}
 }
+
+// The clock chimes only during the final stretch of MY live turn.
+export const shouldChime = (v, myTurn, windowSecs = 15) =>
+	!!myTurn && !v.paused && v.left <= windowSecs && v.left > 0
 
 // A chat message chimes only when it's someone else's real message: system
 // messages are silent, and so is my own echo (msgs carry the sender's id).

@@ -6,7 +6,7 @@ import { randomUUID } from "crypto";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import { bumpStreak } from "../lib/streak.js";
-import { badgeName, usageMatches, awardWordBadges } from "../lib/achievements.js";
+import { badgeName, badgeDesc, usageMatches, awardWordBadges } from "../lib/achievements.js";
 import { PALETTE, cleanColor, sanitizeRich, stripTags } from "./sanitize.js";
 import { store, saveStore, userByToken } from "./store.js";
 
@@ -147,16 +147,26 @@ export function createGame(io) {
     if (!u.games.includes(s.code)) u.games.push(s.code);
     const before = u.currentBadge;
     awardWordBadges(u);
+    // A personal unlock notification (toast) for the earner, on top of the
+    // public chat announcement.
+    const notifyEarned = (id) => {
+      const sockId = [...s.writers.entries()].find(([, ww]) => ww === writer)?.[0];
+      if (sockId) io.to(sockId).emit("badge-earned", { badge: badgeName(id), desc: badgeDesc(id) });
+    };
     // word-usage collectibles: awarded once, the first line that says the word
     for (const id of usageMatches(text)) {
       if (!u.badges.includes(id)) {
         u.badges.push(id);
         announce(s, writer, `earned the ${badgeName(id)} badge!`);
+        notifyEarned(id);
       }
     }
     saveStore();
     writer.badge = badgeName(u.currentBadge);
-    if (u.currentBadge !== before) announce(s, writer, `earned the ${writer.badge} badge!`);
+    if (u.currentBadge !== before) {
+      announce(s, writer, `earned the ${writer.badge} badge!`);
+      notifyEarned(u.currentBadge);
+    }
   }
 
   // Keep the seat but mark it reclaimable; drop it for real after GHOST_MS.

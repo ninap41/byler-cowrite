@@ -14,6 +14,7 @@
 	</head>
 	<body>
 		<div class="join-reqs" id="joinReqs"></div>
+		<div class="toasts" id="toasts" aria-live="polite"></div>
 
 		<div class="wrap">
 			<h1>Byler Cowrite</h1>
@@ -199,7 +200,7 @@
 			import { PALETTE, esc, safeColor, whoMarks, miniAvatar } from "/js/util.js"
 			import { api as authApi, getToken, setToken } from "/js/api.js"
 			import { loadRejoin, saveRejoin, clearRejoin } from "/js/socket-client.js"
-			import { createSounds, createLineChime, shouldChimeChat } from "/js/sounds.js"
+			import { createSounds, createLineChime, shouldChimeChat, shouldChime } from "/js/sounds.js"
 			import { mountChrome, setUserChip } from "/js/chrome.js"
 			import { requireAuth } from "/js/auth-guard.js"
 			import { statusDot, refreshStatusDots, updateLiveStatus } from "/js/status.js"
@@ -236,7 +237,7 @@
 			}
 
 			// ---- Sounds (js/sounds.js) ----
-			const { play: playSound } = createSounds()
+			const { play: playSound, clock: vecnaClock } = createSounds()
 			const lineChime = createLineChime(playSound)
 
 			// ---- Signed-in identity chip (badge may change mid-game) ----
@@ -598,8 +599,13 @@
 					t.textContent = v.text
 					t.classList.toggle("paused", v.paused)
 					t.classList.toggle("low", v.low)
+					// Vecna clock: chimes through the last 15s of MY turn, silent
+					// the instant the turn ends, pauses, or passes to someone else.
+					if (shouldChime(v, myTurn)) vecnaClock.start()
+					else vecnaClock.stop()
 					if (v.expired) {
 						clearInterval(tickInterval)
+						vecnaClock.stop()
 						if (myTurn) submitLine()
 					}
 					return v
@@ -684,6 +690,7 @@
 			// ---- Game over ----
 			socket.on("game-over", ({ prompt, story }) => {
 				clearInterval(tickInterval)
+				vecnaClock.stop()
 				lineChime.note(story, myId)
 				onlyShow("over")
 				$("overPrompt").textContent = prompt
@@ -737,6 +744,22 @@
 				clearRejoin() // otherwise /game auto-rejoins straight back here
 				location.href = "/dashboard"
 			}
+
+			// ---- Badge unlock toasts (server targets just the earner) ----
+			socket.on("badge-earned", ({ badge, desc }) => {
+				const box = $("toasts")
+				const el = document.createElement("div")
+				el.className = "toast"
+				const title = document.createElement("b")
+				title.textContent = `🎉 Badge unlocked: ${badge}`
+				const sub = document.createElement("span")
+				sub.textContent = desc || ""
+				el.append(title, sub)
+				box.appendChild(el)
+				playSound("incomingmessage")
+				setTimeout(() => el.classList.add("gone"), 5200)
+				setTimeout(() => el.remove(), 6000)
+			})
 
 			// ---- Gated join: approval outcomes + the host's request popups ----
 			socket.on("join-approved", (res) => {
