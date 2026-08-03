@@ -66,6 +66,7 @@ const BG = `
 			<div class="die d20a drift"></div><div class="die d20b drift"></div>
 		</div>
 		<div class="bg-set rink">
+			<div class="rbow"></div><div class="zigzag"></div>
 			<div class="specks p1"></div><div class="specks p2"></div><div class="sweep"></div>
 		</div>
 		<div class="bg-set camp">
