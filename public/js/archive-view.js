@@ -10,10 +10,10 @@ export function gameCardHtml(g) {
 		`<p class="gc-prompt"${g.name ? ' style="font-weight:700"' : ""}>${esc(g.name) || esc(g.prompt) || "<em>No prompt yet</em>"}</p>` +
 		`<span class="gc-meta">` +
 		`<span>${esc(g.code)}</span>` +
-		(g.hostName ? `<span>👑 ${esc(g.hostName)}</span>` : "") +
+		(g.hostName ? `<span>${esc(g.hostName)} <span class="host-tag">(host)</span></span>` : "") +
 		`<span>${g.lines} line${g.lines === 1 ? "" : "s"}</span>` +
 		`<span>${g.phase === "over" ? "finished" : "paused"}</span>` +
-		`<span>${esc(g.writers.map((w) => (w.isHost ? "👑 " : "") + w.name).join(", "))}</span>` +
+		`<span>${esc(g.writers.map((w) => w.name + (w.isHost ? " (host)" : "")).join(", "))}</span>` +
 		`<span>${fmtWhen(g.savedAt)}</span>` +
 		`</span>`
 	)
@@ -27,7 +27,7 @@ export function archiveStoryHtml(story) {
 	return story
 		.map(
 			(l) =>
-				`<p>${whoMarks(l)}<span class="who" style="color:${safeColor(l.color)}">${esc(l.name)}</span>${l.html || ""}</p>`,
+				`<div class="story-line"><span class="line-by"><span class="who" style="color:${safeColor(l.color)}">${esc(l.name)}</span>${whoMarks(l)}</span>${l.html || ""}</div>`,
 		)
 		.join("")
 }

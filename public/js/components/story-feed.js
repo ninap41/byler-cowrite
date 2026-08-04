@@ -24,10 +24,12 @@ export function storyHtml(story, { freshFrom = Infinity, mineId = null } = {}) {
 					(l.html || "") +
 					`</div>`
 				)
+			// the byline sits on its own line ABOVE the contribution
 			return (
 				`<div class="story-line ${i >= freshFrom ? "fresh" : ""}" data-idx="${i}">` +
-				`${statusDot(l.name)}${whoMarks(l)}<span class="who" style="color:${col}">${esc(l.name)}</span>` +
+				`<span class="line-by">${statusDot(l.name)}<span class="who" style="color:${col}">${esc(l.name)}</span>${whoMarks(l)}` +
 				(l.edited ? '<span class="edited-tag" title="This line was revised">edited</span>' : "") +
+				`</span>` +
 				(mine
 					? '<button class="line-edit line-del" title="Delete your line" type="button">✕</button>' +
 						'<button class="line-edit" title="Edit your line" type="button">✎</button>'

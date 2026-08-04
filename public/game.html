@@ -277,11 +277,8 @@
 				sessName = "",
 				sessHost = ""
 			function updateSessionBar() {
-				document.querySelectorAll("[data-sess-host]").forEach((el) => {
-					el.innerHTML = sessHost
-						? `${statusDot(sessHost)}<span class="who-mark" title="Host">👑</span>${esc(sessHost)}`
-						: ""
-				})
+				// no host name next to the story title — hosts are tagged in the lists
+				document.querySelectorAll("[data-sess-host]").forEach((el) => (el.innerHTML = ""))
 				refreshStatusDots()
 				document.querySelectorAll("[data-sess-name]").forEach((el) => {
 					el.textContent = sessName || "Untitled story"
@@ -454,11 +451,12 @@
 					const li = document.createElement("li")
 					const col = safeColor(w.color)
 					if (w.connected === false) li.style.opacity = "0.45"
+					li.dataset.user = w.name
 					li.innerHTML =
 						`<span class="st-dot ${w.connected === false ? "off" : "on"}" title="${w.connected === false ? "Offline" : "Online"}"></span>` +
 						miniAvatar(w) +
-						whoMarks(w) +
 						`<span class="rname" style="color:${col}">${esc(w.name)}</span>` +
+						whoMarks(w) +
 						`${w.badge ? `<span class="badge-chip">${esc(w.badge)}</span>` : ""}` +
 						`${w.connected === false ? '<span class="badge">away</span>' : ""}`
 					list.appendChild(li)
@@ -568,11 +566,12 @@
 						const col = safeColor(w.color)
 						const on = w.connected !== false
 						return (
-							`<span class="player-chip${w.id === st.currentId ? " now" : ""}">` +
+							`<span class="player-chip${w.id === st.currentId ? " now" : ""}" data-user="${esc(w.name)}">` +
 							`<span class="st-dot ${on ? "on" : "off"}" title="${on ? "Online" : "Offline"}"></span>` +
 							miniAvatar(w) +
+							`<span style="color:${col}">${esc(w.name)}</span>` +
 							whoMarks(w) +
-							`<span style="color:${col}">${esc(w.name)}</span></span>`
+							`</span>`
 						)
 					})
 					.join("")
@@ -859,6 +858,48 @@
 			})
 			socket.on("join-request-cancel", ({ id }) => {
 				document.querySelector(`[data-req-id="${id}"]`)?.remove()
+			})
+
+			// ---- Writer stat tooltip: hover a name (roster / players row) to
+			// inspect their all-time word count + achievements in a column ----
+			const statCache = new Map()
+			const tipEl = document.createElement("div")
+			tipEl.className = "stat-tip hidden"
+			document.body.appendChild(tipEl)
+			let tipFor = null
+			async function showStatTip(name, x, y) {
+				if (!getToken()) return // spectators can't read the users API
+				tipFor = name
+				let p = statCache.get(name)
+				if (!p) {
+					try {
+						p = await authApi("/api/users/" + encodeURIComponent(name), null, "GET")
+					} catch (e) {
+						return
+					}
+					statCache.set(name, p)
+				}
+				if (tipFor !== name) return // hover moved on while we fetched
+				const badges = (p.wordBadges || []).concat(p.usageBadges || [])
+				tipEl.innerHTML =
+					`<b style="color:${safeColor(p.color)}">${esc(p.username)}</b>` +
+					`<span class="tt-words">✍ ${(p.wordCount || 0).toLocaleString()} words all-time</span>` +
+					`<span class="tt-h">Achievements</span>` +
+					(badges.map((b) => `<span class="tt-badge">${esc(b)}</span>`).join("") ||
+						'<span class="tt-badge">none yet</span>')
+				tipEl.classList.remove("hidden")
+				tipEl.style.left = Math.min(x + 14, innerWidth - 240) + "px"
+				tipEl.style.top = Math.min(y + 14, innerHeight - tipEl.offsetHeight - 12) + "px"
+			}
+			document.addEventListener("mouseover", (e) => {
+				const t = e.target.closest?.("[data-user]")
+				if (t) showStatTip(t.dataset.user, e.clientX, e.clientY)
+			})
+			document.addEventListener("mouseout", (e) => {
+				if (e.target.closest?.("[data-user]")) {
+					tipFor = null
+					tipEl.classList.add("hidden")
+				}
 			})
 
 			// ---- Chat: two channels in one dock ----

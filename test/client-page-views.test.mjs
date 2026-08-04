@@ -25,7 +25,7 @@ test("liveGameInfoHtml: phase label, host crown, online count", () => {
   });
   assert.ok(out.includes("The &lt;Tale&gt;"));
   assert.ok(out.includes("AB12 · writing"));
-  assert.ok(out.includes("👑 will"));
+  assert.ok(out.includes("will (host)") || out.includes("will</b> (host)") || /will.*\(host\)/.test(out), "host tagged");
   assert.ok(out.includes("1/2 online"));
 });
 
@@ -118,7 +118,7 @@ test("gameCardHtml: escapes everything, marks host writers, counts lines", () =>
   assert.ok(!out.includes("&lt;i&gt;P&lt;/i&gt;"), "named games show the name INSTEAD of the prompt");
   assert.ok(out.includes("1 line<"));
   assert.ok(out.includes("finished"));
-  assert.ok(out.includes("👑 will, mike"));
+  assert.ok(out.includes("will (host), mike"));
   const unnamed = gameCardHtml({
     code: "AB12", name: "", prompt: "<i>P</i>", phase: "over", lines: 1,
     hostName: "will", savedAt: 0, writers: [],
@@ -131,6 +131,6 @@ test("archiveMetaText + archiveStoryHtml: sanitized html as-is, names escaped, e
   const out = archiveStoryHtml([{ name: "<will>", color: "bad", html: "<b>line</b>", host: true }]);
   assert.ok(out.includes("<b>line</b>"), "server-sanitized html untouched");
   assert.ok(out.includes("&lt;will&gt;"));
-  assert.ok(out.includes("👑"));
+  assert.ok(out.includes("(host)"));
   assert.match(archiveStoryHtml([]), /Nothing written yet/);
 });

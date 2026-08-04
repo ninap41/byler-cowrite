@@ -27,9 +27,9 @@ test("safeColor only passes palette colors through", () => {
   assert.equal(safeColor(undefined), PALETTE[0]);
 });
 
-test("whoMarks: crown for hosts (either flag), nothing otherwise", () => {
-  assert.match(whoMarks({ host: true }), /👑/);
-  assert.match(whoMarks({ isHost: true }), /👑/);
+test("whoMarks: (host) tag for hosts (either flag), nothing otherwise", () => {
+  assert.match(whoMarks({ host: true }), /\(host\)/);
+  assert.match(whoMarks({ isHost: true }), /\(host\)/);
   assert.equal(whoMarks({ host: false }), "");
   assert.equal(whoMarks(null), "");
 });

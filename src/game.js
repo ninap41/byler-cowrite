@@ -52,9 +52,11 @@ export function createGame(io) {
           avatar: w.avatar ?? "", avatarFit: w.avatarFit ?? "cover",
         })),
         turnOrderTokens: s.turnOrder.map((id) => s.writers.get(id)?.token).filter(Boolean),
-        hostToken: s.writers.get(s.hostId)?.token ?? s.hostToken ?? null,
-        hostName: s.writers.get(s.hostId)?.name ?? s.hostName ?? null,
-        hostUserId: s.writers.get(s.hostId)?.userId ?? s.hostUserId ?? null,
+        // ALWAYS the ORIGINAL host: true-host rights (delete, host reclaim)
+        // never migrate to whoever is acting host at save time.
+        hostToken: s.hostToken ?? s.writers.get(s.hostId)?.token ?? null,
+        hostName: s.hostName ?? s.writers.get(s.hostId)?.name ?? null,
+        hostUserId: s.hostUserId ?? s.writers.get(s.hostId)?.userId ?? null,
         savedAt: Date.now(),
       });
       writeFileSync(join(SAVE_DIR, s.code + ".json"), doc);
@@ -418,7 +420,9 @@ export function createGame(io) {
       const entries = [...s.writers.entries()];
       s.hostId = (entries.find(([, w]) => w.connected && w.userId) ??
         entries.find(([, w]) => w.connected) ?? entries[0])[0];
-      s.hostToken = s.writers.get(s.hostId)?.token ?? null; // permanent transfer
+      // The acting-host role moves so the game stays controllable, but the
+      // ORIGINAL host keeps true-host rights forever (s.hostToken/hostUserId
+      // never change) — nobody can hijack a story from its first host.
     }
 
     if (s.phase === "writing") {
@@ -505,7 +509,9 @@ export function createGame(io) {
       const code = makeCode();
       const host = newWriter(acct);
       const s = {
-        code, name: "", hostId: socket.id, hostToken: host.token, phase: "waiting",
+        code, name: "", hostId: socket.id, hostToken: host.token,
+        hostUserId: acct.id, hostName: acct.username, // the ORIGINAL host, forever
+        phase: "waiting",
         writers: new Map([[socket.id, host]]),
         turnOrder: [], currentIdx: 0, turnCount: 0, maxTurns: null,
         story: [], prompt: "", options: [], votes: new Map(),

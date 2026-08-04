@@ -21,7 +21,7 @@ export function liveGameInfoHtml(g) {
 	return (
 		`<span class="lg-info"><b>${esc(g.name || g.code)}</b>` +
 		`<span class="lg-sub">${esc(g.code)} · ${PHASES[g.phase] || g.phase}` +
-		`${g.hostName ? " · 👑 " + esc(g.hostName) : ""} · ${on}/${g.players.length} online · ` +
+		`${g.hostName ? " · " + esc(g.hostName) + " (host)" : ""} · ${on}/${g.players.length} online · ` +
 		`${esc(g.players.map((pl) => pl.name).join(", "))}</span></span>`
 	)
 }

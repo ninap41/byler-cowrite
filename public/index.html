@@ -212,7 +212,7 @@
 					b.textContent = g.name || g.code
 					const sub = document.createElement("span")
 					sub.className = "lg-sub"
-					sub.textContent = `${PHASE_LABEL[g.phase] || g.phase} · ${g.players} writer${g.players === 1 ? "" : "s"}` + (g.hostName ? ` · 👑 ${g.hostName}` : "")
+					sub.textContent = `${PHASE_LABEL[g.phase] || g.phase} · ${g.players} writer${g.players === 1 ? "" : "s"}` + (g.hostName ? ` · ${g.hostName} (host)` : "")
 					info.append(b, sub)
 					const btn = document.createElement("button")
 					btn.className = "ghost"

@@ -7,8 +7,8 @@ export const esc = (s) =>
 
 export const safeColor = (c) => (PALETTE.includes(c) ? c : PALETTE[0])
 
-// 👑 host marker with tooltip, used beside names everywhere.
-export const whoMarks = (o) => (o?.host || o?.isHost ? '<span class="who-mark" title="Host">👑</span>' : "")
+// "(host)" marker, placed AFTER a name everywhere it appears.
+export const whoMarks = (o) => (o?.host || o?.isHost ? '<span class="host-tag">(host)</span>' : "")
 
 // Tiny round profile pic used beside names (roster, chat, players row,
 // writers directory). Empty string when the account has no picture.

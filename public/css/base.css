@@ -1608,6 +1608,56 @@ ul.roster li {
 	font-size: 0.92rem;
 	line-height: 1.4;
 }
+/* "(host)" tag after names, and the byline block above each story line */
+.host-tag {
+	color: var(--muted);
+	font-family: var(--font-mono);
+	font-size: 0.72em;
+	margin: 0 6px 0 4px;
+}
+.story-line .line-by {
+	display: block;
+	margin-bottom: 3px;
+}
+/* hover-a-name stat tooltip: all-time words + achievements in a column */
+.stat-tip {
+	position: fixed;
+	z-index: 95;
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+	max-width: 230px;
+	padding: 10px 12px;
+	border-radius: 12px;
+	background: var(--panel-2);
+	border: 1px solid var(--panel-brd);
+	box-shadow: var(--panel-glow);
+	font-size: 0.78rem;
+	pointer-events: none;
+	backdrop-filter: blur(10px);
+	-webkit-backdrop-filter: blur(10px);
+}
+.stat-tip.hidden {
+	display: none;
+}
+.stat-tip .tt-words {
+	font-family: var(--font-mono);
+	color: var(--ink);
+}
+.stat-tip .tt-h {
+	margin-top: 4px;
+	font-size: 0.66rem;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--muted);
+}
+.stat-tip .tt-badge {
+	color: var(--muted);
+}
+[data-user] {
+	cursor: help;
+}
+
 .chat-log .cn-host {
 	color: var(--muted);
 	font-family: var(--font-mono);
