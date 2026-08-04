@@ -76,6 +76,18 @@ test("chatMessageHtml: minimal person tag — avatar + name + (host); text escap
 });
 
 // ---- countdown ----
+test("countdownView: untimed story (no deadline) shows ∞ and NEVER expires or chimes low", () => {
+  const v = countdownView({ paused: false, deadline: 0, turnSeconds: 0 });
+  assert.equal(v.text, "∞");
+  assert.equal(v.expired, false, "no expiry -> no auto-submit ever");
+  assert.equal(v.low, false, "no doom effects without a clock");
+  assert.equal(v.left, Infinity);
+  // still ∞ a long "time" later — there is nothing to count down
+  assert.equal(countdownView({ paused: false, deadline: 0 }, Date.now() + 9_999_999).text, "∞");
+  // paused untimed game shows the pause glyph without a bogus remaining
+  assert.equal(countdownView({ paused: true, remaining: 0, turnSeconds: 0 }).text, "⏸");
+});
+
 test("countdownView: paused freezes remaining; live counts down; expires at 0", () => {
   assert.deepEqual(countdownView({ paused: true, remaining: 12400 }), {
     text: "⏸ 13s", left: 13, paused: true, low: false, expired: false,

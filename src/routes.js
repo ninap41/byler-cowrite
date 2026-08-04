@@ -40,7 +40,7 @@ async function sendResetEmail(to, link) {
 }
 
 export function registerRoutes(app, game) {
-  const { sessions, onlineSockets, SAVE_DIR, gameSummary, inGame, myGamesFor, recentGamesFor, deleteGame } = game;
+  const { sessions, onlineSockets, SAVE_DIR, gameSummary, freshStory, inGame, myGamesFor, recentGamesFor, deleteGame, renameUser } = game;
 
   // Random tagline quote for the homepage hero. quotes.json (repo root, one
   // string per entry) is hand-editable and re-read on every request, so new
@@ -159,6 +159,9 @@ export function registerRoutes(app, game) {
     if (taken && taken.id !== u.id) return res.status(400).json({ error: "That username is taken." });
     u.username = un;
     saveStore();
+    // stories and lines are tied to the account id — live sessions, rosters,
+    // and snapshots pick up the new display name immediately
+    renameUser(u.id, un);
     res.json({ user: publicUser(u) });
   });
 
@@ -370,7 +373,7 @@ export function registerRoutes(app, game) {
       // Story html in snapshots already passed through sanitizeRich() when written.
       const d = JSON.parse(readFileSync(join(SAVE_DIR, code + ".json"), "utf-8"));
       if (!inGame(d, u)) return res.status(403).json({ error: "That game isn't yours to view." });
-      res.json({ ...gameSummary(d), story: d.story || [] });
+      res.json({ ...gameSummary(d), story: freshStory(d.story) });
     } catch {
       res.status(404).json({ error: "Not found." });
     }

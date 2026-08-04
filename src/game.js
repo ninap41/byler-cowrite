@@ -944,15 +944,35 @@ export function createGame(io) {
   // ---- Archive / dashboard read helpers (used by the HTTP routes) ----
 
   // Previous games are private: you only see games your account holds a seat in.
+  // Names in snapshots are display copies; the ACCOUNT id is the durable tie.
+  // Resolve to the current username at read time so renames follow the user.
+  const freshName = (userId, fallback) => store.users.find((x) => x.id === userId)?.username ?? fallback;
+  const freshStory = (story) => (story || []).map((l) => (l.userId ? { ...l, name: freshName(l.userId, l.name) } : l));
   const gameSummary = (d) => ({
     code: d.code, name: d.name || "", phase: d.phase, prompt: d.prompt || "",
     savedAt: d.savedAt || 0, lines: (d.story || []).length,
     hostName: store.users.find((u) => u.id === d.hostUserId)?.username ?? d.hostName ?? null,
     writers: (d.writers || []).map((w) => ({
-      name: w.name, color: cleanColor(w.color), isHost: d.hostUserId != null && w.userId === d.hostUserId,
+      name: freshName(w.userId, w.name), color: cleanColor(w.color), isHost: d.hostUserId != null && w.userId === d.hostUserId,
     })),
   });
   const inGame = (d, u) => (d.writers || []).some((w) => w.userId === u.id);
+
+  // A username change ripples into every live session the account sits in:
+  // seats, committed story lines, host label — then re-broadcasts + snapshots.
+  function renameUser(userId, newName) {
+    for (const s of sessions.values()) {
+      let touched = false;
+      for (const w of s.writers.values())
+        if (w.userId === userId && w.name !== newName) { w.name = newName; touched = true; }
+      for (const l of s.story) if (l.userId === userId && l.name !== newName) { l.name = newName; touched = true; }
+      if (s.hostUserId === userId && s.hostName !== newName) { s.hostName = newName; touched = true; }
+      if (!touched) continue;
+      saveSnapshot(s);
+      if (s.phase === "waiting") broadcastRoster(s);
+      else broadcastGame(s);
+    }
+  }
 
   // "Games in progress" for MY dashboard: running sessions where my account
   // holds a seat, plus paused save snapshots not currently in memory.
@@ -1021,5 +1041,5 @@ export function createGame(io) {
     mirrorDelete("save", code); // no-op without DATABASE_URL
   }
 
-  return { sessions, onlineSockets, SAVE_DIR, gameSummary, inGame, myGamesFor, recentGamesFor, deleteGame };
+  return { sessions, onlineSockets, SAVE_DIR, gameSummary, freshStory, inGame, myGamesFor, recentGamesFor, deleteGame, renameUser };
 }

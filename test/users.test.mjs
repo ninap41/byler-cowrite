@@ -144,3 +144,34 @@ test("profile hosted stories: running games glow-flagged, finished ones included
   const mikes = (await ctx.api("/api/users/mikewheeler", null, host.token, "GET")).data.hosted;
   assert.ok(!mikes.some((g) => g.code === code), "only the ORIGINAL host lists it");
 });
+
+test("username change: stories and lines stay tied to the account id, names refresh everywhere", async () => {
+  const { host, A, B, code, state } = await startedGame(ctx);
+  // both writers commit a line so the story carries each account's userId
+  const cur = () => (state.current.currentId === A.id ? A : B);
+  await ctx.emit(cur(), "submit-line", { text: "before the rename" });
+  await ctx.wait(150);
+  await ctx.emit(cur(), "submit-line", { text: "also before the rename" });
+  await ctx.wait(150);
+  const r = await ctx.api("/api/account/username", { username: "willelder" }, host.token);
+  assert.equal(r.status, 200);
+  await ctx.wait(200);
+  // live session picked the new name up immediately (seat + committed lines)
+  assert.ok(state.current.writers.some((w) => w.name === "willelder"), "live seat renamed");
+  assert.ok(state.current.story.some((l) => l.name === "willelder"), "live story lines follow the rename");
+  assert.ok(!state.current.story.some((l) => l.name === "willthewise"), "no stale line names");
+  // the archive stays tied by userId: listing, hosted flag, detail lines
+  const list = (await ctx.api("/api/games", null, host.token, "GET")).data;
+  const g = list.find((x) => x.code === code);
+  assert.ok(g, "story still associated with the renamed account");
+  assert.equal(g.hosted, true, "still the original host after rename");
+  assert.equal(g.hostName, "willelder", "archive host name refreshed");
+  assert.ok(g.writers.some((w) => w.name === "willelder"), "archive writer names refreshed");
+  const detail = (await ctx.api("/api/games/" + code, null, host.token, "GET")).data;
+  assert.ok(detail.story.every((l) => l.name !== "willthewise"), "detail line bylines resolve by userId");
+  // profile hosted list follows too
+  const prof = (await ctx.api("/api/users/willelder", null, host.token, "GET")).data;
+  assert.ok(prof.hosted.some((x) => x.code === code), "hosted list keyed by account id");
+  // put the fixture name back for any later test in this file
+  await ctx.api("/api/account/username", { username: "willthewise" }, host.token);
+});

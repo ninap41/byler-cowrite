@@ -255,6 +255,17 @@
 					note.textContent = `🗑 “${title}” was deleted.`
 					note.classList.remove("hidden")
 					setTimeout(() => note.classList.add("hidden"), 6000)
+					// and an unmissable centered confirmation
+					const pop = document.createElement("div")
+					pop.className = "badge-pop show"
+					const b = document.createElement("b")
+					b.textContent = "🗑 Story deleted"
+					const s = document.createElement("span")
+					s.textContent = `“${title}” is gone — for everyone, forever.`
+					pop.append(b, s)
+					document.body.appendChild(pop)
+					setTimeout(() => pop.classList.add("gone"), 3600)
+					setTimeout(() => pop.remove(), 4300)
 				} catch (e) {
 					$("delErr").textContent = e.message
 				}
