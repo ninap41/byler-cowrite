@@ -879,6 +879,24 @@ export function createGame(io) {
       io.to(writersRoom(s)).emit("chat", msg);
     });
 
+    // Poking the editor / Add line while the game is paused earns a special
+    // badge, exactly once. Purely behavioral — no words involved.
+    socket.on("paused-poke", () => {
+      const s = mySession();
+      if (!s || s.phase !== "writing" || !s.paused) return;
+      const w = s.writers.get(socket.id);
+      if (!w?.userId) return;
+      const u = store.users.find((x) => x.id === w.userId);
+      if (!u || u.badges.includes("resumeitstupid")) return;
+      u.badges.push("resumeitstupid");
+      saveStore();
+      announce(s, w, `earned the ${badgeName("resumeitstupid")} badge!`);
+      io.to(s.code).emit("badge-earned", {
+        badge: badgeName("resumeitstupid"), desc: badgeDesc("resumeitstupid"),
+        name: w.name, color: w.color,
+      });
+    });
+
     // Spectator chat: open to spectators AND writers, visible to the whole
     // session room. Spectator names are client-minted (Stranger Things list +
     // number, localStorage) so they're stripped/limited here; colors come from

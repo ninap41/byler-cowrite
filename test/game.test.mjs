@@ -114,6 +114,26 @@ test("untimed non-friendly story: turnSeconds 0 disables the clock; mode broadca
   assert.equal(snap.turnSeconds, 0);
 });
 
+test("💩 Resume it, Stupid: poking the editor while paused awards once, toasts everyone", async () => {
+  const { A, B, state } = await startedGame(ctx);
+  const toasts = [];
+  B.on("badge-earned", (b) => toasts.push(b));
+  await ctx.emit(A, "pause-game", {});
+  await ctx.wait(120);
+  A.emit("paused-poke");
+  await ctx.wait(200);
+  assert.deepEqual(toasts.map((t) => t.badge), ["💩 Resume it, Stupid"], "everyone gets the toast");
+  A.emit("paused-poke"); // collectibles award exactly once
+  await ctx.wait(200);
+  assert.equal(toasts.length, 1, "no double award");
+  await ctx.emit(A, "resume-game", {});
+  await ctx.wait(120);
+  A.emit("paused-poke"); // not paused -> no-op
+  B.emit("paused-poke");
+  await ctx.wait(200);
+  assert.equal(toasts.length, 1, "pokes while running do nothing");
+});
+
 test("pause/resume host-only and clock freezing", async () => {
   const { A, B, state } = await startedGame(ctx);
   assert.equal((await ctx.emit(B, "pause-game", {})).ok, false);

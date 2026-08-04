@@ -538,7 +538,9 @@
 
 			// ---- Phase router ----
 			let lastStoryLen = 0
+			let lastPaused = false
 			socket.on("game-state", (st) => {
+				lastPaused = !!st.paused
 				updateLiveStatus(st.writers)
 				hostId = st.hostId ?? hostId
 				if (st.code) myCode = st.code
@@ -751,6 +753,12 @@
 				})
 			}
 			$("submitBtn").onclick = submitLine
+			// poking the editor or Add line while paused earns 💩 Resume it, Stupid
+			;["writerEditor", "submitBtn"].forEach((id) =>
+				$(id).addEventListener("click", () => {
+					if (lastPaused) socket.emit("paused-poke")
+				}),
+			)
 			document.querySelectorAll(".toolbar button").forEach((b) => {
 				b.addEventListener("mousedown", (e) => {
 					e.preventDefault()

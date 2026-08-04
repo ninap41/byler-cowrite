@@ -43,10 +43,10 @@ test("achievements metadata is public: ladder + usage count only", async () => {
   assert.equal(r.data.wordTiers[0].name, "🔫 There. Out Loud.");
   assert.equal(r.data.wordTiers[0].min, 0);
   assert.equal(r.data.wordTiers[1].min, 5000);
-  assert.equal(r.data.usageCount, 5);
+  assert.equal(r.data.usageCount, 6);
   assert.ok(r.data.wordTiers[1].desc.includes("5,000"), "ladder descs are public");
   // every badge ships its "what it means / how to earn it" description
-  assert.equal(r.data.usage.length, 5);
+  assert.equal(r.data.usage.length, 6);
   assert.ok(r.data.usage.every((b) => b.name && b.desc), "usage badges carry descriptions");
   assert.equal(JSON.stringify(r.data).includes("triggers"), false, "raw trigger lists still never ship");
   assert.equal(JSON.stringify(r.data).includes("combos"), false, "combo word lists never ship either");
