@@ -620,10 +620,12 @@
 				}
 				const myTurn = st.currentId === myId,
 					host = myId === hostId
-				$("whoTurn").innerHTML = myTurn
-					? "Your turn — write!"
-					: `Waiting for ${statusDot(st.currentName)}${esc(st.currentName || "…")}`
-				$("whoTurn").style.color = myTurn ? "var(--good)" : "var(--ink)"
+				$("whoTurn").innerHTML = st.paused
+					? "⏸ Host paused game…"
+					: myTurn
+						? "Your turn — write!"
+						: `Waiting for ${statusDot(st.currentName)}${esc(st.currentName || "…")}`
+				$("whoTurn").style.color = st.paused ? "var(--muted)" : myTurn ? "var(--good)" : "var(--ink)"
 				$("myTurn").classList.toggle("hidden", !myTurn)
 				$("hostPanel").classList.toggle("hidden", !host)
 				if (document.activeElement !== $("liveSecs")) $("liveSecs").value = st.turnSeconds || ""
