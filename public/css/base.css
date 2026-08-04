@@ -3088,25 +3088,18 @@ button.danger,
 	opacity: 0.55;
 	background-size: 34% 100%;
 }
-/* the glaring red horizon line burning behind the rocks */
-.bg-set.void .horizon {
+/* the sky: strong orange burning at the bottom, through red, up to black */
+.bg-set.void .sky {
 	position: absolute;
-	inset: auto 0 0;
-	height: 44vh;
-	background:
-		linear-gradient(to top, rgba(255, 64, 64, 0.2), transparent 65%),
-		radial-gradient(140% 34% at 50% 100%, rgba(255, 64, 64, 0.55), rgba(190, 30, 50, 0.25) 55%, transparent 78%);
-}
-.bg-set.void .horizon::after {
-	content: "";
-	position: absolute;
-	left: 0;
-	right: 0;
-	bottom: 24vh;
-	height: 2px;
-	background: linear-gradient(90deg, transparent, rgba(255, 110, 90, 0.75), rgba(255, 64, 64, 0.55), rgba(255, 110, 90, 0.75), transparent);
-	filter: blur(1px);
-	box-shadow: 0 0 26px 6px rgba(255, 64, 64, 0.35);
+	inset: 0;
+	background: linear-gradient(
+		to top,
+		rgba(255, 130, 30, 0.85) 0%,
+		rgba(255, 92, 40, 0.6) 14%,
+		rgba(200, 40, 45, 0.45) 34%,
+		rgba(90, 14, 26, 0.3) 55%,
+		transparent 78%
+	);
 }
 /* orange lightning: the tattoo bolt artwork (img/bolt.svg) used as a mask
    over an orange gradient, striking from the top every 7 seconds */
@@ -3147,55 +3140,38 @@ button.danger,
 	100% { opacity: 0; }
 }
 
-/* the upper half of the horizon: a radial orange burst domed over the line */
-.bg-set.void .glare {
+/* the landscape: the three rock strips from the source art (img/rock1-3.svg),
+   used as masks — far ridge dim red, mid ridge darker, near ridge near-black */
+.bg-set.void .ridge {
 	position: absolute;
-	left: 0;
-	right: 0;
-	bottom: 24vh;
-	height: 42vh;
-	background:
-		radial-gradient(58% 100% at 50% 100%, rgba(255, 150, 60, 0.5), rgba(255, 100, 45, 0.26) 42%, rgba(255, 70, 45, 0.1) 65%, transparent 80%),
-		radial-gradient(24% 46% at 50% 100%, rgba(255, 200, 120, 0.4), transparent 75%);
+	left: -2%;
+	right: -2%;
 }
-/* tall jagged mountains standing in front of the orange burst */
-.bg-set.void .mtns {
-	position: absolute;
-	left: 0;
-	right: 0;
-	bottom: 21vh;
-	height: 30vh;
-	background:
-		conic-gradient(from 78deg at 8% 100%, rgba(10, 5, 7, 0.95) 0 24deg, transparent 24deg),
-		conic-gradient(from 74deg at 19% 100%, rgba(14, 7, 10, 0.92) 0 32deg, transparent 32deg),
-		conic-gradient(from 80deg at 33% 100%, rgba(10, 5, 7, 0.94) 0 20deg, transparent 20deg),
-		conic-gradient(from 76deg at 46% 100%, rgba(14, 7, 10, 0.9) 0 28deg, transparent 28deg),
-		conic-gradient(from 79deg at 58% 100%, rgba(10, 5, 7, 0.95) 0 22deg, transparent 22deg),
-		conic-gradient(from 73deg at 71% 100%, rgba(14, 7, 10, 0.92) 0 34deg, transparent 34deg),
-		conic-gradient(from 80deg at 84% 100%, rgba(10, 5, 7, 0.94) 0 20deg, transparent 20deg),
-		conic-gradient(from 75deg at 95% 100%, rgba(14, 7, 10, 0.93) 0 30deg, transparent 30deg);
+.bg-set.void .r1 {
+	bottom: 20vh;
+	height: 16vh;
+	background: rgba(74, 16, 20, 0.85);
+	-webkit-mask: url("/img/rock1.svg") center bottom / 100% 100% no-repeat;
+	mask: url("/img/rock1.svg") center bottom / 100% 100% no-repeat;
 }
-/* space rocks: jagged black monoliths silhouetted against the glare */
-.bg-set.void .rocks {
-	position: absolute;
-	inset: auto 0 0;
-	height: 26vh;
-	background:
-		conic-gradient(from 55deg at 5% 100%, rgba(8, 4, 6, 0.96) 0 70deg, transparent 70deg),
-		conic-gradient(from 68deg at 14% 100%, rgba(12, 6, 9, 0.94) 0 44deg, transparent 44deg),
-		conic-gradient(from 50deg at 27% 100%, rgba(8, 4, 6, 0.9) 0 80deg, transparent 80deg),
-		conic-gradient(from 72deg at 43% 100%, rgba(12, 6, 9, 0.92) 0 36deg, transparent 36deg),
-		conic-gradient(from 58deg at 60% 100%, rgba(8, 4, 6, 0.94) 0 64deg, transparent 64deg),
-		conic-gradient(from 66deg at 74% 100%, rgba(12, 6, 9, 0.9) 0 48deg, transparent 48deg),
-		conic-gradient(from 52deg at 88% 100%, rgba(8, 4, 6, 0.96) 0 76deg, transparent 76deg),
-		conic-gradient(from 70deg at 98% 100%, rgba(12, 6, 9, 0.92) 0 40deg, transparent 40deg),
-		linear-gradient(to top, rgba(6, 3, 5, 0.98) 12%, transparent 55%);
+.bg-set.void .r2 {
+	bottom: 9vh;
+	height: 19vh;
+	background: rgba(38, 9, 13, 0.95);
+	-webkit-mask: url("/img/rock2.svg") center bottom / 100% 100% no-repeat;
+	mask: url("/img/rock2.svg") center bottom / 100% 100% no-repeat;
+}
+.bg-set.void .r3 {
+	bottom: -2vh;
+	height: 22vh;
+	background: rgba(8, 3, 5, 0.98);
+	-webkit-mask: url("/img/rock3.svg") center bottom / 100% 100% no-repeat;
+	mask: url("/img/rock3.svg") center bottom / 100% 100% no-repeat;
 }
 @media (prefers-reduced-motion: no-preference) {
 	.bg-set.void .stars { animation: void-fly 26s linear infinite; }
 	.bg-set.void .st2 { animation-duration: 44s; }
-	.bg-set.void .horizon { animation: void-glare 7s ease-in-out infinite; }
-	.bg-set.void .glare { animation: void-glare 7s ease-in-out infinite; animation-delay: -3.5s; }
+	.bg-set.void .sky { animation: void-glare 9s ease-in-out infinite; }
 }
 @keyframes void-fly {
 	to { transform: translateX(-50vw); }
