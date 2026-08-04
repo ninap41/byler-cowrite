@@ -90,6 +90,10 @@ test("submit-line rejected when not your turn; rules host-only", async () => {
   await ctx.wait(120);
   assert.equal(state.current.turnSeconds, 120);
   assert.ok(state.current.deadline > before, "Apply restarts the running clock at the new length immediately");
+  assert.ok(state.current.maxTurns != null, "the game has a finish line before going endless");
+  await ctx.emit(A, "update-rules", { endless: true });
+  await ctx.wait(120);
+  assert.equal(state.current.maxTurns, null, "♾ infinite rounds removes the finish line");
 });
 
 test("untimed non-friendly story: turnSeconds 0 disables the clock; mode broadcast + snapshot", async () => {

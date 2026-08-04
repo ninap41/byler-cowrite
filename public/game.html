@@ -48,7 +48,8 @@
 								><input id="turnSecs" type="number" min="10" max="600" value="60" />
 							</div>
 							<div>
-								<label for="rounds">Rounds (0 = endless)</label><input id="rounds" type="number" min="0" max="50" value="3" />
+								<label for="rounds">Rounds</label><input id="rounds" type="number" min="0" max="50" value="3" />
+								<label class="checkline"><input type="checkbox" id="endlessRounds" /> ♾ Infinite rounds</label>
 							</div>
 						</div>
 						<div class="grid2">
@@ -164,7 +165,8 @@
 										</select>
 									</div>
 									<div>
-										<label for="addRoundsInput">Add rounds</label>
+										<label for="addRoundsInput" id="addRoundsLabel">Add rounds</label>
+										<label class="checkline"><input type="checkbox" id="liveEndless" /> ♾ Infinite rounds</label>
 										<div class="chat-row">
 											<input id="addRoundsInput" type="number" min="1" max="20" placeholder="0" />
 											<button class="ghost" id="applyRulesBtn">Apply</button>
@@ -201,8 +203,9 @@
 								><input id="contSecs" type="number" min="10" max="600" value="60" />
 							</div>
 							<div>
-								<label for="contRounds">Rounds (0 = endless)</label
+								<label for="contRounds">Rounds</label
 								><input id="contRounds" type="number" min="0" max="50" value="3" />
+								<label class="checkline"><input type="checkbox" id="contEndless" /> ♾ Infinite rounds</label>
 							</div>
 						</div>
 						<div class="grid2">
@@ -498,12 +501,19 @@
 			wireNoTimer("noTimer", "turnSecs")
 			wireNoTimer("contNoTimer", "contSecs")
 			wireNoTimer("liveNoTimer", "liveSecs")
+			wireNoTimer("endlessRounds", "rounds")
+			wireNoTimer("contEndless", "contRounds")
+			$("liveEndless").onchange = () => {
+				const off = $("liveEndless").checked
+				$("addRoundsInput").classList.toggle("hidden", off)
+				$("addRoundsLabel").classList.toggle("hidden", off)
+			}
 			$("startBtn").onclick = () =>
 				socket.emit(
 					"start-game",
 					{
 						turnSeconds: $("noTimer").checked ? 0 : $("turnSecs").value,
-						rounds: $("rounds").value,
+						rounds: $("endlessRounds").checked ? 0 : $("rounds").value,
 						friendly: $("storyMode").value === "1",
 					},
 					(res) => {
@@ -821,7 +831,8 @@
 					"update-rules",
 					{
 						turnSeconds: $("liveNoTimer").checked ? 0 : $("liveSecs").value,
-						addRounds: $("addRoundsInput").value || 0,
+						addRounds: $("liveEndless").checked ? 0 : $("addRoundsInput").value || 0,
+						endless: $("liveEndless").checked || undefined,
 						friendly: $("liveMode").value === "1",
 					},
 					(res) => {
@@ -848,7 +859,7 @@
 			$("continueBtn").onclick = () =>
 				socket.emit("continue-writing", {
 					turnSeconds: $("contNoTimer").checked ? 0 : $("contSecs").value,
-					rounds: $("contRounds").value,
+					rounds: $("contEndless").checked ? 0 : $("contRounds").value,
 					friendly: $("contMode").value === "1",
 				}, (res) => {
 					if (!res?.ok) alert("Could not continue — only the host can, and someone must be here.")

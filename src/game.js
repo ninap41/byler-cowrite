@@ -780,10 +780,11 @@ export function createGame(io) {
     // Host can retune mid-game: a new turn length applies from the next turn
     // (the running clock is untouched); added rounds extend maxTurns, and give
     // an endless game a finish line turnCount + extra turns away.
-    socket.on("update-rules", ({ turnSeconds, addRounds, friendly }, ack) => {
+    socket.on("update-rules", ({ turnSeconds, addRounds, friendly, endless }, ack) => {
       const s = mySession();
       if (!s || s.hostId !== socket.id || s.phase !== "writing") return ack?.({ ok: false });
       if (friendly != null) s.friendly = !!friendly;
+      if (endless) s.maxTurns = null; // ♾ the story loses its finish line
       const wantsUntimed = turnSeconds === 0 || turnSeconds === "0";
       const newSeconds = wantsUntimed || (turnSeconds != null && Number(turnSeconds) > 0);
       if (newSeconds) s.turnSeconds = cleanSeconds(turnSeconds, s.turnSeconds);
