@@ -2,7 +2,7 @@ import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { startServer, signup } from "./helpers.mjs";
+import { startServer, signup, startedGame } from "./helpers.mjs";
 
 let ctx;
 before(async () => (ctx = await startServer()));
@@ -125,4 +125,22 @@ test("public profile: full public shape, no email/id/game codes; 404 unknown", a
   assert.equal(p.email, undefined, "email never exposed");
   assert.equal(p.id, undefined, "account id never exposed");
   assert.equal(p.games, undefined, "game codes stay private");
+});
+
+test("profile hosted stories: running games glow-flagged, finished ones included", async () => {
+  const { host, mike, A, code } = await startedGame(ctx);
+  const live = (await ctx.api("/api/users/willthewise", null, mike.token, "GET")).data.hosted;
+  const g1 = live.find((g) => g.code === code);
+  assert.ok(g1, "hosted story listed while running");
+  assert.equal(g1.inProgress, true, "running game is flagged in progress");
+  await ctx.emit(A, "end-game", {});
+  await ctx.wait(150);
+  const done = (await ctx.api("/api/users/willthewise", null, mike.token, "GET")).data.hosted;
+  const g2 = done.find((g) => g.code === code);
+  assert.ok(g2, "FINISHED hosted stories stay listed");
+  assert.equal(g2.phase, "over");
+  assert.equal(g2.inProgress, false, "no glow once revealed");
+  // the co-writer hosts nothing
+  const mikes = (await ctx.api("/api/users/mikewheeler", null, host.token, "GET")).data.hosted;
+  assert.ok(!mikes.some((g) => g.code === code), "only the ORIGINAL host lists it");
 });

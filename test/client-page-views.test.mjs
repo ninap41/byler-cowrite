@@ -37,15 +37,19 @@ test("statsText: singulars, next-badge distance, ladder top", () => {
   assert.equal(statsText({ wordCount: 20000, badges: ["a", "b"], nextBadge: null }), "20000 words written · 2 badges");
 });
 
-test("badgeProgress: real word counts in the label, sliver fill, topped-out ladder", () => {
+test("badgeProgress: fill = (words - words-to-go) / threshold; sliver; topped-out ladder", () => {
+  // 23 written, 77 to go -> banked 0 -> sliver
   assert.deepEqual(badgeProgress({ wordCount: 23, nextBadge: { min: 100, name: "🖊️ Scribbler" } }),
-    { pct: 23, label: "23 / 100 words to 🖊️ Scribbler" });
+    { pct: 1, label: "23 / 100 words to 🖊️ Scribbler" });
   assert.equal(badgeProgress({ wordCount: 8, nextBadge: { min: 5000, name: "🐶 Puppy Mike" } }).pct, 1,
     "any words at all show a sliver");
   assert.match(badgeProgress({ wordCount: 8, nextBadge: { min: 5000, name: "🐶 Puppy Mike" } }).label,
     /8 \/ 5,000 words/);
   assert.equal(badgeProgress({ wordCount: 0, nextBadge: { min: 5000, name: "x" } }).pct, 0);
-  assert.equal(badgeProgress({ wordCount: 99, nextBadge: { min: 100, name: "x" } }).pct, 99);
+  // 99 written, 1 to go -> banked 98 of 100
+  assert.equal(badgeProgress({ wordCount: 99, nextBadge: { min: 100, name: "x" } }).pct, 98);
+  // 75 written, 25 to go -> banked 50 of 100
+  assert.equal(badgeProgress({ wordCount: 75, nextBadge: { min: 100, name: "x" } }).pct, 50);
   assert.equal(badgeProgress({ wordCount: 50000, nextBadge: null }).pct, 100);
 });
 

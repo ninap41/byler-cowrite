@@ -39,9 +39,13 @@ export function statsText(u) {
 // The label carries the real word counts — "8 / 5,000 words" reads as
 // progress even when the percentage rounds to zero; any words at all show
 // at least a sliver of fill.
+// Progress = words-to-next-rank subtracted from total words written,
+// as a share of the next rank's threshold.
 export function badgeProgress(u) {
 	if (!u.nextBadge) return { pct: 100, label: "top of the ladder" }
-	const pct = Math.max(0, Math.min(99, Math.floor((u.wordCount / u.nextBadge.min) * 100)))
+	const toGo = Math.max(0, u.nextBadge.min - u.wordCount)
+	const banked = Math.max(0, u.wordCount - toGo)
+	const pct = Math.max(0, Math.min(99, Math.floor((banked / u.nextBadge.min) * 100)))
 	return {
 		pct: u.wordCount > 0 ? Math.max(pct, 1) : 0,
 		label: `${u.wordCount.toLocaleString()} / ${u.nextBadge.min.toLocaleString()} words to ${u.nextBadge.name}`,
