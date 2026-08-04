@@ -1037,7 +1037,7 @@ export function createGame(io) {
       if (!f.endsWith(".json")) continue;
       try {
         const d = JSON.parse(readFileSync(join(SAVE_DIR, f), "utf-8"));
-        if (d.phase === "over" && inGame(d, u)) out.push(gameSummary(d));
+        if (d.phase === "over" && inGame(d, u)) out.push({ ...gameSummary(d), hosted: d.hostUserId === u.id });
       } catch { /* skip unreadable snapshot */ }
     }
     out.sort((a, b) => b.savedAt - a.savedAt);

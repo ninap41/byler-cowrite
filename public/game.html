@@ -153,16 +153,16 @@
 								<h4>Host controls</h4>
 								<div id="hostRules">
 									<div>
-										<label for="liveSecs">Seconds per turn</label
-										><input id="liveSecs" type="number" min="10" max="600" />
-										<label class="checkline"><input type="checkbox" id="liveNoTimer" /> ⏱ No timer</label>
-									</div>
-									<div>
 										<label for="liveMode">Story mode</label>
 										<select id="liveMode">
 											<option value="1">💛 Friendly</option>
 											<option value="0">🌶 Non-friendly</option>
 										</select>
+									</div>
+									<div>
+										<label for="liveSecs">Seconds per turn</label
+										><input id="liveSecs" type="number" min="10" max="600" />
+										<label class="checkline"><input type="checkbox" id="liveNoTimer" /> ⏱ No timer</label>
 									</div>
 									<div>
 										<label for="addRoundsInput" id="addRoundsLabel">Add rounds</label>
@@ -1036,6 +1036,11 @@
 					tipFor = null
 					tipEl.classList.add("hidden")
 				}
+			})
+			// clicking a writer opens their profile in a new tab
+			document.addEventListener("click", (e) => {
+				const t = e.target.closest?.("[data-user]")
+				if (t) window.open("/profile?user=" + encodeURIComponent(t.dataset.user), "_blank", "noopener")
 			})
 
 			// ---- Chat: two channels in one dock ----

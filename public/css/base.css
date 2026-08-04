@@ -1668,6 +1668,13 @@ ul.roster li {
 	pointer-events: none;
 }
 
+/* the writers directory scrolls instead of growing forever */
+#writersList {
+	max-height: 340px;
+	overflow-y: auto;
+	padding-right: 4px;
+}
+
 /* archive group subheadings: hosted vs joined */
 .arch-sub {
 	margin: 18px 0 8px;
@@ -1812,7 +1819,7 @@ input[type="checkbox"]:focus-visible {
 	color: var(--muted);
 }
 [data-user] {
-	cursor: help;
+	cursor: pointer; /* hover = stats tooltip, click = profile in a new tab */
 }
 
 .chat-log .cn-host {
@@ -2923,10 +2930,10 @@ button.danger,
 .side-sec {
 	border: 1px solid var(--panel-brd);
 	border-radius: 14px;
-	padding: 16px 18px;
+	padding: 16px 18px 18px;
 }
 .side-sec h4 {
-	margin: 0 0 10px;
+	margin: 0 0 12px;
 	font-size: 11px;
 	letter-spacing: 0.12em;
 	text-transform: uppercase;
@@ -2936,7 +2943,7 @@ button.danger,
 	margin: 0;
 	flex-direction: column;
 	align-items: stretch;
-	gap: 6px;
+	gap: 9px;
 }
 .side-sec #hostRules {
 	display: flex;

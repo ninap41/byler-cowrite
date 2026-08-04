@@ -116,7 +116,7 @@ export function recentRowHtml(g) {
 // Earned badge chips + the greyed next tier.
 export function achievementsHtml(u) {
 	const earned = u.badges
-		.map((b) => `<span class="ach earned" title="${esc(u.badgeDescs?.[b] || "Earned")}">${esc(b)}</span>`)
+		.map((b) => `<span class="ach earned" title="${esc(u.badgeDescs?.[b] || "No description")}">${esc(b)}</span>`)
 		.join("")
 	const next = u.nextBadge
 		? `<span class="ach next" title="Next up">? ${esc(u.nextBadge.name)} · ${u.nextBadge.min} words</span>`
