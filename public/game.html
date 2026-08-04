@@ -157,6 +157,13 @@
 										<label class="checkline"><input type="checkbox" id="liveNoTimer" /> ⏱ No timer</label>
 									</div>
 									<div>
+										<label for="liveMode">Story mode</label>
+										<select id="liveMode">
+											<option value="1">💛 Friendly</option>
+											<option value="0">🌶 Non-friendly</option>
+										</select>
+									</div>
+									<div>
 										<label for="addRoundsInput">Add rounds</label>
 										<div class="chat-row">
 											<input id="addRoundsInput" type="number" min="1" max="20" placeholder="0" />
@@ -465,7 +472,16 @@
 				const host = myId === hostId
 				$("hostControls").classList.toggle("hidden", !host)
 				$("waitingNote").classList.toggle("hidden", host)
-				$("continueControls").classList.toggle("hidden", !host)
+				// everyone sees the continue panel; only the host can drive it
+				const cc = $("continueControls")
+				cc.classList.remove("hidden")
+				cc.classList.toggle("continue-locked", !host)
+				cc.title = host ? "" : "Only the host has the ability to continue the story."
+				cc.querySelectorAll("input, select, button").forEach((el) => (el.disabled = !host))
+				if (!host) {
+					// re-hide the seconds input state correctly if it was toggled
+					$("contSecs").disabled = true
+				}
 			}
 
 			// ---- Waiting room ----
@@ -608,7 +624,8 @@
 				$("whoTurn").style.color = myTurn ? "var(--good)" : "var(--ink)"
 				$("myTurn").classList.toggle("hidden", !myTurn)
 				$("hostPanel").classList.toggle("hidden", !host)
-				if (document.activeElement !== $("liveSecs")) $("liveSecs").value = st.turnSeconds
+				if (document.activeElement !== $("liveSecs")) $("liveSecs").value = st.turnSeconds || ""
+				if (document.activeElement !== $("liveMode")) $("liveMode").value = st.friendly === false ? "0" : "1"
 				$("pauseBtn").textContent = st.paused ? "▶ Resume" : "⏸ Pause"
 				$("progress").textContent =
 					(st.maxTurns ? `Turn ${st.turnCount + 1} of ${st.maxTurns}` : `Turn ${st.turnCount + 1} · endless`) +
@@ -790,7 +807,11 @@
 				const btn = $("applyRulesBtn")
 				socket.emit(
 					"update-rules",
-					{ turnSeconds: $("liveNoTimer").checked ? 0 : $("liveSecs").value, addRounds: $("addRoundsInput").value || 0 },
+					{
+						turnSeconds: $("liveNoTimer").checked ? 0 : $("liveSecs").value,
+						addRounds: $("addRoundsInput").value || 0,
+						friendly: $("liveMode").value === "1",
+					},
 					(res) => {
 						$("addRoundsInput").value = ""
 						btn.textContent = res?.ok ? "Applied ✓" : "Host only"

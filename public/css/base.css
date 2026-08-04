@@ -1656,6 +1656,18 @@ ul.roster li {
 	font-size: 0.92rem;
 	line-height: 1.4;
 }
+/* the continue panel, visible to writers but host-only to drive */
+.continue-locked {
+	opacity: 0.55;
+	cursor: not-allowed;
+}
+.continue-locked input,
+.continue-locked select,
+.continue-locked button,
+.continue-locked .checkline {
+	pointer-events: none;
+}
+
 /* archive group subheadings: hosted vs joined */
 .arch-sub {
 	margin: 18px 0 8px;
