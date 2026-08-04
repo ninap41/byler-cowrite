@@ -25,6 +25,10 @@ test("archive is private per account; host identity exposed", async () => {
   assert.equal(mine.hostName, "willthewise");
   assert.ok(mine.writers.find((w) => w.name === "willthewise" && w.isHost));
   assert.equal(mine.lines, 1);
+  assert.equal(mine.hosted, true, "the original host's listing is flagged hosted");
+  const mikeTok = (await ctx.api("/api/login", { user: "mikewheeler", password: "1234" })).data.token;
+  const joined = (await ctx.api("/api/games", null, mikeTok, "GET")).data.find((g) => g.code === code);
+  assert.equal(joined.hosted, false, "a co-writer's listing groups under joined games");
 
   const detail = await ctx.api("/api/games/" + code, null, host.token, "GET");
   assert.equal(detail.data.story.length, 1);

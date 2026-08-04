@@ -29,7 +29,8 @@
 								<div class="me-row">
 									<span class="me-name" id="meName"></span>
 									<span class="badge-chip" id="meBadge"></span>
-									<button class="ghost" id="logoutBtn" style="margin-left: auto">Log out</button>
+									<button class="ghost" id="viewProfileBtn" style="margin-left: auto">View profile</button>
+									<button class="ghost" id="logoutBtn">Log out</button>
 								</div>
 								<p class="welcome-sub">Welcome back! Ready to keep the story going?</p>
 								<div class="err" id="meErr"></div>
@@ -179,6 +180,7 @@
 			})
 
 			// (username changes live in Settings only — not on the dashboard)
+			$("viewProfileBtn").onclick = () => (location.href = "/profile")
 			$("logoutBtn").onclick = async () => {
 				try {
 					await api("/api/logout")

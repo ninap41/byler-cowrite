@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { ladderHtml, usageCaseHtml, aboutHtml, avatarHtml } from "../public/js/profile-view.js";
+import { ladderHtml, ladderAccordionHtml, usageCaseHtml, aboutHtml, avatarHtml } from "../public/js/profile-view.js";
 
 test("aboutHtml: server-sanitized about injected as-is, links escaped, empty state", () => {
   const out = aboutHtml({
@@ -40,6 +40,19 @@ test("ladderHtml: earned/current/next-with-progress/locked states", () => {
   assert.ok(rows[2].includes("60%"), "12000/20000 toward Sorcerer");
   assert.ok(rows[2].includes('width:60%'));
   assert.ok(out.includes("5,000 words"));
+});
+
+test("ladderAccordionHtml: only the current rank in the open view, full ladder folded away", () => {
+  const out = ladderAccordionHtml(TIERS, {
+    wordCount: 12000,
+    wordBadges: ["🐶 Puppy Mike", "🪄 Practice"],
+    currentBadge: "🪄 Practice",
+  });
+  const [visible, folded] = out.split("<details");
+  assert.ok(visible.includes("🪄 Practice"), "current rank shows");
+  assert.ok(!visible.includes("🐶 Puppy Mike") && !visible.includes("🧙 Sorcerer"), "other tiers only in the accordion");
+  assert.ok(folded.includes("All ranks"), "accordion summary");
+  for (const t of TIERS) assert.ok(folded.includes(t.name), "every tier inside the accordion");
 });
 
 test("ladderHtml: fresh account shows first tier progress, rest locked", () => {

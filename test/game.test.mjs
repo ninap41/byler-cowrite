@@ -94,6 +94,12 @@ test("submit-line rejected when not your turn; rules host-only", async () => {
   await ctx.emit(A, "update-rules", { endless: true });
   await ctx.wait(120);
   assert.equal(state.current.maxTurns, null, "♾ infinite rounds removes the finish line");
+  // mid-game Apply can also flip the story mode and disable the timer
+  await ctx.emit(A, "update-rules", { turnSeconds: 0, friendly: false });
+  await ctx.wait(120);
+  assert.equal(state.current.friendly, false, "mode change broadcast mid-game");
+  assert.equal(state.current.turnSeconds, 0, "no-timer applied mid-game");
+  assert.equal(state.current.deadline, 0, "running clock cleared immediately");
 });
 
 test("untimed non-friendly story: turnSeconds 0 disables the clock; mode broadcast + snapshot", async () => {
