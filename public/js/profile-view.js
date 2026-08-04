@@ -24,6 +24,16 @@ export function ladderHtml(tiers, u) {
 		.join("")
 }
 
+// The ladder, folded: only the CURRENT rank shows; every other tier lives
+// behind an accordion.
+export function ladderAccordionHtml(tiers, u) {
+	const cur = tiers.filter((t) => u.currentBadge === t.name)
+	return (
+		(cur.length ? ladderHtml(cur, u) : "") +
+		`<details class="ladder-acc"><summary>All ranks</summary>${ladderHtml(tiers, u)}</details>`
+	)
+}
+
 // The About section: bio with inline <img> embeds + up to three links.
 // p.about is already server-sanitized (sanitizeAbout: everything escaped,
 // only validated <img src="http(s)…"> re-enabled) — inject it as-is, exactly

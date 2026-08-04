@@ -4,6 +4,7 @@
 import { initTheme, THEMES, THEME_LABELS } from "./theme.js"
 import { logoHtml, quillHtml } from "./logo.js"
 import { initNav } from "./nav.js"
+import { initBadgeTips } from "./badge-tips.js"
 import { safeColor } from "./util.js"
 
 const BG = `
@@ -160,6 +161,7 @@ export function mountChrome({ page = "", nav = true, kofi = true } = {}) {
 		})
 	}
 	const theme = initTheme()
+	initBadgeTips() // hover any badge chip for its description
 	if (nav) initNav()
 	if (kofi) mountKofi()
 	return theme

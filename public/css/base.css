@@ -1608,6 +1608,22 @@ ul.roster li {
 	font-size: 0.92rem;
 	line-height: 1.4;
 }
+/* the folded word-count ladder on profiles */
+.ladder-acc {
+	margin-top: 8px;
+}
+.ladder-acc summary {
+	cursor: pointer;
+	font-family: var(--font-mono);
+	font-size: 0.78rem;
+	color: var(--muted);
+	padding: 6px 2px;
+	user-select: none;
+}
+.ladder-acc summary:hover {
+	color: var(--ink);
+}
+
 /* story mode chip (session bar) + the no-timer checkbox row */
 .mode-chip {
 	font-family: var(--font-mono);

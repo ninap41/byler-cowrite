@@ -258,7 +258,24 @@ export function registerRoutes(app, game) {
     if (!authedUser(req)) return res.status(401).json({ error: "Sign in first." });
     const u = findByUsername(req.params.username);
     if (!u) return res.status(404).json({ error: "No writer by that name." });
-    res.json({ user: profileOf(u, new Set(onlineSockets.values())) });
+    // Stories this user is the ORIGINAL host of (public shape only), with a
+    // live "in progress" flag when the session is currently running.
+    const hosted = [];
+    for (const f of readdirSync(SAVE_DIR)) {
+      if (!f.endsWith(".json")) continue;
+      try {
+        const d = JSON.parse(readFileSync(join(SAVE_DIR, f), "utf-8"));
+        if (d.hostUserId !== u.id) continue;
+        const live = sessions.get(d.code);
+        hosted.push({
+          code: d.code, name: d.name || "", prompt: d.prompt || "", phase: d.phase,
+          lines: (d.story || []).length, savedAt: d.savedAt || 0,
+          inProgress: !!live && live.phase !== "over",
+        });
+      } catch { /* skip unreadable snapshot */ }
+    }
+    hosted.sort((a, b) => b.savedAt - a.savedAt);
+    res.json({ user: profileOf(u, new Set(onlineSockets.values())), hosted });
   });
 
   app.get("/api/me", (req, res) => {

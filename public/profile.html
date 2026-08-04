@@ -50,6 +50,12 @@
 						</p>
 					</div>
 
+					<!-- hosted stories -->
+					<div class="card">
+						<h3 class="dash-h" style="margin-top: 0">Hosted stories</h3>
+						<div id="hostedList"></div>
+					</div>
+
 					<!-- word ladder -->
 					<div class="card">
 						<h3 class="dash-h" style="margin-top: 0">Word-count ranks</h3>
@@ -86,7 +92,7 @@
 			import { requireAuth } from "/js/auth-guard.js"
 			import { safeColor } from "/js/util.js"
 			import { streakRingHtml } from "/js/dashboard-view.js"
-			import { ladderHtml, usageCaseHtml, aboutHtml, avatarHtml } from "/js/profile-view.js"
+			import { ladderAccordionHtml, usageCaseHtml, aboutHtml, avatarHtml } from "/js/profile-view.js"
 
 			mountChrome({ page: "profile" })
 			const $ = (id) => document.getElementById(id)
@@ -95,17 +101,19 @@
 				setUserChip(me)
 				const meta = await api("/api/achievements", null, "GET")
 				const wanted = new URLSearchParams(location.search).get("user")
-				// whose profile? mine by default, anyone else's via ?user=name
-				let p = { ...me, stories: (me.games || []).length, online: true }
-				let itsMe = true
-				if (wanted && wanted.toLowerCase() !== me.username.toLowerCase()) {
-					itsMe = false
-					try {
-						p = (await api("/api/users/" + encodeURIComponent(wanted), null, "GET")).user
-					} catch (e) {
-						$("profErr").textContent = e.message
-						p = null
-					}
+				// whose profile? mine by default, anyone else's via ?user=name.
+				// Always hit the profile endpoint — it also carries hosted stories.
+				let p = null
+				let hosted = []
+				const who = wanted || me.username
+				const itsMe = who.toLowerCase() === me.username.toLowerCase()
+				try {
+					const r = await api("/api/users/" + encodeURIComponent(who), null, "GET")
+					p = r.user
+					hosted = r.hosted || []
+					if (itsMe) p = { ...p, online: true }
+				} catch (e) {
+					$("profErr").textContent = e.message
 				}
 				if (p) {
 					document.title = `Byler Cowrite — ${p.username}`
@@ -123,7 +131,34 @@
 					$("statStories").textContent = p.stories
 					$("aboutBox").innerHTML = aboutHtml(p)
 					$("aboutEditHint").classList.toggle("hidden", !itsMe)
-					$("ladder").innerHTML = ladderHtml(meta.wordTiers, p)
+					$("ladder").innerHTML = ladderAccordionHtml(meta.wordTiers, p)
+					// hosted stories: rows glow while the story is live in progress
+					const hb = $("hostedList")
+					if (!hosted.length) {
+						hb.innerHTML = '<p class="subtle" style="text-align:left;margin:0">No hosted stories yet.</p>'
+					} else {
+						hosted.forEach((g) => {
+							const row = document.createElement("div")
+							row.className = "live-game" + (g.inProgress ? " gathering" : "")
+							const info = document.createElement("span")
+							info.className = "lg-info"
+							const b = document.createElement("b")
+							b.textContent = g.name || g.code
+							const sub = document.createElement("span")
+							sub.className = "lg-sub"
+							sub.textContent =
+								`${g.code} · ${g.inProgress ? "✨ in progress" : g.phase === "over" ? "finished" : "paused"}` +
+								` · ${g.lines} line${g.lines === 1 ? "" : "s"}`
+							info.append(b, sub)
+							const btn = document.createElement("button")
+							btn.className = "ghost"
+							btn.textContent = g.inProgress ? "Join" : "Open"
+							btn.onclick = () =>
+								(location.href = (g.inProgress ? "/game?code=" : "/archive?code=") + encodeURIComponent(g.code))
+							row.append(info, btn)
+							hb.appendChild(row)
+						})
+					}
 					$("usageCase").innerHTML = usageCaseHtml(meta.usage, p.usageBadges)
 					$("streakBox").innerHTML =
 						streakRingHtml(p.streak, Math.max(p.bestStreak, 1)) +

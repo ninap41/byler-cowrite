@@ -918,10 +918,11 @@
 				let p = statCache.get(name)
 				if (!p) {
 					try {
-						p = await authApi("/api/users/" + encodeURIComponent(name), null, "GET")
+						p = (await authApi("/api/users/" + encodeURIComponent(name), null, "GET")).user
 					} catch (e) {
 						return
 					}
+					if (!p) return
 					statCache.set(name, p)
 				}
 				if (tipFor !== name) return // hover moved on while we fetched
