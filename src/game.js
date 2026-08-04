@@ -45,6 +45,7 @@ export function createGame(io) {
     try {
       const doc = JSON.stringify({
         code: s.code, name: s.name || "", phase: s.phase, prompt: s.prompt, story: s.story, chat: s.chat,
+        friendly: s.friendly !== false,
         turnSeconds: s.turnSeconds, maxTurns: s.maxTurns, turnCount: s.turnCount,
         remaining: s.remaining, currentIdx: s.currentIdx,
         writers: [...s.writers.values()].map((w) => ({
@@ -98,12 +99,13 @@ export function createGame(io) {
       currentIdx: Math.min(d.currentIdx || 0, Math.max(0, d.turnOrderTokens.length - 1)),
       turnCount: d.turnCount || 0, maxTurns: d.maxTurns ?? null,
       story: d.story || [], prompt: d.prompt || "", options: [], votes: new Map(),
-      turnSeconds: d.turnSeconds || 60, deadline: 0,
+      turnSeconds: d.turnSeconds === 0 ? 0 : d.turnSeconds || 60, deadline: 0,
       paused: phase === "writing", remaining: d.remaining || (d.turnSeconds || 60) * 1000,
       timer: null, chat: d.chat || [], lastTyping: "",
       name: d.name || "", pending: new Map(), denied: new Map(),
       gated: true, // a continued game: the host must approve each re-entry
       hostName: d.hostName ?? null, hostUserId: d.hostUserId ?? null,
+      friendly: d.friendly !== false,
     };
     sessions.set(code, s);
     if (s.phase === "writing") armIdleEnd(s); // wakes paused — don't let it sit forever
@@ -298,6 +300,7 @@ export function createGame(io) {
       paused: s.paused,
       remaining: s.paused ? s.remaining : null,
       turnSeconds: s.turnSeconds,
+      friendly: s.friendly !== false,
       turnCount: s.turnCount,
       maxTurns: s.maxTurns,
       players: names(s),
@@ -321,6 +324,14 @@ export function createGame(io) {
     }, IDLE_END_MS);
   }
 
+  // Turn length sanitizer: 0 (explicit) = untimed — turns wait for the writer.
+  // Anything else clamps to 10..600s; garbage falls back.
+  const cleanSeconds = (v, fallback) => {
+    if (v === 0 || v === "0") return 0;
+    const n = Number(v);
+    return n > 0 ? Math.min(600, Math.max(10, n)) : fallback;
+  };
+
   function startTurn(s) {
     clearTimeout(s.timer);
     clearTimeout(s.idleTimer);
@@ -342,9 +353,15 @@ export function createGame(io) {
       broadcastGame(s);
       return;
     }
-    s.deadline = Date.now() + s.turnSeconds * 1000;
     s.lastTyping = "";
     s.lastTypingRaw = "";
+    if (s.turnSeconds === 0) {
+      // untimed story: no deadline, no auto-commit — the writer takes their time
+      s.deadline = 0;
+      broadcastGame(s);
+      return;
+    }
+    s.deadline = Date.now() + s.turnSeconds * 1000;
     broadcastGame(s);
     s.timer = setTimeout(() => timeUp(s), s.turnSeconds * 1000);
   }
@@ -511,6 +528,7 @@ export function createGame(io) {
       const s = {
         code, name: "", hostId: socket.id, hostToken: host.token,
         hostUserId: acct.id, hostName: acct.username, // the ORIGINAL host, forever
+        friendly: true, // story mode: friendly (default) vs non-friendly
         phase: "waiting",
         writers: new Map([[socket.id, host]]),
         turnOrder: [], currentIdx: 0, turnCount: 0, maxTurns: null,
@@ -621,7 +639,7 @@ export function createGame(io) {
       gateOrSeat(socket, s, entry[0], entry[1], ack);
     });
 
-    socket.on("start-game", ({ turnSeconds, rounds }, ack) => {
+    socket.on("start-game", ({ turnSeconds, rounds, friendly }, ack) => {
       const s = mySession();
       if (!s || s.hostId !== socket.id) return ack?.({ ok: false, error: "Only the host can start." });
       if (s.writers.size < 1) return ack?.({ ok: false, error: "Need at least one writer." });
@@ -631,7 +649,8 @@ export function createGame(io) {
       s.turnCount = 0;
       s.story = [];
       s.votes.clear();
-      s.turnSeconds = Math.min(600, Math.max(10, Number(turnSeconds) || 60));
+      if (friendly != null) s.friendly = !!friendly;
+      s.turnSeconds = cleanSeconds(turnSeconds, 60);
       const r = Number(rounds);
       s.maxTurns = r > 0 ? r * s.turnOrder.length : null;
       s.options = promptOptions();
@@ -788,10 +807,11 @@ export function createGame(io) {
 
     // After a reveal, the host can pick the story back up with fresh rules.
     // Keeps prompt + story; the turn order rebuilds from connected writers.
-    socket.on("continue-writing", ({ turnSeconds, rounds }, ack) => {
+    socket.on("continue-writing", ({ turnSeconds, rounds, friendly }, ack) => {
       const s = mySession();
       if (!s || s.hostId !== socket.id || s.phase !== "over") return ack?.({ ok: false });
-      s.turnSeconds = Math.min(600, Math.max(10, Number(turnSeconds) || s.turnSeconds));
+      if (friendly != null) s.friendly = !!friendly;
+      s.turnSeconds = cleanSeconds(turnSeconds, s.turnSeconds);
       s.turnOrder = [...s.writers.entries()].filter(([, w]) => w.connected).map(([id]) => id);
       if (s.turnOrder.length === 0) return ack?.({ ok: false });
       const r = Number(rounds);
@@ -815,6 +835,11 @@ export function createGame(io) {
         return startTurn(s);
       }
       clearTimeout(s.idleTimer);
+      if (s.turnSeconds === 0) {
+        s.deadline = 0; // untimed: resume just unfreezes, no clock to rearm
+        broadcastGame(s);
+        return ack?.({ ok: true });
+      }
       s.deadline = Date.now() + s.remaining;
       s.timer = setTimeout(() => timeUp(s), s.remaining);
       broadcastGame(s);

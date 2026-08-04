@@ -51,6 +51,18 @@
 								<label for="rounds">Rounds (0 = endless)</label><input id="rounds" type="number" min="0" max="50" value="3" />
 							</div>
 						</div>
+						<div class="grid2">
+							<div>
+								<label for="storyMode">Story mode</label>
+								<select id="storyMode">
+									<option value="1" selected>💛 Friendly</option>
+									<option value="0">🌶 Non-friendly</option>
+								</select>
+							</div>
+							<div>
+								<label class="checkline"><input type="checkbox" id="noTimer" /> ⏱ No timer — turns wait for the writer</label>
+							</div>
+						</div>
 						<div class="row"><button class="primary" id="startBtn">Begin →</button></div>
 					</div>
 					<p id="waitingNote" class="subtle" style="margin-top: 16px">Waiting for the host to begin…</p>
@@ -185,6 +197,18 @@
 								><input id="contRounds" type="number" min="0" max="50" value="3" />
 							</div>
 						</div>
+						<div class="grid2">
+							<div>
+								<label for="contMode">Story mode</label>
+								<select id="contMode">
+									<option value="1" selected>💛 Friendly</option>
+									<option value="0">🌶 Non-friendly</option>
+								</select>
+							</div>
+							<div>
+								<label class="checkline"><input type="checkbox" id="contNoTimer" /> ⏱ No timer</label>
+							</div>
+						</div>
 						<div class="row"><button class="primary" id="continueBtn">Continue the story →</button></div>
 						<div class="divider">OR EXPORT IT</div>
 					</div>
@@ -275,10 +299,18 @@
 			// ---- Session bar: name (host-editable) + copyable code ----
 			let myCode = "",
 				sessName = "",
-				sessHost = ""
+				sessFriendly = null
 			function updateSessionBar() {
-				// no host name next to the story title — hosts are tagged in the lists
-				document.querySelectorAll("[data-sess-host]").forEach((el) => (el.innerHTML = ""))
+				// no host name next to the story title — the slot shows the story
+				// mode instead (hosts are tagged "(host)" in the lists)
+				document.querySelectorAll("[data-sess-host]").forEach((el) => {
+					el.innerHTML =
+						sessFriendly == null
+							? ""
+							: sessFriendly
+								? '<span class="mode-chip">💛 friendly</span>'
+								: '<span class="mode-chip">🌶 non-friendly</span>'
+				})
 				refreshStatusDots()
 				document.querySelectorAll("[data-sess-name]").forEach((el) => {
 					el.textContent = sessName || "Untitled story"
@@ -436,10 +468,20 @@
 			}
 
 			// ---- Waiting room ----
+			$("noTimer").onchange = () => ($("turnSecs").disabled = $("noTimer").checked)
+			$("contNoTimer").onchange = () => ($("contSecs").disabled = $("contNoTimer").checked)
 			$("startBtn").onclick = () =>
-				socket.emit("start-game", { turnSeconds: $("turnSecs").value, rounds: $("rounds").value }, (res) => {
-					if (!res?.ok) alert(res?.error || "Could not start.")
-				})
+				socket.emit(
+					"start-game",
+					{
+						turnSeconds: $("noTimer").checked ? 0 : $("turnSecs").value,
+						rounds: $("rounds").value,
+						friendly: $("storyMode").value === "1",
+					},
+					(res) => {
+						if (!res?.ok) alert(res?.error || "Could not start.")
+					},
+				)
 
 			socket.on("roster", ({ writers, code, name }) => {
 				updateLiveStatus(writers)
@@ -462,7 +504,6 @@
 					list.appendChild(li)
 				}
 				hostId = writers.find((w) => w.isHost)?.id ?? hostId
-				sessHost = writers.find((w) => w.isHost)?.name ?? sessHost
 				updateHostView()
 				updateSessionBar()
 			})
@@ -474,7 +515,7 @@
 				hostId = st.hostId ?? hostId
 				if (st.code) myCode = st.code
 				if (st.name != null) sessName = st.name
-				if (st.hostName != null) sessHost = st.hostName
+				if (st.friendly != null) sessFriendly = st.friendly
 				updateSessionBar()
 				if (st.phase === "choosing") renderChoosing(st)
 				else if (st.phase === "writing") renderWriting(st)
@@ -760,7 +801,11 @@
 				refreshChip() // word count / badge may have changed
 			})
 			$("continueBtn").onclick = () =>
-				socket.emit("continue-writing", { turnSeconds: $("contSecs").value, rounds: $("contRounds").value }, (res) => {
+				socket.emit("continue-writing", {
+					turnSeconds: $("contNoTimer").checked ? 0 : $("contSecs").value,
+					rounds: $("contRounds").value,
+					friendly: $("contMode").value === "1",
+				}, (res) => {
 					if (!res?.ok) alert("Could not continue — only the host can, and someone must be here.")
 				})
 			// Exports (js/export.js): prose only, formatting preserved, NO usernames.

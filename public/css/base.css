@@ -1608,6 +1608,30 @@ ul.roster li {
 	font-size: 0.92rem;
 	line-height: 1.4;
 }
+/* story mode chip (session bar) + the no-timer checkbox row */
+.mode-chip {
+	font-family: var(--font-mono);
+	font-size: 0.68rem;
+	color: var(--muted);
+	border: 1px solid var(--line);
+	border-radius: 999px;
+	padding: 2px 9px;
+	white-space: nowrap;
+}
+.checkline {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-top: 26px;
+	font-size: 0.82rem;
+	color: var(--muted);
+	cursor: pointer;
+}
+.checkline input {
+	width: auto;
+	margin: 0;
+}
+
 /* "(host)" tag after names, and the byline block above each story line */
 .host-tag {
 	color: var(--muted);

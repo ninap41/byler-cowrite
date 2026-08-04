@@ -93,7 +93,7 @@ export async function signup(ctx, username = "willthewise", email = "will@byers.
 }
 
 // Common fixture: two accounts (host + one writer) in a started, writing-phase game.
-export async function startedGame(ctx, { turnSeconds = 60, rounds = 2 } = {}) {
+export async function startedGame(ctx, { turnSeconds = 60, rounds = 2, friendly } = {}) {
   const host = await signup(ctx);
   const mike = await signup(ctx, "mikewheeler", "mike@wheeler.com", "#e63946");
   const A = await ctx.conn();
@@ -102,7 +102,7 @@ export async function startedGame(ctx, { turnSeconds = 60, rounds = 2 } = {}) {
   A.on("game-state", (st) => (state.current = st));
   const c = await ctx.emit(A, "create-session", { auth: host.token });
   const j = await ctx.emit(B, "join-session", { code: c.code, auth: mike.token });
-  await ctx.emit(A, "start-game", { turnSeconds, rounds });
+  await ctx.emit(A, "start-game", { turnSeconds, rounds, friendly });
   await ctx.wait(150);
   A.emit("vote", { prompt: state.current.options[0] });
   B.emit("vote", { prompt: state.current.options[0] });

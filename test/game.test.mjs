@@ -92,6 +92,28 @@ test("submit-line rejected when not your turn; rules host-only", async () => {
   assert.ok(state.current.deadline > before, "Apply restarts the running clock at the new length immediately");
 });
 
+test("untimed non-friendly story: turnSeconds 0 disables the clock; mode broadcast + snapshot", async () => {
+  const { A, B, code, state } = await startedGame(ctx, { turnSeconds: 0, rounds: 1, friendly: false });
+  assert.equal(state.current.turnSeconds, 0, "untimed rules broadcast");
+  assert.equal(state.current.deadline, 0, "no deadline while untimed");
+  assert.equal(state.current.friendly, false, "non-friendly mode broadcast");
+  const before = state.current.currentId;
+  await ctx.wait(600);
+  assert.equal(state.current.currentId, before, "turn never auto-advances without a clock");
+  assert.equal((state.current.story || []).length, 0, "nothing auto-committed");
+  const cur = state.current.currentId === A.id ? A : B;
+  const r = await ctx.emit(cur, "submit-line", { text: "in our own time" });
+  assert.equal(r.ok, true, "manual submit still advances");
+  await ctx.wait(150);
+  assert.equal(state.current.deadline, 0, "next turn is untimed too");
+  // the mode + untimed rules survive in the snapshot
+  const { readFileSync } = await import("node:fs");
+  const { join } = await import("node:path");
+  const snap = JSON.parse(readFileSync(join(ctx.saveDir, code + ".json"), "utf-8"));
+  assert.equal(snap.friendly, false);
+  assert.equal(snap.turnSeconds, 0);
+});
+
 test("pause/resume host-only and clock freezing", async () => {
   const { A, B, state } = await startedGame(ctx);
   assert.equal((await ctx.emit(B, "pause-game", {})).ok, false);
