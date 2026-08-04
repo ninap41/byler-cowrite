@@ -474,6 +474,30 @@ body {
 	margin-bottom: 8px;
 	background: var(--panel-2);
 }
+/* a game gathering writers calls out to everyone not in it: pulsing glow
+   (CSS) + GSAP sparkles (dashboard script) */
+.live-game.gathering {
+	position: relative;
+	border-color: var(--accent-2);
+	overflow: hidden;
+}
+@media (prefers-reduced-motion: no-preference) {
+	.live-game.gathering {
+		animation: gather-glow 1.8s ease-in-out infinite;
+	}
+}
+@keyframes gather-glow {
+	0%, 100% { box-shadow: 0 0 4px 0 var(--glow); }
+	50% { box-shadow: 0 0 20px 4px var(--glow); }
+}
+.live-game .sparkle {
+	position: absolute;
+	pointer-events: none;
+	color: var(--accent-2);
+	font-size: 11px;
+	opacity: 0;
+	text-shadow: 0 0 8px var(--glow);
+}
 .live-game .lg-info {
 	flex: 1;
 	min-width: 0;

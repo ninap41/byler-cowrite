@@ -335,6 +335,10 @@
 					d.liveGames.forEach((g) => {
 						const row = document.createElement("div")
 						row.className = "live-game"
+						// a game still gathering writers glows + sparkles to pull
+						// OTHER members in (not if I'm already seated in it)
+						if (g.phase === "waiting" && !g.players.some((pl) => pl.name === me.username))
+							row.classList.add("gathering")
 						row.innerHTML = liveGameInfoHtml(g)
 						const btn = document.createElement("button")
 						btn.className = "ghost"
@@ -343,7 +347,41 @@
 						row.appendChild(btn)
 						box.appendChild(row)
 					})
+					sparkleGathering(box)
 				}
+			}
+			// GSAP sparkles over "gathering writers" rows (the glow pulse is CSS).
+			// The gsap CDN script is a classic script, so it's loaded before this
+			// module runs; rows are rebuilt every poll, so old tweens die with them.
+			const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches
+			function sparkleGathering(box) {
+				if (!window.gsap || reduceMotion) return
+				box.querySelectorAll(".live-game.gathering").forEach((row) => {
+					for (let i = 0; i < 5; i++) {
+						const s = document.createElement("span")
+						s.className = "sparkle"
+						s.textContent = "✦"
+						row.appendChild(s)
+						gsap.set(s, {
+							left: 4 + Math.random() * 88 + "%",
+							top: 8 + Math.random() * 70 + "%",
+							rotation: Math.random() * 60 - 30,
+						})
+						gsap.fromTo(
+							s,
+							{ opacity: 0, scale: 0.3 },
+							{
+								opacity: 0.9,
+								scale: 0.9 + Math.random() * 0.5,
+								duration: 0.6 + Math.random() * 0.7,
+								repeat: -1,
+								yoyo: true,
+								delay: Math.random() * 1.4,
+								ease: "sine.inOut",
+							},
+						)
+					}
+				})
 			}
 			renderMe()
 			loadDashboard()
