@@ -1717,6 +1717,7 @@ input[type="checkbox"] {
 	-webkit-appearance: none;
 	width: 17px;
 	height: 17px;
+	padding: 0; /* the global input padding would balloon the box */
 	flex: none;
 	border: 1px solid var(--panel-brd);
 	border-radius: 5px;
