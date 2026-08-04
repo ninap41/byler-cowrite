@@ -3116,7 +3116,13 @@ button.danger,
 	left: 56%;
 	width: 34vh;
 	height: 54vh;
-	background: linear-gradient(rgba(255, 220, 150, 0.95), rgba(255, 150, 60, 0.9) 55%, rgba(255, 100, 45, 0.85));
+	background: linear-gradient(
+		rgba(255, 220, 150, 0) 0%,
+		rgba(255, 220, 150, 0.45) 9%,
+		rgba(255, 220, 150, 0.95) 22%,
+		rgba(255, 150, 60, 0.9) 55%,
+		rgba(255, 100, 45, 0.85)
+	);
 	-webkit-mask: url("/img/bolt.svg") center top / contain no-repeat;
 	mask: url("/img/bolt.svg") center top / contain no-repeat;
 	filter: drop-shadow(0 0 18px rgba(255, 150, 60, 0.8));
@@ -3132,12 +3138,13 @@ button.danger,
 	.bg-set.void .bolt { animation: void-strike 7s linear infinite; }
 	.bg-set.void .bolt2 { animation-delay: -3.2s; }
 }
+/* strike fast, linger: double-flash then a slow ~1.2s afterglow fade-out */
 @keyframes void-strike {
-	0%, 88% { opacity: 0; }
-	89% { opacity: 1; }
-	91% { opacity: 0.15; }
-	93% { opacity: 0.9; }
-	96%, 100% { opacity: 0; }
+	0%, 78% { opacity: 0; }
+	79% { opacity: 1; }
+	81% { opacity: 0.2; }
+	83% { opacity: 0.95; }
+	100% { opacity: 0; }
 }
 
 /* the upper half of the horizon: a radial orange burst domed over the line */
