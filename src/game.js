@@ -783,8 +783,9 @@ export function createGame(io) {
     socket.on("update-rules", ({ turnSeconds, addRounds }, ack) => {
       const s = mySession();
       if (!s || s.hostId !== socket.id || s.phase !== "writing") return ack?.({ ok: false });
-      const newSeconds = turnSeconds != null && Number(turnSeconds) > 0;
-      if (newSeconds) s.turnSeconds = Math.min(600, Math.max(10, Number(turnSeconds)));
+      const wantsUntimed = turnSeconds === 0 || turnSeconds === "0";
+      const newSeconds = wantsUntimed || (turnSeconds != null && Number(turnSeconds) > 0);
+      if (newSeconds) s.turnSeconds = cleanSeconds(turnSeconds, s.turnSeconds);
       const r = Number(addRounds);
       if (r > 0) {
         const extra = r * Math.max(1, s.turnOrder.length);
@@ -795,7 +796,10 @@ export function createGame(io) {
       // updates its stored remainder; resume rearms from it.
       if (newSeconds) {
         if (s.paused) s.remaining = s.turnSeconds * 1000;
-        else {
+        else if (s.turnSeconds === 0) {
+          clearTimeout(s.timer); // timer disabled mid-game: current turn goes untimed
+          s.deadline = 0;
+        } else {
           clearTimeout(s.timer);
           s.deadline = Date.now() + s.turnSeconds * 1000;
           s.timer = setTimeout(() => timeUp(s), s.turnSeconds * 1000);

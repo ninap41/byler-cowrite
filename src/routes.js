@@ -337,7 +337,7 @@ export function registerRoutes(app, game) {
       if (!f.endsWith(".json")) continue;
       try {
         const d = JSON.parse(readFileSync(join(SAVE_DIR, f), "utf-8"));
-        if (inGame(d, u)) out.push(gameSummary(d));
+        if (inGame(d, u)) out.push({ ...gameSummary(d), hosted: d.hostUserId === u.id });
       } catch { /* skip unreadable snapshot */ }
     }
     out.sort((a, b) => b.savedAt - a.savedAt);

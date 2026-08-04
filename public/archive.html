@@ -84,7 +84,19 @@
 					return
 				}
 				list.innerHTML = ""
-				games.forEach((g) => {
+				// grouped: the games I host first, then the ones I joined
+				;[
+					["Hosted games", games.filter((g) => g.hosted)],
+					["Joined games", games.filter((g) => !g.hosted)],
+				].forEach(([title, group]) => {
+					if (!group.length) return
+					const h = document.createElement("h4")
+					h.className = "arch-sub"
+					h.textContent = title
+					list.appendChild(h)
+					group.forEach((g) => appendCard(g))
+				})
+				function appendCard(g) {
 					const b = document.createElement("div")
 					b.className = "game-card"
 					b.style.cursor = "pointer"
@@ -102,7 +114,7 @@
 					list.appendChild(b)
 					if (window.gsap && hasGsap)
 						gsap.from(b, { opacity: 0, y: 18, duration: 0.45, delay: 0.05 * list.children.length, ease: "power2.out" })
-				})
+				}
 			}
 
 			let curG = null

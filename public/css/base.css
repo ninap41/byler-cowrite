@@ -1647,6 +1647,22 @@ ul.roster li {
 	font-size: 0.92rem;
 	line-height: 1.4;
 }
+/* archive group subheadings: hosted vs joined */
+.arch-sub {
+	margin: 18px 0 8px;
+	font-family: var(--font-mono);
+	font-size: 0.72rem;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: var(--muted);
+	text-align: left;
+	border-bottom: 1px solid var(--line);
+	padding-bottom: 5px;
+}
+.arch-sub:first-child {
+	margin-top: 0;
+}
+
 /* the folded word-count ladder on profiles */
 .ladder-acc {
 	margin-top: 8px;
@@ -1685,6 +1701,46 @@ ul.roster li {
 .checkline input {
 	width: auto;
 	margin: 0;
+}
+/* checkboxes ride the theme everywhere */
+input[type="checkbox"] {
+	appearance: none;
+	-webkit-appearance: none;
+	width: 17px;
+	height: 17px;
+	flex: none;
+	border: 1px solid var(--panel-brd);
+	border-radius: 5px;
+	background: var(--panel-2);
+	cursor: pointer;
+	position: relative;
+	transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+}
+input[type="checkbox"]:hover {
+	border-color: var(--accent-2);
+}
+input[type="checkbox"]:checked {
+	background: var(--accent);
+	border-color: var(--accent);
+	box-shadow: 0 0 12px var(--glow);
+}
+input[type="checkbox"]:checked::after {
+	content: "";
+	position: absolute;
+	left: 5px;
+	top: 1.5px;
+	width: 4px;
+	height: 9px;
+	border: solid var(--btn-ink);
+	border-width: 0 2px 2px 0;
+	transform: rotate(42deg);
+}
+input[type="checkbox"]:focus-visible {
+	outline: 2px solid var(--accent-2);
+	outline-offset: 2px;
+}
+.checkline:has(input:checked) {
+	color: var(--ink);
 }
 
 /* "(host)" tag after names, and the byline block above each story line */

@@ -152,8 +152,9 @@
 								<h4>Host controls</h4>
 								<div id="hostRules">
 									<div>
-										<label for="liveSecs">Seconds per turn (next turn)</label
+										<label for="liveSecs">Seconds per turn</label
 										><input id="liveSecs" type="number" min="10" max="600" />
+										<label class="checkline"><input type="checkbox" id="liveNoTimer" /> ⏱ No timer</label>
 									</div>
 									<div>
 										<label for="addRoundsInput">Add rounds</label>
@@ -470,6 +471,7 @@
 			// ---- Waiting room ----
 			$("noTimer").onchange = () => ($("turnSecs").disabled = $("noTimer").checked)
 			$("contNoTimer").onchange = () => ($("contSecs").disabled = $("contNoTimer").checked)
+			$("liveNoTimer").onchange = () => ($("liveSecs").disabled = $("liveNoTimer").checked)
 			$("startBtn").onclick = () =>
 				socket.emit(
 					"start-game",
@@ -778,7 +780,7 @@
 				const btn = $("applyRulesBtn")
 				socket.emit(
 					"update-rules",
-					{ turnSeconds: $("liveSecs").value, addRounds: $("addRoundsInput").value || 0 },
+					{ turnSeconds: $("liveNoTimer").checked ? 0 : $("liveSecs").value, addRounds: $("addRoundsInput").value || 0 },
 					(res) => {
 						$("addRoundsInput").value = ""
 						btn.textContent = res?.ok ? "Applied ✓" : "Host only"
