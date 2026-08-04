@@ -3538,16 +3538,14 @@ button.danger,
 		repeating-linear-gradient(0deg, transparent 0 30px, rgba(224, 47, 47, 0.07) 30px 31px),
 		repeating-linear-gradient(90deg, transparent 0 30px, rgba(224, 47, 47, 0.07) 30px 31px);
 }
-/* black flame silhouettes (img/flames.png — black art on white) tiling the
-   bottom edge; multiply blending sinks the white into the dark backdrop so
-   only the black fire remains */
+/* black flame silhouettes (img/flames.png — true alpha, background removed)
+   tiling the bottom edge */
 .bg-set.hellfire .flames {
 	position: absolute;
 	inset: auto 0 -2px;
 	height: 24vh;
 	transform-origin: 50% 100%;
 	background: url("/img/flames.png") left bottom / auto 100% repeat-x;
-	mix-blend-mode: multiply;
 }
 .bg-set.hellfire .fl2 {
 	height: 17vh;

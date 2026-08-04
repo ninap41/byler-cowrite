@@ -1,5 +1,6 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { startServer, signup, startedGame } from "./helpers.mjs";
 
 let ctx;
@@ -43,10 +44,11 @@ test("achievements metadata is public: ladder + usage count only", async () => {
   assert.equal(r.data.wordTiers[0].name, "🔫 There. Out Loud.");
   assert.equal(r.data.wordTiers[0].min, 0);
   assert.equal(r.data.wordTiers[1].min, 5000);
-  assert.equal(r.data.usageCount, 6);
+  const cfg = JSON.parse(readFileSync(new URL("../achievements.json", import.meta.url), "utf-8"));
+  assert.equal(r.data.usageCount, cfg.usage.length, "usage count mirrors the hand-editable catalogue");
   assert.ok(r.data.wordTiers[1].desc.includes("5,000"), "ladder descs are public");
   // every badge ships its "what it means / how to earn it" description
-  assert.equal(r.data.usage.length, 6);
+  assert.equal(r.data.usage.length, cfg.usage.length);
   assert.ok(r.data.usage.every((b) => b.name && b.desc), "usage badges carry descriptions");
   assert.equal(JSON.stringify(r.data).includes("triggers"), false, "raw trigger lists still never ship");
   assert.equal(JSON.stringify(r.data).includes("combos"), false, "combo word lists never ship either");
