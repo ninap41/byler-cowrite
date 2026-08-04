@@ -54,7 +54,8 @@ test("chatMessageHtml: profile pic beside the name; system messages have none", 
   const m = { name: "will", color: "#6c8cff", text: "hi", avatar: "https://img.com/w.png", avatarFit: "cover" };
   assert.ok(chatMessageHtml(m).includes('mini-avatar fit-cover'));
   assert.ok(!chatMessageHtml({ ...m, sys: true }).includes("mini-avatar"), "system lines stay bare");
-  assert.ok(!chatMessageHtml({ name: "x", color: "#6c8cff", text: "hi" }).includes("mini-avatar"));
+  const disc = chatMessageHtml({ name: "x", color: "#6c8cff", text: "hi" });
+  assert.ok(disc.includes("mini-initial") && disc.includes(">X<"), "no picture -> colored initial disc");
 });
 
 test("avatarHtml carries the fit preference", async () => {

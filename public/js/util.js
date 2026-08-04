@@ -14,7 +14,12 @@ export const whoMarks = (o) => (o?.host || o?.isHost ? '<span class="host-tag">(
 // writers directory). Empty string when the account has no picture.
 // avatarFit is the user's preference: "cover" crops to fill, "contain" zooms
 // out to fit the whole image.
-export const miniAvatar = (o) =>
-	o?.avatar
-		? `<img class="mini-avatar fit-${o.avatarFit === "contain" ? "contain" : "cover"}" src="${esc(o.avatar)}" alt="" loading="lazy">`
-		: ""
+// Without a picture: a disc in the user's chosen color with their initial.
+export const miniAvatar = (o) => {
+	if (!o) return ""
+	if (o.avatar)
+		return `<img class="mini-avatar fit-${o.avatarFit === "contain" ? "contain" : "cover"}" src="${esc(o.avatar)}" alt="" loading="lazy">`
+	const name = o.name || o.username
+	if (!name) return ""
+	return `<span class="mini-avatar mini-initial" style="background:${safeColor(o.color)}">${esc(String(name).charAt(0).toUpperCase())}</span>`
+}
