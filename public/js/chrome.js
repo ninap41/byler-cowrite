@@ -57,7 +57,7 @@ const BG = `
 		</div>
 		<div class="bg-set void">
 			<div class="sky"></div><div class="stars"></div><div class="stars st2"></div>
-			<div class="bolt"></div><div class="bolt bolt2"></div>
+			<div class="bolt"></div><div class="bolt bolt2"></div><div class="mtns"></div>
 			<div class="ridge r1"></div><div class="ridge r2"></div><div class="ridge r3"></div>
 		</div>
 		<div class="bg-set video">

@@ -3140,33 +3140,51 @@ button.danger,
 	100% { opacity: 0; }
 }
 
-/* the landscape: the three rock strips from the source art (img/rock1-3.svg),
-   used as masks — far ridge dim red, mid ridge darker, near ridge near-black */
+/* tall jagged mountains on the horizon, behind the rock strips */
+.bg-set.void .mtns {
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 21vh;
+	height: 30vh;
+	background:
+		conic-gradient(from 78deg at 8% 100%, rgba(10, 5, 7, 0.95) 0 24deg, transparent 24deg),
+		conic-gradient(from 74deg at 19% 100%, rgba(14, 7, 10, 0.92) 0 32deg, transparent 32deg),
+		conic-gradient(from 80deg at 33% 100%, rgba(10, 5, 7, 0.94) 0 20deg, transparent 20deg),
+		conic-gradient(from 76deg at 46% 100%, rgba(14, 7, 10, 0.9) 0 28deg, transparent 28deg),
+		conic-gradient(from 79deg at 58% 100%, rgba(10, 5, 7, 0.95) 0 22deg, transparent 22deg),
+		conic-gradient(from 73deg at 71% 100%, rgba(14, 7, 10, 0.92) 0 34deg, transparent 34deg),
+		conic-gradient(from 80deg at 84% 100%, rgba(10, 5, 7, 0.94) 0 20deg, transparent 20deg),
+		conic-gradient(from 75deg at 95% 100%, rgba(14, 7, 10, 0.93) 0 30deg, transparent 30deg);
+}
+/* the rock strips from the source art (img/rock1-3.svg), layered over the
+   mountains; each file is a mirrored pair, so repeat-x tiles the shape
+   left→right with alternating mirroring */
 .bg-set.void .ridge {
 	position: absolute;
-	left: -2%;
-	right: -2%;
+	left: 0;
+	right: 0;
 }
 .bg-set.void .r1 {
-	bottom: 20vh;
-	height: 16vh;
+	bottom: 18vh;
+	height: 13vh;
 	background: rgba(74, 16, 20, 0.85);
-	-webkit-mask: url("/img/rock1.svg") center bottom / 100% 100% no-repeat;
-	mask: url("/img/rock1.svg") center bottom / 100% 100% no-repeat;
+	-webkit-mask: url("/img/rock1.svg") left bottom / auto 100% repeat-x;
+	mask: url("/img/rock1.svg") left bottom / auto 100% repeat-x;
 }
 .bg-set.void .r2 {
-	bottom: 9vh;
-	height: 19vh;
+	bottom: 8vh;
+	height: 16vh;
 	background: rgba(38, 9, 13, 0.95);
-	-webkit-mask: url("/img/rock2.svg") center bottom / 100% 100% no-repeat;
-	mask: url("/img/rock2.svg") center bottom / 100% 100% no-repeat;
+	-webkit-mask: url("/img/rock2.svg") left bottom / auto 100% repeat-x;
+	mask: url("/img/rock2.svg") left bottom / auto 100% repeat-x;
 }
 .bg-set.void .r3 {
 	bottom: -2vh;
-	height: 22vh;
+	height: 20vh;
 	background: rgba(8, 3, 5, 0.98);
-	-webkit-mask: url("/img/rock3.svg") center bottom / 100% 100% no-repeat;
-	mask: url("/img/rock3.svg") center bottom / 100% 100% no-repeat;
+	-webkit-mask: url("/img/rock3.svg") left bottom / auto 100% repeat-x;
+	mask: url("/img/rock3.svg") left bottom / auto 100% repeat-x;
 }
 @media (prefers-reduced-motion: no-preference) {
 	.bg-set.void .stars { animation: void-fly 26s linear infinite; }
