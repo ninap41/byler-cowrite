@@ -56,9 +56,10 @@ const BG = `
 			<div class="clockface"></div><div class="cvines"></div><div class="embers drift"></div>
 		</div>
 		<div class="bg-set void">
-			<div class="sky"></div><div class="stars"></div><div class="stars st2"></div>
-			<div class="bolt"></div><div class="bolt bolt2"></div><div class="mtns"></div>
-			<div class="ridge r1"></div><div class="ridge r2"></div><div class="ridge r3"></div>
+			<div class="stars"></div><div class="stars st2"></div>
+			<div class="horizon"></div><div class="glare"></div>
+			<div class="bolt"></div><div class="bolt bolt2"></div>
+			<div class="mtns"></div><div class="rocks"></div>
 		</div>
 		<div class="bg-set video">
 			<div class="vscan"></div><div class="track"></div><div class="vhsglow drift"></div>
