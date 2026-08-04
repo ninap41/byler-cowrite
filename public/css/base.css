@@ -3538,6 +3538,51 @@ button.danger,
 		repeating-linear-gradient(0deg, transparent 0 30px, rgba(224, 47, 47, 0.07) 30px 31px),
 		repeating-linear-gradient(90deg, transparent 0 30px, rgba(224, 47, 47, 0.07) 30px 31px);
 }
+/* the furnace: a breathing orange-red gradient + glow BEHIND the black flames */
+.bg-set.hellfire .fireglow {
+	position: absolute;
+	inset: auto 0 0;
+	height: 34vh;
+	background:
+		radial-gradient(60% 55% at 50% 100%, rgba(255, 122, 40, 0.4), rgba(224, 47, 47, 0.22) 45%, transparent 75%),
+		radial-gradient(30% 40% at 22% 100%, rgba(255, 152, 60, 0.3), transparent 70%),
+		radial-gradient(30% 40% at 78% 100%, rgba(255, 152, 60, 0.3), transparent 70%),
+		linear-gradient(to top, rgba(224, 47, 47, 0.28), rgba(120, 20, 20, 0.12) 55%, transparent 85%);
+}
+/* embers: glowing sparks rising out of the fire */
+.bg-set.hellfire .hembers {
+	position: absolute;
+	inset: 0;
+	background-image:
+		radial-gradient(circle 2.5px at 12% 96%, rgba(255, 180, 90, 0.95) 55%, transparent 60%),
+		radial-gradient(circle 1.5px at 27% 92%, rgba(255, 122, 40, 0.9) 55%, transparent 60%),
+		radial-gradient(circle 2px at 43% 97%, rgba(255, 90, 50, 0.9) 55%, transparent 60%),
+		radial-gradient(circle 1.5px at 58% 94%, rgba(255, 180, 90, 0.85) 55%, transparent 60%),
+		radial-gradient(circle 2.5px at 72% 96%, rgba(255, 122, 40, 0.9) 55%, transparent 60%),
+		radial-gradient(circle 1.5px at 88% 93%, rgba(255, 90, 50, 0.85) 55%, transparent 60%);
+	background-repeat: no-repeat;
+	filter: drop-shadow(0 0 6px rgba(255, 122, 40, 0.7));
+}
+.bg-set.hellfire .e2 {
+	background-position: 42px 0; /* offset spark field (transform belongs to the rise animation) */
+	opacity: 0.7;
+}
+@media (prefers-reduced-motion: no-preference) {
+	.bg-set.hellfire .fireglow { animation: hellfire-glow 3.4s ease-in-out infinite; }
+	.bg-set.hellfire .hembers { animation: ember-rise 7s linear infinite; }
+	.bg-set.hellfire .e2 { animation-duration: 11s; animation-delay: -4s; }
+}
+@keyframes hellfire-glow {
+	0%, 100% { opacity: 0.75; }
+	50% { opacity: 1; }
+}
+@keyframes ember-rise {
+	0% { transform: translateY(0); opacity: 0; }
+	8% { opacity: 1; }
+	70% { opacity: 0.8; }
+	100% { transform: translateY(-88vh) translateX(24px); opacity: 0; }
+}
+
 /* black flame silhouettes (img/flames.png — true alpha, background removed)
    tiling the bottom edge */
 .bg-set.hellfire .flames {
