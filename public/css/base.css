@@ -758,6 +758,45 @@ body {
 	color: var(--accent-2);
 }
 
+/* ---------- Badge unlock: centered pop + confetti rain ---------- */
+.badge-pop {
+	position: fixed;
+	left: 50%;
+	top: 42%;
+	transform: translate(-50%, -50%);
+	z-index: 82;
+	max-width: min(420px, 88vw);
+	background: var(--panel);
+	border: 1px solid var(--chip-brd);
+	border-radius: 18px;
+	padding: 20px 28px;
+	box-shadow: var(--panel-glow), 0 0 60px var(--glow);
+	backdrop-filter: blur(14px);
+	-webkit-backdrop-filter: blur(14px);
+	display: grid;
+	gap: 5px;
+	text-align: center;
+	pointer-events: none;
+	opacity: 0;
+}
+.badge-pop b {
+	font-size: 1.05rem;
+}
+.badge-pop span {
+	color: var(--muted);
+	font-size: 0.84rem;
+}
+.confetti {
+	position: fixed;
+	left: 50%;
+	top: 42%;
+	z-index: 81; /* just behind the .badge-pop card */
+	width: 9px;
+	height: 13px;
+	opacity: 0;
+	pointer-events: none;
+}
+
 /* ---------- Badge unlock toasts ---------- */
 .toasts {
 	position: fixed;
