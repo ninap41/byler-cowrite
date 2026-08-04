@@ -3108,22 +3108,25 @@ button.danger,
 	filter: blur(1px);
 	box-shadow: 0 0 26px 6px rgba(255, 64, 64, 0.35);
 }
-/* orange lightning: tattoo-style svg bolts (long tapered shafts, barbed
-   edges, sharp tips) striking from the top every 7 seconds */
+/* orange lightning: the tattoo bolt artwork (img/bolt.svg) used as a mask
+   over an orange gradient, striking from the top every 7 seconds */
 .bg-set.void .bolt {
 	position: absolute;
 	top: 0;
-	left: 58%;
-	width: 120px;
-	height: 50vh;
+	left: 56%;
+	width: 34vh;
+	height: 54vh;
+	background: linear-gradient(rgba(255, 220, 150, 0.95), rgba(255, 150, 60, 0.9) 55%, rgba(255, 100, 45, 0.85));
+	-webkit-mask: url("/img/bolt.svg") center top / contain no-repeat;
+	mask: url("/img/bolt.svg") center top / contain no-repeat;
 	filter: drop-shadow(0 0 18px rgba(255, 150, 60, 0.8));
 	opacity: 0;
-	overflow: visible;
 }
 .bg-set.void .bolt2 {
-	left: 15%;
-	height: 40vh;
-	transform: scaleX(-0.85) rotate(4deg);
+	left: 12%;
+	width: 27vh;
+	height: 43vh;
+	transform: scaleX(-1) rotate(4deg);
 }
 @media (prefers-reduced-motion: no-preference) {
 	.bg-set.void .bolt { animation: void-strike 7s linear infinite; }

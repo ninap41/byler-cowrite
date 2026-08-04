@@ -58,18 +58,7 @@ const BG = `
 		<div class="bg-set void">
 			<div class="stars"></div><div class="stars st2"></div>
 			<div class="horizon"></div><div class="glare"></div>
-			<svg class="bolt" viewBox="0 0 130 500" aria-hidden="true"><defs>
-				<linearGradient id="voidboltA" x1="0" y1="0" x2="0" y2="1">
-					<stop offset="0" stop-color="#ffdc96"></stop><stop offset="0.55" stop-color="#ff963c"></stop><stop offset="1" stop-color="#ff642d"></stop>
-				</linearGradient></defs>
-				<path fill="url(#voidboltA)" d="M78 0 L58 68 L14 205 L50 196 L30 290 L2 356 L40 347 L24 430 L10 500 L64 402 L118 306 L76 318 L98 240 L124 152 L84 164 L106 78 L130 0 Z"></path>
-			</svg>
-			<svg class="bolt bolt2" viewBox="0 0 130 500" aria-hidden="true"><defs>
-				<linearGradient id="voidboltB" x1="0" y1="0" x2="0" y2="1">
-					<stop offset="0" stop-color="#ffdc96"></stop><stop offset="0.55" stop-color="#ff963c"></stop><stop offset="1" stop-color="#ff642d"></stop>
-				</linearGradient></defs>
-				<path fill="url(#voidboltB)" d="M70 0 L44 90 L20 190 L52 182 L34 262 L8 330 L44 322 L28 410 L16 480 L70 380 L104 288 L68 300 L88 214 L112 130 L78 142 L96 64 L112 0 Z"></path>
-			</svg>
+			<div class="bolt"></div><div class="bolt bolt2"></div>
 			<div class="mtns"></div><div class="rocks"></div>
 		</div>
 		<div class="bg-set video">
