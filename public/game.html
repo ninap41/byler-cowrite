@@ -753,12 +753,14 @@
 				})
 			}
 			$("submitBtn").onclick = submitLine
-			// poking the editor or Add line while paused earns 💩 Resume it, Stupid
-			;["writerEditor", "submitBtn"].forEach((id) =>
-				$(id).addEventListener("click", () => {
-					if (lastPaused) socket.emit("paused-poke")
-				}),
-			)
+			// poking the (disabled) editor, any WYSIWYG toolbar button, the
+			// paragraph-style select, or Add line while paused earns
+			// 💩 Resume it, Stupid — the whole session gets the confetti.
+			const pausedPoke = () => {
+				if (lastPaused) socket.emit("paused-poke")
+			}
+			;["writerEditor", "submitBtn", "blockFormat"].forEach((id) => $(id).addEventListener("click", pausedPoke))
+			document.querySelectorAll(".toolbar button").forEach((b) => b.addEventListener("mousedown", pausedPoke))
 			document.querySelectorAll(".toolbar button").forEach((b) => {
 				b.addEventListener("mousedown", (e) => {
 					e.preventDefault()
