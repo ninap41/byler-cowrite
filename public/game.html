@@ -469,9 +469,19 @@
 			}
 
 			// ---- Waiting room ----
-			$("noTimer").onchange = () => ($("turnSecs").disabled = $("noTimer").checked)
-			$("contNoTimer").onchange = () => ($("contSecs").disabled = $("contNoTimer").checked)
-			$("liveNoTimer").onchange = () => ($("liveSecs").disabled = $("liveNoTimer").checked)
+			// No timer checked -> the seconds input (and its label) hides entirely
+			const wireNoTimer = (checkId, inputId) => {
+				const wrap = $(inputId).previousElementSibling // the <label>
+				$(checkId).onchange = () => {
+					const off = $(checkId).checked
+					$(inputId).disabled = off
+					$(inputId).classList.toggle("hidden", off)
+					if (wrap?.tagName === "LABEL") wrap.classList.toggle("hidden", off)
+				}
+			}
+			wireNoTimer("noTimer", "turnSecs")
+			wireNoTimer("contNoTimer", "contSecs")
+			wireNoTimer("liveNoTimer", "liveSecs")
 			$("startBtn").onclick = () =>
 				socket.emit(
 					"start-game",
