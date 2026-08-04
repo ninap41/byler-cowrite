@@ -2033,11 +2033,14 @@ input[type="checkbox"]:focus-visible {
 	font-size: 1.15rem;
 }
 .me-row button {
-	margin-left: auto;
 	flex: 0 0 auto;
 	min-width: 0;
 	padding: 8px 12px;
 	font-size: 0.8rem;
+}
+/* only the FIRST button pushes right, so the pair stays snug together */
+.me-row button:first-of-type {
+	margin-left: auto;
 }
 .me-games {
 	display: flex;
