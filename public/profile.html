@@ -3,6 +3,19 @@
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<script>
+			// Apply the saved theme before first paint (initTheme() re-validates it later)
+			try { var _t = localStorage.getItem("cowriteTheme"); if (_t) document.documentElement.setAttribute("data-theme", _t) } catch (e) {}
+		</script>
+		<script>
+			// Pre-hide animated containers before first paint so the GSAP entrance
+			// can never flash them visible and restart (the double-glitch). The
+			// entrance script lifts this; the timer is the no-GSAP safety net.
+			if (!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches)) {
+				document.documentElement.classList.add("pre-anim")
+				setTimeout(function () { document.documentElement.classList.remove("pre-anim") }, 1500)
+			}
+		</script>
 		<title>Byler Cowrite — Profile</title>
 		<link rel="icon" type="image/x-icon" href="./favicon.ico?v=2" />
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -75,10 +88,17 @@
 				</div>
 
 				<div class="dash-rail">
-					<!-- usage badges -->
+					<!-- open (non-secret) usage badges -->
+					<div class="card">
+						<h3 class="dash-h" style="margin-top: 0">Badges</h3>
+						<p class="subtle" style="text-align: left; margin: 4px 0 0">Earned by writing the right thing — hover a badge for the how.</p>
+						<div class="ach-strip" id="openCase"></div>
+					</div>
+
+					<!-- secret usage badges -->
 					<div class="card">
 						<h3 class="dash-h" style="margin-top: 0">Secret badges</h3>
-						<p class="subtle" style="text-align: left; margin: 4px 0 0">Earned by writing… the right thing. Hover a badge for the how.</p>
+						<p class="subtle" style="text-align: left; margin: 4px 0 0">Earned by writing… the right thing. Unlock one to learn its secret.</p>
 						<div class="ach-strip" id="usageCase"></div>
 					</div>
 
@@ -88,10 +108,6 @@
 						<div class="streak-box" id="streakBox"></div>
 					</div>
 
-					<div class="card quote-card">
-						<span class="qmark">“</span>
-						Keep writing, keep earning. ✒
-					</div>
 				</div>
 			</div>
 		</div>
@@ -170,12 +186,15 @@
 					$("aboutEditHint").classList.toggle("hidden", !itsMe)
 					$("ladder").innerHTML = ladderAccordionHtml(meta.wordTiers, p)
 					// story lists: rows glow while the story is live in progress
-					const renderStories = (boxId, list, emptyMsg) => {
+					// only the 3 most recent show here; "See all" goes to the full page
+					const renderStories = (boxId, fullList, emptyMsg) => {
 						const box = $(boxId)
-						if (!list.length) {
+						box.innerHTML = ""
+						if (!fullList.length) {
 							box.innerHTML = `<p class="subtle" style="text-align:left;margin:0">${emptyMsg}</p>`
 							return
 						}
+						const list = fullList.slice(0, 3)
 						list.forEach((g) => {
 							const row = document.createElement("div")
 							row.className = "live-game" + (g.inProgress ? " gathering" : "")
@@ -197,10 +216,22 @@
 							row.append(info, btn)
 							box.appendChild(row)
 						})
+						if (fullList.length > 3) {
+							const more = document.createElement("p")
+							more.className = "subtle"
+							more.style.cssText = "text-align:left;margin:10px 0 0"
+							const a = document.createElement("a")
+							a.className = "linky"
+							a.href = "/stories?user=" + encodeURIComponent(p.username)
+							a.textContent = `See all ${p.username}'s stories →`
+							more.appendChild(a)
+							box.appendChild(more)
+						}
 					}
 					renderStories("hostedList", hosted, "No hosted stories yet.")
 					renderStories("contribList", contributed, "No contributed stories yet.")
-					$("usageCase").innerHTML = usageCaseHtml(meta.usage, p.usageBadges)
+					$("openCase").innerHTML = usageCaseHtml(meta.usageOpen || [], p.openBadges || [], p.badgeDescs || {}, { secret: false })
+					$("usageCase").innerHTML = usageCaseHtml(meta.usage, p.usageBadges, p.badgeDescs || {})
 					$("streakBox").innerHTML =
 						streakRingHtml(p.streak, Math.max(p.bestStreak, 1)) +
 						`<div class="streak-meta"><b>${p.streak} day${p.streak === 1 ? "" : "s"}</b> current streak<br>Best: ${p.bestStreak} day${p.bestStreak === 1 ? "" : "s"}</div>`
@@ -211,7 +242,13 @@
 		<script type="module">
 			;(function () {
 				var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches
-				if (typeof gsap === "undefined" || reduce || document.visibilityState === "hidden") return
+				if (typeof gsap === "undefined" || reduce || document.visibilityState === "hidden") {
+					document.documentElement.classList.remove("pre-anim")
+					return
+				}
+				// the tweens below apply their from-states this same tick, so lifting
+				// the pre-paint hide here can never flash the finished layout
+				document.documentElement.classList.remove("pre-anim")
 				// recover from a stagger frozen by a background tab: on refocus,
 				// force any still-hidden card to its final state
 				document.addEventListener("visibilitychange", function () {

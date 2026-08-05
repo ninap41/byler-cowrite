@@ -993,7 +993,9 @@ body {
 }
 .game-card .gc-cover {
 	display: block;
-	height: 68px;
+	width: 100%;
+	aspect-ratio: 3 / 1; /* banner proportions: height follows the card width */
+	height: auto;
 	border-radius: 10px;
 	margin-bottom: 10px;
 }
@@ -1011,11 +1013,175 @@ body {
 	gap: 12px;
 	flex-wrap: wrap;
 }
+/* live preview under the host's header-image input — banner proportions,
+   exactly how the cover will crop on dashboard/archive cards */
+.cover-preview {
+	display: block;
+	width: 100%;
+	aspect-ratio: 3 / 1;
+	object-fit: cover;
+	border-radius: 10px;
+	border: 1px solid var(--panel-2);
+	margin-top: 8px;
+}
+
+/* the all-stories card leads with a big, readable date */
+.gc-date {
+	display: block;
+	font-family: var(--font-mono);
+	font-size: 1.02rem;
+	font-weight: 700;
+	color: var(--ink);
+	letter-spacing: 0.05em;
+	margin: 0 0 8px;
+}
+
+/* tumblr-style tag editor — a quiet, secondary control: label, compact
+   accent-2-tinted pills, and a chip-sized dashed add field, one wrapping row */
+.tag-field {
+	margin-top: 10px;
+}
+.tag-label {
+	display: flex;
+	align-items: baseline;
+	gap: 10px;
+	font-family: var(--font-mono);
+	font-size: 0.68rem;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: var(--muted);
+	text-align: left;
+	margin: 0 0 6px;
+}
+.tag-help {
+	font-size: 0.85rem;
+	color: var(--ink);
+	opacity: 0.8;
+	text-align: left;
+	margin: 0 0 10px;
+}
+.tag-chips {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+}
+.tag-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 6px 8px 6px 15px;
+	border-radius: 999px;
+	background: color-mix(in srgb, var(--good) 14%, transparent);
+	border: 1px solid color-mix(in srgb, var(--good) 45%, transparent);
+	color: var(--good);
+	font-family: var(--font-mono);
+	font-size: 0.78rem;
+	letter-spacing: 0.02em;
+	white-space: nowrap;
+	flex: none;
+}
+/* every other chip takes the theme's second accent (mint, blue, mint, blue…) */
+.tag-chip:nth-of-type(even) {
+	background: color-mix(in srgb, var(--accent-2) 14%, transparent);
+	border-color: color-mix(in srgb, var(--accent-2) 45%, transparent);
+	color: var(--accent-2);
+}
+/* the remove ✕: its own comfortable round target; red only on hover/active.
+   (flex/min-width/padding zero out the global button sizing — otherwise the
+   ✕ inflates to a 110px oval and drags the pill wide with it) */
+.tag-chip button {
+	flex: none;
+	min-width: 0;
+	width: 18px;
+	height: 18px;
+	display: grid;
+	place-items: center;
+	border-radius: 50%;
+	background: none;
+	border: none;
+	cursor: pointer;
+	color: inherit;
+	opacity: 0.55;
+	font-size: 0.8em;
+	padding: 0;
+	line-height: 1;
+}
+.tag-chip button:hover,
+.tag-chip button:active {
+	opacity: 1;
+	color: #e05555;
+	background: rgba(224, 85, 85, 0.14);
+}
+.tag-chip button:focus-visible {
+	opacity: 1;
+	outline: 2px solid var(--accent-2);
+	outline-offset: 1px;
+}
+/* the add field: its own row under the chips — a rounded rect with a ＋,
+   mint-bordered, about half the card wide */
+.tag-add {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	width: min(420px, 100%);
+	margin-top: 10px;
+	padding: 10px 16px;
+	border-radius: 12px;
+	border: 1px solid color-mix(in srgb, var(--good) 55%, transparent);
+	background: transparent;
+	color: var(--muted);
+	cursor: text;
+}
+.tag-plus {
+	font-size: 0.95rem;
+	line-height: 1;
+	opacity: 0.8;
+}
+.tag-add input {
+	flex: 1;
+	width: 100%;
+	min-width: 0;
+	margin: 0;
+	padding: 0;
+	border: none;
+	border-radius: 0;
+	background: transparent;
+	font-size: 0.88rem;
+	line-height: 1.5;
+	color: var(--ink);
+	outline: none;
+	box-shadow: none;
+}
+.tag-add:focus-within {
+	border-color: var(--good);
+	box-shadow: 0 0 0 2px color-mix(in srgb, var(--good) 25%, transparent);
+	color: var(--ink);
+}
+/* duplicate/invalid feedback — quiet, reserved space so nothing jumps */
+.tag-msg {
+	font-family: var(--font-mono);
+	font-size: 0.7rem;
+	color: var(--muted);
+	text-align: left;
+	min-height: 1em;
+	margin: 4px 0 0;
+}
+
 .archive-empty {
 	color: var(--muted);
 	font-family: var(--font-mono);
 	text-align: center;
 	padding: 40px 0;
+}
+
+/* Containers wait invisible for their GSAP entrance so they never paint
+   fully-formed and then restart the animation (the double-glitch). A tiny
+   head script sets .pre-anim before first paint; the entrance script — or
+   its safety timer, if GSAP never loads — lifts it. */
+.pre-anim .card,
+.pre-anim .wrap > h1 {
+	opacity: 0;
 }
 
 /* ---------- Layout ---------- */
@@ -1415,6 +1581,26 @@ button:disabled {
 	cursor: not-allowed;
 	transform: none;
 }
+/* every disabled control looks it — not just buttons */
+input:disabled,
+select:disabled,
+textarea:disabled {
+	opacity: 0.45;
+}
+input[type="checkbox"]:disabled:hover {
+	border-color: var(--muted); /* no inviting hover glow while off */
+}
+/* and anything disabled says so with the cursor, globally */
+:disabled,
+[disabled],
+[aria-disabled="true"] {
+	cursor: not-allowed;
+}
+/* a disabled checkbox hides inside a clickable label — the label says no too */
+label:has(> input:disabled) {
+	cursor: not-allowed;
+	opacity: 0.7;
+}
 .primary {
 	background: var(--grad-1);
 	color: var(--btn-ink);
@@ -1804,6 +1990,18 @@ ul.roster li {
 .continue-locked .checkline {
 	pointer-events: none;
 }
+/* …except tags: every writer may tag, not just the host */
+.continue-locked #overTags input,
+.continue-locked #overTags button {
+	pointer-events: auto;
+}
+/* the tag block sits inside the rules-form panel: separate it with the same
+   hairline the panel already uses between its own rows */
+.rules-form .tag-field {
+	border-top: 1px solid var(--line);
+	margin-top: 14px;
+	padding-top: 12px;
+}
 
 /* the writers directory scrolls instead of growing forever */
 #writersList {
@@ -1871,7 +2069,7 @@ ul.roster li {
 	flex: 0 0 auto;
 	min-width: 150px;
 }
-.rules-form label:not(.checkline) {
+.rules-form label:not(.checkline):not(.tag-add) {
 	display: block;
 	font-family: var(--font-mono);
 	font-size: 0.68rem;

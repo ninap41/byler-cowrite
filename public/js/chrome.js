@@ -100,6 +100,7 @@ const NAV = (page) => `
 		<a href="/dashboard" ${page === "dashboard" ? 'aria-current="page"' : ""}>🏠 Dashboard</a>
 		<a href="/game" ${page === "game" ? 'aria-current="page"' : ""}>✍️ Current game</a>
 		<a href="/archive" ${page === "archive" ? 'aria-current="page"' : ""}>📚 Previous games</a>
+		<a href="/stories" ${page === "stories" ? 'aria-current="page"' : ""}>📖 All stories</a>
 		<a href="/profile" ${page === "profile" ? 'aria-current="page"' : ""}>🏆 Profile</a>
 		<a href="/settings" ${page === "settings" ? 'aria-current="page"' : ""}>⚙️ Settings</a>
 		<button type="button" class="nav-logout" id="navLogout">🚪 Log out</button>

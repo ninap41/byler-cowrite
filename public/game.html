@@ -3,6 +3,19 @@
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<script>
+			// Apply the saved theme before first paint (initTheme() re-validates it later)
+			try { var _t = localStorage.getItem("cowriteTheme"); if (_t) document.documentElement.setAttribute("data-theme", _t) } catch (e) {}
+		</script>
+		<script>
+			// Pre-hide animated containers before first paint so the GSAP entrance
+			// can never flash them visible and restart (the double-glitch). The
+			// entrance script lifts this; the timer is the no-GSAP safety net.
+			if (!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches)) {
+				document.documentElement.classList.add("pre-anim")
+				setTimeout(function () { document.documentElement.classList.remove("pre-anim") }, 1500)
+			}
+		</script>
 		<title>Byler Cowrite — Game</title>
 		<link rel="icon" type="image/x-icon" href="./favicon.ico?v=2" />
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -49,6 +62,7 @@
 							<input id="coverInput" placeholder="https://… (cover for dashboards & the archive)" maxlength="500" />
 							<button class="ghost" id="coverBtn" style="flex: 0 0 auto; min-width: auto">Set</button>
 						</div>
+						<img id="coverPreview" class="cover-preview hidden" alt="Cover preview" loading="lazy" />
 						<div class="row"><button class="primary" id="startBtn">Begin →</button></div>
 					</div>
 					<p id="waitingNote" class="subtle" style="margin-top: 16px">Waiting for the host to begin…</p>
@@ -147,6 +161,7 @@
 									<input id="coverInput2" placeholder="https://…" maxlength="500" />
 									<button class="ghost" id="coverBtn2" style="flex: 0 0 auto; min-width: auto">Set</button>
 								</div>
+								<img id="coverPreview2" class="cover-preview hidden" alt="Cover preview" loading="lazy" />
 								<div id="hostGame" class="row">
 									<button class="ghost" id="pauseBtn">⏸ Pause</button>
 									<button class="ghost" id="endBtn">End game &amp; reveal</button>
@@ -173,6 +188,8 @@
 					<div class="story" id="overStory" style="max-height: 48vh"></div>
 					<div id="continueControls" class="hidden">
 						<div id="contRules"></div>
+						<!-- tumblr-style tags: tag the finished story right here -->
+						<div id="overTags"></div>
 						<div class="row"><button class="primary" id="continueBtn">Continue the story →</button></div>
 						<div class="divider">OR EXPORT IT</div>
 					</div>
@@ -180,7 +197,6 @@
 						<button class="ghost" id="dashBtn">← Back to dashboard</button>
 						<button class="ghost" id="copyBtn">Copy (formatted)</button>
 						<button class="ghost" id="downloadBtn">Download .html</button>
-						<button class="primary" id="againBtn">New game</button>
 					</div>
 				</div>
 			</div>
@@ -228,6 +244,7 @@
 			import { countdownView } from "/js/components/countdown.js"
 			import { mountRulesForm } from "/js/components/rules-form.js"
 			import { buildExports, exportDocument } from "/js/export.js"
+			import { mountTagEditor } from "/js/components/tag-chips.js"
 			mountChrome({ page: "game" })
 			// Spectators need no account: ?spectate=CODE watches a story read-only.
 			const spectateCode = (new URLSearchParams(location.search).get("spectate") || "").trim().toUpperCase()
@@ -401,12 +418,26 @@
 
 			// ---- Cover image (host-only): a linked header image URL that becomes
 			// the story's thumbnail on the dashboard and archive ----
+			// Live cover preview under each input: shows for http(s) urls, updates
+			// as the host types, hides itself when the image fails to load.
+			const COVER_PREVIEWS = { coverInput: "coverPreview", coverInput2: "coverPreview2" }
+			function previewCover(previewId, url) {
+				const img = $(previewId)
+				if (!img) return
+				const ok = /^https?:\/\//i.test(url)
+				img.classList.toggle("hidden", !ok)
+				if (ok && img.src !== url) img.src = url
+				img.onerror = () => img.classList.add("hidden")
+			}
 			function wireCover(inputId, btnId) {
 				const inp = $(inputId),
 					btn = $(btnId)
 				// an edited-but-unsaved value must survive roster/game-state
 				// broadcasts — syncCover skips dirty (and focused) inputs
-				inp.addEventListener("input", () => (inp.dataset.dirty = "1"))
+				inp.addEventListener("input", () => {
+					inp.dataset.dirty = "1"
+					previewCover(COVER_PREVIEWS[inputId], inp.value.trim())
+				})
 				const send = () =>
 					socket.emit("set-cover", { url: inp.value.trim() }, (res) => {
 						btn.textContent = res?.ok ? "Set ✓" : res?.error || "Host only"
@@ -427,7 +458,10 @@
 				if (cover == null) return
 				for (const id of ["coverInput", "coverInput2"]) {
 					const inp = $(id)
-					if (document.activeElement !== inp && !inp.dataset.dirty) inp.value = cover
+					if (document.activeElement !== inp && !inp.dataset.dirty) {
+						inp.value = cover
+						previewCover(COVER_PREVIEWS[id], cover)
+					}
 				}
 			}
 
@@ -518,7 +552,8 @@
 				cc.classList.remove("hidden")
 				cc.classList.toggle("continue-locked", !host)
 				cc.title = host ? "" : "Only the host has the ability to continue the story."
-				cc.querySelectorAll("input, select, button").forEach((el) => (el.disabled = !host))
+				// (tags are exempt: every writer may tag, not just the host)
+				cc.querySelectorAll("input, select, button").forEach((el) => (el.disabled = !host && !el.closest("#overTags")))
 				// the bulk enable above wipes the checkbox-driven disabled states
 				if (host) contRules.sync()
 			}
@@ -885,6 +920,21 @@
 				updateHostView()
 				updateSessionBar()
 				refreshChip() // word count / badge may have changed
+				// tag the finished story (writers only — spectators' fetch 403s and
+				// the container just stays empty). The block rides INSIDE the
+				// rules-form panel — moved here because mountRulesForm() wiped
+				// that container's html at page init.
+				if ($("overTags").parentElement !== $("contRules")) $("contRules").appendChild($("overTags"))
+				$("overTags").innerHTML = ""
+				authApi("/api/games/" + encodeURIComponent(myCode), null, "GET")
+					.then((g) =>
+						mountTagEditor($("overTags"), {
+							tags: g.tags || [],
+							onSave: (tags) =>
+								authApi("/api/games/" + encodeURIComponent(myCode) + "/tags", { tags }).catch(() => {}),
+						}),
+					)
+					.catch(() => {})
 			})
 			$("continueBtn").onclick = () =>
 				socket.emit("continue-writing", contRules.values(), (res) => {
@@ -926,7 +976,7 @@
 				a.click()
 				URL.revokeObjectURL(a.href)
 			}
-			$("againBtn").onclick = $("dashBtn").onclick = () => {
+			$("dashBtn").onclick = () => {
 				clearRejoin() // otherwise /game auto-rejoins straight back here
 				location.href = "/dashboard"
 			}
@@ -1138,7 +1188,11 @@
 		<script type="module">
 			;(function () {
 				var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches
-				if (typeof gsap === "undefined" || reduce) return
+				if (typeof gsap === "undefined" || reduce) {
+					document.documentElement.classList.remove("pre-anim")
+					return
+				}
+				document.documentElement.classList.remove("pre-anim") // enterCard applies from-states this same tick
 				var EASE = { neon: "power4.out", aurora: "power2.out", ink: "power1.out" }
 				var themeEase = function () {
 					return EASE[document.documentElement.getAttribute("data-theme")] || "power2.out"

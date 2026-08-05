@@ -41,11 +41,27 @@ export function createGame(io) {
   const SAVE_DIR = process.env.COWRITE_SAVE_DIR || join(__dirname, "..", "saves");
   mkdirSync(SAVE_DIR, { recursive: true });
 
+  // One-time sweep: every existing snapshot gets an (empty) tags array so the
+  // all-stories page can filter on it uniformly.
+  for (const f of readdirSync(SAVE_DIR)) {
+    if (!f.endsWith(".json")) continue;
+    try {
+      const p = join(SAVE_DIR, f);
+      const d = JSON.parse(readFileSync(p, "utf-8"));
+      if (Array.isArray(d.tags)) continue;
+      d.tags = [];
+      const doc = JSON.stringify(d);
+      writeFileSync(p, doc);
+      mirror("save", d.code || f.replace(/\.json$/, ""), doc);
+    } catch { /* skip unreadable snapshot */ }
+  }
+
   function saveSnapshot(s) {
     try {
       const doc = JSON.stringify({
         code: s.code, name: s.name || "", cover: s.cover || "", phase: s.phase, prompt: s.prompt, story: s.story, chat: s.chat,
         friendly: s.friendly !== false,
+        createdAt: s.createdAt ?? null, tags: s.tags || [],
         turnSeconds: s.turnSeconds, maxTurns: s.maxTurns, turnCount: s.turnCount,
         remaining: s.remaining, currentIdx: s.currentIdx,
         writers: [...s.writers.values()].map((w) => ({
@@ -106,6 +122,7 @@ export function createGame(io) {
       gated: true, // a continued game: the host must approve each re-entry
       hostName: d.hostName ?? null, hostUserId: d.hostUserId ?? null,
       friendly: d.friendly !== false,
+      createdAt: d.createdAt ?? null, tags: d.tags || [],
     };
     sessions.set(code, s);
     if (s.phase === "writing") armIdleEnd(s); // wakes paused — don't let it sit forever
@@ -546,6 +563,7 @@ export function createGame(io) {
       const s = {
         code, name: "", cover: "", hostId: socket.id, hostToken: host.token,
         hostUserId: acct.id, hostName: acct.username, // the ORIGINAL host, forever
+        createdAt: Date.now(), tags: [], // tags: curation for the all-stories page (empty for now)
         friendly: true, // story mode: friendly (default) vs non-friendly
         phase: "waiting",
         writers: new Map([[socket.id, host]]),
@@ -1003,13 +1021,37 @@ export function createGame(io) {
   const freshStory = (story) => (story || []).map((l) => (l.userId ? { ...l, name: freshName(l.userId, l.name) } : l));
   const gameSummary = (d) => ({
     code: d.code, name: d.name || "", cover: d.cover || "", phase: d.phase, prompt: d.prompt || "",
-    savedAt: d.savedAt || 0, lines: (d.story || []).length,
+    savedAt: d.savedAt || 0, createdAt: d.createdAt || d.savedAt || 0, tags: d.tags || [],
+    lines: (d.story || []).length,
     hostName: store.users.find((u) => u.id === d.hostUserId)?.username ?? d.hostName ?? null,
     writers: (d.writers || []).map((w) => ({
       name: freshName(w.userId, w.name), color: cleanColor(w.color), isHost: d.hostUserId != null && w.userId === d.hostUserId,
     })),
   });
   const inGame = (d, u) => (d.writers || []).some((w) => w.userId === u.id);
+
+  // Tag edits come over HTTP (routes.js) so they work on live AND finished
+  // stories: update the live session when there is one, else rewrite the
+  // snapshot directly.
+  function setTags(code, tags) {
+    const s = sessions.get(code);
+    if (s) {
+      s.tags = tags;
+      saveSnapshot(s);
+      return true;
+    }
+    try {
+      const p = join(SAVE_DIR, code + ".json");
+      const d = JSON.parse(readFileSync(p, "utf-8"));
+      d.tags = tags;
+      const doc = JSON.stringify(d);
+      writeFileSync(p, doc);
+      mirror("save", code, doc);
+      return true;
+    } catch {
+      return false;
+    }
+  }
 
   // A username change ripples into every live session the account sits in:
   // seats, committed story lines, host label — then re-broadcasts + snapshots.
@@ -1094,5 +1136,5 @@ export function createGame(io) {
     mirrorDelete("save", code); // no-op without DATABASE_URL
   }
 
-  return { sessions, onlineSockets, SAVE_DIR, gameSummary, freshStory, inGame, myGamesFor, recentGamesFor, deleteGame, renameUser };
+  return { sessions, onlineSockets, SAVE_DIR, gameSummary, freshStory, inGame, myGamesFor, recentGamesFor, deleteGame, renameUser, setTags };
 }

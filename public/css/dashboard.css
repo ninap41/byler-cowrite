@@ -494,6 +494,8 @@ a.rg-row {
 	font-size: 1.02rem;
 	line-height: 1.55;
 	text-align: left;
+	/* room for the longest quotes — cycling never reflows the rail */
+	min-height: 150px;
 }
 .quote-card .qmark {
 	color: var(--accent);

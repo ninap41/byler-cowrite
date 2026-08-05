@@ -3,6 +3,19 @@
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<script>
+			// Apply the saved theme before first paint (initTheme() re-validates it later)
+			try { var _t = localStorage.getItem("cowriteTheme"); if (_t) document.documentElement.setAttribute("data-theme", _t) } catch (e) {}
+		</script>
+		<script>
+			// Pre-hide animated containers before first paint so the GSAP entrance
+			// can never flash them visible and restart (the double-glitch). The
+			// entrance script lifts this; the timer is the no-GSAP safety net.
+			if (!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches)) {
+				document.documentElement.classList.add("pre-anim")
+				setTimeout(function () { document.documentElement.classList.remove("pre-anim") }, 1500)
+			}
+		</script>
 		<title>Byler Cowrite — Dashboard</title>
 		<link rel="icon" type="image/x-icon" href="./favicon.ico?v=2" />
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -68,30 +81,29 @@
 						<div id="writersList"></div>
 					</div>
 
-					<!-- achievements + streak | previous games -->
-					<div class="dash-split">
-						<div class="card">
-							<h3 class="dash-h" style="margin-top: 0">Recent achievements</h3>
-							<div class="ach-strip" id="achStrip"></div>
-							<div class="streak-box" id="streakBox"></div>
-						</div>
-						<div class="card">
-							<h3 class="dash-h" style="margin-top: 0">Previous games</h3>
-							<p class="subtle" style="text-align: left; margin: 4px 0 0">Stories you've completed.</p>
-							<div id="recentGames"></div>
-							<p class="subtle" style="text-align: left; margin-top: 12px">
-								<a href="/archive" class="linky">See all previous games →</a>
-							</p>
-						</div>
+					<!-- previous games (achievements + streak live in the right rail) -->
+					<div class="card">
+						<h3 class="dash-h" style="margin-top: 0">Previous games</h3>
+						<p class="subtle" style="text-align: left; margin: 4px 0 0">Stories you've completed.</p>
+						<div id="recentGames"></div>
+						<p class="subtle" style="text-align: left; margin-top: 12px">
+							<a href="/archive" class="linky">See all previous games →</a>
+						</p>
 					</div>
 				</div>
 
 				<!-- ============ RIGHT RAIL ============ -->
 				<div class="dash-rail">
 					<div class="card">
-						<h3 class="dash-h" style="margin-top: 0">Invite a friend</h3>
-						<p class="subtle" style="text-align: left; margin: 4px 0 10px">Copies the site link — send it to your next co-writer.</p>
-						<div class="row"><button class="ghost" id="inviteBtn">➕ Invite a friend</button></div>
+						<h3 class="dash-h" style="margin-top: 0">Recent achievements</h3>
+						<div class="ach-strip" id="achStrip"></div>
+						<div class="streak-box" id="streakBox"></div>
+					</div>
+
+					<div class="card quote-card">
+						<span class="qmark">“</span>
+						<span id="quoteText">Every story is better together. One turn at a time. ✒</span>
+						<span class="qmark qmark-end">”</span>
 					</div>
 
 					<div class="card" id="quickStart">
@@ -106,10 +118,10 @@
 						<div class="err" id="lobbyErr"></div>
 					</div>
 
-					<div class="card quote-card">
-						<span class="qmark">“</span>
-						<span id="quoteText">Every story is better together. One turn at a time. ✒</span>
-						<span class="qmark qmark-end">”</span>
+					<div class="card">
+						<h3 class="dash-h" style="margin-top: 0">Invite a friend</h3>
+						<p class="subtle" style="text-align: left; margin: 4px 0 10px">Copies the site link — send it to your next co-writer.</p>
+						<div class="row"><button class="ghost" id="inviteBtn">➕ Invite a friend</button></div>
 					</div>
 
 				</div>
@@ -210,8 +222,29 @@
 					onComplete: () => (el.textContent = text),
 				})
 			}
-			api("/api/quote", null, "GET")
-				.then((d) => scrambleIn($("quoteText"), d.quote))
+			// Cycle the whole quote bank in shuffled order, one every 4s, each
+			// decoding in with the scramble. Reshuffles every full pass (never
+			// repeating the same quote back-to-back); paused in hidden tabs.
+			api("/api/quotes", null, "GET")
+				.then(({ quotes }) => {
+					if (!quotes?.length) return
+					let order = []
+					let i = 0
+					const next = () => {
+						if (i >= order.length) {
+							const last = order[order.length - 1]
+							do order = [...quotes].sort(() => Math.random() - 0.5)
+							while (quotes.length > 1 && order[0] === last)
+							i = 0
+						}
+						scrambleIn($("quoteText"), order[i++])
+					}
+					next()
+					if (quotes.length > 1)
+						setInterval(() => {
+							if (document.visibilityState === "visible") next()
+						}, 4000)
+				})
 				.catch(() => {})
 
 			// (color + username changes live in Settings only — not on the dashboard)
@@ -402,7 +435,13 @@
 				var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches
 				// skip the entrance in hidden tabs: rAF is throttled there, which
 				// would freeze the stagger and leave cards invisible until focus
-				if (typeof gsap === "undefined" || reduce || document.visibilityState === "hidden") return
+				if (typeof gsap === "undefined" || reduce || document.visibilityState === "hidden") {
+					document.documentElement.classList.remove("pre-anim")
+					return
+				}
+				// the tweens below apply their from-states this same tick, so lifting
+				// the pre-paint hide here can never flash the finished layout
+				document.documentElement.classList.remove("pre-anim")
 				// recover from a stagger frozen by a background tab: on refocus,
 				// force any still-hidden card to its final state
 				document.addEventListener("visibilitychange", function () {

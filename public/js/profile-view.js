@@ -56,14 +56,16 @@ export function avatarHtml(p) {
 		: esc((p.username || "?").charAt(0).toUpperCase())
 }
 
-// The usage-badge case: every collectible is listed with its description as
-// a tooltip (what it means + how to earn it, straight from achievements.json);
-// earned ones glow, unearned ones sit locked.
-export function usageCaseHtml(allUsage, earnedNames) {
+// The usage-badge case: every collectible listed; earned ones glow, unearned
+// ones sit locked. Tooltips come from `descs` (the per-user earned map for
+// secret badges, or catalogue descs for open ones) — a LOCKED secret badge
+// shows only a teaser, never the how (the server doesn't even send it).
+export function usageCaseHtml(allUsage, earnedNames, descs = {}, { secret = true } = {}) {
 	return allUsage
 		.map((b) => {
 			const earned = earnedNames.includes(b.name)
-			return `<span class="ach ${earned ? "earned" : "next"}" title="${esc(b.desc || "")}">${earned ? "" : "🔒 "}${esc(b.name)}</span>`
+			const tip = earned || !secret ? descs[b.name] || b.desc || "" : "Secret — unlock it to find out how."
+			return `<span class="ach ${earned ? "earned" : "next"}" title="${esc(tip)}">${earned ? "" : "🔒 "}${esc(b.name)}</span>`
 		})
 		.join("")
 }

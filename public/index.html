@@ -3,6 +3,10 @@
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<script>
+			// Apply the saved theme before first paint (initTheme() re-validates it later)
+			try { var _t = localStorage.getItem("cowriteTheme"); if (_t) document.documentElement.setAttribute("data-theme", _t) } catch (e) {}
+		</script>
 		<title>Byler Cowrite</title>
 		<link rel="icon" type="image/x-icon" href="./favicon.ico?v=2" />
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -63,6 +67,8 @@
 					<li>👤 <b>Accounts</b> — sign up with email + username + password to play: your profile keeps your color, word count, badges, and every game you've written in.</li>
 					<li>🏆 <b>Badges</b> — a word-count ladder from 🐶 Puppy Mike (5,000 words) to 🌀 Crazy Together (150,000), plus secret badges earned by writing… the right thing (some need the right <i>combination</i> of words in one line). Unlocks announce to the whole session.</li>
 					<li>📚 <b>Previous games</b> — a private archive of every game you wrote in, with a Continue button to pick any story back up.</li>
+						<li>📖 <b>All stories</b> — a read-only library of every story ever written here: search by title, filter by tag, sort by date or word count.</li>
+						<li>🏷 <b>Tags</b> — writers tag their stories tumblr-style (#fluff, #slow burn…), during the game or after it's finished.</li>
 					<li>🔑 <b>Permanent codes</b> — every game keeps its 4-letter code forever. Rejoin from any device just by logging in and entering the code.</li>
 					<li>🚪 <b>Host-gated joins</b> — started or continued games require host approval for new (or returning) writers, with a 5-minute cooldown if the host says no.</li>
 					<li>👑 <b>Host controls</b> — name the story, pause/resume, retune turn length and rounds mid-game, approve joins, end &amp; reveal, and continue after the reveal.</li>
@@ -137,6 +143,24 @@
 						<p class="subtle" style="margin-top: 14px"><a href="#" class="linky" id="authBack">← Back</a></p>
 					</div>
 				</div>
+				<!-- WAITING LIST: replaces the auth card once the account cap is hit -->
+				<div id="waitlistCard" class="card hidden">
+					<h2 id="waitlistMsg" style="text-align: center; margin: 6px auto 18px; max-width: 560px; font-weight: 600; line-height: 1.5">
+						Hi, my name is Kip. I am an artist, a writer, and a developer. This is a passion project for two of my servers.
+						It's very expensive to scale an app like this, and it's in it's alpha stages. If you would like to sign-up for
+						Co-Write, join our waiting list by clicking this button! Feel free to spectate on any active writing sessions
+						until we can get you an account.
+					</h2>
+					<div id="waitlistForm">
+						<label for="wlEmail">Your email</label>
+						<input id="wlEmail" type="email" autocomplete="email" />
+						<div class="row"><button class="primary" id="wlJoin">Join the waiting list</button></div>
+						<div class="err" id="wlErr"></div>
+					</div>
+					<p id="waitlistDone" class="subtle hidden" style="text-align: center; font-size: 1.05em; margin-top: 8px">
+						Thanks for signing up for the waitlist!
+					</p>
+				</div>
 				<!-- LIVE STORIES: anyone can watch, no account needed -->
 				<div id="liveWatch" class="card hidden">
 					<h3 class="dash-h" style="margin-top: 0">Live right now</h3>
@@ -168,6 +192,55 @@
 					setToken(token)
 					location.href = "/dashboard"
 				},
+				onCapReached: showWaitlist,
+			})
+
+			// ---- Waiting list: the auth card gives way to Kip's message ----
+			// (fires when signup returns capReached — the account cap is full)
+			function showWaitlist(email) {
+				document.getElementById("lobby").classList.add("hidden")
+				const card = document.getElementById("waitlistCard")
+				card.classList.remove("hidden")
+				document.getElementById("wlEmail").value = email || ""
+				// Animate the message in the site's style: each word fades up in
+				// sequence (GSAP; without it — or with reduced motion — it just shows).
+				const h2 = document.getElementById("waitlistMsg")
+				const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches
+				if (typeof gsap !== "undefined" && !reduce) {
+					const words = h2.textContent.trim().split(/\s+/)
+					h2.textContent = ""
+					for (const w of words) {
+						const s = document.createElement("span")
+						s.textContent = w + " "
+						s.style.display = "inline-block"
+						s.style.whiteSpace = "pre"
+						h2.appendChild(s)
+					}
+					gsap.fromTo(card, { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out", clearProps: "transform" })
+					gsap.fromTo(
+						h2.children,
+						{ opacity: 0, y: 10 },
+						{ opacity: 1, y: 0, duration: 0.4, stagger: 0.035, ease: "power2.out", clearProps: "transform" },
+					)
+					gsap.fromTo("#waitlistForm", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.5, delay: words.length * 0.035 + 0.2, ease: "power2.out", clearProps: "transform" })
+				}
+			}
+			document.getElementById("wlJoin").onclick = async () => {
+				try {
+					await api("/api/waitlist", { email: document.getElementById("wlEmail").value.trim() })
+					document.getElementById("waitlistForm").classList.add("hidden")
+					const done = document.getElementById("waitlistDone")
+					done.classList.remove("hidden")
+					if (typeof gsap !== "undefined") gsap.fromTo(done, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" })
+				} catch (e) {
+					document.getElementById("wlErr").textContent = e.message
+				}
+			}
+			document.getElementById("wlEmail").addEventListener("keydown", (e) => {
+				if (e.key === "Enter") {
+					e.preventDefault()
+					document.getElementById("wlJoin").click()
+				}
 			})
 
 			// ---- Features modal (opens from the hero tagline) ----
@@ -397,11 +470,42 @@
 				}
 				window._heroExit = function () {
 					if (heroEl.classList.contains("hidden")) return
-					// safety net: if rAF is throttled (background tab), force-hide anyway
-					setTimeout(function () {
+					// The lobby's entrance starts from invisible NOW — before the hero
+					// fade thins out — so the card can't flash fully-formed behind the
+					// fading hero and then restart its animation.
+					var lobbyLive = lobbyEl && !lobbyEl.classList.contains("hidden")
+					if (lobbyLive) gsap.set(lobbyEl, { opacity: 0 })
+					var revealed = false
+					function revealLobby() {
+						if (revealed) return // exactly once — onComplete or the safety net, not both
+						revealed = true
 						heroEl.classList.add("hidden")
 						gsap.set(heroEl, { clearProps: "opacity" })
-					}, 1600)
+						if (logoGlyph) gsap.killTweensOf(logoGlyph) // stop the idle spin off-screen
+						if (!lobbyLive) return
+						// one coordinated entrance: card pops in, children cascade —
+						// a single timeline so nothing resets mid-animation
+						var vis = ["authChoice", "authPanes"]
+							.map(function (id) { return document.getElementById(id) })
+							.find(function (el) { return el && !el.classList.contains("hidden") })
+						var kids = vis ? vis.querySelectorAll(":scope > *") : []
+						gsap.killTweensOf([lobbyEl, kids])
+						var tl = gsap.timeline()
+						tl.fromTo(
+							lobbyEl,
+							{ y: 42, opacity: 0, scale: 0.93 },
+							{ y: 0, opacity: 1, scale: 1, duration: 0.7, ease: "power3.out", clearProps: "transform" },
+						)
+						if (kids.length)
+							tl.fromTo(
+								kids,
+								{ opacity: 0, y: 14 },
+								{ opacity: 1, y: 0, duration: 0.45, stagger: 0.07, ease: "power2.out", clearProps: "transform" },
+								0.15,
+							)
+					}
+					// safety net: if rAF is throttled (background tab), force the handoff
+					setTimeout(revealLobby, 1600)
 					var words = ["#heroWord1", "#heroWord2"]
 					var underline = document.getElementById("heroUnderline")
 					gsap.killTweensOf([words, underline, "#heroTag", "#heroBtns", heroEl, logoEl, logoRays, logoQuill])
@@ -410,29 +514,7 @@
 					gsap.to(words, { fillOpacity: 0, duration: 0.35, ease: "power2.in" })
 					gsap.to(words, { strokeDashoffset: HERO_DASH, duration: 0.55, delay: 0.1, ease: "power2.in" })
 					gsap.to(["#heroTag", "#heroBtns"], { opacity: 0, y: 14, duration: 0.35, ease: "power2.in" })
-					gsap.to(heroEl, {
-						opacity: 0,
-						duration: 0.5,
-						delay: 0.45,
-						ease: "power2.in",
-						onComplete: function () {
-							heroEl.classList.add("hidden")
-							gsap.set(heroEl, { clearProps: "opacity" })
-							if (logoGlyph) gsap.killTweensOf(logoGlyph) // stop the idle spin off-screen
-							// hand off into the auth card with its own entrance
-							if (lobbyEl && !lobbyEl.classList.contains("hidden")) {
-								gsap.fromTo(
-									lobbyEl,
-									{ y: 42, opacity: 0, scale: 0.93 },
-									{ y: 0, opacity: 1, scale: 1, duration: 0.7, ease: "power3.out", clearProps: "transform" },
-								)
-								var vis = ["authChoice", "authPanes"]
-									.map(function (id) { return document.getElementById(id) })
-									.find(function (el) { return el && !el.classList.contains("hidden") })
-								if (vis) lobbyStepIn(vis)
-							}
-						},
-					})
+					gsap.to(heroEl, { opacity: 0, duration: 0.5, delay: 0.45, ease: "power2.in", onComplete: revealLobby })
 				}
 
 				/* Auth card intro: pops in centered, children cascading. */

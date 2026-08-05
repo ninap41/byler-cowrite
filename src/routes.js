@@ -4,16 +4,19 @@ import { readFileSync, readdirSync } from "fs";
 import { randomUUID } from "crypto";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
-import { WORD_TIERS, USAGE, badgeName, awardWordBadges } from "../lib/achievements.js";
+import { WORD_TIERS, USAGE, USAGE_OPEN, badgeName, awardWordBadges } from "../lib/achievements.js";
 import { cleanColor, stripTags, httpUrl, sanitizeAbout } from "./sanitize.js";
 import { hashPassword, checkPassword } from "./passwords.js";
 import {
-  store, saveStore, EMAIL_RE,
+  store, saveStore, EMAIL_RE, ADMIN_EMAILS,
   findByEmail, findByUsername, userByToken, authedUser, publicUser, profileOf,
 } from "./store.js";
 
 const CODE_RE = /^[A-Z0-9]{4}$/;
 const RESET_TTL_MS = 30 * 60_000;
+// Alpha account cap: past this many accounts, signup closes and the homepage
+// offers the waiting list instead (COWRITE_MAX_USERS overrides — tests shrink it).
+const USER_CAP = Number(process.env.COWRITE_MAX_USERS || 100);
 
 // Forgot password: email a reset link (valid 30 minutes). Without SMTP env
 // vars the link is logged to the server console instead — it is never
@@ -40,21 +43,27 @@ async function sendResetEmail(to, link) {
 }
 
 export function registerRoutes(app, game) {
-  const { sessions, onlineSockets, SAVE_DIR, gameSummary, freshStory, inGame, myGamesFor, recentGamesFor, deleteGame, renameUser } = game;
+  const { sessions, onlineSockets, SAVE_DIR, gameSummary, freshStory, inGame, myGamesFor, recentGamesFor, deleteGame, renameUser, setTags } = game;
 
   // Random tagline quote for the homepage hero. quotes.json (repo root, one
   // string per entry) is hand-editable and re-read on every request, so new
   // quotes appear without a restart. Public — the homepage has no auth.
   const QUOTES_PATH = join(dirname(fileURLToPath(import.meta.url)), "..", "quotes.json");
-  app.get("/api/quote", (_req, res) => {
+  const readQuotes = () => {
     let quotes = [];
     try {
       quotes = JSON.parse(readFileSync(QUOTES_PATH, "utf-8"));
     } catch { /* missing/invalid file -> fall through to default */ }
     if (!Array.isArray(quotes) || !quotes.length)
       quotes = ["If we're both going crazy, we might as well write it down."];
-    res.json({ quote: String(quotes[Math.floor(Math.random() * quotes.length)]) });
+    return quotes.map(String);
+  };
+  app.get("/api/quote", (_req, res) => {
+    const quotes = readQuotes();
+    res.json({ quote: quotes[Math.floor(Math.random() * quotes.length)] });
   });
+  // The whole bank at once — the dashboard cycles through it client-side.
+  app.get("/api/quotes", (_req, res) => res.json({ quotes: readQuotes() }));
 
   // Logged-in dashboard: who's online + games currently running.
   app.get("/api/dashboard", (req, res) => {
@@ -88,6 +97,10 @@ export function registerRoutes(app, game) {
   });
 
   app.post("/api/signup", (req, res) => {
+    // Cap check comes first: once we're full, every signup attempt gets the
+    // waiting-list wall (capReached tells the client to show it).
+    if (store.users.length >= USER_CAP)
+      return res.status(403).json({ error: "Sign-ups are closed for now — join the waiting list!", capReached: true });
     const { email, username, password, color } = req.body || {};
     const em = String(email || "").toLowerCase().trim();
     const un = String(username || "").trim();
@@ -105,12 +118,27 @@ export function registerRoutes(app, game) {
       color: cleanColor(color), games: [], wordCount: 0, currentBadge: null, badges: [],
       createdAt: Date.now(),
     };
+    if (ADMIN_EMAILS.has(em)) u.admin = true;
     awardWordBadges(u); // the 0-word starter badge, from day one
     store.users.push(u);
     const token = randomUUID();
     store.sessions[token] = u.id;
     saveStore();
     res.json({ token, user: publicUser(u) });
+  });
+
+  // Waiting list (shown when the account cap is hit). Each entry keeps
+  // accessGranted (flip to true when inviting) and signupLink (null until an
+  // individual invite link is issued). Duplicate emails are a friendly no-op.
+  app.post("/api/waitlist", (req, res) => {
+    const em = String(req.body?.email || "").toLowerCase().trim();
+    if (!EMAIL_RE.test(em)) return res.status(400).json({ error: "Enter a valid email." });
+    if (findByEmail(em)) return res.status(400).json({ error: "That email already has an account — just log in!" });
+    if (!store.waitlist.some((w) => w.email === em)) {
+      store.waitlist.push({ email: em, accessGranted: false, signupLink: null, addedAt: Date.now() });
+      saveStore();
+    }
+    res.json({ ok: true });
   });
 
   // Distinct login errors on purpose (bad email format / unknown email /
@@ -185,13 +213,15 @@ export function registerRoutes(app, game) {
     res.json({ user: publicUser(u) });
   });
 
-  // Public achievement metadata for the profile page: every badge with its
-  // description ("what it means and how to earn it" — see achievements.json).
-  // Raw trigger word lists still never ship.
+  // Public achievement metadata for the profile page. Raw trigger word lists
+  // never ship — and SECRET usage badges don't even ship their descriptions
+  // (those arrive per-user via badgeDescs once earned). Open usage badges are
+  // the non-secret kind: their descriptions always show.
   app.get("/api/achievements", (_req, res) => {
     res.json({
       wordTiers: WORD_TIERS.map((t) => ({ name: t.name, min: t.min, desc: t.desc })),
-      usage: USAGE.map((b) => ({ name: b.name, desc: b.desc })),
+      usage: USAGE.map((b) => ({ name: b.name })),
+      usageOpen: USAGE_OPEN.map((b) => ({ name: b.name, desc: b.desc })),
       usageCount: USAGE.length,
     });
   });
@@ -206,6 +236,10 @@ export function registerRoutes(app, game) {
     if (!EMAIL_RE.test(em)) return res.status(400).json({ error: "Enter a valid email." });
     const taken = findByEmail(em);
     if (taken && taken.id !== u.id) return res.status(400).json({ error: "That email already has an account." });
+    // Admin emails grant the flag at startup — switching onto one would be a
+    // backdoor to admin, so non-admins can't claim them here.
+    if (ADMIN_EMAILS.has(em) && u.admin !== true)
+      return res.status(400).json({ error: "That email is reserved." });
     u.email = em;
     saveStore();
     res.json({ user: publicUser(u) });
@@ -350,6 +384,59 @@ export function registerRoutes(app, game) {
     res.json({ ok: true });
   });
 
+  // ---- All games & stories (read-only, every snapshot, any signed-in user) ----
+  // Unlike the private archive below, this lists EVERYTHING — but only ever
+  // for reading: no continue/edit/delete surface, no seat tokens.
+  // ?q= title search · ?tag= filter · ?sort=date|words · ?dir=asc|desc ·
+  // ?page=&limit= pagination (reading every snapshot per request is the
+  // expensive part — pages keep the payload bounded).
+  const storyWordCount = (d) =>
+    (d.story || []).reduce(
+      (n, l) => n + stripTags(String(l.html || "")).trim().split(/\s+/).filter(Boolean).length, 0);
+
+  app.get("/api/stories", (req, res) => {
+    if (!authedUser(req)) return res.status(401).json({ error: "Sign in first." });
+    const q = String(req.query.q || "").toLowerCase().trim();
+    const tag = String(req.query.tag || "").toLowerCase().trim();
+    // ?user= narrows to games where that account holds a seat (or hosted) —
+    // the "all of this writer's games" page linked from profiles
+    const forUser = req.query.user ? findByUsername(req.query.user) : null;
+    if (req.query.user && !forUser) return res.status(404).json({ error: "No writer by that name." });
+    const sort = req.query.sort === "words" ? "words" : "date";
+    const dir = req.query.dir === "asc" ? 1 : -1;
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 12));
+    const all = [];
+    for (const f of readdirSync(SAVE_DIR)) {
+      if (!f.endsWith(".json")) continue;
+      try {
+        const d = JSON.parse(readFileSync(join(SAVE_DIR, f), "utf-8"));
+        // "title" is what the cards show: the host-set name, else the prompt
+        if (q && !`${d.name || ""} ${d.prompt || ""}`.toLowerCase().includes(q)) continue;
+        if (tag && !(d.tags || []).some((t) => String(t).toLowerCase() === tag)) continue;
+        if (forUser && !inGame(d, forUser) && d.hostUserId !== forUser.id) continue;
+        all.push({ ...gameSummary(d), wordCount: storyWordCount(d) });
+      } catch { /* skip unreadable snapshot */ }
+    }
+    all.sort((a, b) => dir * (sort === "words" ? a.wordCount - b.wordCount : a.createdAt - b.createdAt));
+    const total = all.length;
+    const pages = Math.max(1, Math.ceil(total / limit));
+    res.json({ stories: all.slice((page - 1) * limit, page * limit), total, page, pages });
+  });
+
+  app.get("/api/stories/:code", (req, res) => {
+    if (!authedUser(req)) return res.status(401).json({ error: "Sign in first." });
+    const code = String(req.params.code || "").toUpperCase();
+    if (!CODE_RE.test(code)) return res.status(400).json({ error: "Bad code." });
+    try {
+      // Story html in snapshots already passed through sanitizeRich() when written.
+      const d = JSON.parse(readFileSync(join(SAVE_DIR, code + ".json"), "utf-8"));
+      res.json({ ...gameSummary(d), wordCount: storyWordCount(d), story: freshStory(d.story) });
+    } catch {
+      res.status(404).json({ error: "Not found." });
+    }
+  });
+
   // ---- Previous-games archive (read-only, backed by saves/*.json snapshots) ----
   // No database on purpose: saveSnapshot() already persists every paused/finished
   // game to disk, so the archive is just a directory listing + file reads.
@@ -367,6 +454,30 @@ export function registerRoutes(app, game) {
     }
     out.sort((a, b) => b.savedAt - a.savedAt);
     res.json(out);
+  });
+
+  // Tags: tumblr-style labels on a story. Any writer holding a seat (or the
+  // original host) may edit them — during the game or after it's finished.
+  app.post("/api/games/:code/tags", (req, res) => {
+    const u = authedUser(req);
+    if (!u) return res.status(401).json({ error: "Sign in first." });
+    const code = String(req.params.code || "").toUpperCase();
+    if (!CODE_RE.test(code)) return res.status(400).json({ error: "Bad code." });
+    let d;
+    try {
+      d = JSON.parse(readFileSync(join(SAVE_DIR, code + ".json"), "utf-8"));
+    } catch {
+      return res.status(404).json({ error: "Not found." });
+    }
+    if (!inGame(d, u) && d.hostUserId !== u.id)
+      return res.status(403).json({ error: "Only this story's writers can edit its tags." });
+    const seen = new Set();
+    const tags = (Array.isArray(req.body?.tags) ? req.body.tags : [])
+      .map((t) => stripTags(String(t)).replace(/^#+/, "").trim().slice(0, 30))
+      .filter((t) => t && !seen.has(t.toLowerCase()) && !!seen.add(t.toLowerCase()))
+      .slice(0, 20);
+    if (!setTags(code, tags)) return res.status(500).json({ error: "Could not save tags." });
+    res.json({ tags });
   });
 
   // Only the game's true host may delete a story — for everyone, forever.

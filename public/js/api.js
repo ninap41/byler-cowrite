@@ -26,6 +26,11 @@ export async function api(path, body, method = "POST") {
 		body: body ? JSON.stringify(body) : undefined,
 	})
 	const d = await r.json().catch(() => ({}))
-	if (!r.ok) throw new Error(d.error || "Something went wrong.")
+	if (!r.ok) {
+		const err = new Error(d.error || "Something went wrong.")
+		err.status = r.status
+		err.data = d // extra flags (e.g. capReached) ride along for the caller
+		throw err
+	}
 	return d
 }

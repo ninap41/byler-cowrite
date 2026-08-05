@@ -3,6 +3,10 @@
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<script>
+			// Apply the saved theme before first paint (initTheme() re-validates it later)
+			try { var _t = localStorage.getItem("cowriteTheme"); if (_t) document.documentElement.setAttribute("data-theme", _t) } catch (e) {}
+		</script>
 		<title>Byler Cowrite — Previous Games</title>
 		<link rel="icon" type="image/x-icon" href="./favicon.ico?v=2" />
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -22,8 +26,14 @@
 				<p class="hidden" id="archNotice" style="color: var(--good); text-align: left; margin: 0 0 12px"></p>
 				<div id="archiveList"></div>
 				<div id="archiveDetail" class="hidden">
+					<!-- title · authors · info, then the prompt, tags, and the story -->
+					<h2 id="archTitle" style="text-align: left; margin: 0 0 4px"></h2>
+					<p id="archAuthors" class="subtle" style="text-align: left; margin: 0 0 4px"></p>
+					<p class="gc-meta" id="archMeta" style="margin: 0 0 14px; align-items: center"></p>
 					<div class="prompt-banner" id="archPrompt"></div>
-					<p class="gc-meta" id="archMeta" style="margin: 10px 0 0; align-items: center"></p>
+					<!-- tumblr-style tags: type + Enter to add a #chip; saves as you go -->
+					<div id="archTags"></div>
+					<p class="err" id="archTagsErr" style="margin: 4px 0 0"></p>
 					<div class="story" id="archStory" style="max-height: none"></div>
 					<div class="row">
 						<button class="primary" id="archContinue">Continue this story →</button>
@@ -59,8 +69,10 @@
 			import { api } from "/js/api.js"
 			import { mountChrome, setUserChip } from "/js/chrome.js"
 			import { requireAuth } from "/js/auth-guard.js"
-			import { gameCardHtml, archiveMetaText, archiveStoryHtml } from "/js/archive-view.js"
+			import { gameCardHtml, archiveStoryHtml, fmtWhen } from "/js/archive-view.js"
+			import { safeColor } from "/js/util.js"
 			import { buildExports, exportDocument } from "/js/export.js"
+			import { mountTagEditor } from "/js/components/tag-chips.js"
 
 			mountChrome({ page: "archive" })
 			const me = await requireAuth("/")
@@ -126,8 +138,33 @@
 					return
 				}
 				curG = g
+				$("archTitle").textContent = g.name || g.prompt || g.code
+				// every writer, linked to their profile (host first, crown kept)
+				const authors = $("archAuthors")
+				authors.textContent = ""
+				;[...g.writers].sort((a, b) => b.isHost - a.isHost).forEach((w, i) => {
+					if (i) authors.append(", ")
+					const a = document.createElement("a")
+					a.className = "linky"
+					a.href = "/profile?user=" + encodeURIComponent(w.name)
+					a.style.color = safeColor(w.color)
+					a.textContent = (w.isHost ? "👑 " : "") + w.name
+					authors.appendChild(a)
+				})
+				$("archMeta").textContent = `code: ${g.code} · last played · ${fmtWhen(g.savedAt)}`
 				$("archPrompt").textContent = g.prompt || "(no prompt)"
-				$("archMeta").textContent = archiveMetaText(g)
+				// tags: everyone with a seat here may edit; each change saves itself
+				mountTagEditor($("archTags"), {
+					tags: g.tags || [],
+					onSave: async (tags) => {
+						try {
+							await api("/api/games/" + encodeURIComponent(g.code) + "/tags", { tags })
+							$("archTagsErr").textContent = ""
+						} catch (e) {
+							$("archTagsErr").textContent = e.message
+						}
+					},
+				})
 				// story html was sanitized server-side by sanitizeRich() before being saved
 				$("archStory").innerHTML = archiveStoryHtml(g.story)
 				$("archContinue").onclick = () => (location.href = "/game?code=" + encodeURIComponent(g.code))

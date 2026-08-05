@@ -3,6 +3,19 @@
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<script>
+			// Apply the saved theme before first paint (initTheme() re-validates it later)
+			try { var _t = localStorage.getItem("cowriteTheme"); if (_t) document.documentElement.setAttribute("data-theme", _t) } catch (e) {}
+		</script>
+		<script>
+			// Pre-hide animated containers before first paint so the GSAP entrance
+			// can never flash them visible and restart (the double-glitch). The
+			// entrance script lifts this; the timer is the no-GSAP safety net.
+			if (!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches)) {
+				document.documentElement.classList.add("pre-anim")
+				setTimeout(function () { document.documentElement.classList.remove("pre-anim") }, 1500)
+			}
+		</script>
 		<title>Byler Cowrite — Settings</title>
 		<link rel="icon" type="image/x-icon" href="./favicon.ico?v=2" />
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -30,19 +43,23 @@
 
 					<!-- sounds: saved on the account so they follow you between sessions -->
 					<div class="settings-section">
-						<label>Sounds</label>
-						<label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin: 6px 0 0">
-							<input type="checkbox" id="sndChat" style="width: auto" />
-							Chat pings
-						</label>
-						<label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin: 6px 0 0">
-							<input type="checkbox" id="sndStory" style="width: auto" />
-							Story chimes (new lines)
-						</label>
-						<label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin: 6px 0 0">
-							<input type="checkbox" id="sndClock" style="width: auto" />
-							Vecna clock (end-of-turn countdown)
-						</label>
+						<button type="button" class="ghost sec-toggle" data-toggle="secSounds" aria-expanded="false">
+							🔊 Sounds <i class="chev">&#9662;</i>
+						</button>
+						<div id="secSounds" class="sec-body hidden">
+							<label class="checkline" style="margin: 2px 0 0">
+								<input type="checkbox" id="sndChat" />
+								Chat pings
+							</label>
+							<label class="checkline" style="margin: 9px 0 0">
+								<input type="checkbox" id="sndStory" />
+								Story chimes (new lines)
+							</label>
+							<label class="checkline" style="margin: 9px 0 0">
+								<input type="checkbox" id="sndClock" />
+								Vecna clock (end-of-turn countdown)
+							</label>
+						</div>
 					</div>
 
 					<!-- account details: collapsed behind toggles to keep the page calm -->
@@ -105,16 +122,12 @@
 
 					<div class="err" id="setErr"></div>
 					<p class="ok-msg" id="setOk"></p>
-
-					<div class="settings-section">
-						<div class="row"><button class="ghost" id="logoutBtn">Log out</button></div>
-					</div>
 				</div>
 			</div>
 		</div>
 
 		<script type="module">
-			import { api, setToken } from "/js/api.js"
+			import { api } from "/js/api.js"
 			import { mountChrome, setUserChip } from "/js/chrome.js"
 			import { requireAuth } from "/js/auth-guard.js"
 			import { PALETTE, safeColor } from "/js/util.js"
@@ -255,20 +268,19 @@
 					say(false, e.message)
 				}
 			}
-			$("logoutBtn").onclick = async () => {
-				try {
-					await api("/api/logout")
-				} catch (e) {}
-				setToken(null)
-				location.href = "/"
-			}
 			fill()
 		</script>
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 		<script type="module">
 			;(function () {
 				var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches
-				if (typeof gsap === "undefined" || reduce || document.visibilityState === "hidden") return
+				if (typeof gsap === "undefined" || reduce || document.visibilityState === "hidden") {
+					document.documentElement.classList.remove("pre-anim")
+					return
+				}
+				// the tweens below apply their from-states this same tick, so lifting
+				// the pre-paint hide here can never flash the finished layout
+				document.documentElement.classList.remove("pre-anim")
 				// recover from a stagger frozen by a background tab: on refocus,
 				// force any still-hidden card to its final state
 				document.addEventListener("visibilitychange", function () {

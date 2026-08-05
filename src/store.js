@@ -4,7 +4,7 @@
 import { readFileSync, writeFileSync, mkdirSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
-import { badgeName, badgeDesc, isUsageId, nextTierFor, migrateBadges } from "../lib/achievements.js";
+import { badgeName, badgeDesc, isUsageId, isOpenUsageId, nextTierFor, migrateBadges } from "../lib/achievements.js";
 import { mirror } from "./persist.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -13,7 +13,7 @@ const DATA_DIR = process.env.COWRITE_DATA_DIR || join(__dirname, "..", "data");
 mkdirSync(DATA_DIR, { recursive: true });
 const USERS_PATH = join(DATA_DIR, "users.json");
 
-export let store = { users: [], sessions: {}, resets: {} };
+export let store = { users: [], sessions: {}, resets: {}, waitlist: [] };
 try {
   store = { ...store, ...JSON.parse(readFileSync(USERS_PATH, "utf-8")) };
 } catch { /* first run */ }
@@ -35,6 +35,19 @@ export const saveStore = () => {
   if (changed) saveStore();
 }
 
+// The only accounts that carry admin: true — applied to existing accounts at
+// startup (below) and at signup (routes.js). Nobody else ever gets the flag.
+export const ADMIN_EMAILS = new Set(["admin2@cowrite.test", "admin@cowrite.test"]);
+{
+  let changed = false;
+  for (const u of store.users)
+    if (ADMIN_EMAILS.has(u.email) && u.admin !== true) {
+      u.admin = true;
+      changed = true;
+    }
+  if (changed) saveStore();
+}
+
 export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export const findByEmail = (e) => store.users.find((u) => u.email === String(e || "").toLowerCase().trim());
@@ -46,11 +59,12 @@ export const authedUser = (req) => userByToken((req.headers.authorization || "")
 
 // What the account OWNER sees about themselves.
 export const publicUser = (u) => ({
-  id: u.id, email: u.email, username: u.username, color: u.color,
+  id: u.id, email: u.email, username: u.username, color: u.color, admin: u.admin === true,
   games: u.games, wordCount: u.wordCount,
   currentBadge: badgeName(u.currentBadge), badges: u.badges.map(badgeName),
   wordBadges: u.badges.filter((id) => !isUsageId(id)).map(badgeName),
-  usageBadges: u.badges.filter(isUsageId).map(badgeName),
+  usageBadges: u.badges.filter((id) => isUsageId(id) && !isOpenUsageId(id)).map(badgeName),
+  openBadges: u.badges.filter(isOpenUsageId).map(badgeName),
   // hover text for EARNED badges only — unearned usage badges stay a mystery
   badgeDescs: Object.fromEntries(u.badges.map((id) => [badgeName(id), badgeDesc(id)])),
   nextBadge: nextTierFor(u),
@@ -69,7 +83,8 @@ export const profileOf = (u, onlineIds) => ({
   username: u.username, color: u.color, wordCount: u.wordCount,
   currentBadge: badgeName(u.currentBadge), badges: u.badges.map(badgeName),
   wordBadges: u.badges.filter((id) => !isUsageId(id)).map(badgeName),
-  usageBadges: u.badges.filter(isUsageId).map(badgeName),
+  usageBadges: u.badges.filter((id) => isUsageId(id) && !isOpenUsageId(id)).map(badgeName),
+  openBadges: u.badges.filter(isOpenUsageId).map(badgeName),
   badgeDescs: Object.fromEntries(u.badges.map((id) => [badgeName(id), badgeDesc(id)])),
   nextBadge: nextTierFor(u),
   streak: u.streak || 0, bestStreak: u.bestStreak || 0,

@@ -47,9 +47,12 @@ test("achievements metadata is public: ladder + usage count only", async () => {
   const cfg = JSON.parse(readFileSync(new URL("../achievements.json", import.meta.url), "utf-8"));
   assert.equal(r.data.usageCount, cfg.usage.length, "usage count mirrors the hand-editable catalogue");
   assert.ok(r.data.wordTiers[1].desc.includes("5,000"), "ladder descs are public");
-  // every badge ships its "what it means / how to earn it" description
+  // secret badges ship name-only (their descs arrive per-user once earned);
+  // open usage badges are the non-secret kind and always carry their desc
   assert.equal(r.data.usage.length, cfg.usage.length);
-  assert.ok(r.data.usage.every((b) => b.name && b.desc), "usage badges carry descriptions");
+  assert.ok(r.data.usage.every((b) => b.name && !b.desc), "secret usage badges never ship descriptions");
+  assert.equal(r.data.usageOpen.length, cfg.usageOpen.length);
+  assert.ok(r.data.usageOpen.every((b) => b.name && b.desc), "open usage badges carry descriptions");
   assert.equal(JSON.stringify(r.data).includes("triggers"), false, "raw trigger lists still never ship");
   assert.equal(JSON.stringify(r.data).includes("combos"), false, "combo word lists never ship either");
 });

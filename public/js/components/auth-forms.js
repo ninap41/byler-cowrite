@@ -1,6 +1,6 @@
 // Login / signup / forgot-password panes for the homepage. Pure wiring over
 // injected deps so it's testable without a network.
-export function wireAuthForms(root, { api, onSignedIn }) {
+export function wireAuthForms(root, { api, onSignedIn, onCapReached }) {
 	const $ = (id) => root.getElementById(id)
 	const show = (id) => $(id).classList.remove("hidden")
 	const hide = (id) => $(id).classList.add("hidden")
@@ -69,6 +69,8 @@ export function wireAuthForms(root, { api, onSignedIn }) {
 			})
 			onSignedIn(d.user, d.token)
 		} catch (e) {
+			// Account cap hit: hand the attempted email to the waiting-list wall.
+			if (e.data?.capReached && onCapReached) return onCapReached($("suEmail").value.trim())
 			$("authErr").textContent = e.message
 		}
 	}

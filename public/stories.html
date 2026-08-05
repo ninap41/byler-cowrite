@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en" data-theme="neon">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<script>
+			// Apply the saved theme before first paint (initTheme() re-validates it later)
+			try { var _t = localStorage.getItem("cowriteTheme"); if (_t) document.documentElement.setAttribute("data-theme", _t) } catch (e) {}
+		</script>
+		<title>Byler Cowrite — All Stories</title>
+		<link rel="icon" type="image/x-icon" href="./favicon.ico?v=2" />
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,900;1,9..144,400;1,9..144,600&family=Inconsolata:wght@400;600;700&family=Orbitron:wght@500;700;900&family=Space+Grotesk:wght@400;500;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+			rel="stylesheet"
+		/>
+		<link rel="stylesheet" href="/css/base.css" />
+	</head>
+	<body>
+		<div class="wrap">
+			<div class="archive-inner">
+				<div class="archive-head">
+					<a class="ghost" href="/dashboard" style="text-decoration: none; padding: 10px 16px; border-radius: 12px">← Back</a>
+					<h2 id="storiesHeading">All Games &amp; Stories</h2>
+					<a class="linky hidden" id="profileBackLink" href="#" style="align-self: center">← Back to profile</a>
+				</div>
+				<p class="subtle" id="storiesSub" style="text-align: left; margin: 0 0 14px">Every story ever written here — read any of them.</p>
+
+				<!-- search / sort / filter toolbar -->
+				<div id="storiesTools" class="chat-row" style="flex-wrap: wrap; gap: 8px; margin-bottom: 16px">
+					<input id="stQ" placeholder="Search by title…" style="flex: 2 1 220px" />
+					<input id="stTag" placeholder="Filter by tag…" style="flex: 1 1 140px" />
+					<select id="stSort" class="ghost" style="flex: 1 1 170px">
+						<option value="date-desc">Newest first</option>
+						<option value="date-asc">Oldest first</option>
+						<option value="words-desc">Most words</option>
+						<option value="words-asc">Fewest words</option>
+					</select>
+				</div>
+
+				<div id="storiesList"></div>
+
+				<!-- pagination -->
+				<div class="row hidden" id="stPager" style="justify-content: center; align-items: center; gap: 14px">
+					<button class="ghost" id="stPrev">← Prev</button>
+					<span class="gc-meta" id="stPageInfo" style="flex: none"></span>
+					<button class="ghost" id="stNext">Next →</button>
+				</div>
+
+				<!-- read-only story view: no continue, no delete, no editing -->
+				<div id="storyDetail" class="hidden">
+					<div class="prompt-banner" id="stPrompt"></div>
+					<p class="gc-meta" id="stMeta" style="margin: 10px 0 0; align-items: center"></p>
+					<div class="story" id="stStory" style="max-height: none"></div>
+					<p class="subtle" style="text-align: left; margin-top: 12px">
+						<a href="#" class="linky" id="stListLink">← All stories</a>
+					</p>
+				</div>
+			</div>
+		</div>
+
+		<script type="module">
+			import { api } from "/js/api.js"
+			import { mountChrome, setUserChip } from "/js/chrome.js"
+			import { requireAuth } from "/js/auth-guard.js"
+			import { gameCardHtml, archiveMetaText, archiveStoryHtml, fmtWhen } from "/js/archive-view.js"
+			import { esc } from "/js/util.js"
+
+			mountChrome({ page: "stories" })
+			const me = await requireAuth("/")
+			setUserChip(me)
+			const $ = (id) => document.getElementById(id)
+			const hasGsap =
+				typeof window.gsap !== "undefined" &&
+				!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches)
+
+			let page = 1
+			let pages = 1
+
+			// ?user=NAME narrows the library to one writer's games (linked from
+			// their profile) — the heading and a back-to-profile link follow suit
+			const forUser = new URLSearchParams(location.search).get("user") || ""
+			if (forUser) {
+				$("storiesHeading").textContent = `${forUser}'s stories`
+				$("storiesSub").textContent = "Every game this writer hosted or held a seat in."
+				const back = $("profileBackLink")
+				back.classList.remove("hidden")
+				back.href = "/profile?user=" + encodeURIComponent(forUser)
+			}
+
+			async function loadStories() {
+				const [sort, dir] = $("stSort").value.split("-")
+				const params = new URLSearchParams({ sort, dir, page: String(page), limit: "12" })
+				if (forUser) params.set("user", forUser)
+				const q = $("stQ").value.trim()
+				const tag = $("stTag").value.trim()
+				if (q) params.set("q", q)
+				if (tag) params.set("tag", tag)
+				let d
+				try {
+					d = await api("/api/stories?" + params, null, "GET")
+				} catch (e) {
+					$("storiesList").innerHTML = '<p class="archive-empty">Could not load stories.</p>'
+					return
+				}
+				pages = d.pages
+				page = Math.min(page, pages)
+				const list = $("storiesList")
+				list.innerHTML = ""
+				if (!d.stories.length) {
+					list.innerHTML = '<p class="archive-empty">No stories match.</p>'
+				}
+				d.stories.forEach((g) => {
+					const b = document.createElement("div")
+					b.className = "game-card"
+					b.style.cursor = "pointer"
+					// read-only listing: a big readable date, the card, word count, tags
+					b.innerHTML =
+						`<span class="gc-date">📅 ${new Date(g.createdAt || g.savedAt).toLocaleDateString([], { dateStyle: "long" })}</span>` +
+						gameCardHtml(g) +
+						`<span class="gc-meta" style="margin-top:6px">` +
+						`<span>${g.wordCount.toLocaleString()} word${g.wordCount === 1 ? "" : "s"}</span>` +
+						(g.tags?.length ? `<span>🏷 ${esc(g.tags.join(", "))}</span>` : "") +
+						`</span>`
+					b.onclick = () => openStory(g.code)
+					list.appendChild(b)
+					if (window.gsap && hasGsap)
+						gsap.from(b, { opacity: 0, y: 18, duration: 0.45, delay: 0.04 * list.children.length, ease: "power2.out" })
+				})
+				$("stPager").classList.toggle("hidden", pages <= 1)
+				$("stPageInfo").textContent = `Page ${page} of ${pages} · ${d.total} stor${d.total === 1 ? "y" : "ies"}`
+				$("stPrev").disabled = page <= 1
+				$("stNext").disabled = page >= pages
+			}
+
+			function showList() {
+				$("storyDetail").classList.add("hidden")
+				;["storiesList", "storiesTools"].forEach((id) => $(id).classList.remove("hidden"))
+				$("stPager").classList.toggle("hidden", pages <= 1)
+				history.replaceState(null, "", "/stories" + (forUser ? "?user=" + encodeURIComponent(forUser) : ""))
+			}
+
+			async function openStory(code) {
+				let g
+				try {
+					g = await api("/api/stories/" + encodeURIComponent(code), null, "GET")
+				} catch (e) {
+					return
+				}
+				$("stPrompt").textContent = g.name || g.prompt || "(no prompt)"
+				$("stMeta").textContent =
+					archiveMetaText(g) +
+					` · ${g.wordCount.toLocaleString()} words · created ${fmtWhen(g.createdAt)}` +
+					(g.tags?.length ? ` · 🏷 ${g.tags.join(", ")}` : "")
+				// story html was sanitized server-side by sanitizeRich() before being saved
+				$("stStory").innerHTML = archiveStoryHtml(g.story)
+				;["storiesList", "storiesTools", "stPager"].forEach((id) => $(id).classList.add("hidden"))
+				const det = $("storyDetail")
+				det.classList.remove("hidden")
+				history.replaceState(
+					null, "",
+					"/stories?code=" + encodeURIComponent(g.code) + (forUser ? "&user=" + encodeURIComponent(forUser) : ""),
+				)
+				if (window.gsap && hasGsap)
+					gsap.fromTo(det, { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.45, ease: "power2.out" })
+			}
+
+			$("stListLink").onclick = (e) => {
+				e.preventDefault()
+				showList()
+			}
+			$("stPrev").onclick = () => {
+				if (page > 1) {
+					page--
+					loadStories()
+				}
+			}
+			$("stNext").onclick = () => {
+				if (page < pages) {
+					page++
+					loadStories()
+				}
+			}
+			$("stSort").onchange = () => {
+				page = 1
+				loadStories()
+			}
+			// search-as-you-type, lightly debounced (each keystroke is a server read)
+			let deb = null
+			for (const id of ["stQ", "stTag"])
+				$(id).addEventListener("input", () => {
+					clearTimeout(deb)
+					deb = setTimeout(() => {
+						page = 1
+						loadStories()
+					}, 300)
+				})
+
+			$("storiesList").innerHTML = '<p class="archive-empty">Loading…</p>'
+			await loadStories()
+			const code = new URLSearchParams(location.search).get("code")
+			if (code) openStory(code.toUpperCase())
+		</script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+	</body>
+</html>

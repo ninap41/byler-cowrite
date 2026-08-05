@@ -61,15 +61,19 @@ test("ladderHtml: fresh account shows first tier progress, rest locked", () => {
   assert.equal((out.match(/>locked</g) || []).length, 2);
 });
 
-test("usageCaseHtml: every badge listed with its how-to-earn tooltip; unearned locked", () => {
-  const all = [
-    { name: "🐺 Omega Badge", desc: 'Write "puppy" into a story line.' },
-    { name: "😏 Smutty Buddy", desc: "Get a moan into the story." },
-  ];
-  const out = usageCaseHtml(all, ["🐺 Omega Badge"]);
+test("usageCaseHtml: secret badges keep their tooltip until earned; open badges never do", () => {
+  const all = [{ name: "🐺 Omega Badge" }, { name: "😏 Smutty Buddy" }];
+  const descs = { "🐺 Omega Badge": 'Write "puppy" into a story line.' }; // earned-only, from badgeDescs
+  const out = usageCaseHtml(all, ["🐺 Omega Badge"], descs);
   const [omega, smutty] = out.split("</span>");
   assert.ok(omega.includes("earned") && !omega.includes("🔒"), "earned badge glows");
-  assert.ok(omega.includes('title="Write &quot;puppy&quot; into a story line."'), "tooltip carries the how (escaped)");
+  assert.ok(omega.includes('title="Write &quot;puppy&quot; into a story line."'), "earned tooltip carries the how (escaped)");
   assert.ok(smutty.includes("next") && smutty.includes("🔒"), "unearned badge locked");
-  assert.ok(smutty.includes("Get a moan into the story."), "unearned still explains how to earn it");
+  assert.ok(!smutty.includes("moan"), "a locked secret badge never explains itself");
+  assert.ok(smutty.includes("Secret — unlock it to find out how."), "locked tooltip is just a teaser");
+
+  // the open (non-secret) case: descriptions show even before earning
+  const open = usageCaseHtml([{ name: "🖋 Opening Line", desc: "Write “once upon a time”." }], [], {}, { secret: false });
+  assert.ok(open.includes("🔒"), "still shows as locked");
+  assert.ok(open.includes("Write “once upon a time”."), "but the how is visible");
 });
