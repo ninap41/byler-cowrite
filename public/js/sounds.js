@@ -39,11 +39,35 @@ export function createSounds(AudioCtor = globalThis.Audio) {
 		},
 	}
 
+	// Account-level per-category mute (the game page feeds in the user's
+	// saved prefs): chat pings, story chimes, and the Vecna clock gate
+	// independently. A legacy boolean fans out to all three.
+	let prefs = { chat: true, story: true, clock: true }
+	const CATEGORY = {
+		incomingmessage: "chat",
+		outgoingmessage: "chat",
+		incomingline: "story",
+		outgoingline: "story",
+	}
+	const realStart = clock.start.bind(clock)
+	clock.start = () => {
+		if (prefs.clock) realStart()
+	}
+
 	return {
 		sounds,
 		clock,
 		clockAudio,
+		setPrefs(p) {
+			if (typeof p === "boolean" || p == null) p = { chat: p !== false, story: p !== false, clock: p !== false }
+			prefs = { chat: p.chat !== false, story: p.story !== false, clock: p.clock !== false }
+			if (!prefs.clock) clock.stop()
+		},
+		get prefs() {
+			return { ...prefs }
+		},
 		play(name) {
+			if (!prefs[CATEGORY[name]]) return
 			const a = sounds[name]
 			if (!a) return
 			try {

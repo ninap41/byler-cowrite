@@ -55,7 +55,12 @@ export const publicUser = (u) => ({
   badgeDescs: Object.fromEntries(u.badges.map((id) => [badgeName(id), badgeDesc(id)])),
   nextBadge: nextTierFor(u),
   streak: u.streak || 0, bestStreak: u.bestStreak || 0, lastWroteDay: u.lastWroteDay ?? null,
+  // per-category sound prefs; a legacy boolean (or absence) fans out to all
+  sounds: typeof u.sounds === "object" && u.sounds !== null
+    ? { chat: u.sounds.chat !== false, story: u.sounds.story !== false, clock: u.sounds.clock !== false }
+    : { chat: u.sounds !== false, story: u.sounds !== false, clock: u.sounds !== false },
   about: u.about || "", links: u.links || [], avatar: u.avatar || "", avatarFit: u.avatarFit || "cover",
+  lastLine: u.lastLine || null, // newest committed story line (text/code/name/at)
 });
 
 // What OTHER signed-in players may see: everything public-facing, never the

@@ -501,6 +501,12 @@ a.rg-row {
 	line-height: 1;
 	display: block;
 }
+.quote-card .qmark-end {
+	display: inline;
+	font-size: 1.2rem;
+	vertical-align: -0.15em;
+	margin-left: 2px;
+}
 .dash-rail .divider {
 	margin: 16px 0 12px;
 }

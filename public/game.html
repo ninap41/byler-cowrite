@@ -33,6 +33,7 @@
 						<span class="sess-name" data-sess-name></span>
 						<span class="sess-host" data-sess-host></span>
 						<input class="sess-input hidden" data-sess-input maxlength="40" placeholder="Name this story..." />
+						<button class="ghost hidden" data-sess-save title="Save title (Enter)" type="button">&#8629; Save</button>
 						<button class="ghost hidden" data-sess-edit title="Rename story" type="button">&#9998;</button>
 						<button class="ghost" data-sess-code title="Copy game code" type="button">
 							&middot;&middot;&middot;&middot; &#x2398;
@@ -42,27 +43,11 @@
 					<div class="codechip" id="codeDisplay">----</div>
 					<ul class="roster" id="rosterList"></ul>
 					<div id="hostControls" class="hidden">
-						<div class="grid2" style="margin-top: 8px">
-							<div>
-								<label for="turnSecs">Seconds per turn</label
-								><input id="turnSecs" type="number" min="10" max="600" value="60" />
-							</div>
-							<div>
-								<label for="rounds">Rounds</label><input id="rounds" type="number" min="0" max="50" value="3" />
-								<label class="checkline"><input type="checkbox" id="endlessRounds" /> ♾ Infinite rounds</label>
-							</div>
-						</div>
-						<div class="grid2">
-							<div>
-								<label for="storyMode">Story mode</label>
-								<select id="storyMode">
-									<option value="1" selected>💛 Friendly</option>
-									<option value="0">🌶 Non-friendly</option>
-								</select>
-							</div>
-							<div>
-								<label class="checkline"><input type="checkbox" id="noTimer" /> ⏱ No timer — turns wait for the writer</label>
-							</div>
+						<div id="lobbyRules" style="margin-top: 8px"></div>
+						<label for="coverInput" style="margin-top: 10px">Header image link (optional)</label>
+						<div class="chat-row">
+							<input id="coverInput" placeholder="https://… (cover for dashboards & the archive)" maxlength="500" />
+							<button class="ghost" id="coverBtn" style="flex: 0 0 auto; min-width: auto">Set</button>
 						</div>
 						<div class="row"><button class="primary" id="startBtn">Begin →</button></div>
 					</div>
@@ -75,6 +60,7 @@
 						<span class="sess-name" data-sess-name></span>
 						<span class="sess-host" data-sess-host></span>
 						<input class="sess-input hidden" data-sess-input maxlength="40" placeholder="Name this story..." />
+						<button class="ghost hidden" data-sess-save title="Save title (Enter)" type="button">&#8629; Save</button>
 						<button class="ghost hidden" data-sess-edit title="Rename story" type="button">&#9998;</button>
 						<button class="ghost" data-sess-code title="Copy game code" type="button">
 							&middot;&middot;&middot;&middot; &#x2398;
@@ -100,6 +86,7 @@
 						<span class="sess-name" data-sess-name></span>
 						<span class="sess-host" data-sess-host></span>
 						<input class="sess-input hidden" data-sess-input maxlength="40" placeholder="Name this story..." />
+						<button class="ghost hidden" data-sess-save title="Save title (Enter)" type="button">&#8629; Save</button>
 						<button class="ghost hidden" data-sess-edit title="Rename story" type="button">&#9998;</button>
 						<button class="ghost" data-sess-code title="Copy game code" type="button">
 							&middot;&middot;&middot;&middot; &#x2398;
@@ -152,26 +139,13 @@
 							<div class="side-sec hidden" id="hostPanel">
 								<h4>Host controls</h4>
 								<div id="hostRules">
-									<div>
-										<label for="liveMode">Story mode</label>
-										<select id="liveMode">
-											<option value="1">💛 Friendly</option>
-											<option value="0">🌶 Non-friendly</option>
-										</select>
-									</div>
-									<div>
-										<label for="liveSecs">Seconds per turn</label
-										><input id="liveSecs" type="number" min="10" max="600" />
-										<label class="checkline"><input type="checkbox" id="liveNoTimer" /> ⏱ No timer</label>
-									</div>
-									<div>
-										<label for="addRoundsInput" id="addRoundsLabel">Add rounds</label>
-										<label class="checkline"><input type="checkbox" id="liveEndless" /> ♾ Infinite rounds</label>
-										<div class="chat-row">
-											<input id="addRoundsInput" type="number" min="1" max="20" placeholder="0" />
-											<button class="ghost" id="applyRulesBtn">Apply</button>
-										</div>
-									</div>
+									<div id="liveRules"></div>
+									<div class="row"><button class="ghost" id="applyRulesBtn">Apply</button></div>
+								</div>
+								<label for="coverInput2" style="margin-top: 10px">Header image link</label>
+								<div class="chat-row">
+									<input id="coverInput2" placeholder="https://…" maxlength="500" />
+									<button class="ghost" id="coverBtn2" style="flex: 0 0 auto; min-width: auto">Set</button>
 								</div>
 								<div id="hostGame" class="row">
 									<button class="ghost" id="pauseBtn">⏸ Pause</button>
@@ -188,6 +162,7 @@
 						<span class="sess-name" data-sess-name></span>
 						<span class="sess-host" data-sess-host></span>
 						<input class="sess-input hidden" data-sess-input maxlength="40" placeholder="Name this story..." />
+						<button class="ghost hidden" data-sess-save title="Save title (Enter)" type="button">&#8629; Save</button>
 						<button class="ghost hidden" data-sess-edit title="Rename story" type="button">&#9998;</button>
 						<button class="ghost" data-sess-code title="Copy game code" type="button">
 							&middot;&middot;&middot;&middot; &#x2398;
@@ -197,33 +172,12 @@
 					<div class="prompt-banner" id="overPrompt"></div>
 					<div class="story" id="overStory" style="max-height: 48vh"></div>
 					<div id="continueControls" class="hidden">
-						<div class="grid2">
-							<div>
-								<label for="contSecs">Seconds per turn</label
-								><input id="contSecs" type="number" min="10" max="600" value="60" />
-							</div>
-							<div>
-								<label for="contRounds">Rounds</label
-								><input id="contRounds" type="number" min="0" max="50" value="3" />
-								<label class="checkline"><input type="checkbox" id="contEndless" /> ♾ Infinite rounds</label>
-							</div>
-						</div>
-						<div class="grid2">
-							<div>
-								<label for="contMode">Story mode</label>
-								<select id="contMode">
-									<option value="1" selected>💛 Friendly</option>
-									<option value="0">🌶 Non-friendly</option>
-								</select>
-							</div>
-							<div>
-								<label class="checkline"><input type="checkbox" id="contNoTimer" /> ⏱ No timer</label>
-							</div>
-						</div>
+						<div id="contRules"></div>
 						<div class="row"><button class="primary" id="continueBtn">Continue the story →</button></div>
 						<div class="divider">OR EXPORT IT</div>
 					</div>
 					<div class="row">
+						<button class="ghost" id="dashBtn">← Back to dashboard</button>
 						<button class="ghost" id="copyBtn">Copy (formatted)</button>
 						<button class="ghost" id="downloadBtn">Download .html</button>
 						<button class="primary" id="againBtn">New game</button>
@@ -231,6 +185,12 @@
 				</div>
 			</div>
 			<!-- /main -->
+		</div>
+
+		<!-- YOUR-TURN ALERT (persistent until dismissed or the turn ends) -->
+		<div id="turnToast" class="turn-toast hidden" role="alert">
+			<span>✒ It's your turn — write the next line!</span>
+			<button type="button" id="turnToastClose" class="turn-toast-close" title="Dismiss">✕</button>
 		</div>
 
 		<!-- CHAT (docked panel, bottom right) -->
@@ -266,6 +226,7 @@
 			import { chatMessageHtml } from "/js/components/chat-view.js"
 			import { getSpectatorName } from "/js/spectator-names.js"
 			import { countdownView } from "/js/components/countdown.js"
+			import { mountRulesForm } from "/js/components/rules-form.js"
 			import { buildExports, exportDocument } from "/js/export.js"
 			mountChrome({ page: "game" })
 			// Spectators need no account: ?spectate=CODE watches a story read-only.
@@ -281,8 +242,12 @@
 			const $ = (id) => document.getElementById(id)
 			const show = (id) => $(id).classList.remove("hidden")
 			const hide = (id) => $(id).classList.add("hidden")
-			const onlyShow = (id) =>
-				["waiting", "choosing", "game", "over"].forEach((x) => (x === id ? show(x) : hide(x)))
+			// Tab title follows the phase: Lobby while gathering/voting, Cowrite in play.
+			const PAGE_TITLES = { waiting: "Lobby", choosing: "Lobby", game: "Cowrite", over: "Cowrite" }
+			const onlyShow = (id) => {
+				;["waiting", "choosing", "game", "over"].forEach((x) => (x === id ? show(x) : hide(x)))
+				document.title = "Byler Cowrite — " + (PAGE_TITLES[id] || "Game")
+			}
 
 			// ---- Docked chat panel (collapse/expand + unread badge) ----
 			let chatUnread = 0
@@ -296,8 +261,39 @@
 				}
 			}
 
-			// ---- Sounds (js/sounds.js) ----
-			const { play: playSound, clock: vecnaClock } = createSounds()
+			// ---- Persistent "your turn" alert: an in-page toast that stays until
+			// dismissed (or the turn ends), plus a sticky browser notification
+			// (requireInteraction) when the tab is hidden. ----
+			let turnNotif = null
+			$("turnToastClose").onclick = () => hide("turnToast")
+			function turnAlert(on) {
+				if (!on) {
+					hide("turnToast")
+					if (turnNotif) {
+						turnNotif.close()
+						turnNotif = null
+					}
+					return
+				}
+				show("turnToast")
+				if ("Notification" in window && Notification.permission === "granted" && document.visibilityState === "hidden") {
+					try {
+						turnNotif = new Notification("Byler Cowrite", {
+							body: "It's your turn — write the next line!",
+							requireInteraction: true,
+						})
+						turnNotif.onclick = () => {
+							window.focus()
+							turnNotif?.close()
+						}
+					} catch (e) {}
+				}
+			}
+
+			// ---- Sounds (js/sounds.js) — honors the account's saved preferences ----
+			const soundKit = createSounds()
+			soundKit.setPrefs(me?.sounds) // spectators (no account) default all-on
+			const { play: playSound, clock: vecnaClock } = soundKit
 			const lineChime = createLineChime(playSound)
 
 			// ---- Signed-in identity chip (badge may change mid-game) ----
@@ -366,13 +362,16 @@
 					const inp = bar.querySelector("[data-sess-input]")
 					inp.value = sessName
 					inp.classList.remove("hidden")
+					bar.querySelector("[data-sess-save]").classList.remove("hidden")
 					inp.focus()
 				}
 			})
 			document.querySelectorAll("[data-sess-input]").forEach((inp) => {
+				const bar = inp.closest(".session-bar")
 				const close = () => {
 					inp.classList.add("hidden")
-					inp.closest(".session-bar").querySelector("[data-sess-name]").classList.remove("hidden")
+					bar.querySelector("[data-sess-save]").classList.add("hidden")
+					bar.querySelector("[data-sess-name]").classList.remove("hidden")
 					updateSessionBar()
 				}
 				const save = () => {
@@ -392,8 +391,45 @@
 					} else if (e.key === "Escape") close()
 				})
 				inp.addEventListener("blur", save)
+				// mousedown (not click) so it beats the input's blur-save
+				bar.querySelector("[data-sess-save]").addEventListener("mousedown", (e) => {
+					e.preventDefault()
+					save()
+				})
 			})
 			$("codeDisplay").onclick = () => copyCode($("codeDisplay"), () => myCode)
+
+			// ---- Cover image (host-only): a linked header image URL that becomes
+			// the story's thumbnail on the dashboard and archive ----
+			function wireCover(inputId, btnId) {
+				const inp = $(inputId),
+					btn = $(btnId)
+				// an edited-but-unsaved value must survive roster/game-state
+				// broadcasts — syncCover skips dirty (and focused) inputs
+				inp.addEventListener("input", () => (inp.dataset.dirty = "1"))
+				const send = () =>
+					socket.emit("set-cover", { url: inp.value.trim() }, (res) => {
+						btn.textContent = res?.ok ? "Set ✓" : res?.error || "Host only"
+						setTimeout(() => (btn.textContent = "Set"), 2000)
+						if (res?.ok) for (const id of ["coverInput", "coverInput2"]) delete $(id).dataset.dirty
+					})
+				btn.onclick = send
+				inp.addEventListener("keydown", (e) => {
+					if (e.key === "Enter") {
+						e.preventDefault()
+						send()
+					}
+				})
+			}
+			wireCover("coverInput", "coverBtn")
+			wireCover("coverInput2", "coverBtn2")
+			function syncCover(cover) {
+				if (cover == null) return
+				for (const id of ["coverInput", "coverInput2"]) {
+					const inp = $(id)
+					if (document.activeElement !== inp && !inp.dataset.dirty) inp.value = cover
+				}
+			}
 
 			// ---- Page entry: ?code= joins, ?new=1 creates, else the rejoin blob ----
 			const gameMsg = (text) => {
@@ -468,6 +504,8 @@
 				// with game-state / game-over, which shows the right card itself.
 				if (!res.phase || res.phase === "waiting") onlyShow("waiting")
 				show("chatCard")
+				if ("Notification" in window && Notification.permission === "default")
+					Notification.requestPermission().catch(() => {})
 				updateHostView()
 				updateSessionBar()
 			}
@@ -481,50 +519,35 @@
 				cc.classList.toggle("continue-locked", !host)
 				cc.title = host ? "" : "Only the host has the ability to continue the story."
 				cc.querySelectorAll("input, select, button").forEach((el) => (el.disabled = !host))
-				if (!host) {
-					// re-hide the seconds input state correctly if it was toggled
-					$("contSecs").disabled = true
-				}
+				// the bulk enable above wipes the checkbox-driven disabled states
+				if (host) contRules.sync()
 			}
+
+			// ---- Rules forms (shared component: lobby, host panel, continue) ----
+			const lobbyRules = mountRulesForm($("lobbyRules"), {
+				ids: { mode: "storyMode", endless: "endlessRounds", rounds: "rounds", noTimer: "noTimer", secs: "turnSecs" },
+			})
+			const liveRules = mountRulesForm($("liveRules"), {
+				ids: { mode: "liveMode", endless: "liveEndless", rounds: "addRoundsInput", noTimer: "liveNoTimer", secs: "liveSecs" },
+				roundsLabel: "Add rounds",
+				roundsMax: 20,
+				roundsPlaceholder: "0",
+			})
+			const contRules = mountRulesForm($("contRules"), {
+				ids: { mode: "contMode", endless: "contEndless", rounds: "contRounds", noTimer: "contNoTimer", secs: "contSecs" },
+			})
 
 			// ---- Waiting room ----
-			// No timer checked -> the seconds input (and its label) hides entirely
-			const wireNoTimer = (checkId, inputId) => {
-				const wrap = $(inputId).previousElementSibling // the <label>
-				$(checkId).onchange = () => {
-					const off = $(checkId).checked
-					$(inputId).disabled = off
-					$(inputId).classList.toggle("hidden", off)
-					if (wrap?.tagName === "LABEL") wrap.classList.toggle("hidden", off)
-				}
-			}
-			wireNoTimer("noTimer", "turnSecs")
-			wireNoTimer("contNoTimer", "contSecs")
-			wireNoTimer("liveNoTimer", "liveSecs")
-			wireNoTimer("endlessRounds", "rounds")
-			wireNoTimer("contEndless", "contRounds")
-			$("liveEndless").onchange = () => {
-				const off = $("liveEndless").checked
-				$("addRoundsInput").classList.toggle("hidden", off)
-				$("addRoundsLabel").classList.toggle("hidden", off)
-			}
 			$("startBtn").onclick = () =>
-				socket.emit(
-					"start-game",
-					{
-						turnSeconds: $("noTimer").checked ? 0 : $("turnSecs").value,
-						rounds: $("endlessRounds").checked ? 0 : $("rounds").value,
-						friendly: $("storyMode").value === "1",
-					},
-					(res) => {
-						if (!res?.ok) alert(res?.error || "Could not start.")
-					},
-				)
+				socket.emit("start-game", lobbyRules.values(), (res) => {
+					if (!res?.ok) alert(res?.error || "Could not start.")
+				})
 
-			socket.on("roster", ({ writers, code, name }) => {
+			socket.on("roster", ({ writers, code, name, cover }) => {
 				updateLiveStatus(writers)
 				if (code) myCode = code
 				if (name != null) sessName = name
+				syncCover(cover)
 				const list = $("rosterList")
 				list.innerHTML = ""
 				for (const w of writers) {
@@ -556,6 +579,7 @@
 				if (st.code) myCode = st.code
 				if (st.name != null) sessName = st.name
 				if (st.friendly != null) sessFriendly = st.friendly
+				syncCover(st.cover)
 				updateSessionBar()
 				if (st.phase === "choosing") renderChoosing(st)
 				else if (st.phase === "writing") renderWriting(st)
@@ -637,9 +661,13 @@
 						: `Waiting for ${statusDot(st.currentName)}${esc(st.currentName || "…")}`
 				$("whoTurn").style.color = st.paused ? "var(--muted)" : myTurn ? "var(--good)" : "var(--ink)"
 				$("myTurn").classList.toggle("hidden", !myTurn)
+				// the alert persists across re-broadcasts; only a real turn change
+				// shows it, and it clears the moment the turn is no longer mine.
+				// Solo games skip it — every turn is yours, there's nothing to announce.
+				if (!myTurn) turnAlert(false)
+				else if (newTurn && !st.paused && (st.writers || []).length > 1) turnAlert(true)
 				$("hostPanel").classList.toggle("hidden", !host)
-				if (document.activeElement !== $("liveSecs")) $("liveSecs").value = st.turnSeconds || ""
-				if (document.activeElement !== $("liveMode")) $("liveMode").value = st.friendly === false ? "0" : "1"
+				liveRules.set(st)
 				$("pauseBtn").textContent = st.paused ? "▶ Resume" : "⏸ Pause"
 				$("progress").textContent =
 					(st.maxTurns ? `Turn ${st.turnCount + 1} of ${st.maxTurns}` : `Turn ${st.turnCount + 1} · endless`) +
@@ -827,16 +855,17 @@
 			$("endBtn").onclick = () => socket.emit("end-game")
 			$("applyRulesBtn").onclick = () => {
 				const btn = $("applyRulesBtn")
+				const v = liveRules.values()
 				socket.emit(
 					"update-rules",
 					{
-						turnSeconds: $("liveNoTimer").checked ? 0 : $("liveSecs").value,
-						addRounds: $("liveEndless").checked ? 0 : $("addRoundsInput").value || 0,
-						endless: $("liveEndless").checked || undefined,
-						friendly: $("liveMode").value === "1",
+						turnSeconds: v.turnSeconds,
+						addRounds: liveRules.infinite() ? 0 : v.rounds || 0,
+						endless: liveRules.infinite() || undefined,
+						friendly: v.friendly,
 					},
 					(res) => {
-						$("addRoundsInput").value = ""
+						liveRules.el.rounds.value = ""
 						btn.textContent = res?.ok ? "Applied ✓" : "Host only"
 						setTimeout(() => (btn.textContent = "Apply"), 1500)
 					},
@@ -847,6 +876,7 @@
 			socket.on("game-over", ({ prompt, story }) => {
 				clearInterval(tickInterval)
 				vecnaClock.stop()
+				turnAlert(false)
 				lineChime.note(story, myId)
 				onlyShow("over")
 				$("overPrompt").textContent = prompt
@@ -857,11 +887,7 @@
 				refreshChip() // word count / badge may have changed
 			})
 			$("continueBtn").onclick = () =>
-				socket.emit("continue-writing", {
-					turnSeconds: $("contNoTimer").checked ? 0 : $("contSecs").value,
-					rounds: $("contEndless").checked ? 0 : $("contRounds").value,
-					friendly: $("contMode").value === "1",
-				}, (res) => {
+				socket.emit("continue-writing", contRules.values(), (res) => {
 					if (!res?.ok) alert("Could not continue — only the host can, and someone must be here.")
 				})
 			// Exports (js/export.js): prose only, formatting preserved, NO usernames.
@@ -900,7 +926,7 @@
 				a.click()
 				URL.revokeObjectURL(a.href)
 			}
-			$("againBtn").onclick = () => {
+			$("againBtn").onclick = $("dashBtn").onclick = () => {
 				clearRejoin() // otherwise /game auto-rejoins straight back here
 				location.href = "/dashboard"
 			}
@@ -910,6 +936,7 @@
 				clearRejoin()
 				clearInterval(tickInterval)
 				vecnaClock.stop()
+				turnAlert(false)
 				onlyShow("none") // hide every phase card
 				hide("chatCard")
 				gameMsg("The host deleted this story.")
@@ -975,6 +1002,8 @@
 				gameMsg("The host declined to let you in.")
 			})
 			socket.on("join-request", ({ id, name, returning }) => {
+				// the server replays open requests on host churn — never stack dupes
+				if (document.querySelector(`[data-req-id="${id}"]`)) return
 				const row = document.createElement("div")
 				row.className = "join-req"
 				row.dataset.reqId = id

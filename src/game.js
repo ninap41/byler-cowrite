@@ -7,7 +7,7 @@ import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import { bumpStreak } from "../lib/streak.js";
 import { badgeName, badgeDesc, usageMatches, awardWordBadges } from "../lib/achievements.js";
-import { PALETTE, cleanColor, sanitizeRich, stripTags } from "./sanitize.js";
+import { PALETTE, cleanColor, sanitizeRich, stripTags, httpUrl } from "./sanitize.js";
 import { store, saveStore, userByToken } from "./store.js";
 import { mirror, mirrorDelete } from "./persist.js";
 
@@ -30,7 +30,7 @@ const GHOST_MS = 90_000;
 const DENY_COOLDOWN_MS = 5 * 60_000;
 // At most this many stories can be running at once (small server on purpose;
 // COWRITE_MAX_ACTIVE overrides — the test harness raises it).
-const MAX_ACTIVE_SESSIONS = Number(process.env.COWRITE_MAX_ACTIVE || 5);
+const MAX_ACTIVE_SESSIONS = Number(process.env.COWRITE_MAX_ACTIVE || 12);
 
 export function createGame(io) {
   const sessions = new Map(); // code -> session (in-memory; fine for a party game)
@@ -44,7 +44,7 @@ export function createGame(io) {
   function saveSnapshot(s) {
     try {
       const doc = JSON.stringify({
-        code: s.code, name: s.name || "", phase: s.phase, prompt: s.prompt, story: s.story, chat: s.chat,
+        code: s.code, name: s.name || "", cover: s.cover || "", phase: s.phase, prompt: s.prompt, story: s.story, chat: s.chat,
         friendly: s.friendly !== false,
         turnSeconds: s.turnSeconds, maxTurns: s.maxTurns, turnCount: s.turnCount,
         remaining: s.remaining, currentIdx: s.currentIdx,
@@ -92,7 +92,7 @@ export function createGame(io) {
     const phase =
       d.phase === "over" ? "over" : d.phase === "waiting" || d.phase === "choosing" ? "waiting" : "writing";
     const s = {
-      code, hostId: null, hostToken: d.hostToken ?? null, phase,
+      code, hostId: null, hostToken: d.hostToken ?? null, phase, cover: d.cover || "",
       writers,
       turnOrder:
         phase === "writing" ? d.turnOrderTokens.map((t) => "ghost:" + t).filter((id) => writers.has(id)) : [],
@@ -169,6 +169,8 @@ export function createGame(io) {
     const text = stripTags(cleanHtml);
     const words = text.split(/\s+/).filter(Boolean).length;
     u.wordCount += words;
+    // remember their newest line — creditLine saves the store anyway, so free
+    if (text.trim()) u.lastLine = { text: text.trim().slice(0, 220), code: s.code, name: s.name || "", at: Date.now() };
     bumpStreak(u);
     if (!u.games.includes(s.code)) u.games.push(s.code);
     const before = u.currentBadge;
@@ -215,7 +217,10 @@ export function createGame(io) {
       const entries = [...s.writers.entries()];
       const next =
         entries.find(([, ww]) => ww.connected && ww.userId) ?? entries.find(([, ww]) => ww.connected);
-      if (next) s.hostId = next[0];
+      if (next) {
+        s.hostId = next[0];
+        pushPendingRequests(s); // the stand-in host inherits the open requests
+      }
     }
     clearTimeout(w.ghostTimer);
     w.ghostTimer = setTimeout(() => {
@@ -262,7 +267,7 @@ export function createGame(io) {
     }));
   }
   const broadcastRoster = (s) =>
-    io.to(s.code).emit("roster", { writers: roster(s), code: s.code, name: s.name || "" });
+    io.to(s.code).emit("roster", { writers: roster(s), code: s.code, name: s.name || "", cover: s.cover || "" });
 
   function tally(s) {
     const counts = s.options.map(() => 0);
@@ -286,6 +291,7 @@ export function createGame(io) {
     io.to(s.code).emit("game-state", {
       code: s.code,
       name: s.name || "",
+      cover: s.cover || "",
       phase: s.phase,
       options: s.phase === "choosing" ? s.options : [],
       tally: s.phase === "choosing" ? tally(s) : [],
@@ -440,6 +446,7 @@ export function createGame(io) {
       // The acting-host role moves so the game stays controllable, but the
       // ORIGINAL host keeps true-host rights forever (s.hostToken/hostUserId
       // never change) — nobody can hijack a story from its first host.
+      pushPendingRequests(s);
     }
 
     if (s.phase === "writing") {
@@ -493,6 +500,17 @@ export function createGame(io) {
       broadcastRoster(s); // everyone learns the (possibly restored) hostId
       sock.emit("game-over", { prompt: s.prompt, story: s.story });
     } else broadcastGame(s);
+    if (s.hostId === sock.id) pushPendingRequests(s);
+  }
+
+  // Open join requests must survive host churn: whenever the host role lands
+  // on a socket (refresh, reclaim, handoff), replay every pending request so
+  // the notification stays up until the host accepts or denies it.
+  function pushPendingRequests(s) {
+    const hostSock = io.sockets.sockets.get(s.hostId);
+    if (!hostSock) return;
+    for (const [id, req] of s.pending)
+      hostSock.emit("join-request", { id, name: req.name, returning: !!req.seatOldId });
   }
 
   // In a gated (continued) game with a host present, a returning seat that
@@ -526,7 +544,7 @@ export function createGame(io) {
       const code = makeCode();
       const host = newWriter(acct);
       const s = {
-        code, name: "", hostId: socket.id, hostToken: host.token,
+        code, name: "", cover: "", hostId: socket.id, hostToken: host.token,
         hostUserId: acct.id, hostName: acct.username, // the ORIGINAL host, forever
         friendly: true, // story mode: friendly (default) vs non-friendly
         phase: "waiting",
@@ -567,7 +585,7 @@ export function createGame(io) {
           return ack?.({ ok: false, error: "This game has already started and its host isn't here to let you in." });
         const coolMsg = checkDenied(s, acct.id);
         if (coolMsg) return ack?.({ ok: false, error: coolMsg });
-        s.pending.set(socket.id, { auth, key: acct.id });
+        s.pending.set(socket.id, { auth, name: acct.username, key: acct.id });
         socket.data.pendingCode = code;
         hostSock.emit("join-request", { id: socket.id, name: acct.username });
         return ack?.({ ok: true, pending: true });
@@ -763,6 +781,21 @@ export function createGame(io) {
       if (s.phase !== "waiting") broadcastGame(s);
       saveSnapshot(s);
       ack?.({ ok: true, name: s.name });
+    });
+
+    // Host can link a header image (a URL, never an upload); it becomes the
+    // story's cover thumbnail on the dashboard and archive. http/https only —
+    // the same trust rule as profile links, since it lands in a style attr.
+    socket.on("set-cover", ({ url }, ack) => {
+      const s = mySession();
+      if (!s || s.hostId !== socket.id) return ack?.({ ok: false, error: "Host only." });
+      const v = String(url || "").trim().slice(0, 500);
+      if (v && !httpUrl(v)) return ack?.({ ok: false, error: "That link must start with http:// or https://" });
+      s.cover = v;
+      if (s.phase === "waiting" || s.phase === "over") broadcastRoster(s);
+      if (s.phase !== "waiting") broadcastGame(s);
+      saveSnapshot(s);
+      ack?.({ ok: true, cover: s.cover });
     });
 
     socket.on("pause-game", (_, ack) => {
@@ -969,7 +1002,7 @@ export function createGame(io) {
   const freshName = (userId, fallback) => store.users.find((x) => x.id === userId)?.username ?? fallback;
   const freshStory = (story) => (story || []).map((l) => (l.userId ? { ...l, name: freshName(l.userId, l.name) } : l));
   const gameSummary = (d) => ({
-    code: d.code, name: d.name || "", phase: d.phase, prompt: d.prompt || "",
+    code: d.code, name: d.name || "", cover: d.cover || "", phase: d.phase, prompt: d.prompt || "",
     savedAt: d.savedAt || 0, lines: (d.story || []).length,
     hostName: store.users.find((u) => u.id === d.hostUserId)?.username ?? d.hostName ?? null,
     writers: (d.writers || []).map((w) => ({
@@ -1004,7 +1037,7 @@ export function createGame(io) {
       if (!mine) continue;
       const cur = s.phase === "writing" ? s.writers.get(s.turnOrder[s.currentIdx]) : null;
       out.set(s.code, {
-        code: s.code, name: s.name || "", phase: s.phase, paused: !!s.paused,
+        code: s.code, name: s.name || "", cover: s.cover || "", phase: s.phase, paused: !!s.paused,
         myTurn: s.phase === "writing" && !s.paused && cur?.userId === u.id,
         currentName: cur?.name ?? null,
         players: [...s.writers.values()].map((w) => ({
@@ -1021,7 +1054,7 @@ export function createGame(io) {
         const d = JSON.parse(readFileSync(join(SAVE_DIR, f), "utf-8"));
         if (d.phase === "over" || !(d.writers || []).some((w) => w.userId === u.id)) continue;
         out.set(code, {
-          code, name: d.name || "", phase: d.phase, paused: true, myTurn: false, currentName: null,
+          code, name: d.name || "", cover: d.cover || "", phase: d.phase, paused: true, myTurn: false, currentName: null,
           players: (d.writers || []).map((w) => ({ name: w.name, color: cleanColor(w.color), connected: false })),
           lines: (d.story || []).length, savedAt: d.savedAt || 0, live: false,
         });

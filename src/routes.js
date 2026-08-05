@@ -166,6 +166,17 @@ export function registerRoutes(app, game) {
   });
 
   // Pick a name color — saved to the account.
+  // Sound preference: persists on the account so it follows the user
+  // across sessions and devices.
+  app.post("/api/account/sounds", (req, res) => {
+    const u = authedUser(req);
+    if (!u) return res.status(401).json({ error: "Not signed in." });
+    const b = req.body || {};
+    u.sounds = { chat: !!b.chat, story: !!b.story, clock: !!b.clock };
+    saveStore();
+    res.json({ user: publicUser(u) });
+  });
+
   app.post("/api/account/color", (req, res) => {
     const u = authedUser(req);
     if (!u) return res.status(401).json({ error: "Not signed in." });
@@ -261,24 +272,35 @@ export function registerRoutes(app, game) {
     if (!authedUser(req)) return res.status(401).json({ error: "Sign in first." });
     const u = findByUsername(req.params.username);
     if (!u) return res.status(404).json({ error: "No writer by that name." });
-    // Stories this user is the ORIGINAL host of (public shape only), with a
-    // live "in progress" flag when the session is currently running.
+    // Stories this user is the ORIGINAL host of, and stories they hold a seat
+    // in without hosting (public shape only), with a live "in progress" flag
+    // when the session is currently running.
     const hosted = [];
+    const contributed = [];
+    let lastLine = null; // the newest story line this user committed, as plain text
     for (const f of readdirSync(SAVE_DIR)) {
       if (!f.endsWith(".json")) continue;
       try {
         const d = JSON.parse(readFileSync(join(SAVE_DIR, f), "utf-8"));
-        if (d.hostUserId !== u.id) continue;
+        const isHost = d.hostUserId === u.id;
+        if (!isHost && !(d.writers || []).some((w) => w.userId === u.id)) continue;
         const live = sessions.get(d.code);
-        hosted.push({
+        (isHost ? hosted : contributed).push({
           code: d.code, name: d.name || "", prompt: d.prompt || "", phase: d.phase,
           lines: (d.story || []).length, savedAt: d.savedAt || 0,
           inProgress: !!live && live.phase !== "over",
         });
+        if ((d.savedAt || 0) >= (lastLine?.savedAt ?? -1))
+          for (const l of d.story || []) {
+            if (l.userId !== u.id) continue;
+            const text = stripTags(String(l.html || "")).trim().slice(0, 220);
+            if (text) lastLine = { text, code: d.code, name: d.name || "", savedAt: d.savedAt || 0 };
+          }
       } catch { /* skip unreadable snapshot */ }
     }
     hosted.sort((a, b) => b.savedAt - a.savedAt);
-    res.json({ user: profileOf(u, new Set(onlineSockets.values())), hosted });
+    contributed.sort((a, b) => b.savedAt - a.savedAt);
+    res.json({ user: profileOf(u, new Set(onlineSockets.values())), hosted, contributed, lastLine: u.lastLine || lastLine });
   });
 
   app.get("/api/me", (req, res) => {

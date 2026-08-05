@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  onlineUsersHtml, liveGameInfoHtml, statsText, badgeProgress, coverArt,
+  onlineUsersHtml, liveGameInfoHtml, statsText, badgeProgress, coverArt, coverStyle,
   myGameStatus, myGameCardHtml, recentRowHtml, achievementsHtml, streakRingHtml, writerRowHtml,
 } from "../public/js/dashboard-view.js";
 import { gameCardHtml, archiveMetaText, archiveStoryHtml } from "../public/js/archive-view.js";
@@ -137,4 +137,16 @@ test("archiveMetaText + archiveStoryHtml: sanitized html as-is, names escaped, e
   assert.ok(out.includes("&lt;will&gt;"));
   assert.ok(out.includes("(host)"));
   assert.match(archiveStoryHtml([]), /Nothing written yet/);
+});
+
+test("coverStyle: linked image layers over the code gradient; falls back to gradient", () => {
+  assert.equal(coverStyle({ code: "AB12" }), coverArt("AB12"), "no cover -> gradient only");
+  const withCover = coverStyle({ code: "AB12", cover: "https://x.example/y.png" });
+  assert.match(withCover, /^background:url\('https:\/\/x\.example\/y\.png'\) center\/cover no-repeat, linear-gradient\(/);
+  const escaped = coverStyle({ code: "AB12", cover: `https://x/y.png'"` });
+  assert.ok(!escaped.includes(`png'"`), "quotes in the url are escaped for the style attr");
+  // the image cover also drives the card + row builders
+  assert.ok(myGameCardHtml({ code: "AB12", cover: "https://x.example/y.png", players: [], lines: 0 }).includes("url("), "mg card uses it");
+  assert.ok(!myGameCardHtml({ code: "AB12", cover: "https://x.example/y.png", players: [], lines: 0 }).includes("mg-glyph"), "glyph hidden under an image");
+  assert.ok(gameCardHtml({ code: "AB12", cover: "https://x.example/y.png", writers: [], lines: 0, phase: "over" }).includes("gc-cover"), "archive card thumb");
 });

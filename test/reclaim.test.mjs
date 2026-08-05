@@ -142,3 +142,31 @@ test("save + restart: rehydrated game gates returning writers, host continues fr
     child.kill("SIGKILL");
   }
 });
+
+test("pending join request survives host churn: handoff + host rejoin replay it", async () => {
+  const { A, B, code, hostSeatToken } = await startedGame(ctx);
+  const nancy = await signup(ctx, "nancywheeler", "nancy@wheeler.com", "#f59e0b");
+  const D = await ctx.conn();
+  const firstReq = new Promise((r) => A.on("join-request", r));
+  const r = await ctx.emit(D, "join-session", { code, auth: nancy.token });
+  assert.equal(r.pending, true);
+  await firstReq;
+  // host drops: the stand-in host inherits the open request
+  const handoffReq = new Promise((r) => B.on("join-request", r));
+  A.disconnect();
+  const inherited = await handoffReq;
+  assert.equal(inherited.name, "nancywheeler");
+  // the true host returns on a fresh socket: the request is replayed again
+  const A2 = await ctx.conn();
+  const replayReq = new Promise((r) => A2.on("join-request", r));
+  const back = await ctx.emit(A2, "rejoin-session", { code, token: hostSeatToken });
+  assert.equal(back.ok, true);
+  const replayed = await replayReq;
+  assert.equal(replayed.name, "nancywheeler");
+  // and the requester still gets the verdict — denial notifies them
+  const deniedP = new Promise((r) => D.on("join-denied", r));
+  await ctx.emit(A2, "approve-join", { id: replayed.id, allow: false });
+  await deniedP;
+  A2.disconnect();
+  D.disconnect();
+});

@@ -753,6 +753,14 @@ body {
 .nav-drawer a:hover {
 	border-color: var(--accent-2);
 }
+/* logout pinned to the drawer's bottom-right corner */
+.nav-drawer .nav-logout {
+	margin-top: auto;
+	align-self: flex-end;
+	width: auto;
+	min-width: 0;
+	padding: 10px 16px;
+}
 .nav-drawer a[aria-current="page"] {
 	border-color: var(--accent-2);
 	color: var(--accent-2);
@@ -983,6 +991,12 @@ body {
 	border-color: var(--accent-2);
 	transform: translateY(-2px);
 }
+.game-card .gc-cover {
+	display: block;
+	height: 68px;
+	border-radius: 10px;
+	margin-bottom: 10px;
+}
 .game-card .gc-prompt {
 	font-family: var(--font-story);
 	font-size: 1.02rem;
@@ -1128,6 +1142,115 @@ body {
 	}
 }
 
+/* Reveal page: breathing room between the finished story and the
+   continue-the-story rules panel */
+#continueControls {
+	margin-top: 20px;
+}
+
+/* ---- Typed last-line on profiles: blinking caret while GSAP types ---- */
+.type-caret {
+	color: var(--accent-2);
+	animation: caret-blink 0.9s step-end infinite;
+}
+.type-caret.done {
+	display: none;
+}
+@keyframes caret-blink {
+	50% {
+		opacity: 0;
+	}
+}
+
+/* ---- Tooltip (.tip-pop): one floating element for the whole page, shown
+       instantly on hover (js/tooltip.js). Every color rides the theme vars,
+       so it re-skins itself with the theme like the menus and toasts. ---- */
+.tip-pop {
+	position: fixed;
+	z-index: 99999;
+	max-width: 260px;
+	padding: 8px 12px;
+	background: var(--panel);
+	border: 1px solid var(--panel-brd);
+	border-radius: 10px;
+	color: var(--ink);
+	font: 500 0.8rem/1.45 var(--font-body);
+	box-shadow: var(--panel-glow);
+	backdrop-filter: blur(14px);
+	-webkit-backdrop-filter: blur(14px);
+	pointer-events: none;
+	opacity: 0;
+	transform: translateY(4px);
+	transition:
+		opacity 0.12s ease-out,
+		transform 0.12s ease-out;
+}
+.tip-pop.below {
+	transform: translateY(-4px);
+}
+.tip-pop.show {
+	opacity: 1;
+	transform: none;
+}
+
+/* ---- Your-turn toast: same popup language as the join-request cards
+       (panel glass, top-center below the topbar); stays until dismissed
+       or the turn ends ---- */
+.turn-toast {
+	position: fixed;
+	top: 70px;
+	left: 50%;
+	transform: translateX(-50%);
+	z-index: 66;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	width: min(420px, 92vw);
+	background: var(--panel);
+	border: 1px solid var(--panel-brd);
+	border-radius: 14px;
+	padding: 12px 14px;
+	box-shadow: var(--panel-glow), 0 0 40px var(--glow);
+	backdrop-filter: blur(14px);
+	-webkit-backdrop-filter: blur(14px);
+	animation: toast-in 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+.turn-toast.hidden {
+	display: none;
+}
+.turn-toast span {
+	flex: 1;
+	font-size: 0.92rem;
+	font-weight: 600;
+	color: var(--good);
+}
+.turn-toast button,
+.turn-toast a.turn-toast-go {
+	flex: 0 0 auto;
+	min-width: 0;
+	padding: 8px 12px;
+	font-size: 0.8rem;
+}
+.turn-toast a.turn-toast-go {
+	border: 1px solid var(--panel-brd);
+	border-radius: 10px;
+	color: var(--accent-2);
+	text-decoration: none;
+	font-weight: 600;
+	white-space: nowrap;
+}
+.turn-toast a.turn-toast-go:hover {
+	border-color: var(--accent-2);
+}
+.turn-toast-close {
+	background: none;
+	border: 0;
+	color: var(--ink);
+	font-size: 0.95rem;
+	cursor: pointer;
+	line-height: 1;
+}
+
 /* ---- Quill-mark logo (header + hero) — every color rides the theme vars ---- */
 .brand-logo {
 	height: 1.06em;
@@ -1233,7 +1356,8 @@ label {
 	letter-spacing: 1.2px;
 	font-family: var(--font-mono);
 }
-input {
+input,
+textarea {
 	width: 100%;
 	padding: 12px 14px;
 	background: var(--panel-2);
@@ -1244,7 +1368,8 @@ input {
 	font-size: 1rem;
 	transition: border-color 0.2s;
 }
-input:focus {
+input:focus,
+textarea:focus {
 	outline: none;
 	border-color: var(--accent-2);
 	box-shadow: 0 0 0 3px var(--chip);
@@ -1717,6 +1842,151 @@ ul.roster li {
 }
 .ladder-acc summary:hover {
 	color: var(--ink);
+}
+
+/* ============================================================
+   HOUSE RULES — the shared rules form (lobby, host panel, continue).
+   One inset panel whose left keyline + description emphasis wear the
+   selected story mode: friendly = --good, non-friendly = --accent.
+   Everything derives from the theme tokens so all three skins work.
+   ============================================================ */
+.rules-form {
+	--rules-mode: var(--good);
+	background: var(--panel-2);
+	border: 1px solid var(--line);
+	border-left: 3px solid var(--rules-mode);
+	border-radius: 12px;
+	padding: 14px 16px 16px;
+	transition: border-color 0.35s ease;
+}
+.rules-form[data-mode="hostile"] {
+	--rules-mode: var(--accent);
+}
+.rules-mode-row {
+	display: flex;
+	align-items: flex-start;
+	gap: 16px;
+}
+.rules-mode-pick {
+	flex: 0 0 auto;
+	min-width: 150px;
+}
+.rules-form label:not(.checkline) {
+	display: block;
+	font-family: var(--font-mono);
+	font-size: 0.68rem;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: var(--muted);
+	margin: 0 0 5px;
+}
+/* the native select never got themed; dress it like the inputs here */
+.rules-mode-pick {
+	position: relative;
+}
+.rules-form select {
+	appearance: none;
+	-webkit-appearance: none;
+	width: 100%;
+	padding: 10px 34px 10px 12px;
+	background: var(--panel-2);
+	border: 1px solid var(--line);
+	border-radius: 10px;
+	color: var(--ink);
+	font-family: inherit;
+	font-size: 0.95rem;
+	cursor: pointer;
+	transition: border-color 0.2s;
+}
+.rules-form select:hover {
+	border-color: var(--rules-mode);
+}
+.rules-form select:focus-visible {
+	outline: none;
+	border-color: var(--accent-2);
+	box-shadow: 0 0 0 3px var(--chip);
+}
+.rules-mode-pick::after {
+	content: "▾";
+	position: absolute;
+	right: 13px;
+	bottom: 11px;
+	color: var(--muted);
+	pointer-events: none;
+	font-size: 0.85rem;
+}
+.rules-mode-desc {
+	flex: 1;
+	margin: 0;
+	align-self: center;
+	font-size: 0.8rem;
+	line-height: 1.5;
+	color: var(--muted);
+}
+.rules-mode-desc b {
+	font-weight: 600;
+}
+/* the sentence for the selected mode carries the ink; the other recedes */
+.rmode-desc {
+	opacity: 0.45;
+	transition: opacity 0.35s ease, color 0.35s ease;
+}
+.rules-form[data-mode="friendly"] .rmode-desc[data-desc="friendly"],
+.rules-form[data-mode="hostile"] .rmode-desc[data-desc="hostile"] {
+	opacity: 1;
+	color: var(--ink);
+}
+.rules-form[data-mode="friendly"] .rmode-desc[data-desc="friendly"] b,
+.rules-form[data-mode="hostile"] .rmode-desc[data-desc="hostile"] b {
+	color: var(--rules-mode);
+}
+.rules-inline-row {
+	display: flex;
+	align-items: flex-end;
+	flex-wrap: wrap;
+	gap: 12px;
+	margin-top: 14px;
+	padding-top: 12px;
+	border-top: 1px solid var(--line);
+}
+.rules-inline-row .checkline {
+	margin: 0 0 9px;
+	white-space: nowrap;
+}
+.rules-num {
+	flex: 1;
+	min-width: 72px;
+}
+.rules-num input[type="number"] {
+	width: 100%;
+}
+/* a rule switched off (infinite / no timer) dims but stays visible */
+.rules-num input:disabled {
+	opacity: 0.4;
+	text-decoration: line-through;
+}
+/* narrow mounts (the host side panel): stack the mode row */
+#hostRules .rules-mode-row {
+	flex-direction: column;
+	gap: 8px;
+}
+#hostRules .rules-mode-desc {
+	align-self: auto;
+}
+@media (max-width: 560px) {
+	.rules-mode-row {
+		flex-direction: column;
+		gap: 8px;
+	}
+	.rules-mode-desc {
+		align-self: auto;
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	.rules-form,
+	.rmode-desc {
+		transition: none;
+	}
 }
 
 /* story mode chip (session bar) + the no-timer checkbox row */
@@ -2516,7 +2786,7 @@ h3 {
 	100% { transform: translate(0, 260px); }
 }
 
-/* ---- Upside Down: dust storm + layered landscape (vines & mountains) ---- */
+/* ---- Upside Down: dust storm + layered mountain landscape ---- */
 .bg-set.upside .dust {
 	position: absolute;
 	inset: 0 0 -320px;
@@ -2551,9 +2821,6 @@ h3 {
 	.bg-set.upside .veins {
 		animation: vein-throb 4s ease-in-out infinite alternate;
 	}
-	.bg-set.upside .vines {
-		animation: vine-sway 9s ease-in-out infinite alternate;
-	}
 }
 @keyframes dust-rise {
 	0% { transform: translate(0, 0); }
@@ -2563,20 +2830,6 @@ h3 {
 @keyframes vein-throb {
 	from { opacity: 0.35; }
 	to { opacity: 1; }
-}
-.bg-set.upside .vines {
-	position: absolute;
-	top: -6px;
-	left: 0;
-	right: 0;
-	height: 150px;
-	transform-origin: 50% 0;
-	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='150'%3E%3Cpath d='M14 0 C20 50 6 80 16 148' stroke='%23103129' stroke-width='6' fill='none'/%3E%3Cpath d='M62 0 C50 40 74 90 58 128' stroke='%230c241d' stroke-width='8' fill='none'/%3E%3Cpath d='M118 0 C130 55 106 70 122 108' stroke='%23103129' stroke-width='5' fill='none'/%3E%3Cpath d='M172 0 C160 35 186 95 168 148' stroke='%230c241d' stroke-width='7' fill='none'/%3E%3Cpath d='M200 0 C206 30 194 55 202 84' stroke='%23133a30' stroke-width='4' fill='none'/%3E%3C/svg%3E");
-	background-repeat: repeat-x;
-}
-@keyframes vine-sway {
-	from { transform: rotate(-1.2deg); }
-	to { transform: rotate(1.2deg); }
 }
 .bg-set.upside .mtn {
 	position: absolute;
@@ -2937,6 +3190,7 @@ button.danger,
 	z-index: 1;
 }
 .game-side {
+	margin-top: 18px;
 	display: flex;
 	flex-direction: column;
 	gap: 14px;
@@ -3177,45 +3431,27 @@ button.danger,
 	--font-mono: "Inconsolata", ui-monospace, monospace;
 }
 [data-theme="castlebyers"] .bg-set.castlebyers { opacity: 1; }
-/* the forest: two depths of pine silhouettes closing in from the bottom */
-.bg-set.castlebyers .forest {
+/* the forest: the layered pine-silhouette vector, oversized so it can drift
+   upward on scroll (parallax via the unitless --cb-scroll var from chrome.js) */
+.bg-set.castlebyers .trees {
 	position: absolute;
-	inset: auto 0 0;
-	height: 42vh;
-	background:
-		linear-gradient(to top, rgba(16, 26, 14, 0.85), transparent 85%),
-		conic-gradient(from 62deg at 4% 100%, rgba(26, 42, 22, 0.85) 0 56deg, transparent 56deg),
-		conic-gradient(from 58deg at 16% 100%, rgba(22, 36, 19, 0.8) 0 64deg, transparent 64deg),
-		conic-gradient(from 63deg at 30% 100%, rgba(26, 42, 22, 0.7) 0 54deg, transparent 54deg),
-		conic-gradient(from 58deg at 74% 100%, rgba(22, 36, 19, 0.75) 0 64deg, transparent 64deg),
-		conic-gradient(from 62deg at 88% 100%, rgba(26, 42, 22, 0.85) 0 56deg, transparent 56deg),
-		conic-gradient(from 60deg at 99% 100%, rgba(22, 36, 19, 0.8) 0 60deg, transparent 60deg);
+	inset: 0 0 -18%;
+	background: url("/img/castle-trees.svg") center bottom / cover no-repeat;
+	transform: translateY(clamp(-18vh, calc(var(--cb-scroll, 0) * -0.08px), 0px));
+	will-change: transform;
 }
-/* the wooden castle: plank walls, a crooked pitched roof, a doorway glow */
-.bg-set.castlebyers .fort {
+/* Castle Byers itself: the fort vector, front and center at the bottom,
+   moving a touch faster than the trees for depth */
+.bg-set.castlebyers .fortpic {
 	position: absolute;
-	bottom: 0;
-	left: 44%;
-	width: min(340px, 34vw);
-	height: 34vh;
-	clip-path: polygon(0% 100%, 0% 46%, 12% 44%, 50% 12%, 88% 42%, 100% 45%, 100% 100%);
-	background:
-		linear-gradient(to top, rgba(0, 0, 0, 0.25), transparent 60%),
-		radial-gradient(34px 60px ellipse at 50% 96%, rgba(255, 214, 140, 0.35), rgba(255, 214, 140, 0.08) 70%, transparent),
-		repeating-linear-gradient(90deg, rgba(64, 46, 26, 0.9) 0 26px, rgba(80, 58, 33, 0.9) 26px 30px, rgba(52, 38, 22, 0.9) 30px 54px),
-		linear-gradient(rgba(64, 46, 26, 0.9), rgba(52, 38, 22, 0.9));
-}
-/* CASTLE BYERS sign: a small crooked plank by the door */
-.bg-set.castlebyers .fort::after {
-	content: "";
-	position: absolute;
-	left: 22%;
-	bottom: 26%;
-	width: 26%;
-	height: 7%;
-	transform: rotate(-6deg);
-	background: rgba(92, 68, 40, 0.95);
-	box-shadow: inset 0 0 0 1px rgba(255, 214, 140, 0.2);
+	left: 50%;
+	bottom: -4%;
+	width: min(620px, 74vw);
+	aspect-ratio: 1920 / 1072;
+	background: url("/img/castle-byers.svg") center bottom / contain no-repeat;
+	transform: translateX(-50%) translateY(calc(var(--cb-scroll, 0) * -0.18px));
+	will-change: transform;
+	filter: drop-shadow(0 12px 24px rgba(0, 42, 38, 0.45));
 }
 .bg-set.castlebyers .beam {
 	position: absolute;
@@ -3932,3 +4168,38 @@ button.danger,
 .sw-camp { background: linear-gradient(120deg, #4f7a3f, #c08a2d); }
 .sw-bunker { background: linear-gradient(120deg, #d33f3f, #ffb000); }
 .sw-pollywog { background: linear-gradient(120deg, #3fae8c, #a3c94f); }
+
+/* ==========================================================================
+   Theme peek: the sticky 👁 button (sitting just above the ko-fi "Support me"
+   bubble, bottom-left) toggles body.ui-peek, which hides every UI layer so
+   the theme background shows through. The game chat dock stays visible.
+   ========================================================================== */
+.peek-btn {
+	position: fixed;
+	left: 14px;
+	bottom: 84px;
+	z-index: 9999;
+	padding: 8px 14px;
+	border: 1px solid var(--panel-brd);
+	border-radius: 999px;
+	background: var(--panel);
+	color: var(--ink);
+	font: 600 13px/1 var(--font-body);
+	cursor: pointer;
+	backdrop-filter: blur(6px);
+	box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+}
+.peek-btn:hover { border-color: var(--accent); }
+body.ui-peek .wrap,
+body.ui-peek .topbar,
+body.ui-peek .hamburger,
+body.ui-peek .nav-drawer,
+body.ui-peek .nav-scrim,
+body.ui-peek .toasts,
+body.ui-peek .join-reqs,
+body.ui-peek .turn-toast,
+body.ui-peek .floatingchat-container-wrap,
+body.ui-peek .floatingchat-container-wrap-mobi,
+body.ui-peek iframe[src*="ko-fi"] {
+	visibility: hidden !important;
+}

@@ -11,6 +11,11 @@
 			rel="stylesheet"
 		/>
 		<link rel="stylesheet" href="/css/base.css" />
+		<script>
+			// Signed-in visitors go straight to the dashboard BEFORE the hero
+			// paints — a stale token bounces back here already cleared, so no loop.
+			if (localStorage.getItem("cowriteAuth")) location.replace("/dashboard")
+		</script>
 	</head>
 	<body>
 		<!-- HERO LANDING -->

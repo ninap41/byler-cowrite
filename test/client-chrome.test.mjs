@@ -67,8 +67,8 @@ test("chrome menu lists every theme and switching updates data-theme + storage",
   assert.equal(document.querySelectorAll(".bg-set.starcourt .zig").length, 2, "starcourt zigzags");
   assert.ok(document.querySelector(".bg-set.starcourt .memdots"), "starcourt dot grid");
   assert.equal(document.querySelectorAll(".bg-set.upside .dust").length, 3, "upside dust layers");
-  assert.ok(document.querySelector(".bg-set.upside .vines") && document.querySelectorAll(".bg-set.upside .mtn").length === 2,
-    "upside landscape: vines + two mountain ridges");
+  assert.ok(!document.querySelector(".bg-set.upside .vines") && document.querySelectorAll(".bg-set.upside .mtn").length === 2,
+    "upside landscape: two mountain ridges, vines removed");
   assert.equal(document.querySelectorAll(".bg-set.wall .lights").length, 2, "chasing light strings");
   theme.applyTheme("snowball");
   assert.equal(document.documentElement.getAttribute("data-theme"), "snowball");
@@ -100,8 +100,8 @@ test("ko-fi widget draws with the right account + floating-chat config once load
   assert.equal(calls[0].acct, "justthegatekeeper");
   assert.equal(calls[0].acct, KOFI_ACCOUNT);
   assert.equal(calls[0].cfg.type, "floating-chat");
-  assert.equal(calls[0].cfg["floating-chat.donateButton.text"], "Support me");
-  assert.equal(calls[0].cfg["floating-chat.donateButton.background-color"], "#00b9fe");
+  assert.equal(calls[0].cfg["floating-chat.donateButton.text"], KOFI_CONFIG["floating-chat.donateButton.text"]);
+  assert.equal(calls[0].cfg["floating-chat.donateButton.background-color"], KOFI_CONFIG["floating-chat.donateButton.background-color"]);
   assert.equal(calls[0].cfg["floating-chat.donateButton.text-color"], "#fff");
   assert.deepEqual(calls[0].cfg, KOFI_CONFIG);
   delete window.kofiWidgetOverlay;

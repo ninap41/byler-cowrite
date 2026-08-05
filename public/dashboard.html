@@ -33,6 +33,10 @@
 									<button class="ghost" id="logoutBtn">Log out</button>
 								</div>
 								<p class="welcome-sub">Welcome back! Ready to keep the story going?</p>
+								<p class="subtle hidden" id="lastLineBox" style="text-align: left; margin: 6px 0 0; font-style: italic">
+									<span id="lastLineText"></span><span class="type-caret" aria-hidden="true">▎</span>
+									<span id="lastLineMeta" style="display: block; font-style: normal; font-size: 0.75rem; margin-top: 2px"></span>
+								</p>
 								<div class="err" id="meErr"></div>
 							</div>
 						</div>
@@ -51,6 +55,9 @@
 						<h3 class="dash-h" style="margin-top: 0">Games in progress</h3>
 						<p class="subtle" style="text-align: left; margin: 4px 0 0">Pick up where you left off.</p>
 						<div class="mg-grid" id="myGames"></div>
+						<h4 class="dash-h" style="margin: 18px 0 0">All live games</h4>
+						<p class="subtle" style="text-align: left; margin: 4px 0 0">Every game running on the site right now.</p>
+						<div id="dashLive"></div>
 					</div>
 
 					<!-- writers directory -->
@@ -90,8 +97,6 @@
 					<div class="card" id="quickStart">
 						<h3 class="dash-h" style="margin-top: 0">✨ Quick start</h3>
 						<p class="subtle" style="text-align: left; margin: 4px 0 10px">Start a new story or jump into an existing one.</p>
-						<label>Your color</label>
-						<div class="swatches" id="swatches"></div>
 						<div class="row"><button class="primary" id="createBtn">Start a game ✒</button></div>
 						<div class="divider">— or join one —</div>
 						<label for="code">Game code</label>
@@ -103,15 +108,10 @@
 
 					<div class="card quote-card">
 						<span class="qmark">“</span>
-						Every story is better together.<br />
-						One turn at a time. ✒
+						<span id="quoteText">Every story is better together. One turn at a time. ✒</span>
+						<span class="qmark qmark-end">”</span>
 					</div>
 
-					<!-- live games across the whole site (join any) -->
-					<div class="card">
-						<h3 class="dash-h" style="margin-top: 0">All live games</h3>
-						<div id="dashLive"></div>
-					</div>
 				</div>
 			</div>
 		</div>
@@ -121,7 +121,7 @@
 			import { api, setToken, getToken } from "/js/api.js"
 			import { mountChrome, setUserChip } from "/js/chrome.js"
 			import { requireAuth } from "/js/auth-guard.js"
-			import { PALETTE, safeColor, esc } from "/js/util.js"
+			import { safeColor } from "/js/util.js"
 			import {
 				liveGameInfoHtml,
 				badgeProgress,
@@ -156,30 +156,65 @@
 				$("rankLabel").textContent = me.currentBadge ? `${me.currentBadge} · ${prog.label}` : prog.label
 				$("rankFill").style.width = prog.pct + "%"
 				$("achStrip").innerHTML = achievementsHtml(me)
+				typeLastLine()
 				$("streakBox").innerHTML =
 					streakRingHtml(me.streak, Math.max(me.bestStreak, 1)) +
 					`<div class="streak-meta"><b>${me.streak} day${me.streak === 1 ? "" : "s"}</b> current streak<br>Best: ${me.bestStreak} day${me.bestStreak === 1 ? "" : "s"}</div>`
-				document.querySelectorAll(".swatch").forEach((x) => x.classList.toggle("sel", x.dataset.color === safeColor(me.color)))
 			}
 
-			// ---- Color picker (saves straight to the account) ----
-			const sw = $("swatches")
-			PALETTE.forEach((c) => {
-				const d = document.createElement("div")
-				d.className = "swatch"
-				d.style.background = c
-				d.dataset.color = c
-				d.onclick = () =>
-					api("/api/account/color", { color: c })
-						.then((d2) => {
-							me = { ...me, ...d2.user }
-							renderMe()
-						})
-						.catch(() => {})
-				sw.appendChild(d)
-			})
+			// Your newest committed story line, typed out once per visit (renderMe
+			// runs on every 10s poll; the guard keeps the animation from restarting).
+			let lastLineTyped = false
+			function typeLastLine() {
+				if (lastLineTyped || !me?.lastLine?.text) return
+				lastLineTyped = true
+				$("lastLineBox").classList.remove("hidden")
+				$("lastLineMeta").textContent = `— your last line, from “${me.lastLine.name || me.lastLine.code}”`
+				const full = `“${me.lastLine.text}”`
+				const el = $("lastLineText")
+				const caretDone = () => document.querySelector("#lastLineBox .type-caret")?.classList.add("done")
+				// hidden tabs throttle rAF, which would freeze the tween at zero
+				if (window.gsap && !reduceMotion && document.visibilityState === "visible") {
+					const state = { n: 0 }
+					gsap.to(state, {
+						n: full.length,
+						duration: Math.min(4, 0.8 + full.length * 0.035),
+						ease: "none",
+						delay: 0.5,
+						onUpdate: () => (el.textContent = full.slice(0, Math.round(state.n))),
+						onComplete: caretDone,
+					})
+				} else {
+					el.textContent = full
+					caretDone()
+				}
+			}
 
-			// (username changes live in Settings only — not on the dashboard)
+			// Random quote from quotes.json on every visit, decoding in with a
+			// GSAP scramble (hand-rolled — the club ScrambleText plugin is paid).
+			function scrambleIn(el, text) {
+				if (!window.gsap || reduceMotion) return (el.textContent = text)
+				const CHARS = "!<>-_\\/[]{}—=+*^?#"
+				const state = { p: 0 }
+				gsap.to(state, {
+					p: 1,
+					duration: Math.min(2.2, 0.6 + text.length * 0.02),
+					ease: "power1.out",
+					onUpdate() {
+						const reveal = Math.floor(state.p * text.length)
+						let out = text.slice(0, reveal)
+						for (let i = reveal; i < text.length; i++)
+							out += text[i] === " " ? " " : CHARS[(Math.random() * CHARS.length) | 0]
+						el.textContent = out
+					},
+					onComplete: () => (el.textContent = text),
+				})
+			}
+			api("/api/quote", null, "GET")
+				.then((d) => scrambleIn($("quoteText"), d.quote))
+				.catch(() => {})
+
+			// (color + username changes live in Settings only — not on the dashboard)
 			$("viewProfileBtn").onclick = () => (location.href = "/profile")
 			$("logoutBtn").onclick = async () => {
 				try {

@@ -37,6 +37,21 @@ export function wireAuthForms(root, { api, onSignedIn }) {
 		showChoice()
 	}
 
+	// Enter submits whichever pane you're typing in
+	for (const [ids, btn] of [
+		[["liUser", "liPass"], "liBtn"],
+		[["suEmail", "suUser", "suPass"], "suBtn"],
+		[["fgEmail"], "fgFind"],
+		[["fuEmail"], "fuFind"],
+	])
+		for (const id of ids)
+			$(id).addEventListener("keydown", (e) => {
+				if (e.key === "Enter") {
+					e.preventDefault()
+					$(btn).click()
+				}
+			})
+
 	$("liBtn").onclick = async () => {
 		try {
 			const d = await api("/api/login", { user: $("liUser").value.trim(), password: $("liPass").value })

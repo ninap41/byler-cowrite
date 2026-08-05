@@ -24,8 +24,25 @@
 
 					<!-- color first: the thing people change most -->
 					<div class="settings-section">
-						<label>Your color</label>
+						<label>Your username color</label>
 						<div class="swatches" id="swatches"></div>
+					</div>
+
+					<!-- sounds: saved on the account so they follow you between sessions -->
+					<div class="settings-section">
+						<label>Sounds</label>
+						<label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin: 6px 0 0">
+							<input type="checkbox" id="sndChat" style="width: auto" />
+							Chat pings
+						</label>
+						<label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin: 6px 0 0">
+							<input type="checkbox" id="sndStory" style="width: auto" />
+							Story chimes (new lines)
+						</label>
+						<label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin: 6px 0 0">
+							<input type="checkbox" id="sndClock" style="width: auto" />
+							Vecna clock (end-of-turn countdown)
+						</label>
 					</div>
 
 					<!-- account details: collapsed behind toggles to keep the page calm -->
@@ -80,8 +97,8 @@
 						</p>
 						<label style="margin-top: 10px">Links (up to three)</label>
 						<div class="chat-row"><input id="link1Label" placeholder="Label" maxlength="40" /><input id="link1Url" placeholder="https://…" /></div>
-						<div class="chat-row"><input id="link2Label" placeholder="Label" maxlength="40" /><input id="link2Url" placeholder="https://…" /></div>
-						<div class="chat-row"><input id="link3Label" placeholder="Label" maxlength="40" /><input id="link3Url" placeholder="https://…" /></div>
+						<div class="chat-row" style="margin-top: 8px"><input id="link2Label" placeholder="Label" maxlength="40" /><input id="link2Url" placeholder="https://…" /></div>
+						<div class="chat-row" style="margin-top: 8px"><input id="link3Label" placeholder="Label" maxlength="40" /><input id="link3Url" placeholder="https://…" /></div>
 						<!-- the save button ends the profile form -->
 						<div class="row"><button class="primary" id="saveProfile">Save profile</button></div>
 					</div>
@@ -146,6 +163,10 @@
 				$("setAvatar").value = me.avatar || ""
 				$("setAvatarFit").value = me.avatarFit === "contain" ? "contain" : "cover"
 				$("setAbout").value = aboutSource(me.about)
+				const snd = typeof me.sounds === "object" && me.sounds !== null ? me.sounds : {}
+				$("sndChat").checked = snd.chat !== false
+				$("sndStory").checked = snd.story !== false
+				$("sndClock").checked = snd.clock !== false
 				;[1, 2, 3].forEach((n) => {
 					$("link" + n + "Label").value = me.links?.[n - 1]?.label || ""
 					$("link" + n + "Url").value = me.links?.[n - 1]?.url || ""
@@ -169,6 +190,22 @@
 						.catch((e) => say(false, e.message))
 				sw.appendChild(d)
 			})
+
+			// Sounds save the moment a box is toggled — no separate save button.
+			for (const id of ["sndChat", "sndStory", "sndClock"])
+				$(id).onchange = async () => {
+					try {
+						const r = await api("/api/account/sounds", {
+							chat: $("sndChat").checked,
+							story: $("sndStory").checked,
+							clock: $("sndClock").checked,
+						})
+						me = { ...me, ...r.user }
+						say(true, "Sound settings saved.")
+					} catch (e) {
+						say(false, e.message)
+					}
+				}
 
 			$("saveUsername").onclick = async () => {
 				try {

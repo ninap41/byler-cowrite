@@ -78,3 +78,31 @@ test("line chime: rejoin replay silent, others' lines ring, mine don't", () => {
   chime.note([{}, {}, {}, {}], "me");
   assert.deepEqual(played, ["incomingline"]);
 });
+
+test("setPrefs gates chat/story/clock independently; legacy boolean fans out", () => {
+  const kit = createSounds(FakeAudio);
+  kit.setPrefs({ chat: false, story: true, clock: false });
+  kit.play("incomingmessage");
+  kit.play("outgoingmessage");
+  assert.equal(kit.sounds.incomingmessage.plays, 0, "chat muted");
+  assert.equal(kit.sounds.outgoingmessage.plays, 0, "chat muted both ways");
+  kit.play("incomingline");
+  assert.equal(kit.sounds.incomingline.plays, 1, "story still rings");
+  kit.clock.start();
+  assert.equal(kit.clock.active, false, "clock pref blocks start");
+
+  kit.setPrefs(true); // legacy boolean -> all on
+  kit.play("outgoingmessage");
+  assert.equal(kit.sounds.outgoingmessage.plays, 1);
+  kit.clock.start();
+  assert.equal(kit.clock.active, true);
+
+  kit.setPrefs({ chat: true, story: true, clock: false });
+  assert.equal(kit.clock.active, false, "disabling the clock pref stops a running clock");
+  assert.ok(kit.clockAudio.pauses >= 1);
+
+  kit.setPrefs(false); // legacy off -> everything muted
+  kit.play("incomingline");
+  assert.equal(kit.sounds.incomingline.plays, 1, "no new plays while muted");
+  assert.deepEqual(kit.prefs, { chat: false, story: false, clock: false });
+});

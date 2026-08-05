@@ -31,6 +31,10 @@
 									<span class="player-chip hidden" id="onlineChip"><span class="st-dot on"></span>online</span>
 								</div>
 								<p class="welcome-sub" id="profileSub"></p>
+							<p class="subtle hidden" id="lastLineBox" style="text-align: left; margin: 8px 0 0; font-style: italic">
+								<span id="lastLineText"></span><span class="type-caret" aria-hidden="true">▎</span>
+								<span id="lastLineMeta" style="display: block; font-style: normal; font-size: 0.75rem; margin-top: 2px"></span>
+							</p>
 								<div class="err" id="profErr"></div>
 							</div>
 						</div>
@@ -54,6 +58,12 @@
 					<div class="card">
 						<h3 class="dash-h" style="margin-top: 0">Hosted stories</h3>
 						<div id="hostedList"></div>
+					</div>
+
+					<!-- contributed stories (a seat, but not the host) -->
+					<div class="card">
+						<h3 class="dash-h" style="margin-top: 0">Contributed to</h3>
+						<div id="contribList"></div>
 					</div>
 
 					<!-- word ladder -->
@@ -105,12 +115,16 @@
 				// Always hit the profile endpoint — it also carries hosted stories.
 				let p = null
 				let hosted = []
+				let contributed = []
+				let lastLine = null
 				const who = wanted || me.username
 				const itsMe = who.toLowerCase() === me.username.toLowerCase()
 				try {
 					const r = await api("/api/users/" + encodeURIComponent(who), null, "GET")
 					p = r.user
 					hosted = r.hosted || []
+					contributed = r.contributed || []
+					lastLine = r.lastLine || null
 					if (itsMe) p = { ...p, online: true }
 				} catch (e) {
 					$("profErr").textContent = e.message
@@ -126,18 +140,43 @@
 					$("profileSub").textContent = p.nextBadge
 						? `${(p.nextBadge.min - p.wordCount).toLocaleString()} words to ${p.nextBadge.name}`
 						: "Top of the ladder — a true legend."
+					// their newest committed story line, typed out character by character
+					if (lastLine?.text) {
+						$("lastLineBox").classList.remove("hidden")
+						$("lastLineMeta").textContent = `— their last line, from “${lastLine.name || lastLine.code}”`
+						const full = `“${lastLine.text}”`
+						const el = $("lastLineText")
+						const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches
+						// hidden tabs throttle rAF, which would freeze the tween at zero
+						if (window.gsap && !reduce && document.visibilityState === "visible") {
+							const state = { n: 0 }
+							gsap.to(state, {
+								n: full.length,
+								duration: Math.min(4, 0.8 + full.length * 0.035),
+								ease: "none",
+								delay: 0.5,
+								onUpdate: () => (el.textContent = full.slice(0, Math.round(state.n))),
+								onComplete: () => document.querySelector(".type-caret")?.classList.add("done"),
+							})
+						} else {
+							el.textContent = full
+							document.querySelector(".type-caret")?.classList.add("done")
+						}
+					}
 					$("statWords").textContent = p.wordCount.toLocaleString()
 					$("statBadges").textContent = p.badges.length
 					$("statStories").textContent = p.stories
 					$("aboutBox").innerHTML = aboutHtml(p)
 					$("aboutEditHint").classList.toggle("hidden", !itsMe)
 					$("ladder").innerHTML = ladderAccordionHtml(meta.wordTiers, p)
-					// hosted stories: rows glow while the story is live in progress
-					const hb = $("hostedList")
-					if (!hosted.length) {
-						hb.innerHTML = '<p class="subtle" style="text-align:left;margin:0">No hosted stories yet.</p>'
-					} else {
-						hosted.forEach((g) => {
+					// story lists: rows glow while the story is live in progress
+					const renderStories = (boxId, list, emptyMsg) => {
+						const box = $(boxId)
+						if (!list.length) {
+							box.innerHTML = `<p class="subtle" style="text-align:left;margin:0">${emptyMsg}</p>`
+							return
+						}
+						list.forEach((g) => {
 							const row = document.createElement("div")
 							row.className = "live-game" + (g.inProgress ? " gathering" : "")
 							const info = document.createElement("span")
@@ -156,9 +195,11 @@
 							btn.onclick = () =>
 								(location.href = (g.inProgress ? "/game?code=" : "/archive?code=") + encodeURIComponent(g.code))
 							row.append(info, btn)
-							hb.appendChild(row)
+							box.appendChild(row)
 						})
 					}
+					renderStories("hostedList", hosted, "No hosted stories yet.")
+					renderStories("contribList", contributed, "No contributed stories yet.")
 					$("usageCase").innerHTML = usageCaseHtml(meta.usage, p.usageBadges)
 					$("streakBox").innerHTML =
 						streakRingHtml(p.streak, Math.max(p.bestStreak, 1)) +

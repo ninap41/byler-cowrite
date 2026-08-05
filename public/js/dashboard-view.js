@@ -65,13 +65,22 @@ export function writerRowHtml(u) {
 
 // Deterministic cover art for a game card: two palette colors + an angle
 // derived from the code, so every story keeps its own look with no images.
-export function coverArt(code) {
+function coverGrad(code) {
 	let h = 7
 	for (const ch of String(code)) h = (h * 31 + ch.charCodeAt(0)) >>> 0
 	const a = PALETTE[h % PALETTE.length]
 	const b = PALETTE[(h >> 3) % PALETTE.length]
-	return `background:linear-gradient(${115 + (h % 130)}deg, ${a}, ${b})`
+	return `linear-gradient(${115 + (h % 130)}deg, ${a}, ${b})`
 }
+export const coverArt = (code) => `background:${coverGrad(code)}`
+
+// Cover style: the host-linked header image when the game has one (the URL is
+// validated http/https server-side; esc() keeps it attr-safe), layered over
+// the deterministic code gradient so a broken link still shows the gradient.
+export const coverStyle = (g) =>
+	g.cover
+		? `background:url('${esc(g.cover)}') center/cover no-repeat, ${coverGrad(g.code)}`
+		: coverArt(g.code)
 
 export function myGameStatus(g) {
 	if (g.phase === "waiting") return { text: "Gathering writers", cls: "" }
@@ -86,7 +95,7 @@ export function myGameCardHtml(g) {
 	const st = myGameStatus(g)
 	const glyph = (g.name || "").trim().charAt(0).toUpperCase() || "✒"
 	return (
-		`<div class="mg-cover" style="${coverArt(g.code)}"><span class="mg-glyph">${esc(glyph)}</span></div>` +
+		`<div class="mg-cover" style="${coverStyle(g)}">${g.cover ? "" : `<span class="mg-glyph">${esc(glyph)}</span>`}</div>` +
 		`<div class="mg-body">` +
 		`<div class="mg-head"><b class="mg-name">${esc(g.name || "Untitled story")}</b>` +
 		`<span class="mg-code">${esc(g.code)}</span></div>` +
@@ -106,7 +115,7 @@ export function myGameCardHtml(g) {
 // Compact finished-story row for the "previous games" list.
 export function recentRowHtml(g) {
 	return (
-		`<span class="rg-cover" style="${coverArt(g.code)}"></span>` +
+		`<span class="rg-cover" style="${coverStyle(g)}"></span>` +
 		`<span class="rg-info"><b>${esc(g.name || g.prompt || g.code)}</b>` +
 		`<span class="rg-sub">${esc(g.code)} · ${g.writers.length} writer${g.writers.length === 1 ? "" : "s"}</span></span>` +
 		`<span class="rg-lines">${g.lines} line${g.lines === 1 ? "" : "s"}</span>`
