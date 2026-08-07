@@ -310,6 +310,72 @@ a.rg-row {
 	text-decoration: none;
 }
 
+/* ---- inbox ---- */
+.ib-row {
+	display: flex;
+	align-items: flex-start;
+	gap: 10px;
+	background: var(--panel-2);
+	border: 1px solid var(--line);
+	border-radius: 12px;
+	padding: 10px 12px;
+	margin-top: 8px;
+	text-align: left;
+}
+.ib-row.unread {
+	border-color: var(--accent-2);
+	cursor: pointer;
+}
+.ib-dot {
+	flex: none;
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: var(--line);
+	margin-top: 6px;
+}
+.ib-dot.unread {
+	background: var(--accent-2);
+	box-shadow: 0 0 6px var(--accent-2);
+}
+.ib-info {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+.ib-from {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+.ib-when {
+	margin-left: auto;
+	font-size: 0.72rem;
+	color: var(--muted);
+}
+.ib-text {
+	font-size: 0.85rem;
+	color: var(--ink);
+	overflow-wrap: anywhere;
+}
+.ib-row:not(.unread) .ib-text {
+	color: var(--muted);
+}
+.ib-acts {
+	flex: none;
+	display: flex;
+	gap: 6px;
+}
+.ib-acts button {
+	padding: 4px 10px;
+	font-size: 0.78rem;
+}
+.ib-del {
+	padding: 4px 8px;
+}
+
 /* ---- profile About section ---- */
 .avatar {
 	overflow: hidden;

@@ -63,6 +63,16 @@
 						</div>
 					</div>
 
+					<!-- inbox -->
+					<div class="card">
+						<div class="me-row">
+							<h3 class="dash-h" style="margin: 0">📬 Inbox <span class="badge-chip hidden" id="inboxUnread"></span></h3>
+							<button class="ghost hidden" id="inboxReadAll" style="margin-left: auto">Mark all read</button>
+						</div>
+						<p class="subtle" style="text-align: left; margin: 4px 0 0">Friend requests and notes from other writers.</p>
+						<div id="inboxList"></div>
+					</div>
+
 					<!-- games in progress -->
 					<div class="card">
 						<h3 class="dash-h" style="margin-top: 0">Games in progress</h3>
@@ -94,6 +104,12 @@
 
 				<!-- ============ RIGHT RAIL ============ -->
 				<div class="dash-rail">
+					<div class="card">
+						<h3 class="dash-h" style="margin-top: 0">Friends</h3>
+						<p class="subtle" style="text-align: left; margin: 4px 0 0">Your friends — online ones first.</p>
+						<div id="friendsBox"></div>
+					</div>
+
 					<div class="card">
 						<h3 class="dash-h" style="margin-top: 0">Recent achievements</h3>
 						<div class="ach-strip" id="achStrip"></div>
@@ -143,8 +159,11 @@
 				achievementsHtml,
 				streakRingHtml,
 				writerRowHtml,
+				friendRowHtml,
+				inboxMsgHtml,
 			} from "/js/dashboard-view.js"
 			import { avatarHtml } from "/js/profile-view.js"
+			import { showInviteToast } from "/js/turn-alert.js"
 
 			mountChrome({ page: "dashboard" })
 			const $ = (id) => document.getElementById(id)
@@ -153,6 +172,11 @@
 			// Presence: a bare socket that identifies this account as online.
 			const socket = io()
 			socket.on("connect", () => socket.emit("identify", { auth: getToken() }))
+			// A story I contributed to is being continued — toast + fresh inbox.
+			socket.on("game-invite", (inv) => {
+				if (inv?.code) showInviteToast(inv)
+				loadInbox()
+			})
 
 			function renderMe() {
 				if (!me) return
@@ -353,9 +377,109 @@
 			}
 			$("writerSearch").addEventListener("input", renderWriters)
 
+			// ---- Friends (right rail) ----
+			function renderFriends(friends) {
+				const box = $("friendsBox")
+				box.innerHTML = ""
+				if (!friends.length) {
+					box.innerHTML =
+						'<p class="subtle" style="text-align:left;margin:8px 0 0">No friends yet — visit a writer\'s profile and send a request.</p>'
+					return
+				}
+				friends.forEach((u) => {
+					const row = document.createElement("a")
+					row.className = "rg-row"
+					row.href = "/profile?user=" + encodeURIComponent(u.username)
+					row.innerHTML = friendRowHtml(u)
+					box.appendChild(row)
+				})
+			}
+
+			// ---- Inbox: unread state, friend-request answers, delete ----
+			async function inboxAct(fn) {
+				try {
+					await fn()
+				} catch (e) {}
+				loadInbox()
+			}
+			let inbox = { messages: [], unread: 0 }
+			function renderInbox() {
+				$("inboxUnread").classList.toggle("hidden", !inbox.unread)
+				$("inboxUnread").textContent = inbox.unread ? `${inbox.unread} new` : ""
+				$("inboxReadAll").classList.toggle("hidden", !inbox.unread)
+				const box = $("inboxList")
+				box.innerHTML = ""
+				if (!inbox.messages.length) {
+					box.innerHTML = '<p class="subtle" style="text-align:left;margin:8px 0 0">Nothing here — inbox zero. ✨</p>'
+					return
+				}
+				inbox.messages.forEach((m) => {
+					const row = document.createElement("div")
+					row.className = "ib-row" + (m.read ? "" : " unread")
+					row.innerHTML = inboxMsgHtml(m)
+					// clicking an unread message marks it read
+					if (!m.read)
+						row.addEventListener("click", () =>
+							inboxAct(() => api("/api/inbox/read", { ids: [m.id] })),
+						)
+					const acts = document.createElement("span")
+					acts.className = "ib-acts"
+					if (m.type === "friend-request") {
+						const yes = document.createElement("button")
+						yes.className = "primary"
+						yes.textContent = "Accept"
+						yes.onclick = (e) => {
+							e.stopPropagation()
+							inboxAct(() => api("/api/friends/respond", { id: m.id, accept: true }))
+						}
+						const no = document.createElement("button")
+						no.className = "ghost"
+						no.textContent = "Decline"
+						no.onclick = (e) => {
+							e.stopPropagation()
+							inboxAct(() => api("/api/friends/respond", { id: m.id, accept: false }))
+						}
+						acts.append(yes, no)
+					} else {
+						if (m.type === "game-invite" && m.code) {
+							const go = document.createElement("button")
+							go.className = "primary"
+							go.textContent = "Rejoin"
+							go.onclick = (e) => {
+								e.stopPropagation()
+								location.href = "/game?code=" + encodeURIComponent(m.code)
+							}
+							acts.append(go)
+						}
+						const del = document.createElement("button")
+						del.className = "ghost ib-del"
+						del.title = "Delete"
+						del.textContent = "✕"
+						del.onclick = (e) => {
+							e.stopPropagation()
+							inboxAct(() => api("/api/inbox/" + encodeURIComponent(m.id), null, "DELETE"))
+						}
+						acts.append(del)
+					}
+					row.appendChild(acts)
+					box.appendChild(row)
+				})
+			}
+			async function loadInbox() {
+				try {
+					inbox = await api("/api/inbox", null, "GET")
+					renderFriends((await api("/api/friends", null, "GET")).friends)
+				} catch (e) {
+					return
+				}
+				renderInbox()
+			}
+			$("inboxReadAll").onclick = () => inboxAct(() => api("/api/inbox/read", {}))
+
 			// ---- Poll the dashboard payload every 10s ----
 			async function loadDashboard() {
 				if (!me) return
+				loadInbox()
 				let d
 				try {
 					d = await api("/api/dashboard", null, "GET")

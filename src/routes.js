@@ -10,6 +10,7 @@ import { hashPassword, checkPassword } from "./passwords.js";
 import {
   store, saveStore, EMAIL_RE, ADMIN_EMAILS,
   findByEmail, findByUsername, userByToken, authedUser, publicUser, profileOf,
+  makeMsg, welcomeMsg,
 } from "./store.js";
 
 const CODE_RE = /^[A-Z0-9]{4}$/;
@@ -116,6 +117,7 @@ export function registerRoutes(app, game) {
     const u = {
       id: randomUUID(), email: em, username: un, passHash: hashPassword(password),
       color: cleanColor(color), games: [], wordCount: 0, currentBadge: null, badges: [],
+      friends: [], inbox: [welcomeMsg()],
       createdAt: Date.now(),
     };
     if (ADMIN_EMAILS.has(em)) u.admin = true;
@@ -303,9 +305,19 @@ export function registerRoutes(app, game) {
 
   // A single player's public profile.
   app.get("/api/users/:username", (req, res) => {
-    if (!authedUser(req)) return res.status(401).json({ error: "Sign in first." });
+    const viewer = authedUser(req);
+    if (!viewer) return res.status(401).json({ error: "Sign in first." });
     const u = findByUsername(req.params.username);
     if (!u) return res.status(404).json({ error: "No writer by that name." });
+    // Friendship between the viewer and this profile, for the Add-friend
+    // button: self | friends | outgoing (I asked) | incoming (they asked,
+    // with the request's message id so the client can accept it) | none.
+    const friendState =
+      u.id === viewer.id ? { state: "self" }
+      : areFriends(viewer, u) ? { state: "friends" }
+      : pendingReqFrom(u, viewer.id) ? { state: "outgoing" }
+      : pendingReqFrom(viewer, u.id) ? { state: "incoming", requestId: pendingReqFrom(viewer, u.id).id }
+      : { state: "none" };
     // Stories this user is the ORIGINAL host of, and stories they hold a seat
     // in without hosting (public shape only), with a live "in progress" flag
     // when the session is currently running.
@@ -334,7 +346,123 @@ export function registerRoutes(app, game) {
     }
     hosted.sort((a, b) => b.savedAt - a.savedAt);
     contributed.sort((a, b) => b.savedAt - a.savedAt);
-    res.json({ user: profileOf(u, new Set(onlineSockets.values())), hosted, contributed, lastLine: u.lastLine || lastLine });
+    res.json({ user: profileOf(u, new Set(onlineSockets.values())), hosted, contributed, lastLine: u.lastLine || lastLine, friendState });
+  });
+
+  // ---- Inbox ----
+  // The wire shape resolves fromId to a public identity (never the account id).
+  const msgShape = (m) => {
+    const from = m.fromId ? store.users.find((x) => x.id === m.fromId) : null;
+    return {
+      id: m.id, type: m.type, text: m.text, read: m.read === true, ts: m.ts,
+      code: m.code || null, // game-invite messages carry the game code
+
+      from: from
+        ? { username: from.username, color: from.color, badge: badgeName(from.currentBadge),
+            avatar: from.avatar || "", avatarFit: from.avatarFit || "cover" }
+        : null,
+    };
+  };
+
+  app.get("/api/inbox", (req, res) => {
+    const u = authedUser(req);
+    if (!u) return res.status(401).json({ error: "Sign in first." });
+    const messages = (u.inbox || []).map(msgShape).sort((a, b) => b.ts - a.ts);
+    res.json({ messages, unread: messages.filter((m) => !m.read).length });
+  });
+
+  // Mark messages read: {ids:[...]} for specific ones, or no ids for all.
+  app.post("/api/inbox/read", (req, res) => {
+    const u = authedUser(req);
+    if (!u) return res.status(401).json({ error: "Sign in first." });
+    const ids = Array.isArray(req.body?.ids) ? new Set(req.body.ids.map(String)) : null;
+    let changed = false;
+    for (const m of u.inbox || [])
+      if (!m.read && (!ids || ids.has(m.id))) { m.read = true; changed = true; }
+    if (changed) saveStore();
+    res.json({ unread: (u.inbox || []).filter((m) => !m.read).length });
+  });
+
+  app.delete("/api/inbox/:id", (req, res) => {
+    const u = authedUser(req);
+    if (!u) return res.status(401).json({ error: "Sign in first." });
+    const before = (u.inbox || []).length;
+    u.inbox = (u.inbox || []).filter((m) => m.id !== req.params.id);
+    if (u.inbox.length === before) return res.status(404).json({ error: "No such message." });
+    saveStore();
+    res.json({ ok: true });
+  });
+
+  // ---- Friends ----
+  // Friendship is mutual (both ids in both `friends` arrays); a pending
+  // request is just a friend-request message sitting in the target's inbox.
+  const areFriends = (a, b) => (a.friends || []).includes(b.id);
+  const pendingReqFrom = (target, senderId) =>
+    (target.inbox || []).find((m) => m.type === "friend-request" && m.fromId === senderId);
+
+  app.get("/api/friends", (req, res) => {
+    const u = authedUser(req);
+    if (!u) return res.status(401).json({ error: "Sign in first." });
+    const ids = new Set(onlineSockets.values());
+    const friends = (u.friends || [])
+      .map((id) => store.users.find((x) => x.id === id))
+      .filter(Boolean)
+      .map((x) => ({
+        username: x.username, color: x.color, badge: badgeName(x.currentBadge),
+        avatar: x.avatar || "", avatarFit: x.avatarFit || "cover", online: ids.has(x.id),
+      }))
+      .sort((a, b) => (b.online - a.online) || a.username.localeCompare(b.username));
+    res.json({ friends });
+  });
+
+  app.post("/api/friends/request", (req, res) => {
+    const u = authedUser(req);
+    if (!u) return res.status(401).json({ error: "Sign in first." });
+    const target = findByUsername(req.body?.username);
+    if (!target) return res.status(404).json({ error: "No writer by that name." });
+    if (target.id === u.id) return res.status(400).json({ error: "That's you!" });
+    if (areFriends(u, target)) return res.status(400).json({ error: "You're already friends." });
+    if (pendingReqFrom(target, u.id)) return res.status(400).json({ error: "Request already sent." });
+    if (pendingReqFrom(u, target.id))
+      return res.status(400).json({ error: "They already sent you a request — check your inbox!" });
+    target.inbox = target.inbox || [];
+    target.inbox.unshift(makeMsg("friend-request", u.id, `${u.username} wants to be your friend.`));
+    saveStore();
+    res.json({ ok: true });
+  });
+
+  // Answer a friend-request message in MY inbox: {id, accept: bool}.
+  // Accepting links both accounts and drops an accepted note in the
+  // requester's inbox; either way the request message is consumed.
+  app.post("/api/friends/respond", (req, res) => {
+    const u = authedUser(req);
+    if (!u) return res.status(401).json({ error: "Sign in first." });
+    const m = (u.inbox || []).find((x) => x.id === String(req.body?.id) && x.type === "friend-request");
+    if (!m) return res.status(404).json({ error: "No such friend request." });
+    u.inbox = u.inbox.filter((x) => x.id !== m.id);
+    const sender = store.users.find((x) => x.id === m.fromId);
+    if (req.body?.accept && sender) {
+      if (!areFriends(u, sender)) {
+        u.friends = [...(u.friends || []), sender.id];
+        sender.friends = [...(sender.friends || []), u.id];
+      }
+      sender.inbox = sender.inbox || [];
+      sender.inbox.unshift(makeMsg("friend-accept", u.id, `${u.username} accepted your friend request. 🎉`));
+    }
+    saveStore();
+    res.json({ ok: true, accepted: !!(req.body?.accept && sender) });
+  });
+
+  // Unfriend — removes the link on both sides.
+  app.delete("/api/friends/:username", (req, res) => {
+    const u = authedUser(req);
+    if (!u) return res.status(401).json({ error: "Sign in first." });
+    const other = findByUsername(req.params.username);
+    if (!other || !areFriends(u, other)) return res.status(404).json({ error: "You're not friends." });
+    u.friends = (u.friends || []).filter((id) => id !== other.id);
+    other.friends = (other.friends || []).filter((id) => id !== u.id);
+    saveStore();
+    res.json({ ok: true });
   });
 
   app.get("/api/me", (req, res) => {

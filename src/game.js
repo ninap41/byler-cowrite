@@ -8,7 +8,7 @@ import { dirname, join } from "path";
 import { bumpStreak } from "../lib/streak.js";
 import { badgeName, badgeDesc, usageMatches, awardWordBadges } from "../lib/achievements.js";
 import { PALETTE, cleanColor, sanitizeRich, stripTags, httpUrl } from "./sanitize.js";
-import { store, saveStore, userByToken } from "./store.js";
+import { store, saveStore, userByToken, makeMsg } from "./store.js";
 import { mirror, mirrorDelete } from "./persist.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -54,6 +54,40 @@ export function createGame(io) {
       writeFileSync(p, doc);
       mirror("save", d.code || f.replace(/\.json$/, ""), doc);
     } catch { /* skip unreadable snapshot */ }
+  }
+
+  // When a finished story gets continued, every previous contributor who is
+  // online but not seated in the session gets an automatic invite: an inbox
+  // message (type game-invite, carrying the code) plus a live `game-invite`
+  // event on each of their identified sockets. Contributors are found from
+  // story-line userIds ∪ current seats, so writers whose seats expired long
+  // ago still get called back.
+  function inviteContributors(s) {
+    const seated = new Set(
+      [...s.writers.values()].filter((w) => w.connected !== false && w.userId).map((w) => w.userId));
+    const contributors = new Set(
+      [...(s.story || []).map((l) => l.userId), ...[...s.writers.values()].map((w) => w.userId)]
+        .filter(Boolean));
+    const hostName = s.writers.get(s.hostId)?.name ?? s.hostName ?? null;
+    const hostUserId = s.writers.get(s.hostId)?.userId ?? s.hostUserId ?? null;
+    let changed = false;
+    for (const uid of contributors) {
+      if (seated.has(uid)) continue;
+      const socketIds = [...onlineSockets.entries()].filter(([, id]) => id === uid).map(([sid]) => sid);
+      if (!socketIds.length) continue; // only online contributors get the auto-invite
+      const u = store.users.find((x) => x.id === uid);
+      if (!u) continue;
+      const title = s.name || s.code;
+      u.inbox = u.inbox || [];
+      u.inbox.unshift({
+        ...makeMsg("game-invite", hostUserId, `“${title}” is being continued — jump back in and keep writing!`),
+        code: s.code,
+      });
+      for (const sid of socketIds)
+        io.to(sid).emit("game-invite", { code: s.code, name: s.name || "", host: hostName });
+      changed = true;
+    }
+    if (changed) saveStore();
   }
 
   function saveSnapshot(s) {
@@ -878,6 +912,7 @@ export function createGame(io) {
       s.votes.clear();
       s.phase = "writing";
       ack?.({ ok: true });
+      inviteContributors(s);
       startTurn(s);
     });
 

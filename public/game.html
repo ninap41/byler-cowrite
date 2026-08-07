@@ -245,12 +245,19 @@
 			import { mountRulesForm } from "/js/components/rules-form.js"
 			import { buildExports, exportDocument } from "/js/export.js"
 			import { mountTagEditor } from "/js/components/tag-chips.js"
+			import { showInviteToast } from "/js/turn-alert.js"
 			mountChrome({ page: "game" })
 			// Spectators need no account: ?spectate=CODE watches a story read-only.
 			const spectateCode = (new URLSearchParams(location.search).get("spectate") || "").trim().toUpperCase()
 			const me = spectateCode ? null : await requireAuth("/") // redirects signed-out visitors home
 			setUserChip(me)
 			const socket = io()
+			// A story I contributed to is being continued — invite me back
+			// (unless I'm already sitting in that very game).
+			socket.on("game-invite", (inv) => {
+				const here = (new URLSearchParams(location.search).get("code") || "").trim().toUpperCase()
+				if (inv?.code && inv.code !== here) showInviteToast(inv)
+			})
 			let myId = null,
 				hostId = null,
 				tickInterval = null,

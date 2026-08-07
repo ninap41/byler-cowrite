@@ -2,6 +2,7 @@
 // mutation just rewrites the file. When DATABASE_URL is set, src/persist.js
 // mirrors the file into Postgres so it survives Replit deploys.
 import { readFileSync, writeFileSync, mkdirSync } from "fs";
+import { randomUUID } from "crypto";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import { badgeName, badgeDesc, isUsageId, isOpenUsageId, nextTierFor, migrateBadges } from "../lib/achievements.js";
@@ -45,6 +46,36 @@ export const ADMIN_EMAILS = new Set(["admin2@cowrite.test", "admin@cowrite.test"
       u.admin = true;
       changed = true;
     }
+  if (changed) saveStore();
+}
+
+// ---- Inbox & friends ----
+// Every user carries `friends` (array of account ids, mutual) and `inbox`
+// (array of messages, newest first). Message shape:
+//   { id, type: 'system'|'note'|'friend-request'|'friend-accept',
+//     fromId: account id or null (system), text, read: bool, ts }
+// Friend requests ARE inbox messages — accepting/declining consumes them.
+export const makeMsg = (type, fromId, text) =>
+  ({ id: randomUUID(), type, fromId: fromId || null, text: String(text || ""), read: false, ts: Date.now() });
+
+export const welcomeMsg = () =>
+  makeMsg("system", null, "Welcome to Byler Cowrite! This is your inbox — friend requests and notes land here. 📬");
+
+// Init arrays on legacy accounts + seed sample messages: the welcome note,
+// plus a hello from an admin account when one exists (a "from a real user"
+// example so the inbox never starts empty).
+{
+  let changed = false;
+  const greeter = store.users.find((u) => u.admin === true);
+  for (const u of store.users) {
+    if (!Array.isArray(u.friends)) { u.friends = []; changed = true; }
+    if (!Array.isArray(u.inbox)) {
+      u.inbox = [welcomeMsg()];
+      if (greeter && greeter.id !== u.id)
+        u.inbox.unshift(makeMsg("note", greeter.id, "Hey! Glad you're here — start a game from the dashboard and send me a friend request. ✒"));
+      changed = true;
+    }
+  }
   if (changed) saveStore();
 }
 

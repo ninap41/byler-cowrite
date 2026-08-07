@@ -42,6 +42,7 @@
 									<span class="me-name" id="meName"></span>
 									<span class="badge-chip" id="meBadge"></span>
 									<span class="player-chip hidden" id="onlineChip"><span class="st-dot on"></span>online</span>
+									<button class="ghost hidden" id="friendBtn" style="margin-left: auto"></button>
 								</div>
 								<p class="welcome-sub" id="profileSub"></p>
 							<p class="subtle hidden" id="lastLineBox" style="text-align: left; margin: 8px 0 0; font-style: italic">
@@ -133,6 +134,7 @@
 				let hosted = []
 				let contributed = []
 				let lastLine = null
+				let friendState = { state: "self" }
 				const who = wanted || me.username
 				const itsMe = who.toLowerCase() === me.username.toLowerCase()
 				try {
@@ -141,6 +143,7 @@
 					hosted = r.hosted || []
 					contributed = r.contributed || []
 					lastLine = r.lastLine || null
+					friendState = r.friendState || friendState
 					if (itsMe) p = { ...p, online: true }
 				} catch (e) {
 					$("profErr").textContent = e.message
@@ -179,6 +182,39 @@
 							document.querySelector(".type-caret")?.classList.add("done")
 						}
 					}
+					// Add-friend button: none → send request · outgoing → sent ·
+					// incoming → accept right here · friends → click to unfriend.
+					const friendBtn = $("friendBtn")
+					function renderFriendBtn() {
+						friendBtn.classList.toggle("hidden", friendState.state === "self")
+						friendBtn.disabled = friendState.state === "outgoing"
+						friendBtn.textContent = {
+							none: "➕ Add friend",
+							outgoing: "Request sent ✓",
+							incoming: "Accept friend request",
+							friends: "✓ Friends",
+						}[friendState.state] || ""
+						friendBtn.title = friendState.state === "friends" ? "Click to unfriend" : ""
+					}
+					friendBtn.onclick = async () => {
+						try {
+							if (friendState.state === "none") {
+								await api("/api/friends/request", { username: p.username })
+								friendState = { state: "outgoing" }
+							} else if (friendState.state === "incoming") {
+								await api("/api/friends/respond", { id: friendState.requestId, accept: true })
+								friendState = { state: "friends" }
+							} else if (friendState.state === "friends") {
+								if (!confirm(`Unfriend ${p.username}?`)) return
+								await api("/api/friends/" + encodeURIComponent(p.username), null, "DELETE")
+								friendState = { state: "none" }
+							}
+						} catch (e) {
+							$("profErr").textContent = e.message
+						}
+						renderFriendBtn()
+					}
+					renderFriendBtn()
 					$("statWords").textContent = p.wordCount.toLocaleString()
 					$("statBadges").textContent = p.badges.length
 					$("statStories").textContent = p.stories

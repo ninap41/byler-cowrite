@@ -9,6 +9,22 @@ import { esc } from "./util.js"
 
 const POLL_MS = 10_000
 
+// A "you're invited back" toast, pushed live over the identified socket when
+// a story you contributed to gets continued. Same look as the turn toast.
+export function showInviteToast({ code, name, host }) {
+	document.querySelectorAll(`.turn-toast[data-invite="${CSS.escape(code)}"]`).forEach((t) => t.remove())
+	const el = document.createElement("div")
+	el.className = "turn-toast"
+	el.dataset.invite = code
+	el.setAttribute("role", "alert")
+	el.innerHTML =
+		`<span>📖 “${esc(name || code)}” is being continued${host ? ` by ${esc(host)}` : ""} — you're invited back!</span>` +
+		`<a class="turn-toast-go" href="/game?code=${encodeURIComponent(code)}">Rejoin →</a>` +
+		`<button type="button" class="turn-toast-close" title="Dismiss">✕</button>`
+	el.querySelector(".turn-toast-close").onclick = () => el.remove()
+	document.body.appendChild(el)
+}
+
 export function mountTurnAlert() {
 	if (!getToken()) return
 	const snoozed = new Set() // codes dismissed for the current turn

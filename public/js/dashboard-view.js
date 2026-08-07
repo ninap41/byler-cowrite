@@ -63,6 +63,32 @@ export function writerRowHtml(u) {
 	)
 }
 
+// A friends row for the dashboard rail (link wrapping is the page's job).
+export function friendRowHtml(u) {
+	return (
+		`<span class="st-dot ${u.online ? "on" : "off"}" title="${u.online ? "Online" : "Offline"}"></span>` +
+		miniAvatar(u) +
+		`<span class="rg-info"><b style="color:${safeColor(u.color)}">${esc(u.username)}</b></span>` +
+		`${u.badge ? `<span class="badge-chip">${esc(u.badge)}</span>` : ""}`
+	)
+}
+
+// An inbox message row (action buttons are appended by the page).
+export function inboxMsgHtml(m) {
+	const from = m.from
+		? miniAvatar(m.from) + `<b style="color:${safeColor(m.from.color)}">${esc(m.from.username)}</b>`
+		: `<b>Byler Cowrite</b>`
+	const when = m.ts ? new Date(m.ts).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : ""
+	return (
+		`<span class="ib-dot${m.read ? "" : " unread"}" title="${m.read ? "Read" : "Unread"}"></span>` +
+		`<span class="ib-info"><span class="ib-from">${from}` +
+		`${m.type === "friend-request" ? '<span class="badge-chip">friend request</span>' : ""}` +
+		`${m.type === "game-invite" ? '<span class="badge-chip">game invite</span>' : ""}` +
+		`<span class="ib-when">${esc(when)}</span></span>` +
+		`<span class="ib-text">${esc(m.text)}</span></span>`
+	)
+}
+
 // Deterministic cover art for a game card: two palette colors + an angle
 // derived from the code, so every story keeps its own look with no images.
 function coverGrad(code) {
