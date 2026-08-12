@@ -57,7 +57,7 @@ test("comments escape their text and author", () => {
   const html = commentHtml({
     id: "c1", text: '<img src=x onerror=1> "quoted"', author: "<b>evil</b>",
     color: "#e63946", avatar: "", avatarFit: "cover", ts: Date.now(), resolved: false,
-  });
+  }, { isOwner: true });
   assert.ok(!html.includes("<img src=x"), "comment text is escaped");
   assert.ok(html.includes("&lt;img"));
   assert.ok(!html.includes("<b>evil</b>"), "author names are escaped");
@@ -67,7 +67,7 @@ test("comments escape their text and author", () => {
 test("resolved comments are marked, and orphans explain themselves", () => {
   const c = { id: "c1", text: "hi", author: "a", color: "#e63946", ts: Date.now(), resolved: true };
   assert.ok(commentHtml(c).includes("resolved"));
-  assert.ok(commentHtml(c).includes("Unresolve"));
+  assert.ok(commentHtml(c, { isOwner: true }).includes("Unresolve"));
   assert.equal(commentThreadHtml([]), "", "no comments, no markup");
   const orphan = commentThreadHtml([c], { orphaned: true });
   assert.ok(/has since changed/.test(orphan), "orphaned comments are surfaced, not dropped");
@@ -162,4 +162,74 @@ test("plainBlockHtml escapes text, so cleared content can never inject markup", 
 test("plainBlockHtml on empty or whitespace-only input yields nothing to insert", () => {
   assert.equal(plainBlockHtml(""), "");
   assert.equal(plainBlockHtml("<p>   </p><p></p>"), "");
+});
+
+// ---- comment cards ----
+const CMT = {
+  id: "c9", cid: "0123456789ab", quote: "striped shirt", text: "this repeats",
+  suggestion: null, author: "bobbeta", color: "#6c8cff", ts: Date.now(),
+  resolved: false, accepted: false, orphaned: false, isAuthor: false,
+};
+
+test("a comment card carries the anchor id both halves jump between", () => {
+  const html = commentHtml(CMT);
+  assert.ok(html.includes('data-cid="0123456789ab"'), "the card knows which words it points at");
+  assert.ok(html.includes('data-id="c9"'));
+  assert.ok(html.includes("striped shirt"), "it quotes the text it's about");
+});
+
+test("a suggestion shows old text struck through and the proposal beside it", () => {
+  const html = commentHtml({ ...CMT, suggestion: "striped tee" });
+  assert.ok(html.includes("<s>striped shirt</s>"));
+  assert.ok(html.includes("<ins>striped tee</ins>"));
+  assert.ok(html.includes("suggested"), "the card is marked as a suggestion");
+});
+
+test("only the author gets Accept/Reject on a suggestion", () => {
+  const s = { ...CMT, suggestion: "striped tee" };
+  const owner = commentHtml(s, { isOwner: true });
+  assert.ok(owner.includes("dc-accept") && owner.includes("dc-reject"));
+  const reader = commentHtml({ ...s, author: "bobbeta" }, { isOwner: false, meName: "bobbeta" });
+  assert.ok(!reader.includes("dc-accept"), "a reader cannot offer to accept their own suggestion");
+  assert.ok(reader.includes("dc-resolve"), "they still get the ordinary actions on their own comment");
+});
+
+test("a decided suggestion says which way it went and stops offering buttons", () => {
+  const taken = commentHtml({ ...CMT, suggestion: "x", resolved: true, accepted: true }, { isOwner: true });
+  assert.ok(taken.includes("✓ Accepted"));
+  assert.ok(!taken.includes("dc-accept"), "no re-deciding a resolved suggestion");
+  const refused = commentHtml({ ...CMT, suggestion: "x", resolved: true, accepted: false }, { isOwner: true });
+  assert.ok(refused.includes("Not taken"));
+});
+
+test("an orphaned comment is marked, not silently dropped", () => {
+  assert.ok(commentHtml({ ...CMT, orphaned: true }).includes("orphaned"));
+});
+
+test("the author's own notes are tagged as theirs", () => {
+  assert.ok(commentHtml({ ...CMT, isAuthor: true }).includes("dc-tag"));
+});
+
+test("comment cards escape the quote, the note and the suggestion", () => {
+  const evil = '<img src=x onerror="alert(1)">';
+  const html = commentHtml({ ...CMT, quote: evil, text: evil, suggestion: evil }, { isOwner: true });
+  assert.ok(!html.includes("<img"), html);
+  assert.ok(html.includes("&lt;img"));
+});
+
+test("isOwner reaches every card in a thread", () => {
+  const thread = commentThreadHtml([{ ...CMT, suggestion: "a" }, { ...CMT, id: "c10", suggestion: "b" }], { isOwner: true });
+  assert.equal(thread.match(/dc-accept/g).length, 2);
+});
+
+test("Resolve/Delete appear only for someone who could actually use them", () => {
+  // a beta reader looking at the author's note: no dead buttons
+  const other = commentHtml({ ...CMT, author: "aliceauthor" }, { isOwner: false, meName: "bobbeta" });
+  assert.ok(!other.includes("dc-resolve") && !other.includes("dc-del"));
+  // their own note, on someone else's doc
+  const own = commentHtml({ ...CMT, author: "bobbeta" }, { isOwner: false, meName: "bobbeta" });
+  assert.ok(own.includes("dc-resolve") && own.includes("dc-del"));
+  // the document's author can manage anyone's
+  const owner = commentHtml({ ...CMT, author: "bobbeta" }, { isOwner: true, meName: "aliceauthor" });
+  assert.ok(owner.includes("dc-resolve") && owner.includes("dc-del"));
 });

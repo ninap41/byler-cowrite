@@ -7,10 +7,10 @@ import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import { bumpStreak } from "../lib/streak.js";
 import { badgeName, badgeDesc, usageMatches, awardWordBadges } from "../lib/achievements.js";
-import { PALETTE, cleanColor, sanitizeRich, stripTags, httpUrl } from "./sanitize.js";
+import { PALETTE, cleanColor, sanitizeRich, stripTags, httpUrl, sanitizeDoc, CID_RE } from "./sanitize.js";
 import { store, saveStore, userByToken, makeMsg } from "./store.js";
 import { mirror, mirrorDelete } from "./persist.js";
-import { readDoc, writeDoc, canView, canEdit } from "./docs.js";
+import { readDoc, writeDoc, canView, canEdit, anchorCids, anchorText, stripAnchor, applySuggestion } from "./docs.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -1051,19 +1051,53 @@ export function createGame(io) {
 
     socket.on("doc-close", () => leaveDoc(socket));
 
-    socket.on("doc-comment", ({ auth, id, blockIdx, blockHash, text }) => {
+    // Leaving a comment anchors it: the client sends the doc's html with ONE new
+    // marker span wrapped around the commented words. Readers may not edit, and
+    // this is the one path that lets their action touch the html at all — so the
+    // guard is exact: strip the new anchor back out and what's left must equal
+    // the stored html, byte for byte. Any smuggled edit fails that and is
+    // dropped whole. `suggestion` (readers' edits, per comment mode) is the text
+    // they propose for the anchored range; the author accepts or rejects it.
+    socket.on("doc-comment", ({ auth, id, cid, html, text, suggestion }) => {
       const u = userByToken(auth);
       const doc = readDoc(id);
       if (!u || !doc || !canView(doc, u.id)) return;
       const body = stripTags(String(text ?? "")).slice(0, 1000);
-      if (!body) return;
+      const suggest = suggestion == null ? null : stripTags(String(suggestion)).slice(0, 1000);
+      if (!body && suggest == null) return; // a comment says something or proposes something
+      if (!CID_RE.test(String(cid ?? ""))) return;
+      if (anchorCids(doc.html).includes(cid)) return; // never reuse an anchor id
+      const next = sanitizeDoc(String(html ?? ""));
+      if (!anchorCids(next).includes(cid)) return; // the anchor has to be there
+      if (stripAnchor(next, cid) !== doc.html) return; // …and be the ONLY change
+      doc.html = next;
       doc.comments = [...(doc.comments || []), {
-        id: randomUUID(),
-        blockIdx: Number.isInteger(blockIdx) ? blockIdx : 0,
-        blockHash: String(blockHash ?? "").slice(0, 64),
-        userId: u.id, text: body, ts: Date.now(), resolved: false,
+        id: randomUUID(), cid,
+        quote: anchorText(next, cid).slice(0, 200),
+        userId: u.id, text: body, suggestion: suggest,
+        ts: Date.now(), resolved: false, accepted: false,
       }];
       writeDoc(doc);
+      broadcastDocHtml(doc, socket);
+      broadcastDocComments(doc);
+    });
+
+    // Accept / reject a suggestion — the author's call alone, since either way
+    // it rewrites their document. Accept swaps the anchored words for the
+    // proposed ones; reject just unwraps the anchor. Both resolve the comment
+    // and both leave the words un-underlined afterwards.
+    socket.on("doc-comment-decide", ({ auth, id, commentId, accept }) => {
+      const u = userByToken(auth);
+      const doc = readDoc(id);
+      if (!u || !doc || !canEdit(doc, u.id)) return; // author only
+      const c = (doc.comments || []).find((x) => x.id === commentId);
+      if (!c || c.resolved) return;
+      const taking = !!accept && typeof c.suggestion === "string";
+      doc.html = taking ? applySuggestion(doc.html, c.cid, c.suggestion) : stripAnchor(doc.html, c.cid);
+      c.resolved = true;
+      c.accepted = taking;
+      writeDoc(doc); // recomputes wordCount from the new html
+      broadcastDocHtml(doc, socket); // the decider already applied it locally
       broadcastDocComments(doc);
     });
 
@@ -1078,7 +1112,11 @@ export function createGame(io) {
       const c = myComment(doc, commentId, u.id);
       if (!c) return;
       c.resolved = !!resolved;
+      // A resolved comment stops underlining its words; unresolving can't put
+      // the anchor back (the words may have moved on), so it reads as orphaned.
+      if (c.resolved && c.cid) doc.html = stripAnchor(doc.html, c.cid);
       writeDoc(doc);
+      broadcastDocHtml(doc, null);
       broadcastDocComments(doc);
     });
 
@@ -1086,9 +1124,12 @@ export function createGame(io) {
       const u = userByToken(auth);
       const doc = readDoc(id);
       if (!u || !doc || !canView(doc, u.id)) return;
-      if (!myComment(doc, commentId, u.id)) return;
-      doc.comments = (doc.comments || []).filter((c) => c.id !== commentId);
+      const c = myComment(doc, commentId, u.id);
+      if (!c) return;
+      if (c.cid) doc.html = stripAnchor(doc.html, c.cid); // the underline goes with it
+      doc.comments = (doc.comments || []).filter((x) => x.id !== commentId);
       writeDoc(doc);
+      broadcastDocHtml(doc, null);
       broadcastDocComments(doc);
     });
 
@@ -1143,14 +1184,26 @@ export function createGame(io) {
     (doc.comments || []).map((c) => {
       const a = store.users.find((x) => x.id === c.userId);
       return {
-        id: c.id, blockIdx: c.blockIdx, blockHash: c.blockHash, text: c.text,
-        ts: c.ts, resolved: !!c.resolved,
+        id: c.id, cid: c.cid || "", quote: c.quote || "", text: c.text,
+        suggestion: typeof c.suggestion === "string" ? c.suggestion : null,
+        ts: c.ts, resolved: !!c.resolved, accepted: !!c.accepted,
+        // No anchor left in the html means the words it pointed at are gone —
+        // the client says so rather than silently showing a comment on nothing.
+        orphaned: !!c.cid && !anchorCids(doc.html).includes(c.cid),
         author: a?.username || "someone", color: cleanColor(a?.color),
         avatar: a?.avatar || "", avatarFit: a?.avatarFit || "cover",
+        isAuthor: c.userId === doc.ownerId, // the author's own notes-to-self read differently
       };
     });
   const broadcastDocComments = (doc) =>
     io.to(docRoom(doc.id)).emit("doc-comments", { id: doc.id, comments: commentRows(doc) });
+
+  // The html changed underneath everyone (an anchor appeared, a suggestion was
+  // taken). `except` skips the socket that caused it — it already applied the
+  // change locally and re-rendering would jump their caret.
+  const broadcastDocHtml = (doc, except) =>
+    (except ? except.to(docRoom(doc.id)) : io.to(docRoom(doc.id)))
+      .emit("doc-html", { id: doc.id, html: doc.html, wordCount: doc.wordCount });
 
   function leaveDoc(socket) {
     const seat = docViewers.get(socket.id);

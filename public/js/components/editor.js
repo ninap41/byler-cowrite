@@ -16,6 +16,10 @@ const DOC_BLOCKS = { UL: "ul", OL: "ol", LI: "li", BLOCKQUOTE: "blockquote" }
 // there rather than trusted.
 export const FONT_SIZES = [12, 14, 16, 18, 20, 24, 28, 32, 36, 48]
 const FS_CLASS = /^fs-(\d+)$/
+// Comment anchor ids — mirrors CID_RE in src/sanitize.js.
+export const CID_CLASS = /^[0-9a-f]{12}$/
+export const newCid = () =>
+	[...crypto.getRandomValues(new Uint8Array(6))].map((b) => b.toString(16).padStart(2, "0")).join("")
 
 // doc: allow the wider document subset (lists/quote/strike/links/images).
 export function cleanHtml(el, { doc = false } = {}) {
@@ -73,6 +77,14 @@ export function cleanHtml(el, { doc = false } = {}) {
 					const href = n.getAttribute("href")
 					const inner = wrap(walk(n))
 					out += okUrl(href) ? `<a href="${href}">${inner}</a>` : inner
+				} else if (doc && tag === "SPAN" && n.classList?.contains("cmt")) {
+					// a comment anchor. It must round-trip untouched or the author's
+					// next save would quietly unpin every comment in the document;
+					// an id that isn't ours is dropped to plain text, matching the
+					// server's closed cid shape.
+					const cid = n.getAttribute("data-cid") || ""
+					const inner = wrap(walk(n))
+					out += CID_CLASS.test(cid) ? `<span class="cmt" data-cid="${cid}">${inner}</span>` : inner
 				} else if (doc && tag === "SPAN" && FS_CLASS.test(n.className || "")) {
 					// a font-size span from the ladder survives as-is; an
 					// off-ladder value is dropped to plain text

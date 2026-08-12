@@ -103,3 +103,55 @@ export const listDocsFor = (userId, nameOf) =>
     .filter((d) => canView(d, userId))
     .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
     .map((d) => ({ ...docSummary(d, nameOf), mine: d.ownerId === userId }));
+
+// ---- comment anchors ----
+// A comment is pinned to the text it's about by a marker span the author's html
+// carries: <span class="cmt" data-cid="…">the commented words</span>. Anchors
+// ride inside the saved html, so they survive edits elsewhere in the paragraph
+// the way Google Docs' do — and sanitizeDoc() is what guarantees the shape.
+//
+// These are string surgery, not DOM: the server has no DOM, and the html is
+// already sanitized, so the tags are in exactly one known form.
+const ANCHOR_RE = /<span class="cmt" data-cid="([0-9a-f]{12})">/g;
+const escText = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+export const anchorCids = (html) => [...String(html ?? "").matchAll(ANCHOR_RE)].map((m) => m[1]);
+
+// Locate one anchor, counting span nesting so a size span inside the comment
+// doesn't close it early.
+function anchorSpan(html, cid) {
+  const open = `<span class="cmt" data-cid="${cid}">`;
+  const at = String(html ?? "").indexOf(open);
+  if (at < 0) return null;
+  const from = at + open.length;
+  const re = /<span\b[^>]*>|<\/span>/g;
+  re.lastIndex = from;
+  let depth = 1, m;
+  while ((m = re.exec(html))) {
+    depth += m[0] === "</span>" ? -1 : 1;
+    if (depth === 0) return { at, from, to: m.index, end: m.index + m[0].length };
+  }
+  return null; // unbalanced — leave the html alone rather than corrupt it
+}
+
+// Unwrap the anchor, keeping the text: what a resolved/rejected/deleted comment
+// leaves behind. The words stay; only the underline goes.
+export function stripAnchor(html, cid) {
+  const s = anchorSpan(html, cid);
+  return s ? html.slice(0, s.at) + html.slice(s.from, s.to) + html.slice(s.end) : String(html ?? "");
+}
+
+// Accept a suggestion: the anchored text becomes the proposed text, and the
+// anchor goes with it. Inline formatting inside the range is replaced too —
+// a suggestion proposes words, not markup.
+export function applySuggestion(html, cid, text) {
+  const s = anchorSpan(html, cid);
+  return s ? html.slice(0, s.at) + escText(text) + html.slice(s.end) : String(html ?? "");
+}
+
+// The text a comment currently points at, tags stripped — used to show readers
+// what they're commenting on, and to spot anchors whose words have changed.
+export function anchorText(html, cid) {
+  const s = anchorSpan(html, cid);
+  return s ? stripTags(html.slice(s.from, s.to)) : "";
+}

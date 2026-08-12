@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { installDom, mount } from "./dom.mjs";
 
 installDom();
-const { cleanHtml, asterisksToTags } = await import("../public/js/components/editor.js");
+const { cleanHtml, asterisksToTags, newCid } = await import("../public/js/components/editor.js");
 
 // Normalization table for the contenteditable -> safe-subset converter.
 // Mirrors the server-side sanitizer tests: both sides of the trust boundary
@@ -138,4 +138,36 @@ test("cleanHtml: the game subset does NOT gain the document tags", () => {
   assert.ok(!out.includes("<a "), "links stay out of game lines");
   assert.ok(!out.includes("<s>"), "strikethrough stays out of game lines");
   assert.ok(out.includes("a") && out.includes("t"), "text is still kept");
+});
+
+// ---- comment anchors ----
+// The author's save runs the whole document back through cleanHtml. If anchors
+// didn't survive that, every comment in the doc would quietly come unpinned the
+// next time they typed a word.
+test("cleanHtml round-trips a comment anchor untouched", () => {
+  const el = mount('<p>his <span class="cmt" data-cid="0123456789ab">striped shirt</span> hangs</p>');
+  assert.equal(cleanHtml(el, { doc: true }), '<p>his <span class="cmt" data-cid="0123456789ab">striped shirt</span> hangs</p>');
+});
+
+test("cleanHtml keeps formatting nested inside an anchor", () => {
+  const el = mount('<p><span class="cmt" data-cid="0123456789ab">a <b>bold</b> bit</span></p>');
+  assert.equal(cleanHtml(el, { doc: true }), '<p><span class="cmt" data-cid="0123456789ab">a <b>bold</b> bit</span></p>');
+});
+
+test("cleanHtml drops an anchor whose id isn't ours, keeping the words", () => {
+  for (const bad of ["nothex", "0123456789abcdef", ""]) {
+    const el = mount(`<p><span class="cmt" data-cid="${bad}">words</span></p>`);
+    assert.equal(cleanHtml(el, { doc: true }), "<p>words</p>", bad);
+  }
+});
+
+test("anchors are a document feature — game lines never keep them", () => {
+  const el = mount('<p><span class="cmt" data-cid="0123456789ab">words</span></p>');
+  assert.equal(cleanHtml(el), "<p>words</p>");
+});
+
+test("newCid mints ids the sanitizer will accept", () => {
+  const ids = Array.from({ length: 50 }, () => newCid());
+  ids.forEach((id) => assert.match(id, /^[0-9a-f]{12}$/));
+  assert.equal(new Set(ids).size, 50);
 });

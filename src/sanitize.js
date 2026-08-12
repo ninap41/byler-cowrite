@@ -1,5 +1,6 @@
 // Sanitizers — the server-side trust boundary. All user-supplied html/urls
 // pass through here exactly once before reaching any other player's DOM.
+import { randomBytes } from "node:crypto";
 
 // Name-color palette. Colors are validated against this list (prevents style injection).
 export const PALETTE = ["#e63946", "#6c8cff", "#3ddc84", "#f4a261", "#e879c9", "#38bdf8", "#facc15", "#c084fc"];
@@ -35,6 +36,12 @@ export const DOC_MAX = 200000;
 // escaped text. Mirrored in public/js/write-view.js for the client.
 export const FONT_SIZES = [12, 14, 16, 18, 20, 24, 28, 32, 36, 48];
 const FS_RE = new RegExp(`&lt;span class=&quot;fs-(${FONT_SIZES.join("|")})&quot;&gt;`, "g");
+// Comment anchors. CID_RE is the closed set: 12 hex chars, minted by newCid().
+// data-cid is the only data attribute sanitizeDoc lets through, and only in
+// this exact shape — an anchor can name a comment and nothing else.
+export const CID_RE = /^[0-9a-f]{12}$/;
+export const newCid = () => randomBytes(6).toString("hex");
+const CMT_RE = /&lt;span class=&quot;cmt&quot; data-cid=&quot;([0-9a-f]{12})&quot;&gt;/g;
 
 export function sanitizeDoc(html) {
   let out = String(html).slice(0, DOC_MAX)
@@ -48,6 +55,9 @@ export function sanitizeDoc(html) {
     .replace(/&lt;(br|hr)\s*\/?&gt;/g, "<$1>")
     // font-size spans, from the closed ladder only
     .replace(FS_RE, '<span class="fs-$1">')
+    // comment anchors: the ONLY data attribute that survives, and only with a
+    // hex id of our own minting — so the underline can never carry a payload
+    .replace(CMT_RE, '<span class="cmt" data-cid="$1">')
     // closing </span> and </a> are inert on their own; the OPENING tags are
     // the gated ones (a size off the ladder simply never opens a span)
     .replace(/&lt;\/(span|a)&gt;/g, "</$1>");

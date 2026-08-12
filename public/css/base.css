@@ -4606,19 +4606,36 @@ body.ui-peek iframe[src*="ko-fi"] {
 	font-size: 1.1rem;
 	line-height: 1.75;
 }
-.doc-block {
-	border-radius: 8px;
-	padding: 2px 8px;
-	margin: 0 -8px;
+/* Comment anchors: the underline IS the comment's presence in the prose.
+   The span lives in the saved html, so it travels with the words. */
+.cmt {
+	border-bottom: 2px solid color-mix(in srgb, var(--accent-2) 70%, transparent);
+	background: color-mix(in srgb, var(--accent-2) 10%, transparent);
 	cursor: pointer;
-	transition: background 0.15s;
+	transition: background 0.15s, border-color 0.15s;
 }
-.doc-block:hover {
-	background: var(--chip);
+.cmt:hover {
+	background: color-mix(in srgb, var(--accent-2) 20%, transparent);
 }
-.doc-block.sel {
-	background: var(--chip);
-	box-shadow: inset 3px 0 0 var(--accent);
+/* the pair the reader is looking at, in the prose and in the rail */
+.cmt.active,
+.doc-comment.active {
+	background: color-mix(in srgb, var(--accent) 22%, transparent);
+	border-color: var(--accent);
+}
+.doc-comment.active {
+	box-shadow: 0 0 0 2px var(--accent);
+}
+/* comment mode: the text stops being a writing surface and starts being a
+   thing you point at */
+.doc-editor.commenting {
+	cursor: text;
+	background: color-mix(in srgb, var(--accent-2) 4%, transparent);
+}
+.mode-toggle.on {
+	border-color: var(--accent);
+	color: var(--accent);
+	box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
 /* comments rail */
@@ -4675,13 +4692,78 @@ body.ui-peek iframe[src*="ko-fi"] {
 }
 .dc-actions {
 	display: flex;
+	flex-wrap: wrap; /* Accept + Reject + Delete must not widen the rail */
 	gap: 10px;
 	font-size: 0.78rem;
+}
+/* …and must not stretch to fill it either, the way form buttons do */
+.dc-actions .linky {
+	flex: 0 0 auto;
+	min-width: 0;
+	width: auto;
+	padding: 2px 0;
 }
 .dc-orphan-note {
 	font-size: 0.8rem;
 	color: var(--muted);
 	margin: 0 0 6px;
+}
+
+/* a proposed rewrite: what it says now, what it would say */
+.dc-suggest {
+	margin: 6px 0;
+	font-size: 0.88rem;
+	line-height: 1.5;
+	word-break: break-word;
+}
+.dc-suggest s {
+	color: var(--muted);
+}
+.dc-suggest ins {
+	text-decoration: none;
+	color: var(--accent);
+	font-weight: 600;
+}
+.dc-arrow {
+	color: var(--muted);
+	margin: 0 2px;
+}
+.dc-quote {
+	margin: 6px 0;
+	font-size: 0.82rem;
+	color: var(--muted);
+	border-left: 2px solid var(--accent-2);
+	padding-left: 8px;
+	word-break: break-word;
+}
+.dc-verdict {
+	margin: 4px 0 0;
+	font-size: 0.78rem;
+	color: var(--muted);
+}
+.dc-tag {
+	font-size: 0.68rem;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: var(--muted);
+	border: 1px solid var(--line);
+	border-radius: 6px;
+	padding: 0 4px;
+}
+.doc-comment.orphaned {
+	border-style: dashed;
+}
+.doc-comment {
+	cursor: pointer;
+}
+.dc-suggest-toggle {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 0.8rem;
+	color: var(--muted);
+	margin: 6px 0;
+	cursor: pointer;
 }
 .dc-new textarea {
 	width: 100%;

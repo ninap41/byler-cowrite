@@ -28,9 +28,15 @@ turns adding one line each under a ticking clock.
   spacing, and a **Rich text / HTML** switch — the HTML view is pretty-printed
   one block per line, and those cosmetic newlines are stripped again on the way
   back so they never become stray breaks.
-- **Beta readers** — share a draft with friends; they read and comment
-  (paragraph-anchored, resolvable) but never edit. Live presence shows who's
-  looking.
+- **Comment mode** — Google-Docs-style comments pinned to the exact words
+  they're about: the commented text is underlined, clicking either the
+  underline or the comment card jumps to the other, and resolved comments drop
+  their underline. The author toggles comment mode on their own draft to leave
+  notes to self.
+- **Beta readers** — share a draft with friends. They read and comment, never
+  edit: comment mode is the only mode they have, and a rewrite they type
+  becomes a **suggestion** (`old → new`) that only the author can Accept or
+  Reject. Live presence shows who's looking.
 - **Dashboard** — signed in, see who's online and join games in progress.
 - **Docked chat, sounds, three themes, GSAP-animated everything.**
 - **Export** — copy the finished story as formatted rich text or download a

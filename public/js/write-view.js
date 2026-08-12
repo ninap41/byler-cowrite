@@ -104,16 +104,37 @@ export const presenceHtml = (viewers) =>
 				.join("")
 
 // ---- comments ----
-export function commentHtml(c) {
+// A card knows what it's pinned to (`cid`), so clicking it can jump to the
+// underlined words and the underline can jump back. A comment carrying a
+// `suggestion` is a proposed rewrite: the AUTHOR gets Accept/Reject, everyone
+// else just sees what was proposed — the server enforces that either way.
+export function commentHtml(c, { isOwner = false, meName = "" } = {}) {
+	// Resolve/Delete are the server's rule made visible: only the comment's own
+	// author or the document's author may touch it. Showing those buttons to a
+	// beta reader on someone else's note would just be a click that does nothing.
+	const canManage = isOwner || (!!meName && c.author === meName)
+	const cls = ["doc-comment", c.resolved && "resolved", c.orphaned && "orphaned", c.suggestion != null && "suggested"]
+	const decided = c.resolved && c.suggestion != null
 	return (
-		`<li class="doc-comment${c.resolved ? " resolved" : ""}" data-id="${esc(c.id)}">` +
+		`<li class="${cls.filter(Boolean).join(" ")}" data-id="${esc(c.id)}" data-cid="${esc(c.cid || "")}">` +
 		`<span class="dc-who">${miniAvatar({ avatar: c.avatar, avatarFit: c.avatarFit, name: c.author, color: c.color })}` +
 		`<b style="color:${safeColor(c.color)}">${esc(c.author)}</b>` +
+		(c.isAuthor ? `<span class="dc-tag">author</span>` : "") +
 		`<span class="dc-when">${esc(fmtWhen(c.ts))}</span></span>` +
-		`<p class="dc-text">${esc(c.text)}</p>` +
+		(c.suggestion != null
+			? `<p class="dc-suggest"><s>${esc(c.quote || "")}</s> <span class="dc-arrow">→</span> <ins>${esc(c.suggestion)}</ins></p>`
+			: c.quote
+				? `<p class="dc-quote">${esc(c.quote)}</p>`
+				: "") +
+		(c.text ? `<p class="dc-text">${esc(c.text)}</p>` : "") +
+		(decided ? `<p class="dc-verdict">${c.accepted ? "✓ Accepted" : "Not taken"}</p>` : "") +
 		`<span class="dc-actions">` +
-		`<button class="linky dc-resolve" type="button">${c.resolved ? "Unresolve" : "Resolve"}</button>` +
-		`<button class="linky dc-del" type="button">Delete</button>` +
+		(c.suggestion != null && !c.resolved && isOwner
+			? `<button class="linky dc-accept" type="button">Accept</button><button class="linky dc-reject" type="button">Reject</button>`
+			: canManage
+				? `<button class="linky dc-resolve" type="button">${c.resolved ? "Unresolve" : "Resolve"}</button>`
+				: "") +
+		(canManage ? `<button class="linky dc-del" type="button">Delete</button>` : "") +
 		`</span>` +
 		`</li>`
 	)
@@ -121,11 +142,13 @@ export function commentHtml(c) {
 
 // Comments grouped under the block they're anchored to, plus any that lost
 // their anchor when the author edited that text.
-export function commentThreadHtml(comments, { orphaned = false } = {}) {
+export function commentThreadHtml(comments, { orphaned = false, isOwner = false, meName = "" } = {}) {
 	if (!comments.length) return ""
 	return (
-		(orphaned ? `<p class="dc-orphan-note">These comment${comments.length === 1 ? "" : "s"} were left on text that has since changed:</p>` : "") +
-		`<ul class="dc-list">${comments.map(commentHtml).join("")}</ul>`
+		(orphaned
+			? `<p class="dc-orphan-note">${comments.length === 1 ? "This comment was" : "These comments were"} left on text that has since changed:</p>`
+			: "") +
+		`<ul class="dc-list">${comments.map((c) => commentHtml(c, { isOwner, meName })).join("")}</ul>`
 	)
 }
 

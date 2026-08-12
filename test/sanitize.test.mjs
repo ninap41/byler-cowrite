@@ -2,7 +2,7 @@
 // fast, no server boot. The socket-level tests remain as integration cover.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { sanitizeRich, sanitizeDoc, DOC_MAX, FONT_SIZES, stripTags, sanitizeAbout, httpUrl, PALETTE, cleanColor } from "../src/sanitize.js";
+import { sanitizeRich, sanitizeDoc, DOC_MAX, FONT_SIZES, stripTags, sanitizeAbout, httpUrl, PALETTE, cleanColor, CID_RE, newCid } from "../src/sanitize.js";
 import { hashPassword, checkPassword } from "../src/passwords.js";
 
 test("sanitizeRich: allowlist survives, everything else inert, single escape", () => {
@@ -122,4 +122,46 @@ test("cleanColor only passes palette colors; hash/check round-trips", () => {
   assert.notEqual(h, hashPassword("hunter22"), "salted");
   assert.equal(checkPassword("hunter22", h), true);
   assert.equal(checkPassword("wrong", h), false);
+});
+
+// ---- comment anchors ----
+// data-cid is the ONLY data attribute sanitizeDoc lets through. It survives in
+// exactly one shape; every near-miss must stay inert escaped text.
+test("sanitizeDoc: a well-formed comment anchor survives", () => {
+  const cid = newCid();
+  assert.match(cid, CID_RE, "newCid mints the closed shape");
+  assert.equal(
+    sanitizeDoc(`<p>his <span class="cmt" data-cid="${cid}">striped shirt</span> hangs</p>`),
+    `<p>his <span class="cmt" data-cid="${cid}">striped shirt</span> hangs</p>`,
+  );
+});
+
+test("sanitizeDoc: anchors with anything but a 12-hex cid stay escaped text", () => {
+  for (const bad of [
+    '<span class="cmt" data-cid="../../etc">x</span>',
+    '<span class="cmt" data-cid="ZZZZZZZZZZZZ">x</span>',
+    '<span class="cmt" data-cid="abc">x</span>',
+    '<span class="cmt" data-cid="0123456789abcdef">x</span>',
+    '<span class="cmt">x</span>',
+  ]) {
+    const out = sanitizeDoc(bad);
+    assert.ok(!out.includes('<span class="cmt"'), bad + " -> " + out);
+    assert.ok(out.includes("&lt;span"), bad);
+  }
+});
+
+test("sanitizeDoc: an anchor cannot smuggle a second attribute", () => {
+  const out = sanitizeDoc('<span class="cmt" data-cid="0123456789ab" onclick="steal()">x</span>');
+  assert.ok(!out.includes('<span class="cmt"'), "the whole opening tag is rejected, not trimmed");
+  assert.ok(!/onclick=[^&]/.test(out), "onclick survives only as inert escaped text: " + out);
+});
+
+test("sanitizeDoc: data-cid on any other tag is not an anchor", () => {
+  const out = sanitizeDoc('<p data-cid="0123456789ab">x</p><img data-cid="0123456789ab">');
+  assert.ok(!out.includes("data-cid=\"0123456789ab\"") || !/<(p|img)[^>]*data-cid/.test(out), out);
+});
+
+test("newCid: distinct ids", () => {
+  const seen = new Set(Array.from({ length: 200 }, () => newCid()));
+  assert.equal(seen.size, 200);
 });

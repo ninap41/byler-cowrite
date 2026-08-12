@@ -45,6 +45,11 @@
 						<button class="mode-btn on" id="modeRich" type="button" aria-pressed="true" title="Write with the toolbar">✎ Rich text</button>
 						<button class="mode-btn" id="modeHtml" type="button" aria-pressed="false" title="Edit the raw HTML">&lt;/&gt; HTML</button>
 					</div>
+					<!-- Comment mode: editing off, selecting text leaves a note on it.
+					     Beta readers are locked into it and never see it toggle. -->
+					<button class="ghost mode-toggle" id="commentToggle" type="button" aria-pressed="false" title="Comment on the text instead of editing it">
+						💬 Comment mode
+					</button>
 					<!-- external reference: opens in its own tab so the draft is never navigated away from -->
 					<a
 						class="ghost"
@@ -112,14 +117,12 @@
 							Type <b>/</b> for action verbs, dialogue tags and more · Ctrl/⌘+S to save · autosaved locally every 30s
 						</p>
 
-						<!-- read-only rendering readers comment on -->
-						<div class="doc-read hidden" id="docRead"></div>
 					</div>
 
 					<aside class="doc-side" id="docSide">
 						<div class="card doc-side-card">
 							<h3 class="dash-h">💬 Comments</h3>
-							<p class="subtle" id="commentHelp">Click a paragraph to comment on it.</p>
+							<p class="subtle" id="commentHelp">Turn on comment mode to leave notes on your own words.</p>
 							<div id="commentPane"></div>
 						</div>
 					</aside>
@@ -166,7 +169,7 @@
 			import { api, getToken } from "/js/api.js"
 			import { mountChrome, setUserChip } from "/js/chrome.js"
 			import { requireAuth } from "/js/auth-guard.js"
-			import { cleanHtml, asterisksToTags, FONT_SIZES } from "/js/components/editor.js"
+			import { cleanHtml, asterisksToTags, FONT_SIZES, newCid } from "/js/components/editor.js"
 			import { loadPrefs, savePrefs, stepLine, DEFAULT_LINE } from "/js/doc-prefs.js"
 			import { mountSlashPalette } from "/js/components/slash-palette.js"
 			import { loadDraft, saveDraft, clearDraft, draftIsNewer } from "/js/doc-store.js"
@@ -185,7 +188,10 @@
 			let dirty = false
 			let sourceMode = false
 			let comments = []
-			let activeBlock = null
+			let commentMode = false
+			let activeCid = null // the comment whose words are highlighted
+			let pendingRange = null // the selection the composer is about to anchor
+			let composerTimer = null
 			let socket = null
 
 			// ---- dirty tracking ----
@@ -222,16 +228,18 @@
 				const canEdit = doc.mine
 				$("docTitle").disabled = !canEdit
 				if (!canEdit) {
-					// beta readers get the read-only view + commenting
+					// Beta readers read the SAME editor element — that's what makes the
+					// underlines and the click-to-jump identical for both sides — but
+					// it is never contentEditable for them, and every writing control
+					// is gone. Comment mode is the only mode they have.
 					$("docToolbar").classList.add("hidden")
-					$("docEditor").classList.add("hidden")
 					$("modeSwitch").classList.add("hidden")
+					$("commentToggle").classList.add("hidden")
 					$("shareBtn").classList.add("hidden")
 					$("saveBtn").classList.add("hidden")
 					$("editorHint").classList.add("hidden")
-					$("docRead").classList.remove("hidden")
-					$("commentHelp").textContent = "Click a paragraph to leave a note for the author."
 				}
+				setCommentMode(!canEdit) // readers start (and stay) in comment mode
 				renderDoc()
 				updateWords()
 				setDirty(false)
@@ -241,110 +249,207 @@
 				connect()
 			}
 
-			// Split the doc into blocks so comments can anchor to one. The wrapper
-			// (and its data-idx) is built HERE, client-side — the stored html never
-			// carries attributes, so the sanitizer stays narrow.
-			const hashBlock = (text) => {
-				let h = 0
-				const s = String(text).trim().slice(0, 400)
-				for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0
-				return String(h)
+			// ---- comment mode ----
+			// Google Docs' model: a comment is pinned to the WORDS it's about, by a
+			// marker span living in the doc's html — <span class="cmt" data-cid="…">.
+			// The underline is that span's CSS, so it moves with the text and
+			// survives edits elsewhere in the paragraph. Clicking either half —
+			// underline or card — jumps to and highlights the other.
+			//
+			// Comment mode is a toggle for the author (off = the normal editor).
+			// Beta readers are locked INTO it: the editor is never editable for
+			// them, so their only way to change anything is to propose it, which
+			// is what makes "their edits turn into comments" true by construction
+			// rather than by politeness. The server re-checks all of this.
+			const canEditDoc = () => !!doc?.mine
+			const anchorsInDoc = () => [...$("docEditor").querySelectorAll("span.cmt[data-cid]")]
+
+			function setCommentMode(on) {
+				commentMode = canEditDoc() ? !!on : true // readers can never leave it
+				palette?.close()
+				$("docEditor").contentEditable = String(!commentMode && canEditDoc())
+				$("commentToggle").classList.toggle("on", commentMode)
+				$("commentToggle").setAttribute("aria-pressed", String(commentMode))
+				$("docToolbar").classList.toggle("dimmed", commentMode || sourceMode)
+				$("docEditor").classList.toggle("commenting", commentMode)
+				$("commentHelp").textContent = commentMode
+					? "Select any words in the story to comment on them."
+					: canEditDoc()
+						? "Turn on comment mode to leave notes on your own words."
+						: "Select any words in the story to comment on them."
+				if (!commentMode) clearComposer()
 			}
 
-			function blocksOf(html) {
-				const box = document.createElement("div")
-				box.innerHTML = html || ""
-				return [...box.children]
+			// Highlight one comment's words and its card together, and bring
+			// whichever half you didn't click into view.
+			function focusComment(cid, { scroll = "both" } = {}) {
+				activeCid = cid || null
+				anchorsInDoc().forEach((a) => a.classList.toggle("active", a.dataset.cid === cid))
+				$("commentPane")
+					.querySelectorAll(".doc-comment")
+					.forEach((li) => li.classList.toggle("active", li.dataset.cid === cid))
+				if (!cid) return
+				const anchor = anchorsInDoc().find((a) => a.dataset.cid === cid)
+				const card = $("commentPane").querySelector(`.doc-comment[data-cid="${CSS.escape(cid)}"]`)
+				if (scroll !== "card" && anchor) anchor.scrollIntoView({ behavior: "smooth", block: "center" })
+				if (scroll !== "anchor" && card) card.scrollIntoView({ behavior: "smooth", block: "nearest" })
+			}
+
+			// Click an underline -> go to its comment.
+			$("docEditor").addEventListener("click", (e) => {
+				const a = e.target.closest("span.cmt[data-cid]")
+				if (!a) return
+				focusComment(a.dataset.cid, { scroll: "card" })
+			})
+
+			// Cards are ordered by where their words sit in the story, so the pane
+			// reads top-to-bottom like the prose does. Comments whose anchor is gone
+			// (the author rewrote that passage) fall to the bottom as orphans.
+			function renderComments() {
+				const order = anchorsInDoc().map((a) => a.dataset.cid)
+				const anchored = (c) => c.cid && order.includes(c.cid)
+				const live = comments.filter((c) => !c.resolved && anchored(c))
+				// Resolving or deciding a comment deliberately removes its anchor, so
+				// "no anchor" alone doesn't mean orphaned — only an UNRESOLVED comment
+				// whose words are gone has actually lost track of what it was about.
+				const orphans = comments.filter((c) => !c.resolved && !anchored(c))
+				const done = comments.filter((c) => c.resolved)
+				live.sort((a, b) => order.indexOf(a.cid) - order.indexOf(b.cid))
+				const isOwner = canEditDoc()
+				const opts = { isOwner, meName: me?.username || "" }
+				let html = live.map((c) => commentThreadHtml([c], opts)).join("")
+				if (orphans.length) html += `<div class="dc-group orphan">${commentThreadHtml(orphans, { ...opts, orphaned: true })}</div>`
+				if (done.length)
+					html += `<div class="dc-group done"><p class="dc-orphan-note">Done (${done.length})</p>${commentThreadHtml(done, opts)}</div>`
+				$("commentPane").innerHTML = html || `<p class="subtle">No comments yet.</p>`
+				if (activeCid) focusComment(activeCid, { scroll: "none" })
+				renderComposer()
 			}
 
 			function renderDoc() {
-				if (doc.mine) return renderComments()
-				const blocks = blocksOf(doc.html)
-				$("docRead").innerHTML = blocks.length
-					? blocks
-							.map((b, i) => `<div class="doc-block" data-idx="${i}" data-hash="${hashBlock(b.textContent)}">${b.outerHTML}</div>`)
-							.join("")
-					: `<p class="empty">Nothing written yet.</p>`
 				renderComments()
 			}
 
-			// Anchor by index, then re-anchor by content hash if the author edited
-			// above it, else show it as an orphan rather than dropping it silently.
-			function renderComments() {
-				const source = doc.mine ? blocksOf($("docEditor").innerHTML) : blocksOf(doc.html)
-				const hashes = source.map((b) => hashBlock(b.textContent))
-				const anchored = new Map()
-				const orphans = []
-				for (const c of comments) {
-					let idx = -1
-					if (hashes[c.blockIdx] === c.blockHash) idx = c.blockIdx
-					else {
-						const found = hashes.indexOf(c.blockHash)
-						if (found >= 0) idx = found
-					}
-					if (idx < 0) orphans.push(c)
-					else anchored.set(idx, [...(anchored.get(idx) || []), c])
-				}
-				let html = ""
-				for (const [idx, list] of [...anchored.entries()].sort((a, b) => a[0] - b[0])) {
-					const preview = (source[idx]?.textContent || "").slice(0, 60)
-					html += `<div class="dc-group" data-idx="${idx}"><p class="dc-anchor">${esc(preview)}…</p>${commentThreadHtml(list)}</div>`
-				}
-				if (orphans.length) html += `<div class="dc-group orphan">${commentThreadHtml(orphans, { orphaned: true })}</div>`
-				$("commentPane").innerHTML = html || `<p class="subtle">No comments yet.</p>`
-				renderNewCommentBox()
+			// ---- the composer ----
+			// Opened by selecting text in comment mode. It holds the note AND the
+			// suggestion box: typing a different wording there is how an edit
+			// becomes a proposal the author can accept.
+			function clearComposer() {
+				pendingRange = null
+				$("commentPane").querySelector(".dc-new")?.remove()
 			}
 
-			function renderNewCommentBox() {
-				if (activeBlock == null) return
+			function renderComposer() {
+				if (!pendingRange) return
+				const quote = pendingRange.toString().trim()
 				const box = document.createElement("div")
 				box.className = "dc-new"
 				box.innerHTML =
-					`<textarea id="newComment" rows="3" placeholder="Leave a note on this paragraph…"></textarea>` +
+					`<p class="dc-quote">${esc(quote.slice(0, 200))}</p>` +
+					`<textarea id="newComment" rows="3" placeholder="Leave a note…"></textarea>` +
+					`<label class="dc-suggest-toggle"><input type="checkbox" id="suggestOn" /> Suggest a rewrite</label>` +
+					`<textarea id="newSuggestion" class="hidden" rows="2"></textarea>` +
 					`<div class="row"><button class="ghost" id="newCancel" type="button">Cancel</button>` +
 					`<button class="primary" id="newSend" type="button">Comment</button></div>`
 				$("commentPane").prepend(box)
-				$("newSend").addEventListener("click", sendComment)
-				$("newCancel").addEventListener("click", () => {
-					activeBlock = null
-					renderComments()
+				$("suggestOn").addEventListener("change", () => {
+					const on = $("suggestOn").checked
+					$("newSuggestion").classList.toggle("hidden", !on)
+					// prefilled with the current words, so editing them IS the suggestion
+					if (on) {
+						$("newSuggestion").value = quote
+						$("newSuggestion").focus()
+						$("newSuggestion").select()
+					}
+					$("newSend").textContent = on ? "Suggest" : "Comment"
 				})
+				$("newSend").addEventListener("click", sendComment)
+				$("newCancel").addEventListener("click", () => (clearComposer(), renderComments()))
 				$("newComment").focus()
 			}
 
+			// Selecting words in comment mode offers to comment on them.
+			document.addEventListener("selectionchange", () => {
+				if (!commentMode || !doc) return
+				const sel = window.getSelection()
+				if (!sel || !sel.rangeCount || sel.isCollapsed) return
+				const r = sel.getRangeAt(0)
+				if (!$("docEditor").contains(r.commonAncestorContainer)) return
+				if (!r.toString().trim()) return
+				pendingRange = r.cloneRange()
+				clearTimeout(composerTimer)
+				// debounced: a drag fires selectionchange on every mousemove
+				composerTimer = setTimeout(() => {
+					$("commentPane").querySelector(".dc-new")?.remove()
+					renderComposer()
+				}, 250)
+			})
+
+			// Wrap the selected words in a fresh anchor and send the WHOLE html.
+			// The server accepts it only if stripping that one anchor gives back
+			// exactly what it stored — which is what stops a beta reader's
+			// "comment" from carrying an edit along with it.
 			function sendComment() {
 				const text = $("newComment").value.trim()
-				if (!text || activeBlock == null) return
-				const source = doc.mine ? blocksOf($("docEditor").innerHTML) : blocksOf(doc.html)
-				socket?.emit("doc-comment", {
-					auth: getToken(),
-					id: docId,
-					blockIdx: activeBlock,
-					blockHash: hashBlock(source[activeBlock]?.textContent || ""),
-					text,
-				})
-				activeBlock = null
+				const suggestion = $("suggestOn")?.checked ? $("newSuggestion").value.trim() : null
+				if ((!text && suggestion == null) || !pendingRange) return
+				const cid = newCid()
+				const span = document.createElement("span")
+				span.className = "cmt"
+				span.dataset.cid = cid
+				try {
+					pendingRange.surroundContents(span)
+				} catch (e) {
+					// the selection crosses an element boundary — extract instead
+					span.appendChild(pendingRange.extractContents())
+					pendingRange.insertNode(span)
+				}
+				const html = cleanHtml($("docEditor"), { doc: true })
+				socket?.emit("doc-comment", { auth: getToken(), id: docId, cid, html, text, suggestion })
+				// The author owns the html, so their copy is now dirty and must be
+				// saved; a reader's copy is only a local echo of what they proposed.
+				if (canEditDoc()) setDirty(true)
+				clearComposer()
+				window.getSelection()?.removeAllRanges()
+				activeCid = cid
 			}
 
-			// Readers pick a paragraph to comment on.
-			$("docRead").addEventListener("click", (e) => {
-				const b = e.target.closest(".doc-block")
-				if (!b) return
-				$("docRead").querySelectorAll(".doc-block").forEach((x) => x.classList.remove("sel"))
-				b.classList.add("sel")
-				activeBlock = Number(b.dataset.idx)
-				renderComments()
-			})
+			// Accept: the anchored words become the proposed ones. Reject: the words
+			// stand and only the underline goes. Mirrors applySuggestion/stripAnchor
+			// on the server, which stays the authority — this is the author's own
+			// view keeping up with their click.
+			function decideLocally(c, accept) {
+				if (!c || !canEditDoc()) return
+				const span = anchorsInDoc().find((a) => a.dataset.cid === c.cid)
+				if (!span) return
+				if (accept && typeof c.suggestion === "string") span.replaceWith(document.createTextNode(c.suggestion))
+				else span.replaceWith(...span.childNodes)
+				if (activeCid === c.cid) activeCid = null
+				setDirty(true)
+				updateWords()
+			}
+
+			$("commentToggle").addEventListener("click", () => setCommentMode(!commentMode))
 
 			$("commentPane").addEventListener("click", (e) => {
 				const li = e.target.closest(".doc-comment")
 				if (!li) return
 				const commentId = li.dataset.id
-				if (e.target.closest(".dc-resolve"))
+				if (e.target.closest(".dc-accept") || e.target.closest(".dc-reject")) {
+					// The author is the only one who can decide, and it's their editor
+					// that has to change. Apply it HERE as well as on the server: their
+					// copy is dirty the moment they place an anchor, and a dirty editor
+					// ignores incoming html pushes rather than moving their caret.
+					const accept = !!e.target.closest(".dc-accept")
+					decideLocally(comments.find((c) => c.id === commentId), accept)
+					socket?.emit("doc-comment-decide", { auth: getToken(), id: docId, commentId, accept })
+				}
+				else if (e.target.closest(".dc-resolve"))
 					socket?.emit("doc-comment-resolve", { auth: getToken(), id: docId, commentId, resolved: !li.classList.contains("resolved") })
 				else if (e.target.closest(".dc-del")) socket?.emit("doc-comment-delete", { auth: getToken(), id: docId, commentId })
+				// a plain click on the card jumps to the words it's about
+				else focusComment(li.dataset.cid || null, { scroll: "anchor" })
 			})
-
 			// ---- editing ----
 			// Prefer real tags over <span style> for execCommand output.
 			try { document.execCommand("styleWithCSS", false, false) } catch (e) {}
@@ -568,6 +673,7 @@
 			function setMode(toSource) {
 				if (toSource === sourceMode) return
 				palette?.close() // don't leave the reference menu floating over the source
+				if (toSource && commentMode) setCommentMode(false) // can't point at words you can't see
 				if (toSource) {
 					$("docSource").value = formatSource(cleanHtml($("docEditor"), { doc: true }))
 				} else {
@@ -748,6 +854,22 @@
 					doc.html = html
 					doc.title = title
 					$("docTitle").value = title
+					$("docEditor").innerHTML = html || ""
+					renderDoc()
+				})
+				// The html itself changed: someone anchored a comment, or a suggestion
+				// was accepted. Re-rendering moves the caret, so an author with
+				// unsaved edits is told rather than interrupted — their next save
+				// carries their own copy of the anchors anyway.
+				socket.on("doc-html", ({ id, html, wordCount }) => {
+					if (id !== docId) return
+					doc.html = html
+					if (dirty && doc.mine) {
+						$("docErr").textContent = "New comments arrived — save to see them underlined in place."
+						return
+					}
+					$("docEditor").innerHTML = html || ""
+					if (typeof wordCount === "number") $("wordCount").textContent = wordsLabel(wordCount)
 					renderDoc()
 				})
 				socket.on("doc-access-lost", ({ id }) => {
