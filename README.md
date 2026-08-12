@@ -22,6 +22,15 @@ turns adding one line each under a ticking clock.
   code can be rejoined or continued later, from any device (signed-in seat
   reclaim). Started/continued games gate new entries behind host approval,
   with a 5-minute cooldown after a denial.
+- **Solo writes** — `/writes` and `/write`: a full document editor outside the
+  game. Autosaving drafts, headings/lists/quotes/links/images, a font-size
+  ladder, a `/` palette of action verbs and dialogue tags, per-browser line
+  spacing, and a **Rich text / HTML** switch — the HTML view is pretty-printed
+  one block per line, and those cosmetic newlines are stripped again on the way
+  back so they never become stray breaks.
+- **Beta readers** — share a draft with friends; they read and comment
+  (paragraph-anchored, resolvable) but never edit. Live presence shows who's
+  looking.
 - **Dashboard** — signed in, see who's online and join games in progress.
 - **Docked chat, sounds, three themes, GSAP-animated everything.**
 - **Export** — copy the finished story as formatted rich text or download a
@@ -43,9 +52,11 @@ The working store is plain JSON files. Two directories hold everything:
 |---|---|---|
 | `data/users.json` | accounts, sessions, reset tokens | `saveStore()` in `server.js` |
 | `saves/<CODE>.json` | one snapshot per game (story, chat, seats, rules) | `saveSnapshot()` in `server.js` |
+| `data/docs/<id>.json` | one solo-write document (html, beta readers, comments) | `writeDoc()` in `src/docs.js` |
 
-Both paths can be relocated with the `COWRITE_DATA_DIR` and `COWRITE_SAVE_DIR`
-environment variables (the test suite uses this to stay isolated).
+These paths can be relocated with the `COWRITE_DATA_DIR`, `COWRITE_SAVE_DIR`
+and `COWRITE_DOC_DIR` environment variables (the test suite uses this to stay
+isolated).
 
 **Deploy durability**: when `DATABASE_URL` is set, `src/persist.js` mirrors
 every file write into a Postgres blob table and restores the files at boot —
@@ -110,6 +121,7 @@ at this scale (a few MB, a write per committed line) is pennies per month.
 ## Editing the prompt bank
 
 Edit `prompts.json` — one scenario string per array entry. No code changes.
+The `/` palette in solo writes reads `writers-reference/` the same way.
 
 ## Development notes
 

@@ -16,9 +16,11 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // With DATABASE_URL set (Replit Postgres), restore data/ and saves/ from the
 // blob mirror BEFORE store.js/game.js load — they read those files at import.
+const DATA_DIR = process.env.COWRITE_DATA_DIR || join(__dirname, "data");
 await initPersistence({
-  dataDir: process.env.COWRITE_DATA_DIR || join(__dirname, "data"),
+  dataDir: DATA_DIR,
   saveDir: process.env.COWRITE_SAVE_DIR || join(__dirname, "saves"),
+  docDir: process.env.COWRITE_DOC_DIR || join(DATA_DIR, "docs"),
 });
 const { createGame } = await import("./src/game.js");
 const { registerRoutes } = await import("./src/routes.js");
@@ -39,7 +41,7 @@ app.use(express.json());
 
 // Clean page URLs for the multi-page app (auth is enforced client-side +
 // on every API/socket call — these are just static files).
-for (const page of ["dashboard", "game", "archive", "stories", "profile", "settings"])
+for (const page of ["dashboard", "game", "archive", "stories", "profile", "settings", "write", "writes"])
   app.get("/" + page, (_req, res) => res.sendFile(join(__dirname, "public", page + ".html")));
 
 const game = createGame(io); // owns sessions, presence, saves/, socket handlers

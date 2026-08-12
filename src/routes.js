@@ -5,7 +5,12 @@ import { randomUUID } from "crypto";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import { WORD_TIERS, USAGE, USAGE_OPEN, badgeName, awardWordBadges } from "../lib/achievements.js";
-import { cleanColor, stripTags, httpUrl, sanitizeAbout } from "./sanitize.js";
+import { cleanColor, stripTags, httpUrl, sanitizeAbout, sanitizeDoc } from "./sanitize.js";
+import {
+  readDoc, writeDoc, createDoc, deleteDoc, listDocsFor, docSummary,
+  canView, canEdit, isReader, cleanTitle,
+} from "./docs.js";
+import { referenceBundle } from "./reference.js";
 import { hashPassword, checkPassword } from "./passwords.js";
 import {
   store, saveStore, EMAIL_RE, ADMIN_EMAILS,
@@ -44,7 +49,7 @@ async function sendResetEmail(to, link) {
 }
 
 export function registerRoutes(app, game) {
-  const { sessions, onlineSockets, SAVE_DIR, gameSummary, freshStory, inGame, myGamesFor, recentGamesFor, deleteGame, renameUser, setTags } = game;
+  const { sessions, onlineSockets, SAVE_DIR, gameSummary, freshStory, inGame, myGamesFor, recentGamesFor, deleteGame, renameUser, setTags, commentRows, closeDocFor, closeDocReaders } = game;
 
   // Random tagline quote for the homepage hero. quotes.json (repo root, one
   // string per entry) is hand-editable and re-read on every request, so new
@@ -563,6 +568,130 @@ export function registerRoutes(app, game) {
     } catch {
       res.status(404).json({ error: "Not found." });
     }
+  });
+
+  // ---- Solo writes ----
+  // Documents, not games: no timers, no turns. The author owns the doc; friends
+  // invited as beta readers can open it (once shared) and comment per line.
+  // Durable CRUD lives here; presence and live comment fan-out are sockets.
+
+  // The slash-command word bank. Static, auth'd only to keep it off the public
+  // surface — it's read once at startup, so this is a cheap constant response.
+  app.get("/api/reference", (req, res) => {
+    if (!authedUser(req)) return res.status(401).json({ error: "Sign in first." });
+    res.json(referenceBundle);
+  });
+
+  const nameOf = (id) => store.users.find((x) => x.id === id)?.username || "";
+  // Reader rows carry what the presence/avatar UI needs.
+  const readerRows = (doc) =>
+    (doc.betaReaders || [])
+      .map((id) => store.users.find((x) => x.id === id))
+      .filter(Boolean)
+      .map((x) => ({
+        username: x.username, color: x.color,
+        avatar: x.avatar || "", avatarFit: x.avatarFit || "cover",
+      }));
+  // commentRows comes from game.js so HTTP and socket payloads can never drift.
+  const docPayload = (doc, u) => ({
+    ...docSummary(doc, nameOf),
+    html: doc.html || "",
+    mine: doc.ownerId === u.id,
+    readerRows: readerRows(doc),
+    comments: commentRows(doc),
+  });
+
+  app.get("/api/docs", (req, res) => {
+    const u = authedUser(req);
+    if (!u) return res.status(401).json({ error: "Sign in first." });
+    res.json({ docs: listDocsFor(u.id, nameOf) });
+  });
+
+  app.post("/api/docs", (req, res) => {
+    const u = authedUser(req);
+    if (!u) return res.status(401).json({ error: "Sign in first." });
+    res.json({ doc: docPayload(createDoc(u.id, req.body?.title || "Untitled"), u) });
+  });
+
+  app.get("/api/docs/:id", (req, res) => {
+    const u = authedUser(req);
+    if (!u) return res.status(401).json({ error: "Sign in first." });
+    const doc = readDoc(req.params.id);
+    if (!doc) return res.status(404).json({ error: "No such document." });
+    if (!canView(doc, u.id)) return res.status(403).json({ error: "That document isn't shared with you." });
+    res.json({ doc: docPayload(doc, u) });
+  });
+
+  // Save. The body is rich text headed for other people's DOM — sanitizeDoc()
+  // here is the trust boundary; the client's cleanHtml() is only convenience.
+  app.put("/api/docs/:id", (req, res) => {
+    const u = authedUser(req);
+    if (!u) return res.status(401).json({ error: "Sign in first." });
+    const doc = readDoc(req.params.id);
+    if (!doc) return res.status(404).json({ error: "No such document." });
+    if (!canEdit(doc, u.id)) return res.status(403).json({ error: "Only the author can edit this." });
+    if (typeof req.body?.title === "string") doc.title = cleanTitle(req.body.title);
+    if (typeof req.body?.html === "string") doc.html = sanitizeDoc(req.body.html);
+    writeDoc(doc);
+    res.json({ doc: docPayload(doc, u) });
+  });
+
+  app.delete("/api/docs/:id", (req, res) => {
+    const u = authedUser(req);
+    if (!u) return res.status(401).json({ error: "Sign in first." });
+    const doc = readDoc(req.params.id);
+    if (!doc) return res.status(404).json({ error: "No such document." });
+    if (!canEdit(doc, u.id)) return res.status(403).json({ error: "Only the author can delete this." });
+    deleteDoc(doc.id);
+    res.json({ ok: true });
+  });
+
+  // Invite a beta reader. Deliberately friends-only: sharing a draft is a
+  // trust decision, and `friends` is the trust relationship we already have.
+  app.post("/api/docs/:id/readers", (req, res) => {
+    const u = authedUser(req);
+    if (!u) return res.status(401).json({ error: "Sign in first." });
+    const doc = readDoc(req.params.id);
+    if (!doc) return res.status(404).json({ error: "No such document." });
+    if (!canEdit(doc, u.id)) return res.status(403).json({ error: "Only the author can invite readers." });
+    const target = findByUsername(req.body?.username);
+    if (!target) return res.status(404).json({ error: "No writer by that name." });
+    if (target.id === u.id) return res.status(400).json({ error: "That's you!" });
+    if (!(u.friends || []).includes(target.id))
+      return res.status(400).json({ error: "You can only invite friends as beta readers." });
+    if (isReader(doc, target.id)) return res.status(400).json({ error: "They're already a beta reader." });
+    doc.betaReaders = [...(doc.betaReaders || []), target.id];
+    writeDoc(doc);
+    target.inbox = target.inbox || [];
+    target.inbox.unshift(makeMsg("doc-invite", u.id, `${u.username} added you as a beta reader on “${doc.title}”.`));
+    saveStore();
+    res.json({ doc: docPayload(doc, u) });
+  });
+
+  app.delete("/api/docs/:id/readers/:username", (req, res) => {
+    const u = authedUser(req);
+    if (!u) return res.status(401).json({ error: "Sign in first." });
+    const doc = readDoc(req.params.id);
+    if (!doc) return res.status(404).json({ error: "No such document." });
+    if (!canEdit(doc, u.id)) return res.status(403).json({ error: "Only the author can remove readers." });
+    const target = findByUsername(req.params.username);
+    if (!target) return res.status(404).json({ error: "No writer by that name." });
+    doc.betaReaders = (doc.betaReaders || []).filter((id) => id !== target.id);
+    writeDoc(doc);
+    closeDocFor(doc.id, target.id); // boot them out of the live room
+    res.json({ doc: docPayload(doc, u) });
+  });
+
+  app.post("/api/docs/:id/visibility", (req, res) => {
+    const u = authedUser(req);
+    if (!u) return res.status(401).json({ error: "Sign in first." });
+    const doc = readDoc(req.params.id);
+    if (!doc) return res.status(404).json({ error: "No such document." });
+    if (!canEdit(doc, u.id)) return res.status(403).json({ error: "Only the author can share this." });
+    doc.visibility = req.body?.visibility === "readers" ? "readers" : "private";
+    writeDoc(doc);
+    if (doc.visibility === "private") closeDocReaders(doc.id, doc.ownerId);
+    res.json({ doc: docPayload(doc, u) });
   });
 
   // ---- Previous-games archive (read-only, backed by saves/*.json snapshots) ----

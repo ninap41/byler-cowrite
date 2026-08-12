@@ -21,6 +21,51 @@ export function sanitizeRich(html) {
 
 export const stripTags = (html) => html.replace(/<[^>]+>/g, "").replace(/&[a-z#0-9]+;/gi, " ").trim();
 
+// Solo-write documents. Same escape-everything-then-re-enable shape as
+// sanitizeRich, but a document-sized cap and a wider allowlist (lists, quotes,
+// strikethrough, links, images). Kept SEPARATE from sanitizeRich on purpose:
+// the game depends on that narrow subset, and widening it there would let a
+// story line carry an <a>/<img> it was never meant to.
+export const DOC_MAX = 200000;
+
+// Font sizes are a FIXED LADDER rendered as classes (fs-18), never as an
+// inline style. A free-form `style="font-size:…"` would mean letting an
+// attribute through the boundary and parsing a css value; a closed set of
+// class names has no injection surface at all — anything off this list stays
+// escaped text. Mirrored in public/js/write-view.js for the client.
+export const FONT_SIZES = [12, 14, 16, 18, 20, 24, 28, 32, 36, 48];
+const FS_RE = new RegExp(`&lt;span class=&quot;fs-(${FONT_SIZES.join("|")})&quot;&gt;`, "g");
+
+export function sanitizeDoc(html) {
+  let out = String(html).slice(0, DOC_MAX)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  out = out
+    // inline + block formatting, no attributes
+    .replace(/&lt;(\/?)(b|i|u|s|strong|em|del|h1|h2|h3|p|ul|ol|li|blockquote)&gt;/g, "<$1$2>")
+    // the two alignment classes, on blocks only
+    .replace(/&lt;(h1|h2|h3|p|blockquote) class=&quot;al-(c|r)&quot;&gt;/g, '<$1 class="al-$2">')
+    .replace(/&lt;(br|hr)\s*\/?&gt;/g, "<$1>")
+    // font-size spans, from the closed ladder only
+    .replace(FS_RE, '<span class="fs-$1">')
+    // closing </span> and </a> are inert on their own; the OPENING tags are
+    // the gated ones (a size off the ladder simply never opens a span)
+    .replace(/&lt;\/(span|a)&gt;/g, "</$1>");
+  // Links: only http/https survive; anything else stays inert escaped text.
+  out = out.replace(/&lt;a href=&quot;(.+?)&quot;&gt;/gi, (whole, escapedHref) => {
+    const href = unescapeEntities(escapedHref);
+    return httpUrl(href)
+      ? `<a href="${escAttr(href)}" target="_blank" rel="noopener noreferrer nofollow">`
+      : whole;
+  });
+  // Images: same url gate as sanitizeAbout.
+  out = out.replace(/&lt;img\s+src=&quot;(.+?)&quot;\s*\/?&gt;/gi, (whole, escapedSrc) => {
+    const src = unescapeEntities(escapedSrc);
+    return httpUrl(src) ? `<img class="doc-img" src="${escAttr(src)}" alt="" loading="lazy">` : whole;
+  });
+  return out;
+}
+
 // http/https only — rejects javascript:, data:, etc.
 export const httpUrl = (v) => {
   try {

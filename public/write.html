@@ -1,0 +1,778 @@
+<!doctype html>
+<html lang="en" data-theme="neon">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<script>
+			// Apply the saved theme before first paint (initTheme() re-validates it later)
+			try { var _t = localStorage.getItem("cowriteTheme"); if (_t) document.documentElement.setAttribute("data-theme", _t) } catch (e) {}
+		</script>
+		<title>Byler Cowrite — Solo Write</title>
+		<link rel="icon" type="image/x-icon" href="./favicon.ico?v=2" />
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,900;1,9..144,400;1,9..144,600&family=Inconsolata:wght@400;600;700&family=Orbitron:wght@500;700;900&family=Space+Grotesk:wght@400;500;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+			rel="stylesheet"
+		/>
+		<link rel="stylesheet" href="/css/base.css" />
+	</head>
+	<body>
+		<div class="wrap">
+			<div class="write-inner">
+				<div class="archive-head">
+					<a class="ghost" href="/writes" id="backBtn" style="text-decoration: none; padding: 10px 16px; border-radius: 12px">← All writes</a>
+					<input id="docTitle" class="doc-title-input" placeholder="Untitled" maxlength="80" />
+				</div>
+
+				<div class="doc-statusbar">
+					<span id="saveState" class="doc-save-state">Saved</span>
+					<span class="doc-dot">·</span>
+					<span id="wordCount" class="subtle">0 words</span>
+					<!-- beta readers currently viewing; hover shows the name -->
+					<span class="presence-row" id="presenceRow"></span>
+					<span class="doc-spacer"></span>
+					<!-- Line spacing is a VIEW preference: it never enters the html,
+					     never reaches the server, and is remembered per browser. -->
+					<span class="stepper pref-stepper" id="lineStepper" data-tip="Line spacing — your view only, not saved into the story">
+						<span class="step-label">↕</span>
+						<button class="step-btn" id="lsDown" type="button" aria-label="Tighter line spacing">−</button>
+						<span class="step-value" id="lsValue">1.7</span>
+						<button class="step-btn" id="lsUp" type="button" aria-label="Looser line spacing">+</button>
+					</span>
+					<!-- Segmented control: the highlighted half IS the current mode,
+					     rather than a single button that names the other one. -->
+					<div class="mode-switch" id="modeSwitch" role="group" aria-label="Editor mode">
+						<button class="mode-btn on" id="modeRich" type="button" aria-pressed="true" title="Write with the toolbar">✎ Rich text</button>
+						<button class="mode-btn" id="modeHtml" type="button" aria-pressed="false" title="Edit the raw HTML">&lt;/&gt; HTML</button>
+					</div>
+					<!-- external reference: opens in its own tab so the draft is never navigated away from -->
+					<a
+						class="ghost"
+						id="thesaurusLink"
+						href="https://www.powerthesaurus.org"
+						target="_blank"
+						rel="noopener noreferrer"
+						title="Power Thesaurus — opens in a new tab"
+						style="text-decoration: none; padding: 10px 16px; border-radius: 12px"
+						>📖 Thesaurus</a
+					>
+					<button class="ghost" id="shareBtn" type="button">👥 Beta readers</button>
+					<button class="primary" id="saveBtn" type="button">Save</button>
+				</div>
+
+				<!-- offer to restore a newer local draft rather than clobbering either copy -->
+				<div class="restore-bar hidden" id="restoreBar">
+					<span>You have unsaved changes from a previous session.</span>
+					<button class="ghost" id="restoreYes" type="button">Restore them</button>
+					<button class="linky" id="restoreNo" type="button">Discard</button>
+				</div>
+
+				<div class="err" id="docErr"></div>
+
+				<div class="doc-main">
+					<div class="doc-col">
+						<div class="toolbar" id="docToolbar">
+							<select id="blockFormat" class="ghost" title="Paragraph style">
+								<option value="p">Paragraph</option>
+								<option value="h1">Heading 1</option>
+								<option value="h2">Heading 2</option>
+								<option value="h3">Heading 3</option>
+								<option value="blockquote">Quote</option>
+							</select>
+							<button class="ghost tb-b" data-cmd="bold" title="Bold" type="button">B</button>
+							<button class="ghost tb-i" data-cmd="italic" title="Italic" type="button">I</button>
+							<button class="ghost tb-u" data-cmd="underline" title="Underline" type="button">U</button>
+							<button class="ghost tb-s" data-cmd="strikeThrough" title="Strikethrough" type="button">S</button>
+							<!-- font size: part of the DOCUMENT, saved with the story -->
+							<span class="stepper" id="fontStepper" title="Font size of the selected text">
+								<button class="step-btn" id="fsDown" type="button" aria-label="Smaller text">−</button>
+								<input id="fsInput" class="step-input" inputmode="numeric" aria-label="Font size in pixels" value="18" />
+								<button class="step-btn" id="fsUp" type="button" aria-label="Larger text">+</button>
+							</span>
+							<select id="listSelect" class="ghost" title="List style">
+								<option value="none">No list</option>
+								<option value="insertUnorderedList">• Bulleted</option>
+								<option value="insertOrderedList">1. Numbered</option>
+							</select>
+							<select id="alignSelect" class="ghost" title="Alignment">
+								<option value="justifyLeft">⇤ Left</option>
+								<option value="justifyCenter">↔ Center</option>
+								<option value="justifyRight">⇥ Right</option>
+							</select>
+							<button class="ghost" id="emDashBtn" title="Insert em dash" type="button">em</button>
+							<button class="ghost" data-cmd="insertHorizontalRule" title="Horizontal rule" type="button">―</button>
+							<button class="ghost" id="linkBtn" title="Insert link" type="button">🔗</button>
+							<button class="ghost" id="imgBtn" title="Insert image" type="button">🖼</button>
+							<button class="ghost" id="clearFmtBtn" title="Clear formatting" type="button">✕</button>
+						</div>
+
+						<div class="editor doc-editor" id="docEditor" contenteditable="true" data-placeholder="Start writing… type / for the reference bank"></div>
+						<textarea class="editor doc-editor doc-source hidden" id="docSource" spellcheck="false"></textarea>
+						<p class="hint" id="editorHint">
+							Type <b>/</b> for action verbs, dialogue tags and more · Ctrl/⌘+S to save · autosaved locally every 30s
+						</p>
+
+						<!-- read-only rendering readers comment on -->
+						<div class="doc-read hidden" id="docRead"></div>
+					</div>
+
+					<aside class="doc-side" id="docSide">
+						<div class="card doc-side-card">
+							<h3 class="dash-h">💬 Comments</h3>
+							<p class="subtle" id="commentHelp">Click a paragraph to comment on it.</p>
+							<div id="commentPane"></div>
+						</div>
+					</aside>
+				</div>
+			</div>
+		</div>
+
+		<!-- beta readers -->
+		<div class="confirm-modal hidden" id="shareModal">
+			<div class="confirm-card">
+				<h3>Beta readers</h3>
+				<p class="subtle" style="text-align: left">
+					Only friends can be beta readers. They can read and comment — never edit.
+				</p>
+				<label class="share-toggle">
+					<input type="checkbox" id="visToggle" />
+					<span>Share with my beta readers</span>
+				</label>
+				<div id="readerChips" style="margin: 10px 0"></div>
+				<div class="row">
+					<input id="readerName" placeholder="Friend's username" />
+					<button class="ghost" id="readerAdd" type="button" style="flex: 0 0 auto">Invite</button>
+				</div>
+				<div class="err" id="shareErr"></div>
+				<div class="row"><button class="ghost" id="shareClose" type="button">Done</button></div>
+			</div>
+		</div>
+
+		<!-- unsaved-changes guard for in-app navigation -->
+		<div class="confirm-modal hidden" id="leaveModal">
+			<div class="confirm-card">
+				<h3>You have unsaved changes</h3>
+				<p class="subtle" style="text-align: left">Save before you go, or leave and keep the local draft.</p>
+				<div class="row">
+					<button class="primary" id="leaveSave" type="button">Save &amp; leave</button>
+					<button class="ghost danger" id="leaveAnyway" type="button">Leave anyway</button>
+				</div>
+				<div class="row"><button class="ghost" id="leaveCancel" type="button">Stay on this page</button></div>
+			</div>
+		</div>
+
+		<script src="/socket.io/socket.io.js"></script>
+		<script type="module">
+			import { api, getToken } from "/js/api.js"
+			import { mountChrome, setUserChip } from "/js/chrome.js"
+			import { requireAuth } from "/js/auth-guard.js"
+			import { cleanHtml, asterisksToTags, FONT_SIZES } from "/js/components/editor.js"
+			import { loadPrefs, savePrefs, stepLine, DEFAULT_LINE } from "/js/doc-prefs.js"
+			import { mountSlashPalette } from "/js/components/slash-palette.js"
+			import { loadDraft, saveDraft, clearDraft, draftIsNewer } from "/js/doc-store.js"
+			import { presenceHtml, commentThreadHtml, readerChipsHtml, wordsLabel, formatSource, unformatSource, plainBlockHtml } from "/js/write-view.js"
+			import { esc } from "/js/util.js"
+
+			mountChrome({ page: "write" })
+			const me = await requireAuth("/")
+			setUserChip(me)
+			const $ = (id) => document.getElementById(id)
+
+			const docId = new URLSearchParams(location.search).get("id")
+			if (!docId) location.href = "/writes"
+
+			let doc = null
+			let dirty = false
+			let sourceMode = false
+			let comments = []
+			let activeBlock = null
+			let socket = null
+
+			// ---- dirty tracking ----
+			const setDirty = (v) => {
+				dirty = v
+				$("saveState").textContent = v ? "Unsaved changes" : "Saved"
+				$("saveState").classList.toggle("unsaved", v)
+			}
+
+			// The HTML view is pretty-printed (formatSource, one block per line); srcHtml()
+			// is the ONLY way to read it back, so the cosmetic newlines never reach the
+			// editor's innerHTML or the server. See write-view.js.
+			const srcHtml = () => unformatSource($("docSource").value)
+
+			const currentHtml = () => (sourceMode ? srcHtml() : cleanHtml($("docEditor"), { doc: true }))
+
+			const updateWords = () => {
+				const text = $("docEditor").innerText || ""
+				const n = text.trim() ? text.trim().split(/\s+/).length : 0
+				$("wordCount").textContent = wordsLabel(n)
+			}
+
+			// ---- load ----
+			async function load() {
+				try {
+					doc = (await api("/api/docs/" + encodeURIComponent(docId), null, "GET")).doc
+				} catch (e) {
+					$("docErr").textContent = e.message
+					return
+				}
+				$("docTitle").value = doc.title
+				$("docEditor").innerHTML = doc.html || ""
+				comments = doc.comments || []
+				const canEdit = doc.mine
+				$("docTitle").disabled = !canEdit
+				if (!canEdit) {
+					// beta readers get the read-only view + commenting
+					$("docToolbar").classList.add("hidden")
+					$("docEditor").classList.add("hidden")
+					$("modeSwitch").classList.add("hidden")
+					$("shareBtn").classList.add("hidden")
+					$("saveBtn").classList.add("hidden")
+					$("editorHint").classList.add("hidden")
+					$("docRead").classList.remove("hidden")
+					$("commentHelp").textContent = "Click a paragraph to leave a note for the author."
+				}
+				renderDoc()
+				updateWords()
+				setDirty(false)
+
+				const draft = loadDraft(docId)
+				if (canEdit && draftIsNewer(draft, doc)) $("restoreBar").classList.remove("hidden")
+				connect()
+			}
+
+			// Split the doc into blocks so comments can anchor to one. The wrapper
+			// (and its data-idx) is built HERE, client-side — the stored html never
+			// carries attributes, so the sanitizer stays narrow.
+			const hashBlock = (text) => {
+				let h = 0
+				const s = String(text).trim().slice(0, 400)
+				for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0
+				return String(h)
+			}
+
+			function blocksOf(html) {
+				const box = document.createElement("div")
+				box.innerHTML = html || ""
+				return [...box.children]
+			}
+
+			function renderDoc() {
+				if (doc.mine) return renderComments()
+				const blocks = blocksOf(doc.html)
+				$("docRead").innerHTML = blocks.length
+					? blocks
+							.map((b, i) => `<div class="doc-block" data-idx="${i}" data-hash="${hashBlock(b.textContent)}">${b.outerHTML}</div>`)
+							.join("")
+					: `<p class="empty">Nothing written yet.</p>`
+				renderComments()
+			}
+
+			// Anchor by index, then re-anchor by content hash if the author edited
+			// above it, else show it as an orphan rather than dropping it silently.
+			function renderComments() {
+				const source = doc.mine ? blocksOf($("docEditor").innerHTML) : blocksOf(doc.html)
+				const hashes = source.map((b) => hashBlock(b.textContent))
+				const anchored = new Map()
+				const orphans = []
+				for (const c of comments) {
+					let idx = -1
+					if (hashes[c.blockIdx] === c.blockHash) idx = c.blockIdx
+					else {
+						const found = hashes.indexOf(c.blockHash)
+						if (found >= 0) idx = found
+					}
+					if (idx < 0) orphans.push(c)
+					else anchored.set(idx, [...(anchored.get(idx) || []), c])
+				}
+				let html = ""
+				for (const [idx, list] of [...anchored.entries()].sort((a, b) => a[0] - b[0])) {
+					const preview = (source[idx]?.textContent || "").slice(0, 60)
+					html += `<div class="dc-group" data-idx="${idx}"><p class="dc-anchor">${esc(preview)}…</p>${commentThreadHtml(list)}</div>`
+				}
+				if (orphans.length) html += `<div class="dc-group orphan">${commentThreadHtml(orphans, { orphaned: true })}</div>`
+				$("commentPane").innerHTML = html || `<p class="subtle">No comments yet.</p>`
+				renderNewCommentBox()
+			}
+
+			function renderNewCommentBox() {
+				if (activeBlock == null) return
+				const box = document.createElement("div")
+				box.className = "dc-new"
+				box.innerHTML =
+					`<textarea id="newComment" rows="3" placeholder="Leave a note on this paragraph…"></textarea>` +
+					`<div class="row"><button class="ghost" id="newCancel" type="button">Cancel</button>` +
+					`<button class="primary" id="newSend" type="button">Comment</button></div>`
+				$("commentPane").prepend(box)
+				$("newSend").addEventListener("click", sendComment)
+				$("newCancel").addEventListener("click", () => {
+					activeBlock = null
+					renderComments()
+				})
+				$("newComment").focus()
+			}
+
+			function sendComment() {
+				const text = $("newComment").value.trim()
+				if (!text || activeBlock == null) return
+				const source = doc.mine ? blocksOf($("docEditor").innerHTML) : blocksOf(doc.html)
+				socket?.emit("doc-comment", {
+					auth: getToken(),
+					id: docId,
+					blockIdx: activeBlock,
+					blockHash: hashBlock(source[activeBlock]?.textContent || ""),
+					text,
+				})
+				activeBlock = null
+			}
+
+			// Readers pick a paragraph to comment on.
+			$("docRead").addEventListener("click", (e) => {
+				const b = e.target.closest(".doc-block")
+				if (!b) return
+				$("docRead").querySelectorAll(".doc-block").forEach((x) => x.classList.remove("sel"))
+				b.classList.add("sel")
+				activeBlock = Number(b.dataset.idx)
+				renderComments()
+			})
+
+			$("commentPane").addEventListener("click", (e) => {
+				const li = e.target.closest(".doc-comment")
+				if (!li) return
+				const commentId = li.dataset.id
+				if (e.target.closest(".dc-resolve"))
+					socket?.emit("doc-comment-resolve", { auth: getToken(), id: docId, commentId, resolved: !li.classList.contains("resolved") })
+				else if (e.target.closest(".dc-del")) socket?.emit("doc-comment-delete", { auth: getToken(), id: docId, commentId })
+			})
+
+			// ---- editing ----
+			// Prefer real tags over <span style> for execCommand output.
+			try { document.execCommand("styleWithCSS", false, false) } catch (e) {}
+
+			$("docToolbar").addEventListener("mousedown", (e) => {
+				const b = e.target.closest("button[data-cmd]")
+				if (!b) return
+				e.preventDefault() // keep the selection
+				document.execCommand(b.dataset.cmd, false, null)
+				onEdit()
+			})
+			$("blockFormat").addEventListener("change", () => {
+				document.execCommand("formatBlock", false, "<" + $("blockFormat").value + ">")
+				$("docEditor").focus()
+				onEdit()
+			})
+			// Lists and alignment are each one dropdown: the options are mutually
+			// exclusive, so a select says what three toggle buttons only implied.
+			$("alignSelect").addEventListener("change", () => {
+				document.execCommand($("alignSelect").value, false, null)
+				$("docEditor").focus()
+				onEdit()
+			})
+			$("listSelect").addEventListener("change", () => {
+				const v = $("listSelect").value
+				// "No list" means: turn off whichever list the caret is currently in.
+				if (v === "none") {
+					;["insertUnorderedList", "insertOrderedList"].forEach((c) => {
+						if (document.queryCommandState(c)) document.execCommand(c, false, null)
+					})
+				} else document.execCommand(v, false, null)
+				$("docEditor").focus()
+				onEdit()
+			})
+			// ---- clear formatting (✕) ----
+			// execCommand("removeFormat") alone is why this button felt dead: it undoes
+			// b/i/u/s and nothing else — our class-based fs-* spans, links, headings,
+			// lists, quotes and alignment all survive it. So we rebuild the selection as
+			// plain paragraphs instead. With nothing selected we clear the block the
+			// caret sits in, so the button always does something visible.
+			const blockAt = (node) => {
+				let n = node?.nodeType === 1 ? node : node?.parentElement
+				while (n && n !== $("docEditor")) {
+					if (/^(P|H1|H2|H3|DIV|LI|BLOCKQUOTE|FIGURE)$/.test(n.tagName)) return n
+					n = n.parentElement
+				}
+				return null
+			}
+			function clearFormatting() {
+				const sel = window.getSelection()
+				if (!sel || !sel.rangeCount) return
+				if (!$("docEditor").contains(sel.getRangeAt(0).commonAncestorContainer)) return
+				$("docEditor").focus()
+				if (sel.isCollapsed) {
+					const block = blockAt(sel.getRangeAt(0).startContainer)
+					if (!block) return
+					const r = document.createRange()
+					r.selectNode(block) // the block itself, so its tag and alignment go too
+					sel.removeAllRanges()
+					sel.addRange(r)
+				}
+				// Leave any list first — otherwise the <ul> shell outlives its <li>s.
+				;["insertUnorderedList", "insertOrderedList"].forEach((c) => {
+					try {
+						if (document.queryCommandState(c)) document.execCommand(c, false, null)
+					} catch (e) {}
+				})
+				const box = document.createElement("div")
+				box.appendChild(window.getSelection().getRangeAt(0).cloneContents())
+				document.execCommand("insertHTML", false, plainBlockHtml(box.innerHTML) || "<p><br></p>")
+				document.execCommand("justifyLeft", false, null)
+				syncFontBox()
+				onEdit()
+			}
+			$("clearFmtBtn").addEventListener("mousedown", (e) => {
+				e.preventDefault() // keep the selection
+				clearFormatting()
+			})
+
+			$("emDashBtn").addEventListener("mousedown", (e) => {
+				e.preventDefault()
+				$("docEditor").focus()
+				document.execCommand("insertText", false, "—")
+				onEdit()
+			})
+			// ---- font size (document content) ----
+			// execCommand's fontSize only speaks 1–7, so we ask for the sentinel
+			// 7 and rewrite the <font> tags it produces into our class ladder.
+			// The ladder is a closed set, so nothing arbitrary reaches the html.
+			const nearestSize = (px) =>
+				FONT_SIZES.reduce((best, s) => (Math.abs(s - px) < Math.abs(best - px) ? s : best), FONT_SIZES[0])
+
+			function applyFontSize(px) {
+				const size = nearestSize(px)
+				$("fsInput").value = size
+				document.execCommand("fontSize", false, "7")
+				$("docEditor")
+					.querySelectorAll('font[size="7"]')
+					.forEach((f) => {
+						const span = document.createElement("span")
+						span.className = "fs-" + size
+						while (f.firstChild) span.appendChild(f.firstChild)
+						f.replaceWith(span)
+					})
+				$("docEditor").focus()
+				onEdit()
+			}
+
+			// What size is the caret sitting in? Read it back so the box reflects
+			// the selection rather than whatever was last typed into it.
+			function sizeAtCaret() {
+				const sel = window.getSelection()
+				if (!sel || !sel.rangeCount) return null
+				let n = sel.getRangeAt(0).startContainer
+				while (n && n !== $("docEditor")) {
+					if (n.nodeType === 1 && /^fs-(\d+)$/.test(n.className || "")) return Number(RegExp.$1)
+					n = n.parentNode
+				}
+				return null
+			}
+			const syncFontBox = () => {
+				const s = sizeAtCaret()
+				if (s) $("fsInput").value = s
+				try {
+					$("listSelect").value = document.queryCommandState("insertUnorderedList")
+						? "insertUnorderedList"
+						: document.queryCommandState("insertOrderedList")
+							? "insertOrderedList"
+							: "none"
+					$("alignSelect").value = document.queryCommandState("justifyCenter")
+						? "justifyCenter"
+						: document.queryCommandState("justifyRight")
+							? "justifyRight"
+							: "justifyLeft"
+				} catch (e) {}
+			}
+			$("docEditor").addEventListener("keyup", syncFontBox)
+			$("docEditor").addEventListener("mouseup", syncFontBox)
+
+			const stepSize = (dir) => {
+				const i = FONT_SIZES.indexOf(nearestSize(Number($("fsInput").value) || 18))
+				applyFontSize(FONT_SIZES[Math.min(FONT_SIZES.length - 1, Math.max(0, i + dir))])
+			}
+			// mousedown, not click: the selection must survive the press
+			$("fsDown").addEventListener("mousedown", (e) => (e.preventDefault(), stepSize(-1)))
+			$("fsUp").addEventListener("mousedown", (e) => (e.preventDefault(), stepSize(1)))
+			$("fsInput").addEventListener("change", () => applyFontSize(Number($("fsInput").value) || 18))
+			$("fsInput").addEventListener("keydown", (e) => {
+				if (e.key === "Enter") {
+					e.preventDefault()
+					applyFontSize(Number($("fsInput").value) || 18)
+				}
+			})
+
+			// ---- line spacing (this reader's preference only) ----
+			// Applied as a CSS variable on the editor surfaces. It is never part
+			// of cleanHtml's output, so it cannot end up in the saved document.
+			let prefs = loadPrefs()
+			function applyLineHeight() {
+				document.documentElement.style.setProperty("--doc-line", String(prefs.lineHeight))
+				$("lsValue").textContent = prefs.lineHeight.toFixed(1)
+			}
+			const nudgeLine = (dir) => {
+				prefs = savePrefs({ lineHeight: stepLine(prefs.lineHeight, dir) })
+				applyLineHeight()
+			}
+			$("lsDown").addEventListener("click", () => nudgeLine(-1))
+			$("lsUp").addEventListener("click", () => nudgeLine(1))
+			applyLineHeight()
+
+			$("linkBtn").addEventListener("mousedown", (e) => {
+				e.preventDefault()
+				const url = prompt("Link URL (http:// or https://)")
+				if (url && /^https?:\/\//i.test(url)) document.execCommand("createLink", false, url)
+				onEdit()
+			})
+			$("imgBtn").addEventListener("mousedown", (e) => {
+				e.preventDefault()
+				const url = prompt("Image URL (http:// or https://)")
+				if (url && /^https?:\/\//i.test(url)) document.execCommand("insertImage", false, url)
+				onEdit()
+			})
+
+			function onEdit() {
+				setDirty(true)
+				updateWords()
+			}
+			$("docEditor").addEventListener("input", onEdit)
+			$("docTitle").addEventListener("input", () => setDirty(true))
+
+			// Paste from Google Docs / Word / anywhere. The browser's own paste
+			// would drop a pile of foreign markup into the contenteditable, so we
+			// run the clipboard through cleanHtml first (which reads the inline
+			// STYLES word processors use for italics) and then convert any literal
+			// *asterisk* markers a plain-text draft carried in.
+			$("docEditor").addEventListener("paste", (e) => {
+				const cd = e.clipboardData || window.clipboardData
+				if (!cd) return
+				e.preventDefault()
+				const html = cd.getData("text/html")
+				let out
+				if (html) {
+					const box = document.createElement("div")
+					box.innerHTML = html
+					out = cleanHtml(box, { doc: true })
+				} else {
+					// plain text: escape it, then keep the line breaks as paragraphs
+					const esc = (s) => s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c])
+					out = esc(cd.getData("text/plain"))
+						.split(/\n{2,}/)
+						.map((p) => `<p>${p.replace(/\n/g, "<br>")}</p>`)
+						.join("")
+				}
+				document.execCommand("insertHTML", false, asterisksToTags(out))
+				onEdit()
+			})
+
+			// ---- rich text / html source mode ----
+			// setMode is idempotent: clicking the half you're already on is a no-op,
+			// so it never marks the doc dirty or re-parses for nothing.
+			function setMode(toSource) {
+				if (toSource === sourceMode) return
+				palette?.close() // don't leave the reference menu floating over the source
+				if (toSource) {
+					$("docSource").value = formatSource(cleanHtml($("docEditor"), { doc: true }))
+				} else {
+					// Drop the cosmetic newlines BEFORE parsing, then round-trip hand-typed
+					// markup through cleanHtml so it's normalized to the supported subset.
+					$("docEditor").innerHTML = srcHtml()
+					$("docEditor").innerHTML = cleanHtml($("docEditor"), { doc: true })
+				}
+				sourceMode = toSource
+				$("docEditor").classList.toggle("hidden", toSource)
+				$("docSource").classList.toggle("hidden", !toSource)
+				$("docToolbar").classList.toggle("dimmed", toSource)
+				// the lit half is the mode you're IN
+				$("modeRich").classList.toggle("on", !toSource)
+				$("modeHtml").classList.toggle("on", toSource)
+				$("modeRich").setAttribute("aria-pressed", String(!toSource))
+				$("modeHtml").setAttribute("aria-pressed", String(toSource))
+				$("editorHint").innerHTML = toSource
+					? "Editing raw HTML — unsupported tags are stripped when you switch back or save."
+					: 'Type <b>/</b> for action verbs, dialogue tags and more · Ctrl/⌘+S to save · autosaved locally every 30s'
+				if (!toSource) updateWords()
+				;(toSource ? $("docSource") : $("docEditor")).focus()
+				setDirty(true)
+			}
+			$("modeRich").addEventListener("click", () => setMode(false))
+			$("modeHtml").addEventListener("click", () => setMode(true))
+			$("docSource").addEventListener("input", () => setDirty(true))
+
+			// ---- saving ----
+			async function save() {
+				if (!doc?.mine) return true
+				$("docErr").textContent = ""
+				const html = sourceMode ? srcHtml() : cleanHtml($("docEditor"), { doc: true })
+				try {
+					const r = await api("/api/docs/" + encodeURIComponent(docId), { title: $("docTitle").value, html }, "PUT")
+					doc = r.doc
+					comments = doc.comments || []
+					// render the server's sanitized copy so what we see is what's stored
+					if (!sourceMode) $("docEditor").innerHTML = doc.html
+					setDirty(false)
+					clearDraft(docId)
+					socket?.emit("doc-saved", { auth: getToken(), id: docId })
+					renderComments()
+					updateWords()
+					return true
+				} catch (e) {
+					$("docErr").textContent = e.message
+					return false
+				}
+			}
+			$("saveBtn").addEventListener("click", save)
+			document.addEventListener("keydown", (e) => {
+				if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
+					e.preventDefault()
+					save()
+				}
+			})
+
+			// Local crash-cache — NOT a server write.
+			setInterval(() => {
+				if (dirty && doc?.mine) saveDraft(docId, currentHtml(), $("docTitle").value)
+			}, 30000)
+
+			$("restoreYes").addEventListener("click", () => {
+				const d = loadDraft(docId)
+				if (d) {
+					$("docEditor").innerHTML = d.html
+					if (d.title) $("docTitle").value = d.title
+					setDirty(true)
+					updateWords()
+				}
+				$("restoreBar").classList.add("hidden")
+			})
+			$("restoreNo").addEventListener("click", () => {
+				clearDraft(docId)
+				$("restoreBar").classList.add("hidden")
+			})
+
+			// ---- leaving while dirty ----
+			// beforeunload covers reloads/closes; the styled modal covers in-app links.
+			window.addEventListener("beforeunload", (e) => {
+				if (!dirty) return
+				saveDraft(docId, currentHtml(), $("docTitle").value)
+				e.preventDefault()
+				e.returnValue = ""
+			})
+
+			let leaveTo = null
+			document.addEventListener(
+				"click",
+				(e) => {
+					const a = e.target.closest("a[href]")
+					if (!a || !dirty) return
+					const url = new URL(a.href, location.href)
+					if (url.origin !== location.origin || url.pathname === location.pathname) return
+					e.preventDefault()
+					leaveTo = a.href
+					$("leaveModal").classList.remove("hidden")
+				},
+				true,
+			)
+			$("leaveCancel").addEventListener("click", () => {
+				$("leaveModal").classList.add("hidden")
+				leaveTo = null
+			})
+			$("leaveAnyway").addEventListener("click", () => {
+				saveDraft(docId, currentHtml(), $("docTitle").value)
+				dirty = false
+				location.href = leaveTo
+			})
+			$("leaveSave").addEventListener("click", async () => {
+				if (await save()) location.href = leaveTo
+			})
+
+			// ---- beta readers ----
+			function renderShare() {
+				$("visToggle").checked = doc.visibility === "readers"
+				$("readerChips").innerHTML = readerChipsHtml(doc.readerRows, doc.mine)
+			}
+			$("shareBtn").addEventListener("click", () => {
+				renderShare()
+				$("shareErr").textContent = ""
+				$("shareModal").classList.remove("hidden")
+			})
+			$("shareClose").addEventListener("click", () => $("shareModal").classList.add("hidden"))
+			$("shareModal").addEventListener("click", (e) => {
+				if (e.target === $("shareModal")) $("shareModal").classList.add("hidden")
+			})
+			$("visToggle").addEventListener("change", async () => {
+				try {
+					doc = (await api(`/api/docs/${encodeURIComponent(docId)}/visibility`, { visibility: $("visToggle").checked ? "readers" : "private" })).doc
+					renderShare()
+				} catch (e) {
+					$("shareErr").textContent = e.message
+				}
+			})
+			$("readerAdd").addEventListener("click", async () => {
+				$("shareErr").textContent = ""
+				try {
+					doc = (await api(`/api/docs/${encodeURIComponent(docId)}/readers`, { username: $("readerName").value })).doc
+					$("readerName").value = ""
+					renderShare()
+				} catch (e) {
+					$("shareErr").textContent = e.message
+				}
+			})
+			$("readerChips").addEventListener("click", async (e) => {
+				const x = e.target.closest(".reader-x")
+				if (!x) return
+				const name = x.closest(".reader-chip").dataset.user
+				try {
+					doc = (await api(`/api/docs/${encodeURIComponent(docId)}/readers/${encodeURIComponent(name)}`, null, "DELETE")).doc
+					renderShare()
+				} catch (e) {
+					$("shareErr").textContent = e.message
+				}
+			})
+
+			// ---- live presence + comments ----
+			function connect() {
+				socket = io()
+				socket.on("connect", () => {
+					socket.emit("identify", { auth: getToken() })
+					socket.emit("doc-open", { auth: getToken(), id: docId })
+				})
+				socket.on("doc-presence", ({ id, viewers }) => {
+					if (id !== docId) return
+					// don't show myself among the watchers
+					$("presenceRow").innerHTML = presenceHtml(viewers.filter((v) => v.username !== me.username))
+				})
+				socket.on("doc-comments", ({ id, comments: rows }) => {
+					if (id !== docId) return
+					comments = rows
+					renderComments()
+				})
+				socket.on("doc-updated", ({ id, html, title }) => {
+					if (id !== docId || doc.mine) return
+					doc.html = html
+					doc.title = title
+					$("docTitle").value = title
+					renderDoc()
+				})
+				socket.on("doc-access-lost", ({ id }) => {
+					if (id === docId) location.href = "/writes"
+				})
+				window.addEventListener("beforeunload", () => socket?.emit("doc-close"))
+			}
+
+			// ---- slash palette ----
+			let palette = null
+			async function mountPalette() {
+				try {
+					const bundle = await api("/api/reference", null, "GET")
+					// never in HTML mode: there "/" is markup, not a command
+					palette = mountSlashPalette($("docEditor"), { bundle, onInsert: onEdit, isEnabled: () => !sourceMode })
+				} catch (e) {
+					/* the bank is a convenience — the editor works without it */
+				}
+			}
+
+			if (me && docId) {
+				await load()
+				if (doc?.mine) mountPalette()
+			}
+		</script>
+		<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+	</body>
+</html>

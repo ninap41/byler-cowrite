@@ -1,0 +1,145 @@
+// Pure string builders for the solo-write pages (same convention as
+// archive-view.js / dashboard-view.js: no DOM access, so tests can call them
+// directly). Doc html arrives already sanitizeDoc()'d server-side and is
+// injected as-is by design; every name/title/comment is esc()'d here.
+import { esc, safeColor, miniAvatar } from "./util.js"
+
+export const fmtWhen = (ts) => {
+	if (!ts) return ""
+	const d = new Date(ts)
+	const mins = Math.round((Date.now() - ts) / 60000)
+	if (mins < 1) return "just now"
+	if (mins < 60) return `${mins}m ago`
+	if (mins < 1440) return `${Math.round(mins / 60)}h ago`
+	return d.toLocaleDateString()
+}
+
+export const wordsLabel = (n) => `${n || 0} word${n === 1 ? "" : "s"}`
+
+// ---- html source pretty-printing ----
+// The HTML view puts one block per line so a 7k-word chapter isn't a single wall
+// of text. The newlines go ONLY at tag boundaries — between a `>` and the next
+// block-level `<` — never inside text, and unformatSource() strips them again
+// before the string is parsed or saved. That's what keeps the cosmetic breaks
+// from ever turning into <br>s or stray whitespace in the rich text.
+const BLOCK_TAG = /^<\/?(?:p|h1|h2|h3|hr|ul|ol|li|blockquote|figure|figcaption|div)[\s>/]/i
+export const formatSource = (html) => String(html || "").replace(/>(?=<)/g, (m, i, s) => (BLOCK_TAG.test(s.slice(i + 1)) ? ">\n" : m))
+export const unformatSource = (src) => String(src || "").replace(/>[\t ]*\n[\t \n]*</g, "><").trim()
+
+// ---- clear formatting ----
+// What the ✕ actually means: give me back plain left-aligned paragraphs. Every
+// inline tag and every fs-* size span becomes its text, links lose their href,
+// headings/list items/quotes all flatten to <p>, and <hr>s go. Line breaks are
+// deliberately KEPT — clearing formatting shouldn't silently join two lines.
+const PBH_BLOCKS = new Set(["P", "H1", "H2", "H3", "DIV", "LI", "UL", "OL", "BLOCKQUOTE", "FIGURE", "FIGCAPTION", "TABLE", "TR", "TD"])
+export function plainBlockHtml(html) {
+	const box = document.createElement("div")
+	box.innerHTML = String(html || "")
+	const out = []
+	let cur = ""
+	const flush = () => {
+		const t = cur.replace(/^[ \t]+|[ \t]+$/g, "")
+		if (t) out.push(t)
+		cur = ""
+	}
+	const walk = (node) => {
+		for (const n of [...node.childNodes]) {
+			if (n.nodeType === 3) cur += n.nodeValue
+			else if (n.nodeType !== 1) continue
+			else if (n.tagName === "BR") cur += "\n"
+			else if (n.tagName === "HR" || n.tagName === "IMG") flush()
+			else if (PBH_BLOCKS.has(n.tagName)) (flush(), walk(n), flush())
+			else walk(n) // inline (b/i/u/s/em/strong/a/span/font) — keep only the text
+		}
+	}
+	walk(box)
+	flush()
+	return out.map((t) => `<p>${esc(t).replace(/\n/g, "<br>")}</p>`).join("")
+}
+
+// ---- /writes listing ----
+export function docCardHtml(d) {
+	const shared = d.visibility === "readers"
+	return (
+		`<article class="doc-card" data-id="${esc(d.id)}">` +
+		`<h3 class="doc-card-title">${esc(d.title)}</h3>` +
+		`<p class="doc-card-meta">${esc(wordsLabel(d.wordCount))} · ${esc(fmtWhen(d.updatedAt))}` +
+		(d.mine ? "" : ` · by ${esc(d.owner)}`) +
+		`</p>` +
+		`<p class="doc-card-tags">` +
+		(d.mine
+			? `<span class="doc-pill ${shared ? "on" : ""}">${shared ? "👥 Shared" : "🔒 Private"}</span>`
+			: `<span class="doc-pill on">📖 Beta reading</span>`) +
+		(d.comments ? `<span class="doc-pill">💬 ${d.comments}</span>` : "") +
+		(d.readers?.length ? `<span class="doc-pill">✍ ${esc(d.readers.join(", "))}</span>` : "") +
+		`</p>` +
+		`<div class="row doc-card-actions">` +
+		`<a class="ghost doc-open" href="/write?id=${encodeURIComponent(d.id)}">Open</a>` +
+		(d.mine ? `<button class="ghost danger doc-del" type="button">Delete</button>` : "") +
+		`</div>` +
+		`</article>`
+	)
+}
+
+export const docListHtml = (docs) =>
+	!docs || !docs.length
+		? `<p class="empty">Nothing written yet. Start something — no timer, no turns, just the page.</p>`
+		: docs.map(docCardHtml).join("")
+
+// ---- presence ----
+// Beta readers currently viewing. Tooltips come from the shared data-tip system.
+export const presenceHtml = (viewers) =>
+	!viewers || !viewers.length
+		? ""
+		: viewers
+				.map(
+					(v) =>
+						`<span class="presence-av" data-tip="${esc(v.username)}">${miniAvatar({
+							avatar: v.avatar,
+							avatarFit: v.avatarFit,
+							name: v.username,
+							color: v.color,
+						})}</span>`,
+				)
+				.join("")
+
+// ---- comments ----
+export function commentHtml(c) {
+	return (
+		`<li class="doc-comment${c.resolved ? " resolved" : ""}" data-id="${esc(c.id)}">` +
+		`<span class="dc-who">${miniAvatar({ avatar: c.avatar, avatarFit: c.avatarFit, name: c.author, color: c.color })}` +
+		`<b style="color:${safeColor(c.color)}">${esc(c.author)}</b>` +
+		`<span class="dc-when">${esc(fmtWhen(c.ts))}</span></span>` +
+		`<p class="dc-text">${esc(c.text)}</p>` +
+		`<span class="dc-actions">` +
+		`<button class="linky dc-resolve" type="button">${c.resolved ? "Unresolve" : "Resolve"}</button>` +
+		`<button class="linky dc-del" type="button">Delete</button>` +
+		`</span>` +
+		`</li>`
+	)
+}
+
+// Comments grouped under the block they're anchored to, plus any that lost
+// their anchor when the author edited that text.
+export function commentThreadHtml(comments, { orphaned = false } = {}) {
+	if (!comments.length) return ""
+	return (
+		(orphaned ? `<p class="dc-orphan-note">These comment${comments.length === 1 ? "" : "s"} were left on text that has since changed:</p>` : "") +
+		`<ul class="dc-list">${comments.map(commentHtml).join("")}</ul>`
+	)
+}
+
+// ---- beta-reader chips ----
+export const readerChipsHtml = (readers, canManage) =>
+	!readers || !readers.length
+		? `<p class="subtle">No beta readers yet. Invite a friend to read along and comment.</p>`
+		: readers
+				.map(
+					(r) =>
+						`<span class="reader-chip" data-user="${esc(r.username)}">` +
+						miniAvatar({ avatar: r.avatar, avatarFit: r.avatarFit, name: r.username, color: r.color }) +
+						`<span>${esc(r.username)}</span>` +
+						(canManage ? `<button class="reader-x" type="button" title="Remove">×</button>` : "") +
+						`</span>`,
+				)
+				.join("")

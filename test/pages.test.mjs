@@ -12,12 +12,29 @@ const page = async (path) => {
 };
 
 test("pages/modules/css are never cached (stale-module mixing breaks handlers)", async () => {
-  for (const path of ["/", "/dashboard", "/js/chrome.js", "/js/theme.js", "/css/base.css"]) {
+  for (const path of ["/", "/dashboard", "/write", "/writes", "/js/chrome.js", "/js/theme.js", "/css/base.css"]) {
     const r = await page(path);
     assert.equal(r.headers.get("cache-control"), "no-store", path + " uncacheable");
   }
   const snd = await fetch(ctx.url + "/sounds/incomingline.mp3");
   assert.match(snd.headers.get("cache-control") || "", /max-age=6048/, "sounds may cache");
+});
+
+test("the solo-write pages serve at their clean URLs", async () => {
+  const list = await page("/writes");
+  assert.equal(list.status, 200);
+  assert.ok(list.body.includes('id="docList"'));
+  assert.ok(list.body.includes('id="newDocBtn"'));
+
+  const editor = await page("/write");
+  assert.equal(editor.status, 200);
+  assert.ok(editor.body.includes('id="docEditor"'), "the wysiwyg surface");
+  assert.ok(editor.body.includes('id="modeRich"') && editor.body.includes('id="modeHtml"'), "the two-way html source toggle");
+  assert.ok(editor.body.includes('aria-pressed="true"'), "the active mode is announced, not just styled");
+  assert.ok(editor.body.includes('id="leaveModal"'), "the unsaved-changes guard");
+  assert.ok(editor.body.includes('id="listSelect"') && editor.body.includes('id="alignSelect"'), "list + alignment dropdowns");
+  assert.ok(editor.body.includes('id="emDashBtn"'), "the em dash button");
+  assert.ok(editor.body.includes('id="presenceRow"'), "beta-reader presence");
 });
 
 test("homepage serves the hero + auth card", async () => {

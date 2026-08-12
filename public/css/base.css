@@ -3638,8 +3638,12 @@ button.danger,
 	transform: translateY(clamp(-18vh, calc(var(--cb-scroll, 0) * -0.08px), 0px));
 	will-change: transform;
 }
-/* Castle Byers itself: the fort vector, front and center at the bottom,
-   moving a touch faster than the trees for depth */
+/* Castle Byers itself: the fort vector, front and center at the bottom.
+   The fort is PLANTED in the treeline, so its drift is bounded three ways —
+   it never travels more than 100px, never outruns the trees it stands in
+   (same 0.08 rate, same -18vh ceiling), and never drifts downward. An
+   unbounded translate here let it climb off the top of a long page and
+   detach from the forest floor. */
 .bg-set.castlebyers .fortpic {
 	position: absolute;
 	left: 50%;
@@ -3647,7 +3651,7 @@ button.danger,
 	width: min(620px, 74vw);
 	aspect-ratio: 1920 / 1072;
 	background: url("/img/castle-byers.svg") center bottom / contain no-repeat;
-	transform: translateX(-50%) translateY(calc(var(--cb-scroll, 0) * -0.18px));
+	transform: translateX(-50%) translateY(min(0px, max(-100px, -18vh, calc(var(--cb-scroll, 0) * -0.08px))));
 	will-change: transform;
 	filter: drop-shadow(0 12px 24px rgba(0, 42, 38, 0.45));
 }
@@ -4400,4 +4404,544 @@ body.ui-peek .floatingchat-container-wrap,
 body.ui-peek .floatingchat-container-wrap-mobi,
 body.ui-peek iframe[src*="ko-fi"] {
 	visibility: hidden !important;
+}
+
+/* ---------- Solo writes (/writes listing + /write editor) ---------- */
+.doc-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+	gap: 14px;
+	margin-top: 16px;
+}
+.doc-card {
+	background: var(--panel);
+	border: 1px solid var(--panel-brd);
+	border-radius: 18px;
+	padding: 16px;
+	box-shadow: var(--panel-glow);
+	backdrop-filter: blur(16px);
+	text-align: left;
+}
+.doc-card-title {
+	margin: 0 0 6px;
+	font-family: var(--font-display);
+	font-size: 1.15rem;
+	color: var(--ink);
+}
+.doc-card-meta {
+	margin: 0 0 10px;
+	color: var(--muted);
+	font-size: 0.86rem;
+}
+.doc-card-tags {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin: 0 0 10px;
+}
+.doc-pill {
+	font-size: 0.76rem;
+	padding: 3px 9px;
+	border-radius: 999px;
+	background: var(--chip);
+	border: 1px solid var(--line);
+	color: var(--muted);
+}
+.doc-pill.on {
+	color: var(--ink);
+	border-color: var(--accent-2);
+}
+.doc-card-actions {
+	margin-top: 10px;
+}
+.doc-card-actions .doc-open {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	text-decoration: none;
+	padding: 8px 14px;
+	border-radius: 12px;
+}
+
+/* editor page */
+.write-inner {
+	max-width: 1180px;
+	margin: 0 auto;
+	text-align: left;
+}
+.doc-title-input {
+	flex: 1;
+	min-width: 140px;
+	background: transparent;
+	border: 1px solid transparent;
+	border-radius: 12px;
+	padding: 8px 12px;
+	color: var(--ink);
+	font-family: var(--font-display);
+	font-size: 1.4rem;
+}
+.doc-title-input:hover:not(:disabled) {
+	border-color: var(--line);
+}
+.doc-title-input:focus {
+	outline: none;
+	border-color: var(--accent);
+}
+.presence-row {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+}
+.presence-row:not(:empty)::before {
+	content: "·";
+	color: var(--muted);
+	margin-right: 6px;
+}
+.presence-av {
+	display: inline-flex;
+	border-radius: 50%;
+	box-shadow: 0 0 0 2px var(--accent-2);
+}
+.doc-statusbar {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	flex-wrap: wrap;
+	margin: 12px 0;
+}
+.doc-statusbar button {
+	flex: 0 0 auto;
+	min-width: 0;
+	padding: 8px 14px;
+}
+.doc-spacer {
+	flex: 1;
+}
+.doc-save-state {
+	font-size: 0.85rem;
+	color: var(--good);
+}
+.doc-save-state.unsaved {
+	color: var(--accent);
+}
+.doc-dot {
+	color: var(--muted);
+}
+.restore-bar {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	flex-wrap: wrap;
+	padding: 10px 14px;
+	margin-bottom: 12px;
+	border-radius: 12px;
+	background: var(--chip);
+	border: 1px solid var(--accent-2);
+	font-size: 0.9rem;
+}
+.restore-bar button {
+	flex: 0 0 auto;
+	min-width: 0;
+	padding: 6px 12px;
+}
+.doc-main {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) 300px;
+	gap: 18px;
+	align-items: start;
+}
+@media (max-width: 860px) {
+	.doc-main {
+		grid-template-columns: 1fr;
+	}
+}
+.doc-col {
+	min-width: 0;
+}
+/* a document, not a single turn — much taller than the game editor */
+.doc-editor {
+	min-height: 58vh;
+	max-height: none;
+}
+.doc-source {
+	font-family: var(--font-mono);
+	font-size: 0.92rem;
+	white-space: pre-wrap;
+	line-height: 1.55;
+}
+.toolbar.dimmed {
+	opacity: 0.4;
+	pointer-events: none;
+}
+.doc-editor ul,
+.doc-editor ol,
+.doc-read ul,
+.doc-read ol {
+	padding-left: 1.4em;
+	margin: 0.5em 0;
+}
+.doc-editor blockquote,
+.doc-read blockquote {
+	margin: 0.6em 0;
+	padding: 0.3em 0 0.3em 1em;
+	border-left: 3px solid var(--accent-2);
+	color: var(--muted);
+	font-style: italic;
+}
+.doc-editor a,
+.doc-read a {
+	color: var(--accent);
+}
+.doc-img {
+	max-width: 100%;
+	border-radius: 10px;
+}
+/* read-only view beta readers comment on */
+.doc-read {
+	padding: 16px;
+	border-radius: 14px;
+	background: var(--panel-2);
+	border: 1px solid var(--line);
+	font-family: var(--font-story);
+	font-size: 1.1rem;
+	line-height: 1.75;
+}
+.doc-block {
+	border-radius: 8px;
+	padding: 2px 8px;
+	margin: 0 -8px;
+	cursor: pointer;
+	transition: background 0.15s;
+}
+.doc-block:hover {
+	background: var(--chip);
+}
+.doc-block.sel {
+	background: var(--chip);
+	box-shadow: inset 3px 0 0 var(--accent);
+}
+
+/* comments rail */
+.doc-side-card {
+	position: sticky;
+	top: 16px;
+	text-align: left;
+}
+.dc-group {
+	margin-bottom: 14px;
+}
+.dc-anchor {
+	margin: 0 0 6px;
+	font-size: 0.8rem;
+	color: var(--muted);
+	border-left: 2px solid var(--accent-2);
+	padding-left: 8px;
+}
+.dc-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: grid;
+	gap: 8px;
+}
+.doc-comment {
+	background: var(--panel-2);
+	border: 1px solid var(--line);
+	border-radius: 12px;
+	padding: 10px;
+}
+.doc-comment.resolved {
+	opacity: 0.55;
+}
+.doc-comment.resolved .dc-text {
+	text-decoration: line-through;
+}
+.dc-who {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 0.82rem;
+}
+.dc-when {
+	color: var(--muted);
+	margin-left: auto;
+	font-size: 0.75rem;
+}
+.dc-text {
+	margin: 6px 0;
+	font-size: 0.9rem;
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+.dc-actions {
+	display: flex;
+	gap: 10px;
+	font-size: 0.78rem;
+}
+.dc-orphan-note {
+	font-size: 0.8rem;
+	color: var(--muted);
+	margin: 0 0 6px;
+}
+.dc-new textarea {
+	width: 100%;
+	border-radius: 10px;
+	padding: 8px;
+	background: var(--panel-2);
+	border: 1px solid var(--accent-2);
+	color: var(--ink);
+	font-family: inherit;
+}
+.dc-new .row {
+	margin-top: 6px;
+}
+.dc-new button {
+	padding: 6px 12px;
+	min-width: 0;
+}
+
+/* beta reader chips */
+.reader-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 4px 10px;
+	margin: 0 6px 6px 0;
+	border-radius: 999px;
+	background: var(--chip);
+	border: 1px solid var(--line);
+	font-size: 0.85rem;
+}
+.reader-x {
+	background: none;
+	border: none;
+	color: var(--muted);
+	cursor: pointer;
+	padding: 0 2px;
+	min-width: 0;
+	font-size: 1rem;
+}
+.reader-x:hover {
+	color: var(--accent);
+}
+.share-toggle {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin: 10px 0;
+	font-size: 0.9rem;
+	cursor: pointer;
+}
+.share-toggle input {
+	width: auto;
+}
+
+/* ---------- "/" reference palette ---------- */
+.slash-palette {
+	position: absolute;
+	z-index: 2600;
+	width: 290px;
+	max-height: 300px;
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+	background: var(--panel);
+	border: 1px solid var(--accent-2);
+	border-radius: 14px;
+	box-shadow: 0 18px 44px rgba(0, 0, 0, 0.45);
+	backdrop-filter: blur(16px);
+	text-align: left;
+}
+.slash-palette.hidden {
+	display: none;
+}
+.sp-head {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 8px 12px;
+	border-bottom: 1px solid var(--line);
+}
+.sp-crumb {
+	font-size: 0.82rem;
+	color: var(--ink);
+	font-weight: 600;
+}
+.sp-keys {
+	margin-left: auto;
+	font-size: 0.68rem;
+	color: var(--muted);
+}
+.sp-list {
+	list-style: none;
+	margin: 0;
+	padding: 4px;
+	overflow-y: auto;
+}
+.sp-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 7px 10px;
+	border-radius: 9px;
+	cursor: pointer;
+	font-size: 0.9rem;
+}
+.sp-row:hover {
+	background: var(--chip);
+}
+.sp-row.sel {
+	background: var(--chip);
+	box-shadow: inset 2px 0 0 var(--accent);
+}
+.sp-hint {
+	margin-left: auto;
+	color: var(--muted);
+	font-size: 0.74rem;
+	font-family: var(--font-mono);
+}
+.sp-empty {
+	padding: 12px;
+	color: var(--muted);
+	font-size: 0.85rem;
+	text-align: center;
+}
+
+/* These set display:*, which outranks the global .hidden by source order —
+   without re-declaring it here they could never be hidden (same reason
+   .confirm-modal.hidden exists above). */
+.restore-bar.hidden,
+.doc-statusbar.hidden,
+.presence-row.hidden,
+.toolbar.hidden,
+.doc-main.hidden {
+	display: none;
+}
+
+/* ---------- Rich text / HTML mode switch ---------- */
+/* A segmented control, not a toggle button: the LIT half is the mode you are
+   currently in, so the control states rather than asks. */
+.mode-switch {
+	display: inline-flex;
+	flex: 0 0 auto;
+	padding: 3px;
+	gap: 3px;
+	border-radius: 12px;
+	background: var(--panel-2);
+	border: 1px solid var(--line);
+}
+.mode-switch.hidden {
+	display: none;
+}
+.mode-switch .mode-btn {
+	flex: 0 0 auto;
+	min-width: 0;
+	padding: 6px 12px;
+	border: none;
+	border-radius: 9px;
+	background: transparent;
+	color: var(--muted);
+	font-size: 0.84rem;
+	font-weight: 600;
+	cursor: pointer;
+	transition: background 0.15s, color 0.15s;
+}
+.mode-switch .mode-btn:hover {
+	color: var(--ink);
+}
+.mode-switch .mode-btn.on {
+	background: var(--accent);
+	color: var(--btn-ink);
+	box-shadow: 0 1px 6px rgba(0, 0, 0, 0.18);
+}
+.mode-switch .mode-btn#modeHtml {
+	font-family: var(--font-mono);
+}
+/* the source pane reads as "code", reinforcing the active mode */
+.doc-source {
+	border-color: var(--muted);
+	border-style: dashed;
+}
+
+/* ---------- Font-size ladder (document content) ---------- */
+/* A closed set of classes, mirroring FONT_SIZES in src/sanitize.js. Sizes ride
+   in the saved html, so beta readers and exports see them too. */
+.doc-editor .fs-12, .doc-read .fs-12 { font-size: 12px; }
+.doc-editor .fs-14, .doc-read .fs-14 { font-size: 14px; }
+.doc-editor .fs-16, .doc-read .fs-16 { font-size: 16px; }
+.doc-editor .fs-18, .doc-read .fs-18 { font-size: 18px; }
+.doc-editor .fs-20, .doc-read .fs-20 { font-size: 20px; }
+.doc-editor .fs-24, .doc-read .fs-24 { font-size: 24px; }
+.doc-editor .fs-28, .doc-read .fs-28 { font-size: 28px; }
+.doc-editor .fs-32, .doc-read .fs-32 { font-size: 32px; }
+.doc-editor .fs-36, .doc-read .fs-36 { font-size: 36px; }
+.doc-editor .fs-48, .doc-read .fs-48 { font-size: 48px; }
+
+/* ---------- Line spacing (this reader's preference only) ---------- */
+/* Driven by --doc-line from doc-prefs.js. Never written into the document. */
+.doc-editor,
+.doc-read {
+	line-height: var(--doc-line, 1.7);
+}
+
+/* ---------- "− value +" steppers ---------- */
+.stepper {
+	display: inline-flex;
+	align-items: center;
+	gap: 2px;
+	flex: 0 0 auto;
+	padding: 2px;
+	border-radius: 10px;
+	background: var(--panel-2);
+	border: 1px solid var(--line);
+}
+.stepper .step-btn {
+	flex: 0 0 auto;
+	min-width: 0;
+	width: 24px;
+	height: 24px;
+	padding: 0;
+	border: none;
+	border-radius: 7px;
+	background: transparent;
+	color: var(--muted);
+	font-size: 0.95rem;
+	line-height: 1;
+	cursor: pointer;
+}
+.stepper .step-btn:hover {
+	background: var(--chip);
+	color: var(--ink);
+}
+.stepper .step-input {
+	width: 34px;
+	padding: 2px;
+	border: none;
+	background: transparent;
+	color: var(--ink);
+	text-align: center;
+	font-family: var(--font-mono);
+	font-size: 0.82rem;
+}
+.stepper .step-input:focus {
+	outline: none;
+	background: var(--chip);
+	border-radius: 6px;
+}
+.stepper .step-value {
+	min-width: 26px;
+	text-align: center;
+	color: var(--ink);
+	font-family: var(--font-mono);
+	font-size: 0.8rem;
+}
+.stepper .step-label {
+	padding: 0 2px 0 6px;
+	color: var(--muted);
+	font-size: 0.8rem;
+}
+/* the preference stepper reads as chrome, not as a formatting tool */
+.pref-stepper {
+	background: transparent;
+	border-style: dashed;
 }

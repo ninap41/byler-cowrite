@@ -5,7 +5,10 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<script>
 			// Apply the saved theme before first paint (initTheme() re-validates it later)
-			try { var _t = localStorage.getItem("cowriteTheme"); if (_t) document.documentElement.setAttribute("data-theme", _t) } catch (e) {}
+			try {
+				var _t = localStorage.getItem("cowriteTheme")
+				if (_t) document.documentElement.setAttribute("data-theme", _t)
+			} catch (e) {}
 		</script>
 		<script>
 			// Pre-hide animated containers before first paint so the GSAP entrance
@@ -13,7 +16,9 @@
 			// entrance script lifts this; the timer is the no-GSAP safety net.
 			if (!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches)) {
 				document.documentElement.classList.add("pre-anim")
-				setTimeout(function () { document.documentElement.classList.remove("pre-anim") }, 1500)
+				setTimeout(function () {
+					document.documentElement.classList.remove("pre-anim")
+				}, 1500)
 			}
 		</script>
 		<title>Byler Cowrite — Dashboard</title>
@@ -86,15 +91,16 @@
 					<!-- writers directory -->
 					<div class="card">
 						<h3 class="dash-h" style="margin-top: 0">Writers</h3>
-						<p class="subtle" style="text-align: left; margin: 4px 0 0">Everyone with an account — click a name to see their profile.</p>
+						<p class="subtle" style="text-align: left; margin: 4px 0 0">
+							Everyone with an account — click a name to see their profile.
+						</p>
 						<input id="writerSearch" placeholder="Search writers…" style="margin-top: 10px" />
 						<div id="writersList"></div>
 					</div>
 
 					<!-- previous games (achievements + streak live in the right rail) -->
 					<div class="card">
-						<h3 class="dash-h" style="margin-top: 0">Previous games</h3>
-						<p class="subtle" style="text-align: left; margin: 4px 0 0">Stories you've completed.</p>
+						<h3 class="dash-h" style="margin-top: 0px">Previous games</h3>
 						<div id="recentGames"></div>
 						<p class="subtle" style="text-align: left; margin-top: 12px">
 							<a href="/archive" class="linky">See all previous games →</a>
@@ -129,17 +135,25 @@
 						<div class="divider">— or join one —</div>
 						<label for="code">Game code</label>
 						<input id="code" class="code" placeholder="XXXX" maxlength="4" />
-						<p class="subtle" style="text-align: left; margin: 6px 0 0; font-size: 0.78rem">Ask a friend for their 4-letter code.</p>
+						<p class="subtle" style="text-align: left; margin: 6px 0 0; font-size: 0.78rem">
+							Ask a friend for their 4-letter code.
+						</p>
 						<div class="row"><button class="ghost" id="joinBtn">Join game</button></div>
 						<div class="err" id="lobbyErr"></div>
+						<div class="divider">— or write alone —</div>
+						<p class="subtle" style="text-align: left; margin: 0 0 8px; font-size: 0.78rem">
+							No timer, no turns — just the page. Invite friends as beta readers when you want notes.
+						</p>
+						<div class="row"><button class="ghost" id="soloBtn">✒️ Solo write</button></div>
 					</div>
 
 					<div class="card">
 						<h3 class="dash-h" style="margin-top: 0">Invite a friend</h3>
-						<p class="subtle" style="text-align: left; margin: 4px 0 10px">Copies the site link — send it to your next co-writer.</p>
+						<p class="subtle" style="text-align: left; margin: 4px 0 10px">
+							Copies the site link — send it to your next co-writer.
+						</p>
 						<div class="row"><button class="ghost" id="inviteBtn">➕ Invite a friend</button></div>
 					</div>
-
 				</div>
 			</div>
 		</div>
@@ -292,6 +306,16 @@
 
 			// ---- Quick start ----
 			$("createBtn").onclick = () => (location.href = "/game?new=1")
+			// Straight into a blank page, mirroring "Start a game".
+			$("soloBtn").onclick = async () => {
+				$("lobbyErr").textContent = ""
+				try {
+					const { doc } = await api("/api/docs", { title: "Untitled" })
+					location.href = "/write?id=" + encodeURIComponent(doc.id)
+				} catch (e) {
+					$("lobbyErr").textContent = e.message
+				}
+			}
 			$("joinBtn").onclick = () => {
 				const code = $("code").value.trim().toUpperCase()
 				if (code.length !== 4) return ($("lobbyErr").textContent = "Enter a 4-letter code.")
@@ -418,10 +442,7 @@
 					row.className = "ib-row" + (m.read ? "" : " unread")
 					row.innerHTML = inboxMsgHtml(m)
 					// clicking an unread message marks it read
-					if (!m.read)
-						row.addEventListener("click", () =>
-							inboxAct(() => api("/api/inbox/read", { ids: [m.id] })),
-						)
+					if (!m.read) row.addEventListener("click", () => inboxAct(() => api("/api/inbox/read", { ids: [m.id] })))
 					const acts = document.createElement("span")
 					acts.className = "ib-acts"
 					if (m.type === "friend-request") {
@@ -502,8 +523,7 @@
 						row.className = "live-game"
 						// a game still gathering writers glows + sparkles to pull
 						// OTHER members in (not if I'm already seated in it)
-						if (g.phase === "waiting" && !g.players.some((pl) => pl.name === me.username))
-							row.classList.add("gathering")
+						if (g.phase === "waiting" && !g.players.some((pl) => pl.name === me.username)) row.classList.add("gathering")
 						row.innerHTML = liveGameInfoHtml(g)
 						const btn = document.createElement("button")
 						btn.className = "ghost"

@@ -17,7 +17,7 @@ const q = (text, params) =>
 // Connect, restore every stored blob to disk, and seed the table from any
 // local files it doesn't know yet (first boot after enabling the database).
 // Must run BEFORE store.js/game.js are imported — they read files at import.
-export async function initPersistence({ dataDir, saveDir }) {
+export async function initPersistence({ dataDir, saveDir, docDir }) {
   if (!process.env.DATABASE_URL) return false;
   const { default: pg } = await import("pg");
   pool = new pg.Pool({ connectionString: process.env.DATABASE_URL, max: 3 });
@@ -27,10 +27,14 @@ export async function initPersistence({ dataDir, saveDir }) {
        updated_at timestamptz NOT NULL DEFAULT now(),
        PRIMARY KEY (kind, name))`
   );
+  docDir = docDir || join(dataDir, "docs");
   mkdirSync(dataDir, { recursive: true });
   mkdirSync(saveDir, { recursive: true });
+  mkdirSync(docDir, { recursive: true });
   const pathFor = (kind, name) =>
-    kind === "users" ? join(dataDir, "users.json") : join(saveDir, name + ".json");
+    kind === "users" ? join(dataDir, "users.json")
+      : kind === "doc" ? join(docDir, name + ".json")
+        : join(saveDir, name + ".json");
 
   const { rows } = await pool.query("SELECT kind, name, doc FROM cowrite_blobs");
   const known = new Set();
@@ -51,6 +55,8 @@ export async function initPersistence({ dataDir, saveDir }) {
   seed("users", "users", join(dataDir, "users.json"));
   for (const f of readdirSync(saveDir))
     if (f.endsWith(".json")) seed("save", f.slice(0, -5), join(saveDir, f));
+  for (const f of readdirSync(docDir))
+    if (f.endsWith(".json")) seed("doc", f.slice(0, -5), join(docDir, f));
   console.log(`persistence: Postgres mirror active (${rows.length} blobs restored)`);
   return true;
 }

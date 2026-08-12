@@ -10,6 +10,7 @@ import { badgeName, badgeDesc, usageMatches, awardWordBadges } from "../lib/achi
 import { PALETTE, cleanColor, sanitizeRich, stripTags, httpUrl } from "./sanitize.js";
 import { store, saveStore, userByToken, makeMsg } from "./store.js";
 import { mirror, mirrorDelete } from "./persist.js";
+import { readDoc, writeDoc, canView, canEdit } from "./docs.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -35,6 +36,9 @@ const MAX_ACTIVE_SESSIONS = Number(process.env.COWRITE_MAX_ACTIVE || 12);
 export function createGame(io) {
   const sessions = new Map(); // code -> session (in-memory; fine for a party game)
   const onlineSockets = new Map(); // socket.id -> userId (signed-in presence for the dashboard)
+  // Who currently has a solo-write doc open: socket.id -> {docId, userId}.
+  // Purely ephemeral, like spectators — never snapshotted.
+  const docViewers = new Map();
 
   // Paused/finished games are snapshotted to disk so they survive a server
   // restart and can be picked up later. Seats are identified by writer token.
@@ -1033,8 +1037,73 @@ export function createGame(io) {
       else onlineSockets.delete(socket.id);
     });
 
+    // ---- Solo-write documents: who's looking, and live comments ----
+    socket.on("doc-open", ({ auth, id }) => {
+      const u = userByToken(auth);
+      const doc = readDoc(id);
+      if (!u || !doc || !canView(doc, u.id)) return;
+      leaveDoc(socket);
+      socket.data.docId = doc.id;
+      socket.join(docRoom(doc.id));
+      docViewers.set(socket.id, { docId: doc.id, userId: u.id });
+      broadcastDocPresence(doc.id);
+    });
+
+    socket.on("doc-close", () => leaveDoc(socket));
+
+    socket.on("doc-comment", ({ auth, id, blockIdx, blockHash, text }) => {
+      const u = userByToken(auth);
+      const doc = readDoc(id);
+      if (!u || !doc || !canView(doc, u.id)) return;
+      const body = stripTags(String(text ?? "")).slice(0, 1000);
+      if (!body) return;
+      doc.comments = [...(doc.comments || []), {
+        id: randomUUID(),
+        blockIdx: Number.isInteger(blockIdx) ? blockIdx : 0,
+        blockHash: String(blockHash ?? "").slice(0, 64),
+        userId: u.id, text: body, ts: Date.now(), resolved: false,
+      }];
+      writeDoc(doc);
+      broadcastDocComments(doc);
+    });
+
+    // Either the comment's author or the doc's author can resolve/remove it.
+    const myComment = (doc, cid, uid) =>
+      (doc.comments || []).find((c) => c.id === cid && (c.userId === uid || doc.ownerId === uid));
+
+    socket.on("doc-comment-resolve", ({ auth, id, commentId, resolved }) => {
+      const u = userByToken(auth);
+      const doc = readDoc(id);
+      if (!u || !doc || !canView(doc, u.id)) return;
+      const c = myComment(doc, commentId, u.id);
+      if (!c) return;
+      c.resolved = !!resolved;
+      writeDoc(doc);
+      broadcastDocComments(doc);
+    });
+
+    socket.on("doc-comment-delete", ({ auth, id, commentId }) => {
+      const u = userByToken(auth);
+      const doc = readDoc(id);
+      if (!u || !doc || !canView(doc, u.id)) return;
+      if (!myComment(doc, commentId, u.id)) return;
+      doc.comments = (doc.comments || []).filter((c) => c.id !== commentId);
+      writeDoc(doc);
+      broadcastDocComments(doc);
+    });
+
+    // The author's saved text, pushed to readers who have the doc open so they
+    // aren't commenting on a stale draft.
+    socket.on("doc-saved", ({ auth, id }) => {
+      const u = userByToken(auth);
+      const doc = readDoc(id);
+      if (!u || !doc || !canEdit(doc, u.id)) return;
+      socket.to(docRoom(doc.id)).emit("doc-updated", { id: doc.id, html: doc.html, title: doc.title });
+    });
+
     socket.on("disconnect", () => {
       onlineSockets.delete(socket.id);
+      leaveDoc(socket); // a closed tab must stop showing as a doc viewer
       // A departing spectator changes the watcher count everyone sees.
       const watched = sessions.get(socket.data.spectating);
       if (watched && watched.phase !== "waiting" && watched.phase !== "over") broadcastGame(watched);
@@ -1048,6 +1117,66 @@ export function createGame(io) {
   });
 
   // ---- Archive / dashboard read helpers (used by the HTTP routes) ----
+
+  // ---- Solo-write doc rooms (presence + live comments) ----
+  const docRoom = (id) => "doc:" + id;
+
+  // Everyone currently viewing a doc, deduped by account: two tabs are one
+  // person. Shape matches miniAvatar() on the client.
+  function docPresenceList(docId) {
+    const seen = new Map();
+    for (const { docId: d, userId } of docViewers.values()) {
+      if (d !== docId || seen.has(userId)) continue;
+      const u = store.users.find((x) => x.id === userId);
+      if (u) seen.set(userId, {
+        username: u.username, color: cleanColor(u.color),
+        avatar: u.avatar || "", avatarFit: u.avatarFit || "cover",
+      });
+    }
+    return [...seen.values()];
+  }
+  const broadcastDocPresence = (docId) =>
+    io.to(docRoom(docId)).emit("doc-presence", { id: docId, viewers: docPresenceList(docId) });
+
+  // Comments carry author identity for rendering — never account ids.
+  const commentRows = (doc) =>
+    (doc.comments || []).map((c) => {
+      const a = store.users.find((x) => x.id === c.userId);
+      return {
+        id: c.id, blockIdx: c.blockIdx, blockHash: c.blockHash, text: c.text,
+        ts: c.ts, resolved: !!c.resolved,
+        author: a?.username || "someone", color: cleanColor(a?.color),
+        avatar: a?.avatar || "", avatarFit: a?.avatarFit || "cover",
+      };
+    });
+  const broadcastDocComments = (doc) =>
+    io.to(docRoom(doc.id)).emit("doc-comments", { id: doc.id, comments: commentRows(doc) });
+
+  function leaveDoc(socket) {
+    const seat = docViewers.get(socket.id);
+    if (!seat) return;
+    docViewers.delete(socket.id);
+    socket.leave(docRoom(seat.docId));
+    socket.data.docId = null;
+    broadcastDocPresence(seat.docId);
+  }
+
+  // Access was just revoked (reader removed, or the doc went private again):
+  // kick the affected sockets out of the room so they stop getting updates.
+  function closeDocFor(docId, userId) {
+    for (const [sid, seat] of [...docViewers.entries()]) {
+      if (seat.docId !== docId || seat.userId !== userId) continue;
+      docViewers.delete(sid);
+      const sock = io.sockets.sockets.get(sid);
+      sock?.leave(docRoom(docId));
+      sock?.emit("doc-access-lost", { id: docId });
+    }
+    broadcastDocPresence(docId);
+  }
+  const closeDocReaders = (docId, ownerId) => {
+    for (const [, seat] of [...docViewers.entries()])
+      if (seat.docId === docId && seat.userId !== ownerId) closeDocFor(docId, seat.userId);
+  };
 
   // Previous games are private: you only see games your account holds a seat in.
   // Names in snapshots are display copies; the ACCOUNT id is the durable tie.
@@ -1171,5 +1300,5 @@ export function createGame(io) {
     mirrorDelete("save", code); // no-op without DATABASE_URL
   }
 
-  return { sessions, onlineSockets, SAVE_DIR, gameSummary, freshStory, inGame, myGamesFor, recentGamesFor, deleteGame, renameUser, setTags };
+  return { sessions, onlineSockets, SAVE_DIR, gameSummary, freshStory, inGame, myGamesFor, recentGamesFor, deleteGame, renameUser, setTags, commentRows, closeDocFor, closeDocReaders };
 }
