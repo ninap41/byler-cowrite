@@ -4502,6 +4502,200 @@ body.ui-peek iframe[src*="ko-fi"] {
 	border-radius: 50%;
 	box-shadow: 0 0 0 2px var(--accent-2);
 }
+/* ---------- Solo-write: sticky head + toolbar ---------- */
+/* One slab that stays put while a long chapter scrolls under it. */
+.doc-shell {
+	position: sticky;
+	top: 10px;
+	z-index: 45;
+	margin: 0 0 14px;
+	border: 1px solid var(--panel-brd);
+	border-radius: 18px;
+	background: color-mix(in srgb, var(--panel) 88%, transparent);
+	backdrop-filter: blur(16px);
+	-webkit-backdrop-filter: blur(16px);
+	box-shadow: var(--panel-glow);
+	overflow: visible;
+}
+.doc-head {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	padding: 10px 14px;
+	border-bottom: 1px solid var(--line);
+}
+.doc-back {
+	flex: 0 0 auto;
+	color: var(--muted);
+	text-decoration: none;
+	font-size: 0.92rem;
+	padding: 8px 10px;
+	border-radius: 12px;
+	white-space: nowrap;
+}
+.doc-back:hover {
+	color: var(--ink);
+	background: var(--chip);
+}
+.doc-head-main {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+.doc-head-main .doc-title-input {
+	display: block;
+	width: 100%;
+	font-size: 1.5rem;
+	padding: 2px 8px;
+	margin: 0 0 1px -8px;
+}
+/* the status line lives UNDER the title, as a caption, not as its own bar */
+.doc-head-meta {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+	font-size: 0.85rem;
+	color: var(--muted);
+	padding-left: 0;
+}
+.doc-head-right {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+/* the shared chrome is fixed everywhere else; in here it's just content */
+body.doc-page .topbar,
+body.doc-page .hamburger {
+	position: static;
+	top: auto;
+	right: auto;
+	z-index: auto;
+}
+body.doc-page .topbar {
+	align-items: center;
+}
+.doc-save {
+	flex: 0 0 auto;
+	min-width: 0;
+	padding: 10px 22px;
+	font-size: 1rem;
+}
+
+.doc-toolbar-row {
+	position: relative;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	flex-wrap: wrap;
+	padding: 8px 12px;
+}
+.doc-toolbar-row .toolbar {
+	flex: 1 1 auto;
+	margin: 0;
+	background: none;
+	border: 0;
+	box-shadow: none;
+	padding: 0;
+	gap: 8px;
+}
+/* related controls read as one control */
+.tb-group {
+	display: inline-flex;
+	align-items: center;
+	gap: 2px;
+	padding: 3px;
+	border: 1px solid var(--line);
+	border-radius: 12px;
+	background: color-mix(in srgb, var(--panel-2) 70%, transparent);
+}
+.tb-group > button.ghost,
+.tb-group > select.ghost {
+	border: 0;
+	background: none;
+	box-shadow: none;
+	padding: 6px 10px;
+	min-width: 0;
+}
+.tb-group > button.ghost:hover,
+.tb-group > select.ghost:hover {
+	background: var(--chip);
+}
+.tb-group .stepper {
+	border: 0;
+	background: none;
+	margin: 0;
+}
+.toolbar-right {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-left: auto;
+}
+.icon-btn {
+	min-width: 0;
+	padding: 8px 12px;
+	text-decoration: none;
+	line-height: 1;
+}
+
+/* ⋯ overflow */
+.more-menu {
+	position: absolute;
+	top: calc(100% - 4px);
+	left: 12px;
+	z-index: 60;
+	min-width: 230px;
+	padding: 6px;
+	border: 1px solid var(--panel-brd);
+	border-radius: 14px;
+	background: var(--panel);
+	box-shadow: var(--panel-glow);
+	backdrop-filter: blur(14px);
+	-webkit-backdrop-filter: blur(14px);
+}
+.more-item {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	width: 100%;
+	padding: 9px 10px;
+	border: 0;
+	border-radius: 10px;
+	background: none;
+	color: var(--ink);
+	font: inherit;
+	font-size: 0.9rem;
+	text-align: left;
+	cursor: pointer;
+}
+.more-item:hover {
+	background: var(--chip);
+}
+.more-item.as-row {
+	cursor: default;
+}
+.more-item.as-row:hover {
+	background: none;
+}
+.more-item kbd {
+	color: var(--muted);
+	font-family: var(--font-mono);
+	font-size: 0.85rem;
+}
+.more-sep {
+	height: 1px;
+	margin: 5px 6px;
+	background: var(--line);
+}
+
+/* While the size box has focus the browser's selection has moved to it, so
+   paint the words the resize will land on rather than showing nothing. */
+.doc-editor.hold-sel ::selection {
+	background: color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
 .doc-statusbar {
 	display: flex;
 	align-items: center;
@@ -4562,6 +4756,7 @@ body.ui-peek iframe[src*="ko-fi"] {
 .doc-editor {
 	min-height: 58vh;
 	max-height: none;
+	font-size: 16px; /* the ladder's default — unstyled text really is 16 */
 }
 .doc-source {
 	font-family: var(--font-mono);

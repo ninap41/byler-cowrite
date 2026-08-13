@@ -19,49 +19,117 @@
 	<body>
 		<div class="wrap">
 			<div class="write-inner">
-				<div class="archive-head">
-					<a class="ghost" href="/writes" id="backBtn" style="text-decoration: none; padding: 10px 16px; border-radius: 12px">← All writes</a>
-					<input id="docTitle" class="doc-title-input" placeholder="Untitled" maxlength="80" />
-				</div>
+				<!-- The head and the toolbar are one sticky slab: scrolling a long
+				     chapter must never take the title, the word count or the
+				     formatting controls off screen. -->
+				<div class="doc-shell" id="docShell">
+					<header class="doc-head">
+						<a class="doc-back" href="/writes" id="backBtn">← All writes</a>
+						<div class="doc-head-main">
+							<input id="docTitle" class="doc-title-input" placeholder="Untitled" maxlength="80" />
+							<div class="doc-head-meta">
+								<span id="saveState" class="doc-save-state">Saved</span>
+								<span class="doc-dot">·</span>
+								<span id="wordCount" class="subtle">0 words</span>
+								<!-- beta readers currently viewing; hover shows the name -->
+								<span class="presence-row" id="presenceRow"></span>
+							</div>
+						</div>
+						<!-- The shared user chip, theme switch and hamburger are moved in
+						     here at runtime (they are position:fixed everywhere else), so
+						     the account controls sit beside Save instead of floating over
+						     the sticky header. -->
+						<div class="doc-head-right" id="docHeadRight">
+							<button class="primary doc-save" id="saveBtn" type="button">Save</button>
+						</div>
+					</header>
 
-				<div class="doc-statusbar">
-					<span id="saveState" class="doc-save-state">Saved</span>
-					<span class="doc-dot">·</span>
-					<span id="wordCount" class="subtle">0 words</span>
-					<!-- beta readers currently viewing; hover shows the name -->
-					<span class="presence-row" id="presenceRow"></span>
-					<span class="doc-spacer"></span>
-					<!-- Line spacing is a VIEW preference: it never enters the html,
-					     never reaches the server, and is remembered per browser. -->
-					<span class="stepper pref-stepper" id="lineStepper" data-tip="Line spacing — your view only, not saved into the story">
-						<span class="step-label">↕</span>
-						<button class="step-btn" id="lsDown" type="button" aria-label="Tighter line spacing">−</button>
-						<span class="step-value" id="lsValue">1.7</span>
-						<button class="step-btn" id="lsUp" type="button" aria-label="Looser line spacing">+</button>
-					</span>
-					<!-- Segmented control: the highlighted half IS the current mode,
-					     rather than a single button that names the other one. -->
-					<div class="mode-switch" id="modeSwitch" role="group" aria-label="Editor mode">
-						<button class="mode-btn on" id="modeRich" type="button" aria-pressed="true" title="Write with the toolbar">✎ Rich text</button>
-						<button class="mode-btn" id="modeHtml" type="button" aria-pressed="false" title="Edit the raw HTML">&lt;/&gt; HTML</button>
-						<!-- Comment mode is a third MODE, not a stray button: editing off,
-						     selecting text leaves a note on it. Beta readers are locked
-						     into it, so for them the whole switch is hidden. -->
-						<button class="mode-btn" id="commentToggle" type="button" aria-pressed="false" title="Comment on the text instead of editing it">💬 Comment</button>
+					<div class="doc-toolbar-row">
+						<div class="toolbar" id="docToolbar">
+							<span class="tb-group">
+								<button class="ghost" id="undoBtn" title="Undo (Ctrl/⌘+Z)" type="button">↺</button>
+								<button class="ghost" id="redoBtn" title="Redo (Ctrl/⌘+Shift+Z)" type="button">↻</button>
+							</span>
+							<span class="tb-group">
+								<select id="blockFormat" class="ghost" title="Paragraph style">
+									<option value="p">Paragraph</option>
+									<option value="h1">Heading 1</option>
+									<option value="h2">Heading 2</option>
+									<option value="h3">Heading 3</option>
+									<option value="blockquote">Quote</option>
+								</select>
+							</span>
+							<span class="tb-group">
+								<button class="ghost tb-b" data-cmd="bold" title="Bold" type="button">B</button>
+								<button class="ghost tb-i" data-cmd="italic" title="Italic" type="button">I</button>
+								<button class="ghost tb-u" data-cmd="underline" title="Underline" type="button">U</button>
+								<button class="ghost tb-s" data-cmd="strikeThrough" title="Strikethrough" type="button">S</button>
+							</span>
+							<!-- font size: part of the DOCUMENT, saved with the story -->
+							<span class="tb-group">
+								<span class="stepper" id="fontStepper" title="Font size of the selected text">
+									<button class="step-btn" id="fsDown" type="button" aria-label="Smaller text">−</button>
+									<input id="fsInput" class="step-input" inputmode="numeric" aria-label="Font size in pixels" value="16" />
+									<button class="step-btn" id="fsUp" type="button" aria-label="Larger text">+</button>
+								</span>
+							</span>
+							<span class="tb-group">
+								<select id="listSelect" class="ghost" title="List style">
+									<option value="none">No list</option>
+									<option value="insertUnorderedList">• Bulleted</option>
+									<option value="insertOrderedList">1. Numbered</option>
+								</select>
+								<select id="alignSelect" class="ghost align-select" title="Alignment">
+									<option value="justifyLeft" title="Left">⇤</option>
+									<option value="justifyCenter" title="Center">↔</option>
+									<option value="justifyRight" title="Right">⇥</option>
+								</select>
+							</span>
+							<span class="tb-group">
+								<button class="ghost" id="linkBtn" title="Insert link" type="button">🔗</button>
+								<button class="ghost" id="imgBtn" title="Insert image" type="button">🖼</button>
+								<!-- everything that doesn't earn permanent space -->
+								<button class="ghost" id="moreBtn" type="button" title="More" aria-haspopup="true" aria-expanded="false">⋯</button>
+							</span>
+						</div>
+
+						<div class="toolbar-right">
+							<a
+								class="ghost icon-btn"
+								id="thesaurusLink"
+								href="https://www.powerthesaurus.org"
+								target="_blank"
+								rel="noopener noreferrer"
+								data-tip="Power Thesaurus — opens in a new tab"
+								>📖</a
+							>
+							<button class="ghost icon-btn" id="shareBtn" type="button" data-tip="Beta readers">👥</button>
+							<!-- Segmented control: the highlighted segment IS the current
+							     mode. Comment mode is a third mode, not a stray button. -->
+							<div class="mode-switch" id="modeSwitch" role="group" aria-label="Editor mode">
+								<button class="mode-btn on" id="modeRich" type="button" aria-pressed="true" title="Write with the toolbar">Rich text</button>
+								<button class="mode-btn" id="modeHtml" type="button" aria-pressed="false" title="Edit the raw HTML">HTML</button>
+								<button class="mode-btn" id="commentToggle" type="button" aria-pressed="false" title="Comment on the text instead of editing it">💬</button>
+							</div>
+						</div>
+
+						<!-- the ⋯ menu: rarely-reached tools, plus line spacing, which is a
+						     VIEW preference — it never enters the html or reaches the server -->
+						<div class="more-menu hidden" id="moreMenu" role="menu">
+							<button class="more-item" id="emDashBtn" type="button" role="menuitem"><span>Em dash</span><kbd>—</kbd></button>
+							<button class="more-item" data-cmd="insertHorizontalRule" type="button" role="menuitem"><span>Horizontal rule</span><kbd>―</kbd></button>
+							<button class="more-item" id="clearFmtBtn" type="button" role="menuitem"><span>Clear formatting</span><kbd>Tx</kbd></button>
+							<div class="more-sep"></div>
+							<div class="more-item as-row">
+								<span>Line spacing</span>
+								<span class="stepper pref-stepper" id="lineStepper">
+									<button class="step-btn" id="lsDown" type="button" aria-label="Tighter line spacing">−</button>
+									<span class="step-value" id="lsValue">1.7</span>
+									<button class="step-btn" id="lsUp" type="button" aria-label="Looser line spacing">+</button>
+								</span>
+							</div>
+						</div>
 					</div>
-					<!-- external reference: opens in its own tab so the draft is never navigated away from -->
-					<a
-						class="ghost"
-						id="thesaurusLink"
-						href="https://www.powerthesaurus.org"
-						target="_blank"
-						rel="noopener noreferrer"
-						title="Power Thesaurus — opens in a new tab"
-						style="text-decoration: none; padding: 10px 16px; border-radius: 12px"
-						>📖 Thesaurus</a
-					>
-					<button class="ghost" id="shareBtn" type="button">👥 Beta readers</button>
-					<button class="primary" id="saveBtn" type="button">Save</button>
 				</div>
 
 				<!-- offer to restore a newer local draft rather than clobbering either copy -->
@@ -75,43 +143,6 @@
 
 				<div class="doc-main">
 					<div class="doc-col">
-						<div class="toolbar" id="docToolbar">
-							<button class="ghost" id="undoBtn" title="Undo (Ctrl/⌘+Z)" type="button">↺</button>
-							<button class="ghost" id="redoBtn" title="Redo (Ctrl/⌘+Shift+Z)" type="button">↻</button>
-							<select id="blockFormat" class="ghost" title="Paragraph style">
-								<option value="p">Paragraph</option>
-								<option value="h1">Heading 1</option>
-								<option value="h2">Heading 2</option>
-								<option value="h3">Heading 3</option>
-								<option value="blockquote">Quote</option>
-							</select>
-							<button class="ghost tb-b" data-cmd="bold" title="Bold" type="button">B</button>
-							<button class="ghost tb-i" data-cmd="italic" title="Italic" type="button">I</button>
-							<button class="ghost tb-u" data-cmd="underline" title="Underline" type="button">U</button>
-							<button class="ghost tb-s" data-cmd="strikeThrough" title="Strikethrough" type="button">S</button>
-							<!-- font size: part of the DOCUMENT, saved with the story -->
-							<span class="stepper" id="fontStepper" title="Font size of the selected text">
-								<button class="step-btn" id="fsDown" type="button" aria-label="Smaller text">−</button>
-								<input id="fsInput" class="step-input" inputmode="numeric" aria-label="Font size in pixels" value="18" />
-								<button class="step-btn" id="fsUp" type="button" aria-label="Larger text">+</button>
-							</span>
-							<select id="listSelect" class="ghost" title="List style">
-								<option value="none">No list</option>
-								<option value="insertUnorderedList">• Bulleted</option>
-								<option value="insertOrderedList">1. Numbered</option>
-							</select>
-							<select id="alignSelect" class="ghost align-select" title="Alignment">
-								<option value="justifyLeft" title="Left">⇤</option>
-								<option value="justifyCenter" title="Center">↔</option>
-								<option value="justifyRight" title="Right">⇥</option>
-							</select>
-							<button class="ghost" id="emDashBtn" title="Insert em dash" type="button">em</button>
-							<button class="ghost" data-cmd="insertHorizontalRule" title="Horizontal rule" type="button">―</button>
-							<button class="ghost" id="linkBtn" title="Insert link" type="button">🔗</button>
-							<button class="ghost" id="imgBtn" title="Insert image" type="button">🖼</button>
-							<button class="ghost" id="clearFmtBtn" title="Clear formatting" type="button">Tx</button>
-						</div>
-
 						<div class="editor doc-editor" id="docEditor" contenteditable="true" data-placeholder="Start writing… type / for the reference bank"></div>
 						<textarea class="editor doc-editor doc-source hidden" id="docSource" spellcheck="false"></textarea>
 						<p class="hint" id="editorHint">
@@ -179,6 +210,18 @@
 			import { esc } from "/js/util.js"
 
 			mountChrome({ page: "write" })
+			// The account controls are position:fixed on every other page, which
+			// would float them over this page's sticky header. Move them into it so
+			// the chip, the theme switch and the hamburger sit beside Save.
+			document.body.classList.add("doc-page")
+			// NB: plain getElementById — the $ helper is declared further down, and
+			// touching it here would throw before the page ever loads the document.
+			// Order: account chip, theme, then Save with the hamburger beside it.
+			const headRight = document.getElementById("docHeadRight")
+			const topbar = document.querySelector(".topbar")
+			const burger = document.querySelector(".hamburger")
+			if (headRight && topbar) headRight.prepend(topbar)
+			if (headRight && burger) headRight.appendChild(burger)
 			const me = await requireAuth("/")
 			setUserChip(me)
 			const $ = (id) => document.getElementById(id)
@@ -433,6 +476,30 @@
 				undoHistory.record()
 			}
 
+			// ---- the ⋯ menu ----
+			const closeMore = () => {
+				$("moreMenu").classList.add("hidden")
+				$("moreBtn").setAttribute("aria-expanded", "false")
+			}
+			// mousedown+preventDefault so opening the menu doesn't drop the selection
+			// the items are about to act on
+			$("moreBtn").addEventListener("mousedown", (e) => {
+				e.preventDefault()
+				const open = $("moreMenu").classList.toggle("hidden")
+				$("moreBtn").setAttribute("aria-expanded", String(!open))
+			})
+			$("moreMenu").addEventListener("mousedown", (e) => {
+				// the steppers inside need their own handlers to still fire
+				if (!e.target.closest(".step-btn")) e.preventDefault()
+			})
+			$("moreMenu").addEventListener("click", (e) => {
+				if (e.target.closest(".more-item") && !e.target.closest(".as-row")) closeMore()
+			})
+			document.addEventListener("mousedown", (e) => {
+				if (!e.target.closest("#moreMenu") && !e.target.closest("#moreBtn")) closeMore()
+			})
+			document.addEventListener("keydown", (e) => e.key === "Escape" && closeMore())
+
 			$("commentToggle").addEventListener("click", () => setCommentMode(!commentMode))
 
 			$("commentPane").addEventListener("click", (e) => {
@@ -539,11 +606,14 @@
 				document.execCommand("insertText", false, "—")
 				onEdit({ immediate: true })
 			})
+			// The range the size box will act on, remembered while the editor still
+			// has the selection (see rememberRange).
+			let sizeRange = null
 			// ---- font size (document content) ----
 			// execCommand's fontSize only speaks 1–7, so we ask for the sentinel
 			// 7 and rewrite the <font> tags it produces into our class ladder.
 			// The ladder is a closed set, so nothing arbitrary reaches the html.
-			const DEFAULT_SIZE = 18 // the editor's own size, for text wearing no fs-* span
+			const DEFAULT_SIZE = 16 // the editor's own size, for text wearing no fs-* span
 			const nearestSize = (px) =>
 				FONT_SIZES.reduce((best, s) => (Math.abs(s - px) < Math.abs(best - px) ? s : best), FONT_SIZES[0])
 
@@ -649,7 +719,9 @@
 			// Drag-select with the mouse, extend with shift+arrows, undo — all of it
 			// moves the selection, and the toolbar should read the selection.
 			document.addEventListener("selectionchange", () => {
-				if (!commentMode && !sourceMode) syncFontBox()
+				if (commentMode || sourceMode) return
+				syncFontBox()
+				rememberRange() // the size box needs it AFTER focus has left the editor
 			})
 
 			// Stepping off a mixed selection starts from its smallest size, so
@@ -666,12 +738,45 @@
 			// mousedown, not click: the selection must survive the press
 			$("fsDown").addEventListener("mousedown", (e) => (e.preventDefault(), stepSize(-1)))
 			$("fsUp").addEventListener("mousedown", (e) => (e.preventDefault(), stepSize(1)))
-			$("fsInput").addEventListener("change", () => applyFontSize(Number($("fsInput").value) || sizeForStep()))
+			// Typing in the size box moves focus out of the editor, and a browser
+			// keeps ONE selection: the moment the input takes focus the highlighted
+			// words are forgotten. So remember the range on the way out and put it
+			// back before applying — the text you highlighted is still the text
+			// that resizes.
+			// declared before the selectionchange listener above needs it
+			const rememberRange = () => {
+				const sel = window.getSelection()
+				if (!sel || !sel.rangeCount) return
+				const r = sel.getRangeAt(0)
+				if ($("docEditor").contains(r.commonAncestorContainer) && !r.collapsed) sizeRange = r.cloneRange()
+			}
+			const restoreRange = () => {
+				if (!sizeRange || !$("docEditor").contains(sizeRange.commonAncestorContainer)) return false
+				const sel = window.getSelection()
+				sel.removeAllRanges()
+				sel.addRange(sizeRange)
+				return true
+			}
+			// Keep the words visibly highlighted while the box is being edited. A
+			// browser dims the selection once focus leaves the editor, so paint it
+			// ourselves. Driven by mousedown rather than focus: the press happens
+			// before the selection moves, and it fires even when the window itself
+			// isn't focused.
+			const holdSel = (on) => $("docEditor").classList.toggle("hold-sel", on)
+			$("fontStepper").addEventListener("mousedown", () => holdSel(true))
+			$("fsInput").addEventListener("blur", () => holdSel(false))
+			$("docEditor").addEventListener("mousedown", () => holdSel(false))
+
+			const applyFromBox = () => {
+				const px = Number($("fsInput").value)
+				restoreRange()
+				applyFontSize(px || sizeForStep())
+			}
+			$("fsInput").addEventListener("change", applyFromBox)
 			$("fsInput").addEventListener("keydown", (e) => {
-				if (e.key === "Enter") {
-					e.preventDefault()
-					applyFontSize(Number($("fsInput").value) || sizeForStep())
-				}
+				if (e.key !== "Enter") return
+				e.preventDefault()
+				applyFromBox()
 			})
 
 			// ---- undo / redo ----
