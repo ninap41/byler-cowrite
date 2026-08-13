@@ -74,10 +74,10 @@
 								</span>
 							</span>
 							<span class="tb-group">
-								<select id="listSelect" class="ghost" title="List style">
-									<option value="none">No list</option>
-									<option value="insertUnorderedList">• Bulleted</option>
-									<option value="insertOrderedList">1. Numbered</option>
+								<select id="listSelect" class="ghost align-select" title="List style">
+									<option value="none" title="No list">☰</option>
+									<option value="insertUnorderedList" title="Bulleted">•</option>
+									<option value="insertOrderedList" title="Numbered">1.</option>
 								</select>
 								<select id="alignSelect" class="ghost align-select" title="Alignment">
 									<option value="justifyLeft" title="Left">⇤</option>
@@ -88,8 +88,19 @@
 							<span class="tb-group">
 								<button class="ghost" id="linkBtn" title="Insert link" type="button">🔗</button>
 								<button class="ghost" id="imgBtn" title="Insert image" type="button">🖼</button>
-								<!-- everything that doesn't earn permanent space -->
-								<button class="ghost" id="moreBtn" type="button" title="More" aria-haspopup="true" aria-expanded="false">⋯</button>
+								<button class="ghost" id="emDashBtn" title="Insert em dash" type="button">—</button>
+								<button class="ghost" data-cmd="insertHorizontalRule" title="Horizontal rule" type="button">HR</button>
+								<button class="ghost" id="clearFmtBtn" title="Clear formatting" type="button">Tx</button>
+							</span>
+							<!-- Line spacing is a VIEW preference: it never enters the html,
+							     never reaches the server, and is remembered per browser. -->
+							<span class="tb-group">
+								<span class="stepper pref-stepper" id="lineStepper" data-tip="Line spacing — your view only, not saved into the story">
+									<span class="step-label">↕</span>
+									<button class="step-btn" id="lsDown" type="button" aria-label="Tighter line spacing">−</button>
+									<span class="step-value" id="lsValue">1.7</span>
+									<button class="step-btn" id="lsUp" type="button" aria-label="Looser line spacing">+</button>
+								</span>
 							</span>
 						</div>
 
@@ -113,22 +124,6 @@
 							</div>
 						</div>
 
-						<!-- the ⋯ menu: rarely-reached tools, plus line spacing, which is a
-						     VIEW preference — it never enters the html or reaches the server -->
-						<div class="more-menu hidden" id="moreMenu" role="menu">
-							<button class="more-item" id="emDashBtn" type="button" role="menuitem"><span>Em dash</span><kbd>—</kbd></button>
-							<button class="more-item" data-cmd="insertHorizontalRule" type="button" role="menuitem"><span>Horizontal rule</span><kbd>―</kbd></button>
-							<button class="more-item" id="clearFmtBtn" type="button" role="menuitem"><span>Clear formatting</span><kbd>Tx</kbd></button>
-							<div class="more-sep"></div>
-							<div class="more-item as-row">
-								<span>Line spacing</span>
-								<span class="stepper pref-stepper" id="lineStepper">
-									<button class="step-btn" id="lsDown" type="button" aria-label="Tighter line spacing">−</button>
-									<span class="step-value" id="lsValue">1.7</span>
-									<button class="step-btn" id="lsUp" type="button" aria-label="Looser line spacing">+</button>
-								</span>
-							</div>
-						</div>
 					</div>
 				</div>
 
@@ -475,30 +470,6 @@
 				updateWords()
 				undoHistory.record()
 			}
-
-			// ---- the ⋯ menu ----
-			const closeMore = () => {
-				$("moreMenu").classList.add("hidden")
-				$("moreBtn").setAttribute("aria-expanded", "false")
-			}
-			// mousedown+preventDefault so opening the menu doesn't drop the selection
-			// the items are about to act on
-			$("moreBtn").addEventListener("mousedown", (e) => {
-				e.preventDefault()
-				const open = $("moreMenu").classList.toggle("hidden")
-				$("moreBtn").setAttribute("aria-expanded", String(!open))
-			})
-			$("moreMenu").addEventListener("mousedown", (e) => {
-				// the steppers inside need their own handlers to still fire
-				if (!e.target.closest(".step-btn")) e.preventDefault()
-			})
-			$("moreMenu").addEventListener("click", (e) => {
-				if (e.target.closest(".more-item") && !e.target.closest(".as-row")) closeMore()
-			})
-			document.addEventListener("mousedown", (e) => {
-				if (!e.target.closest("#moreMenu") && !e.target.closest("#moreBtn")) closeMore()
-			})
-			document.addEventListener("keydown", (e) => e.key === "Escape" && closeMore())
 
 			$("commentToggle").addEventListener("click", () => setCommentMode(!commentMode))
 

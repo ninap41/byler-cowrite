@@ -4586,9 +4586,9 @@ body.doc-page .topbar {
 	position: relative;
 	display: flex;
 	align-items: center;
-	gap: 10px;
+	gap: 8px;
 	flex-wrap: wrap;
-	padding: 8px 12px;
+	padding: 7px 12px;
 }
 .doc-toolbar-row .toolbar {
 	flex: 1 1 auto;
@@ -4597,16 +4597,39 @@ body.doc-page .topbar {
 	border: 0;
 	box-shadow: none;
 	padding: 0;
-	gap: 8px;
+	gap: 6px;
 }
-/* related controls read as one control */
+/* the block-format picker is the only control that needs words */
+.doc-toolbar-row #blockFormat {
+	max-width: 118px;
+	padding-right: 22px;
+}
+.doc-toolbar-row .stepper {
+	padding: 0 2px;
+	gap: 1px;
+}
+.doc-toolbar-row .step-input {
+	width: 30px;
+	font-size: 0.85rem;
+}
+.doc-toolbar-row .step-btn {
+	padding: 2px 5px;
+	font-size: 0.85rem;
+}
+.doc-toolbar-row .step-value,
+.doc-toolbar-row .step-label {
+	font-size: 0.82rem;
+}
+/* Related controls read as one control. Everything is on show — nothing is
+   hidden behind an overflow menu — so the whole row is deliberately tight:
+   icon-width buttons, no label text where a glyph carries it. */
 .tb-group {
 	display: inline-flex;
 	align-items: center;
-	gap: 2px;
-	padding: 3px;
+	gap: 1px;
+	padding: 2px;
 	border: 1px solid var(--line);
-	border-radius: 12px;
+	border-radius: 11px;
 	background: color-mix(in srgb, var(--panel-2) 70%, transparent);
 }
 .tb-group > button.ghost,
@@ -4614,8 +4637,10 @@ body.doc-page .topbar {
 	border: 0;
 	background: none;
 	box-shadow: none;
-	padding: 6px 10px;
-	min-width: 0;
+	padding: 5px 7px;
+	min-width: 28px;
+	font-size: 0.85rem;
+	line-height: 1.15;
 }
 .tb-group > button.ghost:hover,
 .tb-group > select.ghost:hover {
@@ -4629,14 +4654,19 @@ body.doc-page .topbar {
 .toolbar-right {
 	display: flex;
 	align-items: center;
-	gap: 8px;
+	gap: 6px;
 	margin-left: auto;
 }
 .icon-btn {
 	min-width: 0;
-	padding: 8px 12px;
+	padding: 6px 9px;
+	font-size: 0.9rem;
 	text-decoration: none;
-	line-height: 1;
+	line-height: 1.15;
+}
+.doc-toolbar-row .mode-switch .mode-btn {
+	padding: 6px 11px;
+	font-size: 0.82rem;
 }
 
 /* ⋯ overflow */
@@ -4827,11 +4857,11 @@ body.doc-page .topbar {
 	cursor: text;
 	background: color-mix(in srgb, var(--accent-2) 4%, transparent);
 }
-/* icon-only alignment picker: the glyph says it, the tooltip names it */
+/* icon-only pickers: the glyph says it, the tooltip names it */
 .align-select {
 	width: auto;
 	min-width: 0;
-	padding-right: 26px;
+	padding-right: 20px !important;
 	text-align: center;
 }
 
