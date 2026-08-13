@@ -44,12 +44,11 @@
 					<div class="mode-switch" id="modeSwitch" role="group" aria-label="Editor mode">
 						<button class="mode-btn on" id="modeRich" type="button" aria-pressed="true" title="Write with the toolbar">✎ Rich text</button>
 						<button class="mode-btn" id="modeHtml" type="button" aria-pressed="false" title="Edit the raw HTML">&lt;/&gt; HTML</button>
+						<!-- Comment mode is a third MODE, not a stray button: editing off,
+						     selecting text leaves a note on it. Beta readers are locked
+						     into it, so for them the whole switch is hidden. -->
+						<button class="mode-btn" id="commentToggle" type="button" aria-pressed="false" title="Comment on the text instead of editing it">💬 Comment</button>
 					</div>
-					<!-- Comment mode: editing off, selecting text leaves a note on it.
-					     Beta readers are locked into it and never see it toggle. -->
-					<button class="ghost mode-toggle" id="commentToggle" type="button" aria-pressed="false" title="Comment on the text instead of editing it">
-						💬 Comment mode
-					</button>
 					<!-- external reference: opens in its own tab so the draft is never navigated away from -->
 					<a
 						class="ghost"
@@ -77,6 +76,8 @@
 				<div class="doc-main">
 					<div class="doc-col">
 						<div class="toolbar" id="docToolbar">
+							<button class="ghost" id="undoBtn" title="Undo (Ctrl/⌘+Z)" type="button">↺</button>
+							<button class="ghost" id="redoBtn" title="Redo (Ctrl/⌘+Shift+Z)" type="button">↻</button>
 							<select id="blockFormat" class="ghost" title="Paragraph style">
 								<option value="p">Paragraph</option>
 								<option value="h1">Heading 1</option>
@@ -99,16 +100,16 @@
 								<option value="insertUnorderedList">• Bulleted</option>
 								<option value="insertOrderedList">1. Numbered</option>
 							</select>
-							<select id="alignSelect" class="ghost" title="Alignment">
-								<option value="justifyLeft">⇤ Left</option>
-								<option value="justifyCenter">↔ Center</option>
-								<option value="justifyRight">⇥ Right</option>
+							<select id="alignSelect" class="ghost align-select" title="Alignment">
+								<option value="justifyLeft" title="Left">⇤</option>
+								<option value="justifyCenter" title="Center">↔</option>
+								<option value="justifyRight" title="Right">⇥</option>
 							</select>
 							<button class="ghost" id="emDashBtn" title="Insert em dash" type="button">em</button>
 							<button class="ghost" data-cmd="insertHorizontalRule" title="Horizontal rule" type="button">―</button>
 							<button class="ghost" id="linkBtn" title="Insert link" type="button">🔗</button>
 							<button class="ghost" id="imgBtn" title="Insert image" type="button">🖼</button>
-							<button class="ghost" id="clearFmtBtn" title="Clear formatting" type="button">✕</button>
+							<button class="ghost" id="clearFmtBtn" title="Clear formatting" type="button">Tx</button>
 						</div>
 
 						<div class="editor doc-editor" id="docEditor" contenteditable="true" data-placeholder="Start writing… type / for the reference bank"></div>
@@ -173,6 +174,7 @@
 			import { loadPrefs, savePrefs, stepLine, DEFAULT_LINE } from "/js/doc-prefs.js"
 			import { mountSlashPalette } from "/js/components/slash-palette.js"
 			import { loadDraft, saveDraft, clearDraft, draftIsNewer } from "/js/doc-store.js"
+			import { createHistory } from "/js/components/history.js"
 			import { presenceHtml, commentThreadHtml, readerChipsHtml, wordsLabel, formatSource, unformatSource, plainBlockHtml } from "/js/write-view.js"
 			import { esc } from "/js/util.js"
 
@@ -240,6 +242,7 @@
 					$("editorHint").classList.add("hidden")
 				}
 				setCommentMode(!canEdit) // readers start (and stay) in comment mode
+				undoHistory.reset() // you can't undo your way back to the last document
 				renderDoc()
 				updateWords()
 				setDirty(false)
@@ -427,6 +430,7 @@
 				if (activeCid === c.cid) activeCid = null
 				setDirty(true)
 				updateWords()
+				undoHistory.record()
 			}
 
 			$("commentToggle").addEventListener("click", () => setCommentMode(!commentMode))
@@ -459,19 +463,19 @@
 				if (!b) return
 				e.preventDefault() // keep the selection
 				document.execCommand(b.dataset.cmd, false, null)
-				onEdit()
+				onEdit({ immediate: true })
 			})
 			$("blockFormat").addEventListener("change", () => {
 				document.execCommand("formatBlock", false, "<" + $("blockFormat").value + ">")
 				$("docEditor").focus()
-				onEdit()
+				onEdit({ immediate: true })
 			})
 			// Lists and alignment are each one dropdown: the options are mutually
 			// exclusive, so a select says what three toggle buttons only implied.
 			$("alignSelect").addEventListener("change", () => {
 				document.execCommand($("alignSelect").value, false, null)
 				$("docEditor").focus()
-				onEdit()
+				onEdit({ immediate: true })
 			})
 			$("listSelect").addEventListener("change", () => {
 				const v = $("listSelect").value
@@ -482,7 +486,7 @@
 					})
 				} else document.execCommand(v, false, null)
 				$("docEditor").focus()
-				onEdit()
+				onEdit({ immediate: true })
 			})
 			// ---- clear formatting (✕) ----
 			// execCommand("removeFormat") alone is why this button felt dead: it undoes
@@ -522,7 +526,7 @@
 				document.execCommand("insertHTML", false, plainBlockHtml(box.innerHTML) || "<p><br></p>")
 				document.execCommand("justifyLeft", false, null)
 				syncFontBox()
-				onEdit()
+				onEdit({ immediate: true })
 			}
 			$("clearFmtBtn").addEventListener("mousedown", (e) => {
 				e.preventDefault() // keep the selection
@@ -533,19 +537,47 @@
 				e.preventDefault()
 				$("docEditor").focus()
 				document.execCommand("insertText", false, "—")
-				onEdit()
+				onEdit({ immediate: true })
 			})
 			// ---- font size (document content) ----
 			// execCommand's fontSize only speaks 1–7, so we ask for the sentinel
 			// 7 and rewrite the <font> tags it produces into our class ladder.
 			// The ladder is a closed set, so nothing arbitrary reaches the html.
+			const DEFAULT_SIZE = 18 // the editor's own size, for text wearing no fs-* span
 			const nearestSize = (px) =>
 				FONT_SIZES.reduce((best, s) => (Math.abs(s - px) < Math.abs(best - px) ? s : best), FONT_SIZES[0])
 
+			// execCommand nests the new size INSIDE the old one, so pressing + three
+			// times leaves fs-20 > fs-24 > fs-28 around the same words. A size span
+			// that no longer governs any text — every character under it sits in a
+			// nearer size span — has been overridden and is just cruft. This is also
+			// why the rule is "governs no text" rather than "has a size inside it":
+			// an fs span still covering words of its own must survive.
+			function pruneRedundantSizes() {
+				const isSize = (el) => /^fs-\d+$/.test(el?.className || "")
+				$("docEditor")
+					.querySelectorAll("span[class]")
+					.forEach((sp) => {
+						if (!isSize(sp)) return
+						const walker = document.createTreeWalker(sp, NodeFilter.SHOW_TEXT)
+						for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+							if (!n.nodeValue.trim()) continue
+							let a = n.parentElement
+							while (a && a !== sp && !isSize(a)) a = a.parentElement
+							if (a === sp) return // it still owns this text — keep it
+						}
+						sp.replaceWith(...sp.childNodes)
+					})
+			}
+
 			function applyFontSize(px) {
 				const size = nearestSize(px)
-				$("fsInput").value = size
 				document.execCommand("fontSize", false, "7")
+				// Swapping the <font> tags out destroys the range, so re-select the
+				// spans we just made. Resizing must LEAVE THE TEXT SELECTED, the way
+				// every word processor does — otherwise you can't resize twice, or
+				// bold what you just resized, without re-dragging.
+				const made = []
 				$("docEditor")
 					.querySelectorAll('font[size="7"]')
 					.forEach((f) => {
@@ -553,26 +585,52 @@
 						span.className = "fs-" + size
 						while (f.firstChild) span.appendChild(f.firstChild)
 						f.replaceWith(span)
+						made.push(span)
 					})
+				pruneRedundantSizes()
 				$("docEditor").focus()
-				onEdit()
+				if (made.length) {
+					const r = document.createRange()
+					r.setStartBefore(made[0])
+					r.setEndAfter(made[made.length - 1])
+					const sel = window.getSelection()
+					sel.removeAllRanges()
+					sel.addRange(r)
+				}
+				syncFontBox()
+				onEdit({ immediate: true })
 			}
 
-			// What size is the caret sitting in? Read it back so the box reflects
-			// the selection rather than whatever was last typed into it.
-			function sizeAtCaret() {
-				const sel = window.getSelection()
-				if (!sel || !sel.rangeCount) return null
-				let n = sel.getRangeAt(0).startContainer
+			// Every size present in the current selection. A caret reports the one
+			// size it sits in; a selection spanning 18px and 36px reports both, which
+			// is how the box knows to say "Multi" instead of lying with a number.
+			const SIZE_OF = (node) => {
+				let n = node?.nodeType === 1 ? node : node?.parentElement
 				while (n && n !== $("docEditor")) {
-					if (n.nodeType === 1 && /^fs-(\d+)$/.test(n.className || "")) return Number(RegExp.$1)
-					n = n.parentNode
+					if (/^fs-(\d+)$/.test(n.className || "")) return Number(RegExp.$1)
+					n = n.parentElement
 				}
-				return null
+				return DEFAULT_SIZE // unstyled text is the editor's base size
+			}
+			function sizesInSelection() {
+				const sel = window.getSelection()
+				if (!sel || !sel.rangeCount) return []
+				const range = sel.getRangeAt(0)
+				if (!$("docEditor").contains(range.commonAncestorContainer)) return []
+				if (range.collapsed) return [SIZE_OF(range.startContainer)]
+				const found = new Set()
+				const walker = document.createTreeWalker($("docEditor"), NodeFilter.SHOW_TEXT)
+				for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+					if (!n.nodeValue.trim()) continue
+					// only text actually inside the selection counts
+					if (range.intersectsNode(n)) found.add(SIZE_OF(n))
+				}
+				return [...found]
 			}
 			const syncFontBox = () => {
-				const s = sizeAtCaret()
-				if (s) $("fsInput").value = s
+				const sizes = sizesInSelection()
+				if (sizes.length > 1) $("fsInput").value = "Multi"
+				else if (sizes.length === 1) $("fsInput").value = sizes[0]
 				try {
 					$("listSelect").value = document.queryCommandState("insertUnorderedList")
 						? "insertUnorderedList"
@@ -588,20 +646,55 @@
 			}
 			$("docEditor").addEventListener("keyup", syncFontBox)
 			$("docEditor").addEventListener("mouseup", syncFontBox)
+			// Drag-select with the mouse, extend with shift+arrows, undo — all of it
+			// moves the selection, and the toolbar should read the selection.
+			document.addEventListener("selectionchange", () => {
+				if (!commentMode && !sourceMode) syncFontBox()
+			})
 
+			// Stepping off a mixed selection starts from its smallest size, so
+			// "bigger" is always bigger than something actually on screen.
+			const sizeForStep = () => {
+				const sizes = sizesInSelection()
+				if (sizes.length) return Math.min(...sizes)
+				return Number($("fsInput").value) || DEFAULT_SIZE
+			}
 			const stepSize = (dir) => {
-				const i = FONT_SIZES.indexOf(nearestSize(Number($("fsInput").value) || 18))
+				const i = FONT_SIZES.indexOf(nearestSize(sizeForStep()))
 				applyFontSize(FONT_SIZES[Math.min(FONT_SIZES.length - 1, Math.max(0, i + dir))])
 			}
 			// mousedown, not click: the selection must survive the press
 			$("fsDown").addEventListener("mousedown", (e) => (e.preventDefault(), stepSize(-1)))
 			$("fsUp").addEventListener("mousedown", (e) => (e.preventDefault(), stepSize(1)))
-			$("fsInput").addEventListener("change", () => applyFontSize(Number($("fsInput").value) || 18))
+			$("fsInput").addEventListener("change", () => applyFontSize(Number($("fsInput").value) || sizeForStep()))
 			$("fsInput").addEventListener("keydown", (e) => {
 				if (e.key === "Enter") {
 					e.preventDefault()
-					applyFontSize(Number($("fsInput").value) || 18)
+					applyFontSize(Number($("fsInput").value) || sizeForStep())
 				}
+			})
+
+			// ---- undo / redo ----
+			// The number in the size box follows the selection, so after an undo it
+			// reports whatever the text is NOW rather than what was last typed.
+			function history(redo) {
+				$("docEditor").focus()
+				clearTimeout(typingTimer)
+				undoHistory.record() // fold any in-flight typing in before stepping
+				if (!(redo ? undoHistory.redo() : undoHistory.undo())) return
+				setDirty(true)
+				updateWords()
+				renderComments() // anchors may have come back or gone away
+				syncFontBox() // the size box reports the text as it is NOW
+			}
+			$("undoBtn").addEventListener("mousedown", (e) => (e.preventDefault(), history(false)))
+			$("redoBtn").addEventListener("mousedown", (e) => (e.preventDefault(), history(true)))
+			// the keyboard shortcuts go through the same path, so the box keeps up
+			$("docEditor").addEventListener("keydown", (e) => {
+				const meta = e.metaKey || e.ctrlKey
+				if (!meta || e.key.toLowerCase() !== "z") return
+				e.preventDefault()
+				history(e.shiftKey)
 			})
 
 			// ---- line spacing (this reader's preference only) ----
@@ -633,11 +726,21 @@
 				onEdit()
 			})
 
-			function onEdit() {
+			// The editor keeps its own undo stack — see components/history.js for why
+			// the browser's can't be used here. Every mutation funnels through
+			// onEdit(), so that is the one place a state needs recording.
+			const undoHistory = createHistory($("docEditor"))
+			let typingTimer = null
+			function onEdit({ immediate = false } = {}) {
 				setDirty(true)
 				updateWords()
+				clearTimeout(typingTimer)
+				// Typing coalesces into one undo step per pause, the way a word
+				// processor does; a toolbar action is its own step immediately.
+				if (immediate) undoHistory.record()
+				else typingTimer = setTimeout(() => undoHistory.record(), 350)
 			}
-			$("docEditor").addEventListener("input", onEdit)
+			$("docEditor").addEventListener("input", () => onEdit())
 			$("docTitle").addEventListener("input", () => setDirty(true))
 
 			// Paste from Google Docs / Word / anywhere. The browser's own paste
@@ -664,7 +767,7 @@
 						.join("")
 				}
 				document.execCommand("insertHTML", false, asterisksToTags(out))
-				onEdit()
+				onEdit({ immediate: true })
 			})
 
 			// ---- rich text / html source mode ----
@@ -869,6 +972,7 @@
 						return
 					}
 					$("docEditor").innerHTML = html || ""
+					undoHistory.reset()
 					if (typeof wordCount === "number") $("wordCount").textContent = wordsLabel(wordCount)
 					renderDoc()
 				})

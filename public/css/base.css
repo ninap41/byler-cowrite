@@ -4632,10 +4632,12 @@ body.ui-peek iframe[src*="ko-fi"] {
 	cursor: text;
 	background: color-mix(in srgb, var(--accent-2) 4%, transparent);
 }
-.mode-toggle.on {
-	border-color: var(--accent);
-	color: var(--accent);
-	box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 35%, transparent);
+/* icon-only alignment picker: the glyph says it, the tooltip names it */
+.align-select {
+	width: auto;
+	min-width: 0;
+	padding-right: 26px;
+	text-align: center;
 }
 
 /* comments rail */

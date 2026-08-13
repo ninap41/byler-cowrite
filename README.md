@@ -25,7 +25,7 @@ turns adding one line each under a ticking clock.
 - **Solo writes** — `/writes` and `/write`: a full document editor outside the
   game. Autosaving drafts, headings/lists/quotes/links/images, a font-size
   ladder, a `/` palette of action verbs and dialogue tags, per-browser line
-  spacing, and a **Rich text / HTML** switch — the HTML view is pretty-printed
+  spacing, real undo/redo, and a **Rich text / HTML / Comment** switch — the HTML view is pretty-printed
   one block per line, and those cosmetic newlines are stripped again on the way
   back so they never become stray breaks.
 - **Comment mode** — Google-Docs-style comments pinned to the exact words
