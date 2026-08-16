@@ -11,7 +11,7 @@ const KEY = "cowriteEditorPrefs"
 
 // Named steps rather than a free number: the control is a stepper, and these
 // are the values that actually read differently on screen.
-export const LINE_STEPS = [1.2, 1.4, 1.6, 1.8, 2.0, 2.4]
+export const LINE_STEPS = [0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.4]
 export const DEFAULT_LINE = 1.7 // matches .editor's own line-height
 
 const clampLine = (v) => {

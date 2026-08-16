@@ -4725,6 +4725,11 @@ body.doc-page .topbar {
 .doc-editor.hold-sel ::selection {
 	background: color-mix(in srgb, var(--accent) 45%, transparent);
 }
+/* Same job, for browsers that drop the selection outright on focus change:
+   the remembered range is painted through the Custom Highlight API. */
+::highlight(fs-sel) {
+	background: color-mix(in srgb, var(--accent) 45%, transparent);
+}
 
 .doc-statusbar {
 	display: flex;
@@ -5175,6 +5180,9 @@ body.doc-page .topbar {
 /* ---------- Font-size ladder (document content) ---------- */
 /* A closed set of classes, mirroring FONT_SIZES in src/sanitize.js. Sizes ride
    in the saved html, so beta readers and exports see them too. */
+.doc-editor .fs-6, .doc-read .fs-6 { font-size: 6px; }
+.doc-editor .fs-8, .doc-read .fs-8 { font-size: 8px; }
+.doc-editor .fs-10, .doc-read .fs-10 { font-size: 10px; }
 .doc-editor .fs-12, .doc-read .fs-12 { font-size: 12px; }
 .doc-editor .fs-14, .doc-read .fs-14 { font-size: 14px; }
 .doc-editor .fs-16, .doc-read .fs-16 { font-size: 16px; }

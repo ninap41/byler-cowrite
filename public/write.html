@@ -197,6 +197,7 @@
 			import { mountChrome, setUserChip } from "/js/chrome.js"
 			import { requireAuth } from "/js/auth-guard.js"
 			import { cleanHtml, asterisksToTags, FONT_SIZES, newCid } from "/js/components/editor.js"
+			import { absorbFontTags, sizesInRange, nearestSize, DEFAULT_SIZE } from "/js/components/font-size.js"
 			import { loadPrefs, savePrefs, stepLine, DEFAULT_LINE } from "/js/doc-prefs.js"
 			import { mountSlashPalette } from "/js/components/slash-palette.js"
 			import { loadDraft, saveDraft, clearDraft, draftIsNewer } from "/js/doc-store.js"
@@ -582,53 +583,19 @@
 			let sizeRange = null
 			// ---- font size (document content) ----
 			// execCommand's fontSize only speaks 1–7, so we ask for the sentinel
-			// 7 and rewrite the <font> tags it produces into our class ladder.
-			// The ladder is a closed set, so nothing arbitrary reaches the html.
-			const DEFAULT_SIZE = 16 // the editor's own size, for text wearing no fs-* span
-			const nearestSize = (px) =>
-				FONT_SIZES.reduce((best, s) => (Math.abs(s - px) < Math.abs(best - px) ? s : best), FONT_SIZES[0])
-
-			// execCommand nests the new size INSIDE the old one, so pressing + three
-			// times leaves fs-20 > fs-24 > fs-28 around the same words. A size span
-			// that no longer governs any text — every character under it sits in a
-			// nearer size span — has been overridden and is just cruft. This is also
-			// why the rule is "governs no text" rather than "has a size inside it":
-			// an fs span still covering words of its own must survive.
-			function pruneRedundantSizes() {
-				const isSize = (el) => /^fs-\d+$/.test(el?.className || "")
-				$("docEditor")
-					.querySelectorAll("span[class]")
-					.forEach((sp) => {
-						if (!isSize(sp)) return
-						const walker = document.createTreeWalker(sp, NodeFilter.SHOW_TEXT)
-						for (let n = walker.nextNode(); n; n = walker.nextNode()) {
-							if (!n.nodeValue.trim()) continue
-							let a = n.parentElement
-							while (a && a !== sp && !isSize(a)) a = a.parentElement
-							if (a === sp) return // it still owns this text — keep it
-						}
-						sp.replaceWith(...sp.childNodes)
-					})
-			}
-
+			// 7 and rewrite the <font> tags it produces into our class ladder
+			// (components/font-size.js). The ladder is a closed set, so nothing
+			// arbitrary reaches the html.
 			function applyFontSize(px) {
-				const size = nearestSize(px)
+				// execCommand only works on the focused editable, and the size box
+				// may well hold focus right now — focus FIRST, then command.
+				$("docEditor").focus()
 				document.execCommand("fontSize", false, "7")
 				// Swapping the <font> tags out destroys the range, so re-select the
 				// spans we just made. Resizing must LEAVE THE TEXT SELECTED, the way
 				// every word processor does — otherwise you can't resize twice, or
 				// bold what you just resized, without re-dragging.
-				const made = []
-				$("docEditor")
-					.querySelectorAll('font[size="7"]')
-					.forEach((f) => {
-						const span = document.createElement("span")
-						span.className = "fs-" + size
-						while (f.firstChild) span.appendChild(f.firstChild)
-						f.replaceWith(span)
-						made.push(span)
-					})
-				pruneRedundantSizes()
+				const made = absorbFontTags($("docEditor"), px)
 				$("docEditor").focus()
 				if (made.length) {
 					const r = document.createRange()
@@ -641,32 +608,10 @@
 				syncFontBox()
 				onEdit({ immediate: true })
 			}
-
-			// Every size present in the current selection. A caret reports the one
-			// size it sits in; a selection spanning 18px and 36px reports both, which
-			// is how the box knows to say "Multi" instead of lying with a number.
-			const SIZE_OF = (node) => {
-				let n = node?.nodeType === 1 ? node : node?.parentElement
-				while (n && n !== $("docEditor")) {
-					if (/^fs-(\d+)$/.test(n.className || "")) return Number(RegExp.$1)
-					n = n.parentElement
-				}
-				return DEFAULT_SIZE // unstyled text is the editor's base size
-			}
 			function sizesInSelection() {
 				const sel = window.getSelection()
 				if (!sel || !sel.rangeCount) return []
-				const range = sel.getRangeAt(0)
-				if (!$("docEditor").contains(range.commonAncestorContainer)) return []
-				if (range.collapsed) return [SIZE_OF(range.startContainer)]
-				const found = new Set()
-				const walker = document.createTreeWalker($("docEditor"), NodeFilter.SHOW_TEXT)
-				for (let n = walker.nextNode(); n; n = walker.nextNode()) {
-					if (!n.nodeValue.trim()) continue
-					// only text actually inside the selection counts
-					if (range.intersectsNode(n)) found.add(SIZE_OF(n))
-				}
-				return [...found]
+				return sizesInRange($("docEditor"), sel.getRangeAt(0))
 			}
 			const syncFontBox = () => {
 				const sizes = sizesInSelection()
@@ -733,15 +678,30 @@
 			// ourselves. Driven by mousedown rather than focus: the press happens
 			// before the selection moves, and it fires even when the window itself
 			// isn't focused.
-			const holdSel = (on) => $("docEditor").classList.toggle("hold-sel", on)
-			$("fontStepper").addEventListener("mousedown", () => holdSel(true))
+			// ::selection only paints a selection the browser still holds, and
+			// focusing the input takes it away — so re-paint the remembered range
+			// ourselves with the Custom Highlight API where it exists.
+			const HL = window.Highlight && CSS.highlights ? new Highlight() : null
+			if (HL) CSS.highlights.set("fs-sel", HL)
+			const holdSel = (on) => {
+				$("docEditor").classList.toggle("hold-sel", on)
+				if (!HL) return
+				HL.clear()
+				if (on && sizeRange) HL.add(sizeRange)
+			}
+			$("fontStepper").addEventListener("mousedown", () => (rememberRange(), holdSel(true)))
 			$("fsInput").addEventListener("blur", () => holdSel(false))
 			$("docEditor").addEventListener("mousedown", () => holdSel(false))
+			// Typing replaces what the box says — including "Multi" — the way a
+			// word processor's size box does.
+			$("fsInput").addEventListener("focus", () => $("fsInput").select())
 
 			const applyFromBox = () => {
 				const px = Number($("fsInput").value)
+				$("docEditor").focus() // take focus back before touching the selection
 				restoreRange()
 				applyFontSize(px || sizeForStep())
+				holdSel(false)
 			}
 			$("fsInput").addEventListener("change", applyFromBox)
 			$("fsInput").addEventListener("keydown", (e) => {

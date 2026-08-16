@@ -34,7 +34,7 @@ export const DOC_MAX = 200000;
 // attribute through the boundary and parsing a css value; a closed set of
 // class names has no injection surface at all — anything off this list stays
 // escaped text. Mirrored in public/js/write-view.js for the client.
-export const FONT_SIZES = [12, 14, 16, 18, 20, 24, 28, 32, 36, 48];
+export const FONT_SIZES = [6, 8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 48];
 const FS_RE = new RegExp(`&lt;span class=&quot;fs-(${FONT_SIZES.join("|")})&quot;&gt;`, "g");
 // Comment anchors. CID_RE is the closed set: 12 hex chars, minted by newCid().
 // data-cid is the only data attribute sanitizeDoc lets through, and only in

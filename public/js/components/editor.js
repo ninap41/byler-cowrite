@@ -14,7 +14,7 @@ const DOC_BLOCKS = { UL: "ul", OL: "ol", LI: "li", BLOCKQUOTE: "blockquote" }
 // The font-size ladder, as classes. Mirrors FONT_SIZES in src/sanitize.js —
 // the server validates against its own copy, so a stray value here is dropped
 // there rather than trusted.
-export const FONT_SIZES = [12, 14, 16, 18, 20, 24, 28, 32, 36, 48]
+export const FONT_SIZES = [6, 8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 48]
 const FS_CLASS = /^fs-(\d+)$/
 // Comment anchor ids — mirrors CID_RE in src/sanitize.js.
 export const CID_CLASS = /^[0-9a-f]{12}$/

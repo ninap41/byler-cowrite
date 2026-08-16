@@ -26,6 +26,13 @@ test("round-trips a preference", () => {
   assert.equal(loadPrefs(s).lineHeight, 2.0);
 });
 
+test("the ladder bottoms out at 0.8 — tight line spacing is allowed", () => {
+  const s = mem();
+  assert.equal(LINE_STEPS[0], 0.8);
+  assert.equal(savePrefs({ lineHeight: 0.8 }, s).lineHeight, 0.8, "0.8 is valid, not clamped away");
+  assert.equal(savePrefs({ lineHeight: 0.5 }, s).lineHeight, 0.8, "below the floor clamps to it");
+});
+
 test("clamps anything absurd or unparseable to the ladder's range", () => {
   const s = mem();
   const lo = LINE_STEPS[0];
