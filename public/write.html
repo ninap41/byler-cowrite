@@ -197,7 +197,7 @@
 			import { mountChrome, setUserChip } from "/js/chrome.js"
 			import { requireAuth } from "/js/auth-guard.js"
 			import { cleanHtml, asterisksToTags, FONT_SIZES, newCid } from "/js/components/editor.js"
-			import { absorbFontTags, sizesInRange, nearestSize, DEFAULT_SIZE } from "/js/components/font-size.js"
+			import { absorbFontTags, sizesInRange, nearestSize, parseSize, DEFAULT_SIZE } from "/js/components/font-size.js"
 			import { loadPrefs, savePrefs, stepLine, DEFAULT_LINE } from "/js/doc-prefs.js"
 			import { mountSlashPalette } from "/js/components/slash-palette.js"
 			import { loadDraft, saveDraft, clearDraft, draftIsNewer } from "/js/doc-store.js"
@@ -645,7 +645,7 @@
 			const sizeForStep = () => {
 				const sizes = sizesInSelection()
 				if (sizes.length) return Math.min(...sizes)
-				return Number($("fsInput").value) || DEFAULT_SIZE
+				return parseSize($("fsInput").value) ?? DEFAULT_SIZE
 			}
 			const stepSize = (dir) => {
 				const i = FONT_SIZES.indexOf(nearestSize(sizeForStep()))
@@ -697,10 +697,13 @@
 			$("fsInput").addEventListener("focus", () => $("fsInput").select())
 
 			const applyFromBox = () => {
-				const px = Number($("fsInput").value)
+				// "24px", "24 pt", a stray space — take the number out of whatever
+				// was typed. Nothing numeric at all (an empty box, "Multi" left
+				// untouched) leaves the selection's own size alone.
+				const px = parseSize($("fsInput").value)
 				$("docEditor").focus() // take focus back before touching the selection
 				restoreRange()
-				applyFontSize(px || sizeForStep())
+				applyFontSize(px ?? sizeForStep())
 				holdSel(false)
 			}
 			$("fsInput").addEventListener("change", applyFromBox)

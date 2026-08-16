@@ -12,6 +12,17 @@ export const DEFAULT_SIZE = 16 // the editor's own size, for text wearing no fs-
 const FS_RE = /^fs-(\d+)$/
 export const isSizeEl = (el) => FS_RE.test(el?.className || "")
 
+// What the size box actually contains. People type "24px", "24 pt", "Multi",
+// or paste a whole declaration — so pull the digits out and use those rather
+// than letting Number() return NaN and collapsing to the smallest rung. Null
+// means there was no number in there at all, and the caller keeps the size
+// the selection already has.
+export function parseSize(raw) {
+	const digits = String(raw ?? "").replace(/[^\d.]/g, "").replace(/\.(?=.*\.)/g, "")
+	const n = parseFloat(digits)
+	return Number.isFinite(n) && n > 0 ? n : null
+}
+
 // The ladder is closed, so an arbitrary number lands on its nearest rung.
 export const nearestSize = (px) =>
 	FONT_SIZES.reduce((best, s) => (Math.abs(s - px) < Math.abs(best - px) ? s : best), FONT_SIZES[0])

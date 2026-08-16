@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { installDom, mount } from "./dom.mjs";
 
 installDom();
-const { absorbFontTags, pruneRedundantSizes, sizesInRange, sizeOf, nearestSize, DEFAULT_SIZE } = await import(
+const { absorbFontTags, pruneRedundantSizes, sizesInRange, sizeOf, nearestSize, parseSize, DEFAULT_SIZE } = await import(
   "../public/js/components/font-size.js"
 );
 const { FONT_SIZES } = await import("../public/js/components/editor.js");
@@ -111,4 +111,28 @@ test("resizing twice in a row lands on the second size, with no leftover spans",
   font.appendChild(span);
   absorbFontTags(root, 48);
   assert.equal(root.innerHTML, '<p><span class="fs-48">words</span></p>');
+});
+
+test("letters are trimmed out of the size box — the number is what counts", () => {
+  // People type units, and pasting from a stylesheet brings a whole
+  // declaration. Every one of these means 24, not "unparseable".
+  for (const raw of ["24", "24px", "24 px", " 24PX ", "24pt", "font-size: 24px;", "24em", "x24y"])
+    assert.equal(parseSize(raw), 24, JSON.stringify(raw));
+  assert.equal(parseSize("18.5px"), 18.5, "a decimal survives, to be snapped later");
+});
+
+test("a box with no number in it yields null — the caller keeps the current size", () => {
+  // This is the whole point: NaN used to slide through nearestSize and land on
+  // the smallest rung, silently shrinking text the user never meant to touch.
+  for (const raw of ["Multi", "", "   ", "px", "abc", null, undefined, "0"])
+    assert.equal(parseSize(raw), null, JSON.stringify(raw));
+  // a stray sign is just another character to trim — "-4" is a size of 4
+  assert.equal(parseSize("-4"), 4);
+});
+
+test("a mistyped size never collapses to the smallest rung by accident", () => {
+  assert.notEqual(parseSize("Multi"), FONT_SIZES[0]);
+  // and the real path: digits pulled out, then snapped to the ladder
+  assert.equal(nearestSize(parseSize("23px")), 24);
+  assert.equal(nearestSize(parseSize("7 pt")), 6);
 });
