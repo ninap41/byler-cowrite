@@ -376,6 +376,34 @@ a.rg-row {
 	padding: 4px 8px;
 }
 
+/* the inline reply composer, inside the message row */
+.ib-reply {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	margin-top: 8px;
+}
+.ib-reply textarea {
+	width: 100%;
+	font-size: 0.85rem;
+}
+.ib-reply-row {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 8px;
+}
+.ib-reply-row button {
+	padding: 4px 12px;
+	font-size: 0.78rem;
+	flex: none;
+}
+.ib-reply-msg {
+	margin-right: auto;
+	font-size: 0.78rem;
+	color: var(--muted);
+}
+
 /* ---- profile About section ---- */
 .avatar {
 	overflow: hidden;

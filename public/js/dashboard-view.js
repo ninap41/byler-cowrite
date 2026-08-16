@@ -86,7 +86,26 @@ export function inboxMsgHtml(m) {
 		`${m.type === "game-invite" ? '<span class="badge-chip">game invite</span>' : ""}` +
 		`${m.type === "help" ? '<span class="badge-chip">help question</span>' : ""}` +
 		`<span class="ib-when">${esc(when)}</span></span>` +
-		`<span class="ib-text">${esc(m.text)}</span></span>`
+		`<span class="ib-text">${esc(m.text)}</span>` +
+		(m.from ? replyBoxHtml(m) : "") +
+		`</span>`
+	)
+}
+
+// The inline reply composer, folded into the message row itself and hidden
+// until Reply is pressed. Only messages from a real person get one — there's
+// nobody to answer a system note. The page finds its parts by class within
+// the row, so nothing here needs an id (ids would collide across rows).
+export function replyBoxHtml(m) {
+	return (
+		`<span class="ib-reply hidden">` +
+		`<textarea class="ib-reply-text" rows="2" maxlength="1000" ` +
+		`placeholder="Reply to ${esc(m.from.username)}…"></textarea>` +
+		`<span class="ib-reply-row">` +
+		`<span class="ib-reply-msg"></span>` +
+		`<button type="button" class="ghost ib-reply-cancel">Cancel</button>` +
+		`<button type="button" class="primary ib-reply-send">Send</button>` +
+		`</span></span>`
 	)
 }
 

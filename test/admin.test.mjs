@@ -294,3 +294,12 @@ test("the dashboard carries the help box, and it starts hidden for everyone", as
   assert.ok(body.includes("/api/help"), "wired to the help route");
   assert.ok(body.includes("me.admin"), "the admin never sees it");
 });
+
+test("the inbox reply composer is inline markup on the page, not a browser prompt", async () => {
+  const body = await fetch(ctx.url + "/dashboard").then((r) => r.text());
+  assert.ok(!body.includes("window.prompt"), "no modal prompt anywhere in the inbox");
+  assert.ok(body.includes("ib-reply-send") && body.includes("ib-reply-cancel"), "the composer is wired");
+  assert.ok(body.includes("/api/inbox/reply"), "wired to the reply route");
+  assert.ok(body.includes('e.key === "Escape"'), "Escape closes it");
+  assert.ok(body.includes("metaKey || e.ctrlKey"), "and Ctrl/Cmd+Enter sends");
+});

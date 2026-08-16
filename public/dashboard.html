@@ -440,6 +440,57 @@
 				loadInbox()
 			}
 			let inbox = { messages: [], unread: 0 }
+
+			// ---- the inline reply composer ----
+			// A row keeps its own composer, so several can be open at once and
+			// nothing is lost when another message is answered.
+			const replyParts = (row) => ({
+				box: row.querySelector(".ib-reply"),
+				text: row.querySelector(".ib-reply-text"),
+				msg: row.querySelector(".ib-reply-msg"),
+				send: row.querySelector(".ib-reply-send"),
+				cancel: row.querySelector(".ib-reply-cancel"),
+			})
+			function openReply(row) {
+				const { box, text } = replyParts(row)
+				if (!box) return
+				box.classList.remove("hidden")
+				text.focus()
+			}
+			function closeReply(row) {
+				const { box, text, msg } = replyParts(row)
+				if (!box) return
+				box.classList.add("hidden")
+				text.value = ""
+				msg.textContent = ""
+			}
+			function wireReply(row, m) {
+				const { box, text, msg, send, cancel } = replyParts(row)
+				if (!box) return
+				// the row itself marks-as-read on click; typing must not count
+				box.addEventListener("click", (e) => e.stopPropagation())
+				cancel.onclick = (e) => (e.stopPropagation(), closeReply(row))
+				// Escape closes, Ctrl/Cmd+Enter sends — the usual composer keys
+				text.addEventListener("keydown", (e) => {
+					if (e.key === "Escape") return closeReply(row)
+					if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) send.click()
+				})
+				send.onclick = async (e) => {
+					e.stopPropagation()
+					const body = text.value.trim()
+					if (!body) return (msg.textContent = "Type a reply first.")
+					send.disabled = true
+					msg.textContent = ""
+					try {
+						await api("/api/inbox/reply", { id: m.id, text: body })
+						closeReply(row)
+						loadInbox() // the original is marked read server-side
+					} catch (err) {
+						msg.textContent = err.message
+						send.disabled = false
+					}
+				}
+			}
 			function renderInbox() {
 				$("inboxUnread").classList.toggle("hidden", !inbox.unread)
 				$("inboxUnread").textContent = inbox.unread ? `${inbox.unread} new` : ""
@@ -487,17 +538,18 @@
 						}
 						// Anything from a real person can be answered — this is how
 						// the admin replies to a help question, and how the asker
-						// carries the conversation on.
+						// carries the conversation on. The composer is already in the
+						// row's markup (inboxMsgHtml); Reply just unfolds it.
 						if (m.from) {
 							const reply = document.createElement("button")
 							reply.className = "ghost"
 							reply.textContent = "Reply"
 							reply.onclick = (e) => {
 								e.stopPropagation()
-								const text = window.prompt(`Reply to ${m.from.username}:`)
-								if (text && text.trim()) inboxAct(() => api("/api/inbox/reply", { id: m.id, text }))
+								openReply(row)
 							}
 							acts.append(reply)
+							wireReply(row, m)
 						}
 						const del = document.createElement("button")
 						del.className = "ghost ib-del"

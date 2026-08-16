@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   onlineUsersHtml, liveGameInfoHtml, statsText, badgeProgress, coverArt, coverStyle,
-  myGameStatus, myGameCardHtml, recentRowHtml, achievementsHtml, streakRingHtml, writerRowHtml, inboxMsgHtml,
+  myGameStatus, myGameCardHtml, recentRowHtml, achievementsHtml, streakRingHtml, writerRowHtml, inboxMsgHtml, replyBoxHtml,
 } from "../public/js/dashboard-view.js";
 import { gameCardHtml, archiveMetaText, archiveStoryHtml } from "../public/js/archive-view.js";
 
@@ -162,4 +162,23 @@ test("inboxMsgHtml labels a help question and escapes what the asker typed", () 
 
   const note = inboxMsgHtml({ id: "2", type: "note", text: "answered!", read: true, ts: Date.now(), from: null });
   assert.ok(!note.includes("help question"), "an ordinary note wears no tag");
+});
+
+test("every message from a person carries a folded-up reply composer; system notes don't", () => {
+  const from = { username: "ninaadmin", color: "#6c8cff", badge: "", avatar: "", avatarFit: "cover" };
+  const row = inboxMsgHtml({ id: "1", type: "note", text: "hello", read: true, ts: Date.now(), from });
+  assert.ok(row.includes("ib-reply"), "the composer ships with the row");
+  assert.ok(row.includes("ib-reply hidden"), "folded away until Reply is pressed");
+  assert.ok(row.includes("<textarea"), "an inline textarea, not a browser prompt");
+  assert.ok(row.includes("ib-reply-send") && row.includes("ib-reply-cancel"), "send + cancel");
+  assert.ok(row.includes('maxlength="1000"'), "matched to the server's limit");
+
+  const system = inboxMsgHtml({ id: "2", type: "system", text: "welcome", read: true, ts: Date.now(), from: null });
+  assert.ok(!system.includes("ib-reply"), "there is nobody to answer a system note");
+});
+
+test("the composer's placeholder names the recipient, escaped", () => {
+  const html = replyBoxHtml({ from: { username: '"><img src=x>', color: "#6c8cff" } });
+  assert.ok(!html.includes("<img"), "a hostile username can't break out of the attribute");
+  assert.ok(html.includes("placeholder=\"Reply to "));
 });
