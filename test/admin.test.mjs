@@ -189,3 +189,108 @@ test("/admin serves, and the nav entrance is hidden markup until an admin loads 
   assert.ok(body.includes('id="adminGames"') && body.includes('id="adminUsers"'), "both moderation lists");
   assert.ok(body.includes("/js/admin-view.js"), "rows come from the shared builder");
 });
+
+// ---- Help: users ask the admin ----
+
+test("a question reaches every admin's inbox, tagged and attributed to the asker", async () => {
+  const c = await startServer();
+  try {
+    const admin = await makeAdmin(c);
+    const asker = await signup(c, "robinbuckley", "robin@buckley.com");
+
+    const sent = await c.api("/api/help", { text: "  How do rounds work?  " }, asker.token);
+    assert.equal(sent.status, 200);
+    assert.deepEqual(sent.data.sentTo, ["ninaadmin"]);
+
+    const box = await c.api("/api/inbox", undefined, admin.token);
+    const q = box.data.messages.find((m) => m.type === "help");
+    assert.ok(q, "it lands as a help message");
+    assert.equal(q.text, "How do rounds work?", "trimmed");
+    assert.equal(q.from.username, "robinbuckley", "the admin knows who asked");
+    assert.equal(q.read, false, "and it arrives unread");
+  } finally {
+    await c.stop();
+  }
+});
+
+test("help questions are sanitized, non-empty, signed-in, and rate-limited", async () => {
+  const c = await startServer();
+  try {
+    const admin = await makeAdmin(c);
+    const asker = await signup(c, "robinbuckley", "robin@buckley.com");
+
+    assert.equal((await c.api("/api/help", { text: "hi" })).status, 401, "no anonymous questions");
+    assert.equal((await c.api("/api/help", { text: "   " }, asker.token)).status, 400);
+    assert.equal((await c.api("/api/help", { text: "x" }, asker.token)).status, 400, "one character isn't a question");
+
+    const tagged = await c.api("/api/help", { text: "<script>alert(1)</script> is this ok?" }, asker.token);
+    assert.equal(tagged.status, 200);
+    const box = await c.api("/api/inbox", undefined, admin.token);
+    const q = box.data.messages.find((m) => m.type === "help");
+    assert.ok(!q.text.includes("<script>"), "html is stripped before it's stored");
+
+    const tooSoon = await c.api("/api/help", { text: "and another thing" }, asker.token);
+    assert.equal(tooSoon.status, 429, "a second question straight away is held off");
+
+    const long = await c.api("/api/help", { text: "y".repeat(2000) }, asker.token);
+    assert.equal(long.status, 429, "still cooling down");
+  } finally {
+    await c.stop();
+  }
+});
+
+test("the admin is not offered the help box — the route says so", async () => {
+  const c = await startServer();
+  try {
+    const admin = await makeAdmin(c);
+    const r = await c.api("/api/help", { text: "asking myself" }, admin.token);
+    assert.equal(r.status, 400);
+    assert.match(r.data.error, /You are the admin/);
+  } finally {
+    await c.stop();
+  }
+});
+
+test("the admin replies, and the answer comes back to the asker's inbox", async () => {
+  const c = await startServer();
+  try {
+    const admin = await makeAdmin(c);
+    const asker = await signup(c, "robinbuckley", "robin@buckley.com");
+    await c.api("/api/help", { text: "my game is stuck" }, asker.token);
+
+    const box = await c.api("/api/inbox", undefined, admin.token);
+    const q = box.data.messages.find((m) => m.type === "help");
+
+    const stranger = await signup(c, "eddiemunson", "eddie@munson.com");
+    assert.equal(
+      (await c.api("/api/inbox/reply", { id: q.id, text: "not mine" }, stranger.token)).status,
+      404,
+      "you can only reply to messages in your own inbox",
+    );
+    assert.equal((await c.api("/api/inbox/reply", { id: q.id, text: "  " }, admin.token)).status, 400);
+
+    const sent = await c.api("/api/inbox/reply", { id: q.id, text: "Resume it from the dashboard." }, admin.token);
+    assert.equal(sent.status, 200);
+
+    const theirs = await c.api("/api/inbox", undefined, asker.token);
+    const reply = theirs.data.messages.find((m) => m.from?.username === "ninaadmin");
+    assert.ok(reply, "the answer is in the asker's inbox");
+    assert.equal(reply.type, "note");
+    assert.equal(reply.text, "Resume it from the dashboard.");
+
+    const after = await c.api("/api/inbox", undefined, admin.token);
+    assert.equal(after.data.messages.find((m) => m.id === q.id).read, true, "answering marks it handled");
+  } finally {
+    await c.stop();
+  }
+});
+
+test("the dashboard carries the help box, and it starts hidden for everyone", async () => {
+  const r = await fetch(ctx.url + "/dashboard");
+  const body = await r.text();
+  assert.ok(body.includes('id="helpCard"'), "the help section exists");
+  assert.match(body, /id="helpCard"[^>]*class="[^"]*hidden|class="card hidden" id="helpCard"/, "hidden until a non-admin loads it");
+  assert.ok(body.includes('id="helpText"') && body.includes('id="helpSend"'), "a box and a send button");
+  assert.ok(body.includes("/api/help"), "wired to the help route");
+  assert.ok(body.includes("me.admin"), "the admin never sees it");
+});

@@ -84,6 +84,7 @@ export function inboxMsgHtml(m) {
 		`<span class="ib-info"><span class="ib-from">${from}` +
 		`${m.type === "friend-request" ? '<span class="badge-chip">friend request</span>' : ""}` +
 		`${m.type === "game-invite" ? '<span class="badge-chip">game invite</span>' : ""}` +
+		`${m.type === "help" ? '<span class="badge-chip">help question</span>' : ""}` +
 		`<span class="ib-when">${esc(when)}</span></span>` +
 		`<span class="ib-text">${esc(m.text)}</span></span>`
 	)

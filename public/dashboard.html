@@ -106,6 +106,19 @@
 							<a href="/archive" class="linky">See all previous games →</a>
 						</p>
 					</div>
+					<!-- help: ask the admin (hidden for the admin, who receives these) -->
+					<div class="card hidden" id="helpCard">
+						<h3 class="dash-h" style="margin-top: 0">🛟 Need a hand?</h3>
+						<p class="subtle" style="text-align: left; margin: 4px 0 10px">
+							Ask the admin anything — a bug, a rule, a stuck game. Your question lands in their inbox and
+							the answer comes back to yours.
+						</p>
+						<textarea id="helpText" rows="3" maxlength="1000" placeholder="What's up?"></textarea>
+						<div class="row" style="justify-content: flex-end; align-items: center; gap: 10px; margin-top: 8px">
+							<span class="subtle" id="helpMsg" style="margin: 0; text-align: left"></span>
+							<button class="primary" id="helpSend" style="flex: none">Send question</button>
+						</div>
+					</div>
 				</div>
 
 				<!-- ============ RIGHT RAIL ============ -->
@@ -472,6 +485,20 @@
 							}
 							acts.append(go)
 						}
+						// Anything from a real person can be answered — this is how
+						// the admin replies to a help question, and how the asker
+						// carries the conversation on.
+						if (m.from) {
+							const reply = document.createElement("button")
+							reply.className = "ghost"
+							reply.textContent = "Reply"
+							reply.onclick = (e) => {
+								e.stopPropagation()
+								const text = window.prompt(`Reply to ${m.from.username}:`)
+								if (text && text.trim()) inboxAct(() => api("/api/inbox/reply", { id: m.id, text }))
+							}
+							acts.append(reply)
+						}
 						const del = document.createElement("button")
 						del.className = "ghost ib-del"
 						del.title = "Delete"
@@ -496,6 +523,25 @@
 				renderInbox()
 			}
 			$("inboxReadAll").onclick = () => inboxAct(() => api("/api/inbox/read", {}))
+
+			// ---- Help: ask the admin ----
+			// Only non-admins see the box; the route refuses admins anyway, since
+			// they're the ones these questions are delivered to.
+			if (!me.admin) $("helpCard").classList.remove("hidden")
+			$("helpSend").onclick = async () => {
+				const text = $("helpText").value.trim()
+				if (!text) return
+				$("helpSend").disabled = true
+				$("helpMsg").textContent = ""
+				try {
+					await api("/api/help", { text })
+					$("helpText").value = ""
+					$("helpMsg").textContent = "Sent — watch your inbox for the reply. 📬"
+				} catch (e) {
+					$("helpMsg").textContent = e.message
+				}
+				$("helpSend").disabled = false
+			}
 
 			// ---- Poll the dashboard payload every 10s ----
 			async function loadDashboard() {

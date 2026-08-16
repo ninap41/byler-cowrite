@@ -403,6 +403,50 @@ export function registerRoutes(app, game) {
     res.json({ ok: true });
   });
 
+  // ---- Help: ask the admin ----
+  // The dashboard's help box. A question lands in every admin's inbox as a
+  // `help` message from the asker, so the admin can reply to it like any note.
+  const HELP_COOLDOWN_MS = 30_000;
+  const HELP_MAX = 1000;
+
+  app.post("/api/help", (req, res) => {
+    const u = authedUser(req);
+    if (!u) return res.status(401).json({ error: "Sign in first." });
+    if (isAdmin(u)) return res.status(400).json({ error: "You are the admin — questions land in your inbox." });
+    const text = stripTags(String(req.body?.text || "")).trim().slice(0, HELP_MAX);
+    if (text.length < 2) return res.status(400).json({ error: "Type your question first." });
+    const admins = store.users.filter(isAdmin);
+    if (!admins.length) return res.status(503).json({ error: "There's no admin to ask right now." });
+    // Light anti-spam: one question every 30 seconds.
+    if (u.lastHelpAt && Date.now() - u.lastHelpAt < HELP_COOLDOWN_MS)
+      return res.status(429).json({ error: "Give the last question a moment to land." });
+    u.lastHelpAt = Date.now();
+    for (const a of admins) {
+      a.inbox = a.inbox || [];
+      a.inbox.unshift(makeMsg("help", u.id, text));
+    }
+    saveStore();
+    res.json({ ok: true, sentTo: admins.map((a) => a.username) });
+  });
+
+  // Reply to a message sitting in MY inbox — the other half of the help box,
+  // and how the admin answers. The reply is an ordinary note in their inbox.
+  app.post("/api/inbox/reply", (req, res) => {
+    const u = authedUser(req);
+    if (!u) return res.status(401).json({ error: "Sign in first." });
+    const m = (u.inbox || []).find((x) => x.id === String(req.body?.id || ""));
+    if (!m) return res.status(404).json({ error: "No such message." });
+    const to = m.fromId ? store.users.find((x) => x.id === m.fromId) : null;
+    if (!to) return res.status(400).json({ error: "There's nobody to reply to." });
+    const text = stripTags(String(req.body?.text || "")).trim().slice(0, HELP_MAX);
+    if (text.length < 1) return res.status(400).json({ error: "Type a reply first." });
+    to.inbox = to.inbox || [];
+    to.inbox.unshift(makeMsg("note", u.id, text));
+    m.read = true;
+    saveStore();
+    res.json({ ok: true });
+  });
+
   // ---- Friends ----
   // Friendship is mutual (both ids in both `friends` arrays); a pending
   // request is just a friend-request message sitting in the target's inbox.

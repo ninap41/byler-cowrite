@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   onlineUsersHtml, liveGameInfoHtml, statsText, badgeProgress, coverArt, coverStyle,
-  myGameStatus, myGameCardHtml, recentRowHtml, achievementsHtml, streakRingHtml, writerRowHtml,
+  myGameStatus, myGameCardHtml, recentRowHtml, achievementsHtml, streakRingHtml, writerRowHtml, inboxMsgHtml,
 } from "../public/js/dashboard-view.js";
 import { gameCardHtml, archiveMetaText, archiveStoryHtml } from "../public/js/archive-view.js";
 
@@ -149,4 +149,17 @@ test("coverStyle: linked image layers over the code gradient; falls back to grad
   assert.ok(myGameCardHtml({ code: "AB12", cover: "https://x.example/y.png", players: [], lines: 0 }).includes("url("), "mg card uses it");
   assert.ok(!myGameCardHtml({ code: "AB12", cover: "https://x.example/y.png", players: [], lines: 0 }).includes("mg-glyph"), "glyph hidden under an image");
   assert.ok(gameCardHtml({ code: "AB12", cover: "https://x.example/y.png", writers: [], lines: 0, phase: "over" }).includes("gc-cover"), "archive card thumb");
+});
+
+test("inboxMsgHtml labels a help question and escapes what the asker typed", () => {
+  const q = inboxMsgHtml({
+    id: "1", type: "help", text: "<img src=x onerror=1> is this a bug?", read: false, ts: Date.now(),
+    from: { username: "robinbuckley", color: "#6c8cff", badge: "", avatar: "", avatarFit: "cover" },
+  });
+  assert.ok(q.includes("help question"), "the admin can tell it apart from a friendly note");
+  assert.ok(q.includes("robinbuckley"), "and who asked");
+  assert.ok(!q.includes("<img"), "the question is escaped, not rendered");
+
+  const note = inboxMsgHtml({ id: "2", type: "note", text: "answered!", read: true, ts: Date.now(), from: null });
+  assert.ok(!note.includes("help question"), "an ordinary note wears no tag");
 });
