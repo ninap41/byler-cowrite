@@ -93,3 +93,11 @@ test("the editor offers a three-way paper colour beside line spacing", async () 
   assert.ok(body.indexOf('id="lineStepper"') < body.indexOf('id="paperSelect"'), "it sits next to line spacing");
   assert.ok(body.includes("applyPaper"), "and is applied on load, not just on change");
 });
+
+test("the thesaurus is no longer a toolbar button — it moved into the reference palette", async () => {
+  const { body } = await page("/write");
+  assert.ok(!body.includes("thesaurusLink"), "the toolbar button is gone");
+  assert.ok(!body.includes("powerthesaurus"), "and the URL doesn't linger in the markup");
+  const palette = await page("/js/components/slash-palette.js");
+  assert.ok(palette.body.includes("powerthesaurus.org"), "it lives in the palette now");
+});

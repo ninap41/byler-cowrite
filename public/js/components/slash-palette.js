@@ -111,6 +111,12 @@ export function opensPalette(node, offset) {
 export const breadcrumb = (st) =>
 	st.level === "groups" ? "Reference" : st.level === "categories" ? st.group.label : `${st.group.label} › ${st.category.label}`
 
+// The one thing the bank can't hold: a live thesaurus. It lives at the foot
+// of the palette rather than on the toolbar, where it was a permanent button
+// for an occasional errand — this is where you already are when you're
+// hunting for a word.
+export const THESAURUS_URL = "https://www.powerthesaurus.org"
+
 export function paletteHtml(st) {
 	const items = visibleItems(st)
 	const rows = items.length
@@ -127,7 +133,9 @@ export function paletteHtml(st) {
 	return (
 		`<div class="sp-head"><span class="sp-crumb">${esc(breadcrumb(st))}</span>` +
 		`<span class="sp-keys">↑↓ move · ${st.level === "groups" ? "→ open" : "← back"} · ⏎ pick · esc</span></div>` +
-		`<ul class="sp-list" role="listbox">${rows}</ul>`
+		`<ul class="sp-list" role="listbox">${rows}</ul>` +
+		`<div class="sp-foot"><a class="sp-thes" href="${THESAURUS_URL}" target="_blank" rel="noopener noreferrer">` +
+		`📖 Power Thesaurus <span class="sp-hint">new tab</span></a></div>`
 	)
 }
 

@@ -5081,6 +5081,26 @@ body.doc-page .topbar {
 	color: var(--ink);
 	font-weight: 600;
 }
+.sp-foot {
+	border-top: 1px solid var(--line);
+	padding: 6px 10px;
+}
+.sp-thes {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 4px 4px;
+	border-radius: 8px;
+	font-size: 0.8rem;
+	color: var(--ink);
+	text-decoration: none;
+}
+.sp-thes:hover {
+	background: var(--panel-2);
+}
+.sp-thes .sp-hint {
+	margin-left: auto;
+}
 .sp-keys {
 	margin-left: auto;
 	font-size: 0.68rem;

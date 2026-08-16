@@ -6,7 +6,7 @@ import { installDom } from "./dom.mjs";
 
 installDom();
 const {
-  createPaletteState, visibleItems, move, choose, goBack, setFilter, breadcrumb, paletteHtml, opensPalette,
+  createPaletteState, visibleItems, move, choose, goBack, setFilter, breadcrumb, paletteHtml, opensPalette, THESAURUS_URL,
 } = await import("../public/js/components/slash-palette.js");
 
 const BUNDLE = {
@@ -140,4 +140,30 @@ test("an empty or malformed bundle degrades quietly", () => {
     assert.equal(choose(s), null);
     assert.ok(paletteHtml(s).includes("No matches"));
   }
+});
+
+test("the thesaurus lives at the foot of the palette, on every level", () => {
+  // It used to be a permanent toolbar button for an occasional errand; the
+  // palette is where you already are when you're hunting for a word.
+  const s = createPaletteState(BUNDLE);
+  assert.equal(THESAURUS_URL, "https://www.powerthesaurus.org");
+  for (const level of ["groups", "categories", "words"]) {
+    const html = paletteHtml(s);
+    assert.ok(html.includes(THESAURUS_URL), `linked at the ${level} level`);
+    assert.ok(html.includes("Power Thesaurus"));
+    assert.ok(html.indexOf("sp-foot") > html.indexOf("sp-list"), "below the words, not above them");
+    choose(s); // drill one level down for the next pass
+  }
+});
+
+test("the thesaurus link opens safely in a new tab", () => {
+  const html = paletteHtml(createPaletteState(BUNDLE));
+  assert.match(html, /target="_blank"/);
+  assert.match(html, /rel="noopener noreferrer"/, "no window.opener handed to another origin");
+});
+
+test("an empty bank still offers the thesaurus — that's when you need it most", () => {
+  const html = paletteHtml(createPaletteState({ groups: [] }));
+  assert.ok(html.includes("No matches"));
+  assert.ok(html.includes(THESAURUS_URL));
 });
