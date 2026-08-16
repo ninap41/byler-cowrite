@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { installLocalStorage } from "./client-storage.mjs";
 
 installLocalStorage();
-const { loadPrefs, savePrefs, stepLine, LINE_STEPS, DEFAULT_LINE } = await import("../public/js/doc-prefs.js");
+const { loadPrefs, savePrefs, stepLine, LINE_STEPS, DEFAULT_LINE, PAPERS, DEFAULT_PAPER } = await import("../public/js/doc-prefs.js");
 
 const mem = () => {
   const store = new Map();
@@ -66,4 +66,46 @@ test("stepping walks the ladder and stops at both ends", () => {
   // an off-ladder starting value snaps to the next step in that direction
   assert.equal(stepLine(1.7, 1), 1.8);
   assert.equal(stepLine(1.7, -1), 1.6);
+});
+
+// ---- paper colour: the same kind of preference as line spacing ----
+
+test("paper defaults to the theme's own colour and round-trips the other two", () => {
+  const s = mem();
+  assert.deepEqual(PAPERS, ["theme", "light", "dark"]);
+  assert.equal(DEFAULT_PAPER, "theme");
+  assert.equal(loadPrefs(s).paper, "theme", "nothing stored means the site's own look");
+  for (const paper of PAPERS) {
+    savePrefs({ paper }, s);
+    assert.equal(loadPrefs(s).paper, paper);
+  }
+});
+
+test("an unknown paper falls back to the theme instead of a blank surface", () => {
+  const s = mem();
+  for (const junk of ["neon", "", null, 7, "DARK"]) {
+    savePrefs({ paper: junk }, s);
+    assert.equal(loadPrefs(s).paper, "theme", JSON.stringify(junk));
+  }
+  s.setItem("cowriteEditorPrefs", '{"paper":"<script>"}');
+  assert.equal(loadPrefs(s).paper, "theme", "and it can never reach the DOM as markup");
+});
+
+test("the two preferences are stored together — saving one keeps the other", () => {
+  const s = mem();
+  savePrefs({ lineHeight: 2.0, paper: "dark" }, s);
+  const both = loadPrefs(s);
+  assert.equal(both.lineHeight, 2.0);
+  assert.equal(both.paper, "dark");
+  // this is why the page spreads the current prefs into every save
+  savePrefs({ ...both, lineHeight: 1.2 }, s);
+  assert.equal(loadPrefs(s).paper, "dark", "nudging the line height doesn't reset the paper");
+  const dropped = savePrefs({ lineHeight: 1.2 }, s);
+  assert.equal(dropped.paper, "theme", "and a save that omits it really does reset it");
+});
+
+test("a legacy prefs blob with only a line height still loads", () => {
+  const s = mem();
+  s.setItem("cowriteEditorPrefs", '{"lineHeight":1.8}');
+  assert.deepEqual(loadPrefs(s), { lineHeight: 1.8, paper: "theme" });
 });

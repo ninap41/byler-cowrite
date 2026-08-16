@@ -5194,6 +5194,35 @@ body.doc-page .topbar {
 .doc-editor .fs-36, .doc-read .fs-36 { font-size: 36px; }
 .doc-editor .fs-48, .doc-read .fs-48 { font-size: 48px; }
 
+/* ---------- Paper colour (this writer's preference only) ---------- */
+/* data-paper is set from doc-prefs.js on the editing surfaces. Like line
+   spacing it is a VIEW preference: it never enters the html, so a beta
+   reader and an export are unaffected by what you draft against. The
+   default ("theme") sets nothing and leaves the site's own panel colour. */
+.doc-editor[data-paper="light"] {
+	background: #ffffff;
+	color: #14161c;
+	border-color: #d7dbe4;
+}
+.doc-editor[data-paper="dark"] {
+	background: #000000;
+	color: #f2f3f7;
+	border-color: #2a2d36;
+}
+/* the placeholder and the comment underline have to follow the paper */
+.doc-editor[data-paper="light"]:empty:before {
+	color: #6b7180;
+}
+.doc-editor[data-paper="dark"]:empty:before {
+	color: #8d93a3;
+}
+.doc-editor[data-paper="light"] ::selection {
+	background: #b9d4ff;
+}
+.doc-editor[data-paper="dark"] ::selection {
+	background: #33405c;
+}
+
 /* ---------- Line spacing (this reader's preference only) ---------- */
 /* Driven by --doc-line from doc-prefs.js. Never written into the document. */
 .doc-editor,

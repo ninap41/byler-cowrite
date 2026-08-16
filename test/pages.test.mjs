@@ -85,3 +85,11 @@ test("clean URLs serve each page", async () => {
     assert.ok(new RegExp(`id="${sec}" class="sec-body hidden"`).test(set.body), sec + " starts collapsed");
   }
 });
+
+test("the editor offers a three-way paper colour beside line spacing", async () => {
+  const { body } = await page("/write");
+  assert.ok(body.includes('id="paperSelect"'), "the control is on the toolbar");
+  for (const v of ["theme", "light", "dark"]) assert.ok(body.includes(`value="${v}"`), v + " is offered");
+  assert.ok(body.indexOf('id="lineStepper"') < body.indexOf('id="paperSelect"'), "it sits next to line spacing");
+  assert.ok(body.includes("applyPaper"), "and is applied on load, not just on change");
+});

@@ -14,6 +14,16 @@ const KEY = "cowriteEditorPrefs"
 export const LINE_STEPS = [0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.4]
 export const DEFAULT_LINE = 1.7 // matches .editor's own line-height
 
+// Paper colour of the writing surface — the same kind of preference as line
+// spacing: it changes how the page looks to YOU and never touches the html.
+// "theme" is the site's own panel colour (the default, and what every earlier
+// draft looked like); light/dark force a plain white or black page for people
+// who draft more comfortably against one of them.
+export const PAPERS = ["theme", "light", "dark"]
+export const DEFAULT_PAPER = "theme"
+
+const cleanPaper = (v) => (PAPERS.includes(v) ? v : DEFAULT_PAPER)
+
 const clampLine = (v) => {
 	const n = Number(v)
 	if (!Number.isFinite(n)) return DEFAULT_LINE
@@ -23,14 +33,17 @@ const clampLine = (v) => {
 export function loadPrefs(storage = localStorage) {
 	try {
 		const v = JSON.parse(storage.getItem(KEY) || "null")
-		return { lineHeight: v && v.lineHeight != null ? clampLine(v.lineHeight) : DEFAULT_LINE }
+		return {
+			lineHeight: v && v.lineHeight != null ? clampLine(v.lineHeight) : DEFAULT_LINE,
+			paper: cleanPaper(v?.paper),
+		}
 	} catch (e) {
-		return { lineHeight: DEFAULT_LINE }
+		return { lineHeight: DEFAULT_LINE, paper: DEFAULT_PAPER }
 	}
 }
 
 export function savePrefs(prefs, storage = localStorage) {
-	const clean = { lineHeight: clampLine(prefs?.lineHeight) }
+	const clean = { lineHeight: clampLine(prefs?.lineHeight), paper: cleanPaper(prefs?.paper) }
 	try {
 		storage.setItem(KEY, JSON.stringify(clean))
 	} catch (e) {

@@ -101,6 +101,16 @@
 									<span class="step-value" id="lsValue">1.7</span>
 									<button class="step-btn" id="lsUp" type="button" aria-label="Looser line spacing">+</button>
 								</span>
+								<select
+									id="paperSelect"
+									class="ghost"
+									aria-label="Paper colour"
+									data-tip="Paper colour — your view only, not saved into the story"
+								>
+									<option value="theme">🎨 Theme</option>
+									<option value="light">🌕 Light</option>
+									<option value="dark">🌑 Dark</option>
+								</select>
 							</span>
 						</div>
 
@@ -198,7 +208,7 @@
 			import { requireAuth } from "/js/auth-guard.js"
 			import { cleanHtml, asterisksToTags, FONT_SIZES, newCid } from "/js/components/editor.js"
 			import { absorbFontTags, sizesInRange, nearestSize, parseSize, DEFAULT_SIZE } from "/js/components/font-size.js"
-			import { loadPrefs, savePrefs, stepLine, DEFAULT_LINE } from "/js/doc-prefs.js"
+			import { loadPrefs, savePrefs, stepLine, DEFAULT_LINE, PAPERS } from "/js/doc-prefs.js"
 			import { mountSlashPalette } from "/js/components/slash-palette.js"
 			import { loadDraft, saveDraft, clearDraft, draftIsNewer } from "/js/doc-store.js"
 			import { createHistory } from "/js/components/history.js"
@@ -745,12 +755,28 @@
 				$("lsValue").textContent = prefs.lineHeight.toFixed(1)
 			}
 			const nudgeLine = (dir) => {
-				prefs = savePrefs({ lineHeight: stepLine(prefs.lineHeight, dir) })
+				// spread: savePrefs writes the whole blob, so dropping the other
+				// preferences here would reset the paper colour on every nudge
+				prefs = savePrefs({ ...prefs, lineHeight: stepLine(prefs.lineHeight, dir) })
 				applyLineHeight()
 			}
 			$("lsDown").addEventListener("click", () => nudgeLine(-1))
 			$("lsUp").addEventListener("click", () => nudgeLine(1))
 			applyLineHeight()
+
+			// ---- paper colour (this writer's preference only) ----
+			// Stored beside line spacing and applied the same way: an attribute on
+			// the writing surfaces, never a change to the document.
+			function applyPaper() {
+				for (const el of [$("docEditor"), $("docSource")]) el.dataset.paper = prefs.paper
+				$("paperSelect").value = prefs.paper
+			}
+			$("paperSelect").addEventListener("change", (e) => {
+				const paper = PAPERS.includes(e.target.value) ? e.target.value : "theme"
+				prefs = savePrefs({ ...prefs, paper })
+				applyPaper()
+			})
+			applyPaper()
 
 			$("linkBtn").addEventListener("mousedown", (e) => {
 				e.preventDefault()
