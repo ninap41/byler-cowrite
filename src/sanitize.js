@@ -6,17 +6,32 @@ import { randomBytes } from "node:crypto";
 export const PALETTE = ["#e63946", "#6c8cff", "#3ddc84", "#f4a261", "#e879c9", "#38bdf8", "#facc15", "#c084fc"];
 export const cleanColor = (c) => (PALETTE.includes(c) ? c : PALETTE[Math.floor(Math.random() * PALETTE.length)]);
 
+// Font sizes are a FIXED LADDER rendered as classes (fs-18), never as an
+// inline style. A free-form `style="font-size:…"` would mean letting an
+// attribute through the boundary and parsing a css value; a closed set of
+// class names has no injection surface at all — anything off this list stays
+// escaped text. Mirrored in public/js/write-view.js for the client.
+export const FONT_SIZES = [6, 8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 48];
+const FS_RE = new RegExp(`&lt;span class=&quot;fs-(${FONT_SIZES.join("|")})&quot;&gt;`, "g");
 // Rich-text sanitizer: escape everything, then re-enable a tiny allowlist —
-// inline formatting, block formats (h1-h3/p/hr), and exactly two alignment
-// classes on blocks. No other attribute ever survives.
+// inline formatting, block formats, lists, the font-size ladder, and exactly
+// two alignment classes on blocks. No other attribute ever survives.
+//
+// The game editor offers the same formatting as the solo one, so this list
+// tracks sanitizeDoc's — MINUS <a> and <img>, which are the only entries that
+// carry a url. That's the deliberate line: a story line may be shaped, but it
+// can never carry a link or load a remote image into another player's page.
 export function sanitizeRich(html) {
   let out = String(html).slice(0, 8000)
     .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
   out = out
-    .replace(/&lt;(\/?)(b|i|u|strong|em|h1|h2|h3|p)&gt;/g, "<$1$2>")
-    .replace(/&lt;(h1|h2|h3|p) class=&quot;al-(c|r)&quot;&gt;/g, '<$1 class="al-$2">')
-    .replace(/&lt;(br|hr)\s*\/?&gt;/g, "<$1>");
+    .replace(/&lt;(\/?)(b|i|u|s|strong|em|del|h1|h2|h3|p|ul|ol|li|blockquote)&gt;/g, "<$1$2>")
+    .replace(/&lt;(h1|h2|h3|p|blockquote) class=&quot;al-(c|r)&quot;&gt;/g, '<$1 class="al-$2">')
+    .replace(/&lt;(br|hr)\s*\/?&gt;/g, "<$1>")
+    // font-size spans, from the closed ladder only (see FONT_SIZES below)
+    .replace(FS_RE, '<span class="fs-$1">')
+    .replace(/&lt;\/span&gt;/g, "</span>");
   return out;
 }
 
@@ -29,13 +44,6 @@ export const stripTags = (html) => html.replace(/<[^>]+>/g, "").replace(/&[a-z#0
 // story line carry an <a>/<img> it was never meant to.
 export const DOC_MAX = 200000;
 
-// Font sizes are a FIXED LADDER rendered as classes (fs-18), never as an
-// inline style. A free-form `style="font-size:…"` would mean letting an
-// attribute through the boundary and parsing a css value; a closed set of
-// class names has no injection surface at all — anything off this list stays
-// escaped text. Mirrored in public/js/write-view.js for the client.
-export const FONT_SIZES = [6, 8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 48];
-const FS_RE = new RegExp(`&lt;span class=&quot;fs-(${FONT_SIZES.join("|")})&quot;&gt;`, "g");
 // Comment anchors. CID_RE is the closed set: 12 hex chars, minted by newCid().
 // data-cid is the only data attribute sanitizeDoc lets through, and only in
 // this exact shape — an anchor can name a comment and nothing else.

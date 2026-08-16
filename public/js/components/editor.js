@@ -1,14 +1,14 @@
 // Convert the contenteditable into the safe subset the server re-enables.
 // Two allowlists share this walker:
-//   game lines (sanitizeRich): b/i/u inline, h1-h3/p blocks, br, hr
-//   solo docs (sanitizeDoc):   the above + lists, blockquote, s/del, a, img
+//   game lines (sanitizeRich): inline + blocks + lists + the font-size ladder
+//   solo docs (sanitizeDoc):   the above + links, images, comment anchors
 // This is convenience only, NOT a security control — the server sanitizer is
 // the trust boundary. Text passes through RAW: the server escapes exactly once,
 // so pre-escaping here would double-escape quotes/& (they'd render as literal
 // &quot; in the story).
 const INLINE = { B: "b", STRONG: "b", I: "i", EM: "i", U: "u" }
 const BLOCKS = { H1: "h1", H2: "h2", H3: "h3", P: "p", DIV: "p" }
-// Only reachable with { doc: true } — the game's sanitizer would escape these.
+// The game and the document share these — only urls/anchors differ.
 const DOC_INLINE = { S: "s", STRIKE: "s", DEL: "s" }
 const DOC_BLOCKS = { UL: "ul", OL: "ol", LI: "li", BLOCKQUOTE: "blockquote" }
 // The font-size ladder, as classes. Mirrors FONT_SIZES in src/sanitize.js —
@@ -21,8 +21,11 @@ export const CID_CLASS = /^[0-9a-f]{12}$/
 export const newCid = () =>
 	[...crypto.getRandomValues(new Uint8Array(6))].map((b) => b.toString(16).padStart(2, "0")).join("")
 
-// doc: allow the wider document subset (lists/quote/strike/links/images).
-export function cleanHtml(el, { doc = false } = {}) {
+// doc: the wider subset (lists, quote, strike, sizes). urls: <a>/<img> and
+// comment anchors, which only documents may carry — the game passes
+// {doc: true, urls: false} so both editors produce the SAME formatting while
+// a story line still can't carry a link or pull in a remote image.
+export function cleanHtml(el, { doc = false, urls = doc } = {}) {
 	const inline = doc ? { ...INLINE, ...DOC_INLINE } : INLINE
 	const blocks = doc ? { ...BLOCKS, ...DOC_BLOCKS } : BLOCKS
 	const alignCls = (n) => {
@@ -70,14 +73,14 @@ export function cleanHtml(el, { doc = false } = {}) {
 				const wrap = (inner) => on.reduce((acc, t) => `<${t}>${acc}</${t}>`, inner)
 				if (tag === "BR") out += "<br>"
 				else if (tag === "HR") out += "<hr>"
-				else if (doc && tag === "IMG") {
+				else if (urls && tag === "IMG") {
 					const src = n.getAttribute("src")
 					if (okUrl(src)) out += `<img src="${src}">`
-				} else if (doc && tag === "A") {
+				} else if (urls && tag === "A") {
 					const href = n.getAttribute("href")
 					const inner = wrap(walk(n))
 					out += okUrl(href) ? `<a href="${href}">${inner}</a>` : inner
-				} else if (doc && tag === "SPAN" && n.classList?.contains("cmt")) {
+				} else if (urls && tag === "SPAN" && n.classList?.contains("cmt")) {
 					// a comment anchor. It must round-trip untouched or the author's
 					// next save would quietly unpin every comment in the document;
 					// an id that isn't ours is dropped to plain text, matching the

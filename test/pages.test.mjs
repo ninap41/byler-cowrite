@@ -113,3 +113,24 @@ test("the toolbar is one borderless strip: no boxed groups, pressed state instea
   const { body } = await page("/write");
   assert.ok(body.includes('classList.toggle("on"'), "bold/italic/underline follow the caret");
 });
+
+test("the write page's right-hand icons are borderless too — the mode switch is not", async () => {
+  const css = await page("/css/base.css");
+  assert.match(css.body, /\.toolbar-right > \.icon-btn \{[^}]*border: 0/, "the icon buttons lost their box");
+  assert.match(css.body, /\.mode-switch \{[^}]*border: 1px solid/, "the segmented control keeps its track");
+});
+
+test("comment mode explains itself on hover", async () => {
+  const { body } = await page("/write");
+  const btn = body.slice(body.indexOf('id="commentToggle"'), body.indexOf('id="commentToggle"') + 400);
+  assert.match(btn, /data-tip="Comment mode/, "the site's own tooltip");
+  assert.match(btn, /title="Comment mode/, "and the native one for keyboard/AT users");
+  assert.match(btn, /aria-label="Comment mode"/, "the emoji alone is not a name");
+});
+
+test("the game page carries the shared toolbar, not its own", async () => {
+  const { body } = await page("/game");
+  assert.ok(body.includes('id="gameToolbar"'), "one mount point");
+  assert.ok(body.includes("rich-toolbar.js"));
+  assert.ok(!body.includes('data-cmd="justifyLeft"'), "the old hand-rolled buttons are gone");
+});

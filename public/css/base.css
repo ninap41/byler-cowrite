@@ -4675,12 +4675,25 @@ body.doc-page .topbar {
 	gap: 6px;
 	margin-left: auto;
 }
+/* The right-hand icons match the left-hand ones: a glyph, no box. The
+   rich-text/HTML/comment segmented control is the exception — it shows WHICH
+   mode is on, so it keeps its track and its filled segment. */
 .icon-btn {
 	min-width: 0;
 	padding: 6px 9px;
 	font-size: 0.9rem;
 	text-decoration: none;
 	line-height: 1.15;
+}
+.toolbar-right > .icon-btn {
+	border: 0;
+	background: none;
+	box-shadow: none;
+	border-radius: 8px;
+}
+.toolbar-right > .icon-btn:hover,
+.toolbar-right > .icon-btn:focus-visible {
+	background: var(--chip);
 }
 .doc-toolbar-row .mode-switch .mode-btn {
 	padding: 6px 11px;
@@ -4824,12 +4837,21 @@ body.doc-page .topbar {
 .doc-editor ul,
 .doc-editor ol,
 .doc-read ul,
-.doc-read ol {
+.doc-read ol,
+.story ul,
+.story ol,
+.editor ul,
+.editor ol,
+.live ul,
+.live ol {
 	padding-left: 1.4em;
 	margin: 0.5em 0;
 }
 .doc-editor blockquote,
-.doc-read blockquote {
+.doc-read blockquote,
+.story blockquote,
+.editor blockquote,
+.live blockquote {
 	margin: 0.6em 0;
 	padding: 0.3em 0 0.3em 1em;
 	border-left: 3px solid var(--accent-2);
@@ -5218,19 +5240,19 @@ body.doc-page .topbar {
 /* ---------- Font-size ladder (document content) ---------- */
 /* A closed set of classes, mirroring FONT_SIZES in src/sanitize.js. Sizes ride
    in the saved html, so beta readers and exports see them too. */
-.doc-editor .fs-6, .doc-read .fs-6 { font-size: 6px; }
-.doc-editor .fs-8, .doc-read .fs-8 { font-size: 8px; }
-.doc-editor .fs-10, .doc-read .fs-10 { font-size: 10px; }
-.doc-editor .fs-12, .doc-read .fs-12 { font-size: 12px; }
-.doc-editor .fs-14, .doc-read .fs-14 { font-size: 14px; }
-.doc-editor .fs-16, .doc-read .fs-16 { font-size: 16px; }
-.doc-editor .fs-18, .doc-read .fs-18 { font-size: 18px; }
-.doc-editor .fs-20, .doc-read .fs-20 { font-size: 20px; }
-.doc-editor .fs-24, .doc-read .fs-24 { font-size: 24px; }
-.doc-editor .fs-28, .doc-read .fs-28 { font-size: 28px; }
-.doc-editor .fs-32, .doc-read .fs-32 { font-size: 32px; }
-.doc-editor .fs-36, .doc-read .fs-36 { font-size: 36px; }
-.doc-editor .fs-48, .doc-read .fs-48 { font-size: 48px; }
+.doc-editor .fs-6, .doc-read .fs-6, .story .fs-6, .editor .fs-6, .live .fs-6 { font-size: 6px; }
+.doc-editor .fs-8, .doc-read .fs-8, .story .fs-8, .editor .fs-8, .live .fs-8 { font-size: 8px; }
+.doc-editor .fs-10, .doc-read .fs-10, .story .fs-10, .editor .fs-10, .live .fs-10 { font-size: 10px; }
+.doc-editor .fs-12, .doc-read .fs-12, .story .fs-12, .editor .fs-12, .live .fs-12 { font-size: 12px; }
+.doc-editor .fs-14, .doc-read .fs-14, .story .fs-14, .editor .fs-14, .live .fs-14 { font-size: 14px; }
+.doc-editor .fs-16, .doc-read .fs-16, .story .fs-16, .editor .fs-16, .live .fs-16 { font-size: 16px; }
+.doc-editor .fs-18, .doc-read .fs-18, .story .fs-18, .editor .fs-18, .live .fs-18 { font-size: 18px; }
+.doc-editor .fs-20, .doc-read .fs-20, .story .fs-20, .editor .fs-20, .live .fs-20 { font-size: 20px; }
+.doc-editor .fs-24, .doc-read .fs-24, .story .fs-24, .editor .fs-24, .live .fs-24 { font-size: 24px; }
+.doc-editor .fs-28, .doc-read .fs-28, .story .fs-28, .editor .fs-28, .live .fs-28 { font-size: 28px; }
+.doc-editor .fs-32, .doc-read .fs-32, .story .fs-32, .editor .fs-32, .live .fs-32 { font-size: 32px; }
+.doc-editor .fs-36, .doc-read .fs-36, .story .fs-36, .editor .fs-36, .live .fs-36 { font-size: 36px; }
+.doc-editor .fs-48, .doc-read .fs-48, .story .fs-48, .editor .fs-48, .live .fs-48 { font-size: 48px; }
 
 /* ---------- Paper colour (this writer's preference only) ---------- */
 /* data-paper is set from doc-prefs.js on the editing surfaces. Like line

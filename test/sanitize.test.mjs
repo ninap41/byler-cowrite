@@ -165,3 +165,33 @@ test("newCid: distinct ids", () => {
   const seen = new Set(Array.from({ length: 200 }, () => newCid()));
   assert.equal(seen.size, 200);
 });
+
+// ---- game lines carry the same formatting as a document, minus urls ----
+
+test("sanitizeRich: the game's formatting matches the document's — lists, quote, strike, sizes", () => {
+  const rich = '<h2>t</h2><ul><li><b>a</b></li></ul><ol><li>b</li></ol>' +
+    '<blockquote class="al-c">q</blockquote><p><s>gone</s> <span class="fs-24">big</span></p><hr>';
+  assert.equal(sanitizeRich(rich), rich, "every one of them survives untouched");
+});
+
+test("sanitizeRich: a story line can never carry a link or an image", () => {
+  // The one deliberate difference from sanitizeDoc: <a> and <img> are the only
+  // entries that carry a url, and a line is read by everyone in the game.
+  const out = sanitizeRich('<a href="https://x.test">click</a><img src="https://x.test/a.png">');
+  assert.ok(!/<a\s/.test(out), "no live anchor: " + out);
+  assert.ok(!/<img/.test(out), "no live image: " + out);
+  assert.ok(out.includes("click"), "the text is kept, just inert");
+});
+
+test("sanitizeRich: font sizes only from the ladder, and a span can't smuggle anything", () => {
+  for (const size of FONT_SIZES)
+    assert.equal(sanitizeRich(`<span class="fs-${size}">x</span>`), `<span class="fs-${size}">x</span>`);
+  for (const bad of ['<span class="fs-13">x</span>', '<span class="fs-999">x</span>', '<span style="font-size:99px">x</span>',
+                     '<span class="fs-24" onclick="a()">x</span>'])
+    assert.ok(!/<span[^>]*(style|onclick)/.test(sanitizeRich(bad)), bad + " must not open a live span");
+});
+
+test("sanitizeRich: comment anchors belong to documents, not to story lines", () => {
+  const out = sanitizeRich('<span class="cmt" data-cid="0123456789ab">x</span>');
+  assert.ok(!/data-cid=[^&]/.test(out), "no data attribute survives here: " + out);
+});

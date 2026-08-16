@@ -120,21 +120,9 @@
 								<span class="timer" id="timer">--</span>
 							</div>
 							<div id="myTurn" class="hidden">
-						<div class="toolbar">
-							<select id="blockFormat" class="ghost" title="Paragraph style">
-								<option value="p">Paragraph</option>
-								<option value="h1">Heading 1</option>
-								<option value="h2">Heading 2</option>
-								<option value="h3">Heading 3</option>
-							</select>
-							<button class="ghost tb-b" data-cmd="bold" title="Bold">B</button>
-							<button class="ghost tb-i" data-cmd="italic" title="Italic">I</button>
-							<button class="ghost tb-u" data-cmd="underline" title="Underline">U</button>
-							<button class="ghost" data-cmd="justifyLeft" title="Align left">⇤</button>
-							<button class="ghost" data-cmd="justifyCenter" title="Align center">↔</button>
-							<button class="ghost" data-cmd="justifyRight" title="Align right">⇥</button>
-							<button class="ghost" data-cmd="insertHorizontalRule" title="Horizontal rule">―</button>
-						</div>
+						<!-- The same WYSIWYG row as the solo editor, from the shared
+						     component — see js/components/rich-toolbar.js. -->
+						<div class="toolbar" id="gameToolbar"></div>
 						<div class="editor" id="writerEditor" contenteditable="true" data-placeholder="Add the next line…"></div>
 						<div class="hint">
 							Format with the buttons · Enter for a line break · Ctrl/⌘+Enter or “Add line” to submit · auto-submits when the
@@ -238,6 +226,7 @@
 			import { requireAuth } from "/js/auth-guard.js"
 			import { statusDot, refreshStatusDots, updateLiveStatus } from "/js/status.js"
 			import { cleanHtml } from "/js/components/editor.js"
+			import { toolbarHtml, mountRichToolbar } from "/js/components/rich-toolbar.js"
 			import { storyHtml, livePreviewHtml } from "/js/components/story-feed.js"
 			import { chatMessageHtml } from "/js/components/chat-view.js"
 			import { getSpectatorName } from "/js/spectator-names.js"
@@ -792,7 +781,7 @@
 					ed.focus()
 					cancel.onclick = () => renderStory(box, lastStory, false)
 					save.onclick = () =>
-						socket.emit("edit-line", { index: idx, text: cleanHtml(ed) }, (res) => {
+						socket.emit("edit-line", { index: idx, text: cleanHtml(ed, { doc: true, urls: false }) }, (res) => {
 							if (!res?.ok) {
 								$("gameMsg") && gameMsg(res?.error || "Could not save the edit.")
 								renderStory(box, lastStory, false)
@@ -827,7 +816,7 @@
 				tickInterval = setInterval(render, 250)
 			}
 			function submitLine() {
-				const html = cleanHtml($("writerEditor"))
+				const html = cleanHtml($("writerEditor"), { doc: true, urls: false })
 				$("submitBtn").disabled = true
 				socket.emit("submit-line", { text: html }, (res) => {
 					$("submitBtn").disabled = false
@@ -835,6 +824,14 @@
 				})
 			}
 			$("submitBtn").onclick = submitLine
+			// The toolbar is the shared component: the game gets exactly the
+			// controls the solo editor has, minus the ones sanitizeRich would
+			// strip anyway (links, images). Live typing is broadcast on every
+			// change, so a format lands on the watchers' screens as it happens.
+			$("gameToolbar").innerHTML = toolbarHtml()
+			mountRichToolbar($("writerEditor"), $("gameToolbar"), {
+				onEdit: () => $("writerEditor").dispatchEvent(new Event("input")),
+			})
 			// poking the (disabled) editor, any WYSIWYG toolbar button, the
 			// paragraph-style select, or Add line while paused earns
 			// 💩 Resume it, Stupid — the whole session gets the confetti.
@@ -842,32 +839,7 @@
 				if (lastPaused) socket.emit("paused-poke")
 			}
 			;["writerEditor", "submitBtn", "blockFormat"].forEach((id) => $(id).addEventListener("click", pausedPoke))
-			document.querySelectorAll(".toolbar button").forEach((b) => b.addEventListener("mousedown", pausedPoke))
-			document.querySelectorAll(".toolbar button").forEach((b) => {
-				b.addEventListener("mousedown", (e) => {
-					e.preventDefault()
-					document.execCommand(b.dataset.cmd, false, null)
-					$("writerEditor").focus()
-					$("writerEditor").dispatchEvent(new Event("input")) // hr/align count as typing
-				})
-			})
-			$("blockFormat").addEventListener("change", () => {
-				document.execCommand("formatBlock", false, "<" + $("blockFormat").value + ">")
-				$("writerEditor").focus()
-				$("writerEditor").dispatchEvent(new Event("input"))
-			})
-			// keep the dropdown in sync with wherever the caret sits
-			document.addEventListener("selectionchange", () => {
-				const sel = document.getSelection()
-				if (!sel || !sel.anchorNode || !$("writerEditor").contains(sel.anchorNode)) return
-				let n = sel.anchorNode
-				while (n && n !== $("writerEditor")) {
-					const t = n.nodeName
-					if (t === "H1" || t === "H2" || t === "H3") return ($("blockFormat").value = t.toLowerCase())
-					n = n.parentNode
-				}
-				$("blockFormat").value = "p"
-			})
+			$("gameToolbar").addEventListener("mousedown", pausedPoke)
 			$("writerEditor").addEventListener("keydown", (e) => {
 				if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
 					e.preventDefault()
@@ -878,7 +850,7 @@
 			let typingTimer = null
 			$("writerEditor").addEventListener("input", () => {
 				clearTimeout(typingTimer)
-				typingTimer = setTimeout(() => socket.emit("typing", { text: cleanHtml($("writerEditor")) }), 140)
+				typingTimer = setTimeout(() => socket.emit("typing", { text: cleanHtml($("writerEditor"), { doc: true, urls: false }) }), 140)
 			})
 			// Render another writer's live, in-progress line.
 			socket.on("live-typing", ({ html }) => {
