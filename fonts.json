@@ -1,0 +1,175 @@
+{
+ "_comment": "Which font each theme uses, per role. Generated from the --font-* custom properties in public/css/base.css; test/fonts.test.mjs fails if the two ever drift apart. Families come from the Google Fonts CDN link in every page's <head> \u2014 there are no font files in this repo.",
+ "source": {
+  "css": "public/css/base.css",
+  "themeList": "public/js/theme.js",
+  "googleFontsHref": "https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,900;1,9..144,400;1,9..144,600&family=Inconsolata:wght@400;600;700&family=Orbitron:wght@500;700;900&family=Space+Grotesk:wght@400;500;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+ },
+ "roles": {
+  "display": "headings, the hero title, big UI type (--font-display)",
+  "body": "general UI text (--font-body)",
+  "story": "story lines and the solo-write editor surface (--font-story)",
+  "mono": "codes, timers, hints, the HTML source view (--font-mono)"
+ },
+ "families": {
+  "Fraunces": {
+   "stack": "\"Fraunces\", serif",
+   "googleAxes": "ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,900;1,9..144,400;1,9..144,600"
+  },
+  "Inconsolata": {
+   "stack": "\"Inconsolata\", ui-monospace, monospace",
+   "googleAxes": "wght@400;600;700"
+  },
+  "Orbitron": {
+   "stack": "\"Orbitron\", sans-serif",
+   "googleAxes": "wght@500;700;900"
+  },
+  "Space Grotesk": {
+   "stack": "\"Space Grotesk\", sans-serif",
+   "googleAxes": "wght@400;500;700"
+  },
+  "Newsreader": {
+   "stack": "\"Newsreader\", serif",
+   "googleAxes": "ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400"
+  },
+  "Plus Jakarta Sans": {
+   "stack": "\"Plus Jakarta Sans\", sans-serif",
+   "googleAxes": "wght@400;500;600;700"
+  }
+ },
+ "themes": {
+  "neon": {
+   "label": "Neon Dusk",
+   "display": "\"Orbitron\", sans-serif",
+   "body": "\"Space Grotesk\", sans-serif",
+   "story": "\"Space Grotesk\", sans-serif",
+   "mono": "\"Inconsolata\", ui-monospace, monospace"
+  },
+  "aurora": {
+   "label": "Aurora",
+   "display": "\"Fraunces\", serif",
+   "body": "\"Plus Jakarta Sans\", sans-serif",
+   "story": "\"Fraunces\", serif",
+   "mono": "\"Inconsolata\", ui-monospace, monospace"
+  },
+  "ink": {
+   "label": "Inkwell",
+   "display": "\"Fraunces\", serif",
+   "body": "\"Newsreader\", serif",
+   "story": "\"Newsreader\", serif",
+   "mono": "\"Inconsolata\", ui-monospace, monospace"
+  },
+  "wall": {
+   "label": "The Wall",
+   "display": "\"Fraunces\", serif",
+   "body": "\"Plus Jakarta Sans\", sans-serif",
+   "story": "\"Newsreader\", serif",
+   "mono": "\"Inconsolata\", ui-monospace, monospace"
+  },
+  "snowball": {
+   "label": "Snow Ball",
+   "display": "\"Fraunces\", serif",
+   "body": "\"Plus Jakarta Sans\", sans-serif",
+   "story": "\"Newsreader\", serif",
+   "mono": "\"Inconsolata\", ui-monospace, monospace"
+  },
+  "upside": {
+   "label": "Upside Down",
+   "display": "\"Space Grotesk\", sans-serif",
+   "body": "\"Space Grotesk\", sans-serif",
+   "story": "\"Newsreader\", serif",
+   "mono": "\"Inconsolata\", ui-monospace, monospace"
+  },
+  "starcourt": {
+   "label": "Starcourt",
+   "display": "\"Fraunces\", serif",
+   "body": "\"Plus Jakarta Sans\", sans-serif",
+   "story": "\"Plus Jakarta Sans\", sans-serif",
+   "mono": "\"Inconsolata\", ui-monospace, monospace"
+  },
+  "arcade": {
+   "label": "Palace Arcade",
+   "display": "\"Orbitron\", sans-serif",
+   "body": "\"Space Grotesk\", sans-serif",
+   "story": "\"Space Grotesk\", sans-serif",
+   "mono": "\"Inconsolata\", ui-monospace, monospace"
+  },
+  "cerebro": {
+   "label": "Cerebro",
+   "display": "\"Inconsolata\", ui-monospace, monospace",
+   "body": "\"Space Grotesk\", sans-serif",
+   "story": "\"Inconsolata\", ui-monospace, monospace",
+   "mono": "\"Inconsolata\", ui-monospace, monospace"
+  },
+  "hawkinslab": {
+   "label": "Hawkins Lab",
+   "display": "\"Orbitron\", sans-serif",
+   "body": "\"Space Grotesk\", sans-serif",
+   "story": "\"Space Grotesk\", sans-serif",
+   "mono": "\"Inconsolata\", ui-monospace, monospace"
+  },
+  "castlebyers": {
+   "label": "Castle Byers",
+   "display": "\"Fraunces\", serif",
+   "body": "\"Plus Jakarta Sans\", sans-serif",
+   "story": "\"Newsreader\", serif",
+   "mono": "\"Inconsolata\", ui-monospace, monospace"
+  },
+  "vecna": {
+   "label": "Vecna's Clock",
+   "display": "\"Fraunces\", serif",
+   "body": "\"Newsreader\", serif",
+   "story": "\"Newsreader\", serif",
+   "mono": "\"Inconsolata\", ui-monospace, monospace"
+  },
+  "void": {
+   "label": "The Void",
+   "display": "\"Space Grotesk\", sans-serif",
+   "body": "\"Space Grotesk\", sans-serif",
+   "story": "\"Newsreader\", serif",
+   "mono": "\"Inconsolata\", ui-monospace, monospace"
+  },
+  "video": {
+   "label": "Family Video",
+   "display": "\"Orbitron\", sans-serif",
+   "body": "\"Space Grotesk\", sans-serif",
+   "story": "\"Space Grotesk\", sans-serif",
+   "mono": "\"Inconsolata\", ui-monospace, monospace"
+  },
+  "hellfire": {
+   "label": "Hellfire Club",
+   "display": "\"Fraunces\", serif",
+   "body": "\"Plus Jakarta Sans\", sans-serif",
+   "story": "\"Newsreader\", serif",
+   "mono": "\"Inconsolata\", ui-monospace, monospace"
+  },
+  "rink": {
+   "label": "Rink-O-Mania",
+   "display": "\"Orbitron\", sans-serif",
+   "body": "\"Plus Jakarta Sans\", sans-serif",
+   "story": "\"Space Grotesk\", sans-serif",
+   "mono": "\"Inconsolata\", ui-monospace, monospace"
+  },
+  "camp": {
+   "label": "Camp Know Where",
+   "display": "\"Fraunces\", serif",
+   "body": "\"Plus Jakarta Sans\", sans-serif",
+   "story": "\"Newsreader\", serif",
+   "mono": "\"Inconsolata\", ui-monospace, monospace"
+  },
+  "bunker": {
+   "label": "Russian Bunker",
+   "display": "\"Orbitron\", sans-serif",
+   "body": "\"Space Grotesk\", sans-serif",
+   "story": "\"Space Grotesk\", sans-serif",
+   "mono": "\"Inconsolata\", ui-monospace, monospace"
+  },
+  "pollywog": {
+   "label": "The Pollywog",
+   "display": "\"Space Grotesk\", sans-serif",
+   "body": "\"Space Grotesk\", sans-serif",
+   "story": "\"Newsreader\", serif",
+   "mono": "\"Inconsolata\", ui-monospace, monospace"
+  }
+ }
+}
