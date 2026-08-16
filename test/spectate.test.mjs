@@ -6,26 +6,18 @@ let ctx;
 before(async () => (ctx = await startServer()));
 after(async () => ctx.stop());
 
-test("at most 5 stories can run at once; a finished one frees a slot", async () => {
-  // dedicated server with the real production cap
-  const capCtx = await startServer({ COWRITE_MAX_ACTIVE: "5" });
+test("there is no cap on stories in progress — they can all run at once", async () => {
+  const capCtx = await startServer();
   try {
     const u = await signup(capCtx, "caphost1", "cap@x.com");
-    const socks = [];
-    for (let i = 0; i < 5; i++) {
+    const codes = new Set();
+    for (let i = 0; i < 15; i++) {
       const s = await capCtx.conn();
-      socks.push(s);
       const r = await capCtx.emit(s, "create-session", { auth: u.token });
-      assert.equal(r.ok, true, "session " + (i + 1) + " created");
+      assert.equal(r.ok, true, "story " + (i + 1) + " created");
+      codes.add(r.code);
     }
-    const extra = await capCtx.conn();
-    const denied = await capCtx.emit(extra, "create-session", { auth: u.token });
-    assert.equal(denied.ok, false, "sixth story refused");
-    assert.match(denied.error, /5 stories are already running/);
-    // finishing one frees the slot
-    await capCtx.emit(socks[0], "end-game", {});
-    const again = await capCtx.emit(extra, "create-session", { auth: u.token });
-    assert.equal(again.ok, true, "slot freed after a reveal");
+    assert.equal(codes.size, 15, "every story got its own code");
   } finally {
     await capCtx.stop();
   }

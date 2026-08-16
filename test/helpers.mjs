@@ -25,7 +25,6 @@ export async function startServer(extraEnv = {}) {
         COWRITE_DATA_DIR: dataDir,
         COWRITE_SAVE_DIR: saveDir,
         // tests accumulate sessions freely; the cap test lowers this itself
-        COWRITE_MAX_ACTIVE: "500",
         ...extraEnv,
       },
       stdio: ["ignore", "pipe", "inherit"],

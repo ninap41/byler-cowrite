@@ -104,6 +104,7 @@ const NAV = (page) => `
 		<a href="/stories" ${page === "stories" ? 'aria-current="page"' : ""}>📖 All stories</a>
 		<a href="/profile" ${page === "profile" ? 'aria-current="page"' : ""}>🏆 Profile</a>
 		<a href="/settings" ${page === "settings" ? 'aria-current="page"' : ""}>⚙️ Settings</a>
+		<a href="/admin" class="hidden" id="navAdmin" ${page === "admin" ? 'aria-current="page"' : ""}>🛡️ Admin</a>
 		<button type="button" class="nav-logout" id="navLogout">🚪 Log out</button>
 	</nav>`
 
@@ -258,4 +259,7 @@ export function setUserChip(user) {
 	const ucBadge = document.getElementById("ucBadge")
 	ucBadge.textContent = badge ? badge.trim().split(/\s+/)[0] : "no badge yet"
 	if (badge) ucBadge.dataset.tip = badge
+	// The admin entrance only appears for admin accounts. Hiding it is
+	// cosmetic — every /api/admin route checks the account itself.
+	if (user.admin) document.getElementById("navAdmin")?.classList.remove("hidden")
 }

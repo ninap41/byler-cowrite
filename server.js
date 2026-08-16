@@ -41,7 +41,7 @@ app.use(express.json());
 
 // Clean page URLs for the multi-page app (auth is enforced client-side +
 // on every API/socket call — these are just static files).
-for (const page of ["dashboard", "game", "archive", "stories", "profile", "settings", "write", "writes"])
+for (const page of ["dashboard", "game", "archive", "stories", "profile", "settings", "write", "writes", "admin"])
   app.get("/" + page, (_req, res) => res.sendFile(join(__dirname, "public", page + ".html")));
 
 const game = createGame(io); // owns sessions, presence, saves/, socket handlers

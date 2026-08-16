@@ -8,7 +8,7 @@ import { dirname, join } from "path";
 import { bumpStreak } from "../lib/streak.js";
 import { badgeName, badgeDesc, usageMatches, awardWordBadges } from "../lib/achievements.js";
 import { PALETTE, cleanColor, sanitizeRich, stripTags, httpUrl, sanitizeDoc, CID_RE } from "./sanitize.js";
-import { store, saveStore, userByToken, makeMsg } from "./store.js";
+import { store, saveStore, userByToken, makeMsg, isAdmin } from "./store.js";
 import { mirror, mirrorDelete } from "./persist.js";
 import { readDoc, writeDoc, canView, canEdit, anchorCids, anchorText, stripAnchor, applySuggestion } from "./docs.js";
 
@@ -29,9 +29,6 @@ const GHOST_MS = 90_000;
 // A denied join request can't retry for this long (anti-spam).
 // Keyed by account id — every writer is signed in.
 const DENY_COOLDOWN_MS = 5 * 60_000;
-// At most this many stories can be running at once (small server on purpose;
-// COWRITE_MAX_ACTIVE overrides — the test harness raises it).
-const MAX_ACTIVE_SESSIONS = Number(process.env.COWRITE_MAX_ACTIVE || 12);
 
 export function createGame(io) {
   const sessions = new Map(); // code -> session (in-memory; fine for a party game)
@@ -573,7 +570,8 @@ export function createGame(io) {
   function gateOrSeat(sock, s, oldId, w, ack) {
     const hostConnected = io.sockets.sockets.has(s.hostId) && s.writers.get(s.hostId)?.connected;
     const isTrueHost = w.token === s.hostToken;
-    if (s.gated && !w.approved && !isTrueHost && hostConnected) {
+    const isMod = isAdmin(store.users.find((u) => u.id === w.userId));
+    if (s.gated && !w.approved && !isTrueHost && !isMod && hostConnected) {
       const key = w.userId;
       const coolMsg = checkDenied(s, key);
       if (coolMsg) return ack?.({ ok: false, error: coolMsg });
@@ -593,9 +591,6 @@ export function createGame(io) {
     socket.on("create-session", ({ auth }, ack) => {
       const acct = userByToken(auth);
       if (!acct) return ack?.({ ok: false, error: "Sign in to host a game." });
-      const active = [...sessions.values()].filter((x) => x.phase !== "over").length;
-      if (active >= MAX_ACTIVE_SESSIONS)
-        return ack?.({ ok: false, error: `${MAX_ACTIVE_SESSIONS} stories are already running — wait for one to wrap up.`, cap: MAX_ACTIVE_SESSIONS });
       const code = makeCode();
       const host = newWriter(acct);
       const s = {
@@ -619,6 +614,14 @@ export function createGame(io) {
       saveSnapshot(s); // the code is claimable/revivable from the moment it exists
     });
 
+    // Moderator rights, resolved from the seat's account (or a raw auth token
+    // before a seat exists). Admins are a fixed list of emails in store.js —
+    // no request can grant it, so this only ever reads what's already true.
+    const adminSeat = (s, sockId) => {
+      const w = s?.writers.get(sockId);
+      return !!w && isAdmin(store.users.find((u) => u.id === w.userId));
+    };
+
     const seatByAccount = (s, auth) => {
       const acct = userByToken(auth);
       return acct ? [...s.writers.entries()].find(([, w]) => w.userId === acct.id) : null;
@@ -634,8 +637,9 @@ export function createGame(io) {
       // re-enter a running game by code — their account finds the seat.
       const mine = seatByAccount(s, auth);
       if (mine) return gateOrSeat(socket, s, mine[0], mine[1], ack);
-      if (s.phase !== "waiting") {
+      if (s.phase !== "waiting" && !isAdmin(acct)) {
         // Started games are gated: a NEW writer needs the host to let them in.
+        // Admins are the exception — moderating a game means getting into it.
         const hostSock = io.sockets.sockets.get(s.hostId);
         if (!hostSock)
           return ack?.({ ok: false, error: "This game has already started and its host isn't here to let you in." });
@@ -646,11 +650,18 @@ export function createGame(io) {
         hostSock.emit("join-request", { id: socket.id, name: acct.username });
         return ack?.({ ok: true, pending: true });
       }
-      s.writers.set(socket.id, newWriter(acct));
+      const w = newWriter(acct);
+      w.approved = true;
+      s.writers.set(socket.id, w);
+      if (s.phase === "choosing" || s.phase === "writing") s.turnOrder.push(socket.id);
       socket.data.joinedCode = code;
       joinAsWriter(socket, s);
-      ack?.({ ok: true, code, hostId: s.hostId, token: s.writers.get(socket.id).token });
-      broadcastRoster(s);
+      ack?.({ ok: true, code, hostId: s.hostId, name: w.name, color: w.color, phase: s.phase, token: w.token });
+      if (s.phase === "waiting") broadcastRoster(s);
+      else if (s.phase === "over") {
+        broadcastRoster(s);
+        socket.emit("game-over", { prompt: s.prompt, story: s.story });
+      } else broadcastGame(s);
       saveSnapshot(s);
     });
 
@@ -790,7 +801,7 @@ export function createGame(io) {
       const w = s.writers.get(socket.id);
       const line = s.story[Number(index)];
       if (!w || !line) return ack?.({ ok: false, error: "That line doesn't exist." });
-      if (!line.userId || line.userId !== w.userId)
+      if ((!line.userId || line.userId !== w.userId) && !adminSeat(s, socket.id))
         return ack?.({ ok: false, error: "You can only edit your own lines." });
       const clean = sanitizeRich(text);
       if (!stripTags(clean)) return ack?.({ ok: false, error: "A line can't be empty." });
@@ -811,7 +822,7 @@ export function createGame(io) {
       const i = Number(index);
       const line = s.story[i];
       if (!w || !line) return ack?.({ ok: false, error: "That line doesn't exist." });
-      if (!line.userId || line.userId !== w.userId)
+      if ((!line.userId || line.userId !== w.userId) && !adminSeat(s, socket.id))
         return ack?.({ ok: false, error: "You can only delete your own lines." });
       s.story.splice(i, 1);
       saveSnapshot(s);
@@ -831,7 +842,8 @@ export function createGame(io) {
     // Host can name the session; the name shows at the top for everyone.
     socket.on("rename-session", ({ name }, ack) => {
       const s = mySession();
-      if (!s || s.hostId !== socket.id) return ack?.({ ok: false, error: "Host only." });
+      if (!s || (s.hostId !== socket.id && !adminSeat(s, socket.id)))
+        return ack?.({ ok: false, error: "Host only." });
       s.name = stripTags(String(name || "")).slice(0, 40).trim();
       if (s.phase === "waiting" || s.phase === "over") broadcastRoster(s);
       if (s.phase !== "waiting") broadcastGame(s);
@@ -942,9 +954,10 @@ export function createGame(io) {
       ack?.({ ok: true });
     });
 
+    // Host or admin: a moderator can wrap up any game they're sitting in.
     socket.on("end-game", (_, ack) => {
       const s = mySession();
-      if (!s || s.hostId !== socket.id) return ack?.({ ok: false });
+      if (!s || (s.hostId !== socket.id && !adminSeat(s, socket.id))) return ack?.({ ok: false });
       if (s.phase === "over") return ack?.({ ok: false });
       endGame(s);
       ack?.({ ok: true });
@@ -1336,6 +1349,17 @@ export function createGame(io) {
     return out.slice(0, cap);
   }
 
+  // Admin moderation: end a running game from outside it (the dashboard),
+  // without the moderator having to take a seat first. Returns false when the
+  // code isn't a live, unfinished game.
+  function endGameByCode(code) {
+    const s = sessions.get(String(code || "").toUpperCase());
+    if (!s || s.phase === "over") return false;
+    announce(s, { name: "Admin", color: PALETTE[0] }, "ended this story.");
+    endGame(s);
+    return true;
+  }
+
   // Permanently remove a game: kill the live session (players are told),
   // then delete the snapshot so the code truly dies.
   function deleteGame(code) {
@@ -1353,5 +1377,5 @@ export function createGame(io) {
     mirrorDelete("save", code); // no-op without DATABASE_URL
   }
 
-  return { sessions, onlineSockets, SAVE_DIR, gameSummary, freshStory, inGame, myGamesFor, recentGamesFor, deleteGame, renameUser, setTags, commentRows, closeDocFor, closeDocReaders };
+  return { sessions, onlineSockets, SAVE_DIR, gameSummary, freshStory, inGame, myGamesFor, recentGamesFor, deleteGame, endGameByCode, renameUser, setTags, commentRows, closeDocFor, closeDocReaders };
 }

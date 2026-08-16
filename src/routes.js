@@ -15,7 +15,7 @@ import { hashPassword, checkPassword } from "./passwords.js";
 import {
   store, saveStore, EMAIL_RE, ADMIN_EMAILS,
   findByEmail, findByUsername, userByToken, authedUser, publicUser, profileOf,
-  makeMsg, welcomeMsg,
+  makeMsg, welcomeMsg, isAdmin, touchSeen, removeUser,
 } from "./store.js";
 
 const CODE_RE = /^[A-Z0-9]{4}$/;
@@ -49,7 +49,7 @@ async function sendResetEmail(to, link) {
 }
 
 export function registerRoutes(app, game) {
-  const { sessions, onlineSockets, SAVE_DIR, gameSummary, freshStory, inGame, myGamesFor, recentGamesFor, deleteGame, renameUser, setTags, commentRows, closeDocFor, closeDocReaders } = game;
+  const { sessions, onlineSockets, SAVE_DIR, gameSummary, freshStory, inGame, myGamesFor, recentGamesFor, deleteGame, endGameByCode, renameUser, setTags, commentRows, closeDocFor, closeDocReaders } = game;
 
   // Random tagline quote for the homepage hero. quotes.json (repo root, one
   // string per entry) is hand-editable and re-read on every request, so new
@@ -126,6 +126,7 @@ export function registerRoutes(app, game) {
       createdAt: Date.now(),
     };
     if (ADMIN_EMAILS.has(em)) u.admin = true;
+    touchSeen(u);
     awardWordBadges(u); // the 0-word starter badge, from day one
     store.users.push(u);
     const token = randomUUID();
@@ -166,6 +167,10 @@ export function registerRoutes(app, game) {
     }
     if (!checkPassword(String(password || ""), u.passHash))
       return res.status(401).json({ error: "Wrong password." });
+    // The admin list is checked on the way IN as well as at startup, so a
+    // listed email is an admin from its very first sign-in.
+    if (ADMIN_EMAILS.has(u.email)) u.admin = true;
+    touchSeen(u);
     const token = randomUUID();
     store.sessions[token] = u.id;
     saveStore();
@@ -473,6 +478,8 @@ export function registerRoutes(app, game) {
   app.get("/api/me", (req, res) => {
     const u = authedUser(req);
     if (!u) return res.status(401).json({ error: "Not signed in." });
+    touchSeen(u);
+    saveStore();
     res.json({ user: publicUser(u) });
   });
 
@@ -694,6 +701,67 @@ export function registerRoutes(app, game) {
     res.json({ doc: docPayload(doc, u) });
   });
 
+  // ---- Admin moderation ----
+  // Admin is a fixed list of emails (store.js): nothing here can grant it, and
+  // every route below refuses anyone the list doesn't already name.
+  const requireAdmin = (req, res) => {
+    const u = authedUser(req);
+    if (!u) { res.status(401).json({ error: "Sign in first." }); return null; }
+    if (!isAdmin(u)) { res.status(403).json({ error: "Admins only." }); return null; }
+    return u;
+  };
+
+  // Every account, with what a moderator needs to judge inactivity: when they
+  // last signed in, how much they've written, and whether they're online now.
+  app.get("/api/admin/users", (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    const online = new Set(onlineSockets.values());
+    res.json({
+      users: store.users
+        .map((u) => ({
+          username: u.username, email: u.email, admin: isAdmin(u),
+          wordCount: u.wordCount || 0, games: (u.games || []).length,
+          createdAt: u.createdAt ?? null, lastSeen: u.lastSeen ?? null,
+          online: online.has(u.id),
+        }))
+        .sort((a, b) => (b.lastSeen ?? 0) - (a.lastSeen ?? 0)),
+    });
+  });
+
+  // Remove an inactive account. Admins can't be deleted (including yourself) —
+  // that keeps the moderation seat from being removable by mistake.
+  app.delete("/api/admin/users/:username", (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    const target = findByUsername(req.params.username);
+    if (!target) return res.status(404).json({ error: "No such user." });
+    if (isAdmin(target)) return res.status(403).json({ error: "Admin accounts can't be removed." });
+    removeUser(target);
+    res.json({ ok: true });
+  });
+
+  // Every running game, not just the admin's own — the moderation view.
+  app.get("/api/admin/games", (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    res.json({
+      games: [...sessions.values()].map((g) => ({
+        code: g.code, name: g.name || "", phase: g.phase,
+        players: g.writers.size, lines: g.story.length,
+        hostName: g.writers.get(g.hostId)?.name ?? g.hostName ?? null,
+        createdAt: g.createdAt ?? null,
+      })),
+    });
+  });
+
+  // End a game in progress without taking a seat in it. Players see the
+  // reveal, and the snapshot stays continuable like any other finished story.
+  app.post("/api/admin/games/:code/end", (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    const code = String(req.params.code || "").toUpperCase();
+    if (!CODE_RE.test(code)) return res.status(400).json({ error: "Bad code." });
+    if (!endGameByCode(code)) return res.status(404).json({ error: "No game in progress with that code." });
+    res.json({ ok: true });
+  });
+
   // ---- Previous-games archive (read-only, backed by saves/*.json snapshots) ----
   // No database on purpose: saveSnapshot() already persists every paused/finished
   // game to disk, so the archive is just a directory listing + file reads.
@@ -726,7 +794,7 @@ export function registerRoutes(app, game) {
     } catch {
       return res.status(404).json({ error: "Not found." });
     }
-    if (!inGame(d, u) && d.hostUserId !== u.id)
+    if (!inGame(d, u) && d.hostUserId !== u.id && !isAdmin(u))
       return res.status(403).json({ error: "Only this story's writers can edit its tags." });
     const seen = new Set();
     const tags = (Array.isArray(req.body?.tags) ? req.body.tags : [])
@@ -749,7 +817,8 @@ export function registerRoutes(app, game) {
     } catch {
       return res.status(404).json({ error: "Not found." });
     }
-    if (d.hostUserId !== u.id) return res.status(403).json({ error: "Only the host can delete this story." });
+    if (d.hostUserId !== u.id && !isAdmin(u))
+      return res.status(403).json({ error: "Only the host can delete this story." });
     deleteGame(code);
     res.json({ ok: true });
   });
@@ -762,7 +831,7 @@ export function registerRoutes(app, game) {
     try {
       // Story html in snapshots already passed through sanitizeRich() when written.
       const d = JSON.parse(readFileSync(join(SAVE_DIR, code + ".json"), "utf-8"));
-      if (!inGame(d, u)) return res.status(403).json({ error: "That game isn't yours to view." });
+      if (!inGame(d, u) && !isAdmin(u)) return res.status(403).json({ error: "That game isn't yours to view." });
       res.json({ ...gameSummary(d), story: freshStory(d.story) });
     } catch {
       res.status(404).json({ error: "Not found." });

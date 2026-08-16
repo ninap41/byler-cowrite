@@ -79,6 +79,33 @@ export const welcomeMsg = () =>
   if (changed) saveStore();
 }
 
+// Admin is a property of the EMAIL, never of a request: the list above is the
+// only source, so no payload can promote an account.
+export const isAdmin = (u) => !!u && (u.admin === true || ADMIN_EMAILS.has(u.email));
+
+// Called wherever an account proves it's alive (signup, login, /api/me) —
+// this is what "inactive" is measured against on the admin panel.
+export const touchSeen = (u) => {
+  if (!u) return;
+  u.lastSeen = Date.now();
+};
+
+// Delete an account for good: its sessions, its friendships, and every inbox
+// message it sent. Stories keep their lines (they're the other writers' work
+// too) — the byline simply stops resolving to a live account.
+export function removeUser(u) {
+  const i = store.users.indexOf(u);
+  if (i < 0) return false;
+  store.users.splice(i, 1);
+  for (const [t, id] of Object.entries(store.sessions)) if (id === u.id) delete store.sessions[t];
+  for (const other of store.users) {
+    if (Array.isArray(other.friends)) other.friends = other.friends.filter((id) => id !== u.id);
+    if (Array.isArray(other.inbox)) other.inbox = other.inbox.filter((m) => m.fromId !== u.id);
+  }
+  saveStore();
+  return true;
+}
+
 export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export const findByEmail = (e) => store.users.find((u) => u.email === String(e || "").toLowerCase().trim());
