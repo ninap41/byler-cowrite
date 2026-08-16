@@ -4597,7 +4597,8 @@ body.doc-page .topbar {
 	border: 0;
 	box-shadow: none;
 	padding: 0;
-	gap: 6px;
+	gap: 0; /* the groups space themselves with their own hairline */
+	align-items: center;
 }
 /* the block-format picker is the only control that needs words */
 .doc-toolbar-row #blockFormat {
@@ -4620,17 +4621,25 @@ body.doc-page .topbar {
 .doc-toolbar-row .step-label {
 	font-size: 0.82rem;
 }
-/* Related controls read as one control. Everything is on show — nothing is
-   hidden behind an overflow menu — so the whole row is deliberately tight:
-   icon-width buttons, no label text where a glyph carries it. */
+/* One continuous strip of controls. The buttons carry no border and no
+   chrome of their own — they are glyphs on the toolbar slab, and only hover
+   and the pressed state paint anything. Logical groups are separated by a
+   hairline rule rather than by boxing each one, so the row reads as a single
+   toolbar instead of seven little pills. */
 .tb-group {
 	display: inline-flex;
 	align-items: center;
-	gap: 1px;
-	padding: 2px;
-	border: 1px solid var(--line);
-	border-radius: 11px;
-	background: color-mix(in srgb, var(--panel-2) 70%, transparent);
+	gap: 0;
+	padding: 0;
+	border: 0;
+	border-radius: 0;
+	background: none;
+}
+/* the hairline lives between groups, never before the first or after the last */
+.tb-group + .tb-group {
+	margin-left: 5px;
+	padding-left: 5px;
+	border-left: 1px solid var(--line);
 }
 .tb-group > button.ghost,
 .tb-group > select.ghost {
@@ -4638,18 +4647,27 @@ body.doc-page .topbar {
 	background: none;
 	box-shadow: none;
 	padding: 5px 7px;
-	min-width: 28px;
+	min-width: 26px;
 	font-size: 0.85rem;
 	line-height: 1.15;
+	border-radius: 8px;
 }
 .tb-group > button.ghost:hover,
-.tb-group > select.ghost:hover {
+.tb-group > select.ghost:hover,
+.tb-group > button.ghost:focus-visible,
+.tb-group > select.ghost:focus-visible {
 	background: var(--chip);
+}
+/* a pressed button (bold on, list on) is the only thing that stays filled */
+.tb-group > button.ghost.on {
+	background: var(--chip);
+	color: var(--ink);
 }
 .tb-group .stepper {
 	border: 0;
 	background: none;
 	margin: 0;
+	padding: 0;
 }
 .toolbar-right {
 	display: flex;

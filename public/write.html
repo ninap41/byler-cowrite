@@ -629,6 +629,11 @@
 						: document.queryCommandState("justifyRight")
 							? "justifyRight"
 							: "justifyLeft"
+					// Without a border on each button, the pressed state IS the only
+					// signal that bold/italic/underline/strike are on — so keep it
+					// in step with the caret.
+					for (const [cls, cmd] of [["tb-b", "bold"], ["tb-i", "italic"], ["tb-u", "underline"], ["tb-s", "strikeThrough"]])
+						$("docToolbar").querySelector("." + cls)?.classList.toggle("on", document.queryCommandState(cmd))
 				} catch (e) {}
 			}
 			$("docEditor").addEventListener("keyup", syncFontBox)

@@ -101,3 +101,15 @@ test("the thesaurus is no longer a toolbar button — it moved into the referenc
   const palette = await page("/js/components/slash-palette.js");
   assert.ok(palette.body.includes("powerthesaurus.org"), "it lives in the palette now");
 });
+
+test("the toolbar is one borderless strip: no boxed groups, pressed state instead", async () => {
+  const css = await page("/css/base.css");
+  const group = css.body.slice(css.body.indexOf("\n.tb-group {"), css.body.indexOf("\n.tb-group + .tb-group"));
+  assert.match(group, /border: 0/, "the group pills lost their border");
+  assert.match(group, /background: none/, "and their fill");
+  assert.match(css.body, /\.tb-group \+ \.tb-group \{[^}]*border-left/, "groups are divided by a hairline instead");
+  assert.match(css.body, /\.tb-group > button\.ghost\.on \{/, "a pressed button is the one thing that stays filled");
+
+  const { body } = await page("/write");
+  assert.ok(body.includes('classList.toggle("on"'), "bold/italic/underline follow the caret");
+});
