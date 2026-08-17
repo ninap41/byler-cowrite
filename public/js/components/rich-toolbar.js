@@ -273,12 +273,18 @@ export function mountRichToolbar(editor, toolbar, { onEdit = () => {}, idPrefix 
 	}
 	press($("undoBtn"), () => step(false))
 	press($("redoBtn"), () => step(true))
+	// Ctrl/⌘+Z anywhere on the page does what the button does. Bound on the
+	// document, not the editor: after clicking a toolbar control the focus may
+	// be on that control, and in the game it may be in the chat box — real text
+	// fields keep the browser's own undo, which is the right one there.
+	const nativeUndoField = (el) => el && el !== editor && (el.tagName === "INPUT" || el.tagName === "TEXTAREA")
 	const onKeyDown = (e) => {
 		if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== "z") return
+		if (nativeUndoField(e.target) || nativeUndoField(document.activeElement)) return
 		e.preventDefault()
 		step(e.shiftKey)
 	}
-	editor.addEventListener("keydown", onKeyDown)
+	document.addEventListener("keydown", onKeyDown)
 
 	sync()
 	return {
@@ -286,7 +292,7 @@ export function mountRichToolbar(editor, toolbar, { onEdit = () => {}, idPrefix 
 		history,
 		destroy() {
 			document.removeEventListener("selectionchange", onSelectionChange)
-			editor.removeEventListener("keydown", onKeyDown)
+			document.removeEventListener("keydown", onKeyDown)
 			editor.removeEventListener("input", onInput)
 			clearTimeout(typingTimer)
 			editor.removeEventListener("keyup", sync)

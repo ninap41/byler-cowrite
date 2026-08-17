@@ -614,7 +614,14 @@ body {
 	position: absolute;
 	top: calc(100% + 8px);
 	right: 0;
+	/* 19 themes is taller than a laptop window: the list scrolls inside
+	   itself, and sits above the write page's sticky toolbar (which is a
+	   later sibling once the topbar is moved into the document head). */
+	z-index: 120;
 	min-width: 150px;
+	max-height: min(60vh, 430px);
+	overflow-y: auto;
+	overscroll-behavior: contain;
 	display: flex;
 	flex-direction: column;
 	gap: 3px;
@@ -642,6 +649,7 @@ body {
 }
 .theme-menu button {
 	width: 100%;
+	flex: 0 0 auto;
 	text-align: left;
 }
 .theme-menu button.active {
@@ -5440,6 +5448,18 @@ body.doc-page .topbar {
 .editor :is(h1, h2, h3) [class*="fs-"],
 .live :is(h1, h2, h3) [class*="fs-"] {
 	font-size: inherit;
+}
+
+/* ---------- Typeface (this writer's preference only) ---------- */
+/* --doc-font is set on the writing surfaces by doc-prefs.js; unset, the
+   theme's own story face shows through. Like paper and line spacing it is a
+   VIEW preference and never reaches the html. */
+.doc-editor,
+.doc-source {
+	font-family: var(--doc-font, var(--font-story));
+}
+.doc-source {
+	font-family: var(--doc-font, var(--font-mono));
 }
 
 /* ---------- Paper colour (this writer's preference only) ---------- */

@@ -24,6 +24,24 @@ export const DEFAULT_PAPER = "theme"
 
 const cleanPaper = (v) => (PAPERS.includes(v) ? v : DEFAULT_PAPER)
 
+// The typeface the drafting surface is set in — the third view preference,
+// alongside line spacing and paper. "theme" means whatever the current theme
+// picked (--font-story); the rest are the families this site already loads,
+// mirroring fonts.json (test/fonts.test.mjs fails if the two drift apart), so
+// choosing one costs no extra download.
+export const DOC_FONTS = [
+	{ key: "theme", label: "Theme font", stack: "" },
+	{ key: "fraunces", label: "Fraunces", stack: '"Fraunces", serif' },
+	{ key: "newsreader", label: "Newsreader", stack: '"Newsreader", serif' },
+	{ key: "jakarta", label: "Plus Jakarta Sans", stack: '"Plus Jakarta Sans", sans-serif' },
+	{ key: "grotesk", label: "Space Grotesk", stack: '"Space Grotesk", sans-serif' },
+	{ key: "orbitron", label: "Orbitron", stack: '"Orbitron", sans-serif' },
+	{ key: "inconsolata", label: "Inconsolata", stack: '"Inconsolata", ui-monospace, monospace' },
+]
+export const DEFAULT_FONT = "theme"
+export const fontOf = (key) => DOC_FONTS.find((f) => f.key === key) || DOC_FONTS[0]
+const cleanFont = (v) => (DOC_FONTS.some((f) => f.key === v) ? v : DEFAULT_FONT)
+
 const clampLine = (v) => {
 	const n = Number(v)
 	if (!Number.isFinite(n)) return DEFAULT_LINE
@@ -36,14 +54,15 @@ export function loadPrefs(storage = localStorage) {
 		return {
 			lineHeight: v && v.lineHeight != null ? clampLine(v.lineHeight) : DEFAULT_LINE,
 			paper: cleanPaper(v?.paper),
+			font: cleanFont(v?.font),
 		}
 	} catch (e) {
-		return { lineHeight: DEFAULT_LINE, paper: DEFAULT_PAPER }
+		return { lineHeight: DEFAULT_LINE, paper: DEFAULT_PAPER, font: DEFAULT_FONT }
 	}
 }
 
 export function savePrefs(prefs, storage = localStorage) {
-	const clean = { lineHeight: clampLine(prefs?.lineHeight), paper: cleanPaper(prefs?.paper) }
+	const clean = { lineHeight: clampLine(prefs?.lineHeight), paper: cleanPaper(prefs?.paper), font: cleanFont(prefs?.font) }
 	try {
 		storage.setItem(KEY, JSON.stringify(clean))
 	} catch (e) {

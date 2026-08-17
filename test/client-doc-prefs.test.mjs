@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { installLocalStorage } from "./client-storage.mjs";
 
 installLocalStorage();
-const { loadPrefs, savePrefs, stepLine, LINE_STEPS, DEFAULT_LINE, PAPERS, DEFAULT_PAPER } = await import("../public/js/doc-prefs.js");
+const { loadPrefs, savePrefs, stepLine, LINE_STEPS, DEFAULT_LINE, PAPERS, DEFAULT_PAPER, DOC_FONTS, fontOf } = await import("../public/js/doc-prefs.js");
 
 const mem = () => {
   const store = new Map();
@@ -107,5 +107,35 @@ test("the two preferences are stored together — saving one keeps the other", (
 test("a legacy prefs blob with only a line height still loads", () => {
   const s = mem();
   s.setItem("cowriteEditorPrefs", '{"lineHeight":1.8}');
-  assert.deepEqual(loadPrefs(s), { lineHeight: 1.8, paper: "theme" });
+  assert.deepEqual(loadPrefs(s), { lineHeight: 1.8, paper: "theme", font: "theme" });
+});
+
+// ---- typeface ----
+
+test("the typeface list is the site's own families, defaulting to the theme's", () => {
+  const s = mem();
+  assert.equal(DOC_FONTS[0].key, "theme");
+  assert.equal(DOC_FONTS[0].stack, "", "the theme's own face is the absence of an override");
+  assert.equal(loadPrefs(s).font, "theme");
+  for (const f of DOC_FONTS.slice(1)) {
+    assert.ok(f.stack.includes(","), f.key + " names a real stack with a fallback");
+    savePrefs({ font: f.key }, s);
+    assert.equal(loadPrefs(s).font, f.key);
+  }
+});
+
+test("an unknown typeface falls back to the theme's, and can't reach the DOM as css", () => {
+  const s = mem();
+  for (const junk of ["comic-sans", "", null, 7, "</style>"]) {
+    savePrefs({ font: junk }, s);
+    assert.equal(loadPrefs(s).font, "theme", JSON.stringify(junk));
+  }
+  assert.equal(fontOf("nope").key, "theme");
+  assert.equal(fontOf("fraunces").label, "Fraunces");
+});
+
+test("all three view preferences live together and survive each other", () => {
+  const s = mem();
+  savePrefs({ lineHeight: 2.0, paper: "dark", font: "newsreader" }, s);
+  assert.deepEqual(loadPrefs(s), { lineHeight: 2.0, paper: "dark", font: "newsreader" });
 });

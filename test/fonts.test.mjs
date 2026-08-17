@@ -69,3 +69,17 @@ test("each theme's label is the one the switcher shows", () => {
   for (const [name, row] of Object.entries(fonts.themes))
     assert.ok(themeJs.includes(`${name}: "${row.label}"`), `${name} label drifted`);
 });
+
+test("the solo editor's typeface menu offers exactly the families this site loads", async () => {
+  // fonts.json is the map of what's loaded; doc-prefs.js is what a writer can
+  // pick. A face in the menu that nothing downloads would silently fall back.
+  const { DOC_FONTS } = await import("../public/js/doc-prefs.js");
+  const offered = DOC_FONTS.filter((f) => f.key !== "theme");
+  assert.deepEqual(
+    offered.map((f) => f.label).sort(),
+    Object.keys(fonts.families).sort(),
+    "every family, and nothing that isn't loaded",
+  );
+  for (const f of offered)
+    assert.equal(f.stack, fonts.families[f.label].stack, f.label + "'s stack drifted from fonts.json");
+});

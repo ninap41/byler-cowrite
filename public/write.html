@@ -114,6 +114,12 @@
 									<button class="step-btn" id="lsUp" type="button" aria-label="Looser line spacing">+</button>
 								</span>
 								<select
+									id="fontSelect"
+									class="ghost"
+									aria-label="Typeface"
+									data-tip="Typeface for this page — your view only, not saved into the story"
+								></select>
+								<select
 									id="paperSelect"
 									class="ghost"
 									aria-label="Paper colour"
@@ -244,7 +250,7 @@
 				headingOnly,
 				DEFAULT_SIZE,
 			} from "/js/components/font-size.js"
-			import { loadPrefs, savePrefs, stepLine, DEFAULT_LINE, PAPERS } from "/js/doc-prefs.js"
+			import { loadPrefs, savePrefs, stepLine, DEFAULT_LINE, PAPERS, DOC_FONTS, fontOf } from "/js/doc-prefs.js"
 			import { mountSlashPalette } from "/js/components/slash-palette.js"
 			import { loadDraft, saveDraft, clearDraft, draftIsNewer } from "/js/doc-store.js"
 			import { createHistory } from "/js/components/history.js"
@@ -563,33 +569,6 @@
 			// otherwise the class/attribute change alone still does the job.
 			const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
 			const anim = () => (window.gsap && !reduceMotion ? window.gsap : null)
-			// Fold an element open or shut: height and opacity together, so nothing
-			// jumps. The END STATE is applied by finish(), which the tween calls —
-			// and a timer calls too, because requestAnimationFrame is frozen in a
-			// background tab and a half-open box that never resolves is worse than
-			// no animation at all. finish() is idempotent, so both callers are safe.
-			function foldTo(el, show, { onDone } = {}) {
-				const g = anim()
-				const finish = () => {
-					clearTimeout(el._foldTimer)
-					el.classList.toggle("hidden", !show)
-					g?.set(el, { clearProps: "height,opacity,marginTop" })
-					onDone?.()
-				}
-				if (!g) return finish()
-				g.killTweensOf(el)
-				clearTimeout(el._foldTimer)
-				const from = show ? 0 : el.getBoundingClientRect().height
-				if (show) el.classList.remove("hidden")
-				const to = show ? el.scrollHeight : 0
-				g.fromTo(
-					el,
-					{ height: from, opacity: show ? 0 : 1 },
-					{ height: to, opacity: show ? 1 : 0, duration: 0.2, ease: show ? "power2.out" : "power2.in", onComplete: finish },
-				)
-				el._foldTimer = setTimeout(finish, 420)
-			}
-
 			function clearComposer() {
 				pendingRange = null
 				const box = $("commentComposer").firstElementChild
@@ -622,14 +601,14 @@
 				// ARE the message, and two boxes at once crowd a narrow rail.
 				$("suggestOn").addEventListener("change", () => {
 					const on = $("suggestOn").checked
-					foldTo($("newComment"), !on)
-					foldTo($("newSuggestion"), on, {
-						onDone: () => {
-							if (!on) return
-							$("newSuggestion").focus()
-							$("newSuggestion").select()
-						},
-					})
+					// a straight swap: the boxes are the same size, so animating
+					// the change just made it wobble
+					$("newComment").classList.toggle("hidden", on)
+					$("newSuggestion").classList.toggle("hidden", !on)
+					if (on) {
+						$("newSuggestion").focus()
+						$("newSuggestion").select()
+					}
 					// prefilled with the current words, so editing them IS the suggestion
 					if (on) $("newSuggestion").value = quote
 					$("newSend").textContent = on ? "Suggest" : "Comment"
@@ -996,10 +975,17 @@
 			}
 			$("undoBtn").addEventListener("mousedown", (e) => (e.preventDefault(), history(false)))
 			$("redoBtn").addEventListener("mousedown", (e) => (e.preventDefault(), history(true)))
-			// the keyboard shortcuts go through the same path, so the box keeps up
-			$("docEditor").addEventListener("keydown", (e) => {
+			// Ctrl/⌘+Z anywhere on the page does what the button does. Bound on
+			// the document, not the editor: after clicking a toolbar control the
+			// focus may be on that control, and the shortcut has to keep working.
+			// Real text fields (the title, the HTML view, a modal input) keep the
+			// browser's own undo — theirs is the right one there.
+			const nativeUndoField = (el) =>
+				el && el !== $("docEditor") && (el.tagName === "INPUT" || el.tagName === "TEXTAREA")
+			document.addEventListener("keydown", (e) => {
 				const meta = e.metaKey || e.ctrlKey
 				if (!meta || e.key.toLowerCase() !== "z") return
+				if (nativeUndoField(e.target) || nativeUndoField(document.activeElement)) return
 				e.preventDefault()
 				history(e.shiftKey)
 			})
@@ -1029,6 +1015,25 @@
 				for (const el of [$("docEditor"), $("docSource")]) el.dataset.paper = prefs.paper
 				$("paperSelect").value = prefs.paper
 			}
+			// ---- typeface (this writer's preference only) ----
+			// The families are the ones the site already loads (fonts.json), so a
+			// choice here costs nothing extra. Applied as a CSS variable on the
+			// writing surfaces: it never enters the document.
+			function applyFont() {
+				const stack = fontOf(prefs.font).stack
+				for (const el of [$("docEditor"), $("docSource")])
+					stack ? el.style.setProperty("--doc-font", stack) : el.style.removeProperty("--doc-font")
+				$("fontSelect").value = prefs.font
+			}
+			$("fontSelect").innerHTML = DOC_FONTS.map(
+				(f) => `<option value="${f.key}" style="font-family:${f.stack || "inherit"}">${f.label}</option>`,
+			).join("")
+			$("fontSelect").addEventListener("change", (e) => {
+				prefs = savePrefs({ ...prefs, font: e.target.value })
+				applyFont()
+			})
+			applyFont()
+
 			$("paperSelect").addEventListener("change", (e) => {
 				const paper = PAPERS.includes(e.target.value) ? e.target.value : "theme"
 				prefs = savePrefs({ ...prefs, paper })

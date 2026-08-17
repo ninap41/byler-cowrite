@@ -239,9 +239,9 @@ test("a comment anchor can never wrap a block", async () => {
 test("the composer's motion is GSAP, with a reduced-motion path", async () => {
   const { body } = await page("/write");
   assert.ok(body.includes("prefers-reduced-motion"), "motion is optional");
-  assert.ok(body.includes("function foldTo"), "the boxes fold rather than blink");
+
   assert.ok(!body.includes('id="commentHelp"'), "the how-to-start line is a tooltip, not a standing line of the rail");
-  assert.ok(body.includes('foldTo($("newComment"), !on)'), "checking Suggest swaps the note out for the rewrite");
+  assert.ok(body.includes('$("newComment").classList.toggle("hidden", on)'), "checking Suggest swaps the note out for the rewrite — a straight swap, no wobble");
 });
 
 test("the composer asks what you're leaving before it asks for the words", async () => {
@@ -261,4 +261,32 @@ test("how to start a comment lives on the Comments heading's tooltip", async () 
   assert.match(body, /id="commentsHeading" data-tip="Turn on comment mode/, "and carries the hint for the resting state");
   assert.ok(body.includes('$("commentsHeading").dataset.tip = commentMode'), "which follows the mode");
   assert.ok(body.includes("Select any words in the story to comment on them."), "the comment-mode wording is kept");
+});
+
+test("Ctrl/⌘+Z undoes from anywhere on the page, on both editors", async () => {
+  for (const [where, file] of [["the solo editor", "/write"], ["the game's toolbar", "/js/components/rich-toolbar.js"]]) {
+    const { body } = await page(file);
+    assert.ok(body.includes('document.addEventListener("keydown"'), where + " listens on the document, not just the editor");
+    assert.ok(body.includes("nativeUndoField"), where + " leaves real text fields their own undo");
+  }
+  const write = await page("/write");
+  assert.ok(write.body.includes("history(e.shiftKey)"), "shift+z redoes, through the same path as the button");
+});
+
+test("the typeface dropdown offers the site's own families and never touches the document", async () => {
+  const { body } = await page("/write");
+  assert.ok(body.includes('id="fontSelect"'), "the control is on the toolbar");
+  assert.ok(body.indexOf('id="fontSelect"') < body.indexOf('id="paperSelect"'), "beside the other view preferences");
+  assert.ok(body.includes("DOC_FONTS.map"), "built from the shared list, not hand-written options");
+  assert.ok(body.includes('setProperty("--doc-font"'), "applied as a css variable on the surfaces");
+  const css = await page("/css/base.css");
+  assert.match(css.body, /\.doc-editor,\n\.doc-source \{\s*font-family: var\(--doc-font, var\(--font-story\)\)/);
+});
+
+test("the theme menu scrolls and sits above the write page's toolbar", async () => {
+  const css = await page("/css/base.css");
+  const menu = css.body.slice(css.body.indexOf("\n.theme-menu {"), css.body.indexOf("\n.theme-switch.open .theme-menu"));
+  assert.match(menu, /max-height: min\(60vh, 430px\)/, "19 themes don't fit a laptop window");
+  assert.match(menu, /overflow-y: auto/);
+  assert.match(menu, /z-index: 120/, "and it paints over the sticky toolbar below it");
 });
