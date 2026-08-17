@@ -300,3 +300,17 @@ test("the block-format picker shows tag names, with the full name on each option
     assert.ok(body.includes('title="Heading 1"'), "…but survive as the tooltip in " + file);
   }
 });
+
+test("readers and comment mode sit with visibility, not on the formatting toolbar", async () => {
+  const { body } = await page("/write");
+  const head = body.slice(body.indexOf('class="doc-head-meta"'), body.indexOf('id="docHeadRight"'));
+  assert.ok(head.includes('id="visWrap"') && head.includes('id="shareBtn"') && head.includes('id="commentToggle"'),
+    "all three state controls are in the document head");
+  assert.ok(head.indexOf('id="visWrap"') < head.indexOf('id="shareBtn"'), "visibility first, then who can read it");
+  const toolbar = body.slice(body.indexOf('class="toolbar-right"'), body.indexOf('id="restoreBar"'));
+  assert.ok(!toolbar.includes('id="shareBtn"') && !toolbar.includes('id="commentToggle"'), "and no longer on the toolbar");
+  assert.ok(toolbar.includes('id="modeRich"') && toolbar.includes('id="modeHtml"'), "which keeps rich/HTML only");
+  const css = await page("/css/base.css");
+  assert.match(css.body, /\.head-chip \{[^}]*border-radius: 999px/, "they wear the same chip shape as the visibility one");
+  assert.match(css.body, /\.head-chip\.on \{/, "comment mode still shows that it's on");
+});

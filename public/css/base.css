@@ -5304,6 +5304,35 @@ body.doc-page .topbar {
 	position: relative;
 	display: inline-flex;
 }
+/* Head chips: the controls that say who else is in this document (readers)
+   and how you're working in it (comment mode). Same shape as the visibility
+   chip beside them, so the three read as one row of state. */
+.head-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	flex: 0 0 auto;
+	min-width: 0;
+	padding: 2px 9px;
+	border: 1px solid var(--line);
+	border-radius: 999px;
+	background: var(--panel-2);
+	color: var(--ink);
+	font: inherit;
+	font-size: 0.76rem;
+	line-height: 1.5;
+	white-space: nowrap;
+	cursor: pointer;
+}
+.head-chip:hover {
+	border-color: var(--accent-2);
+}
+.head-chip.on {
+	background: var(--chip);
+	border-color: var(--accent);
+	color: var(--ink);
+}
+
 .vis-chip {
 	display: inline-flex;
 	align-items: center;

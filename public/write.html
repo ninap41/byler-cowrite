@@ -39,6 +39,21 @@
 								     three-option menu. Visibility sits with the document's
 								     identity; the 👥 modal stays about WHO, not what. -->
 								<span class="vis-wrap" id="visWrap"></span>
+								<!-- Who else is in this document, and how you're working in it:
+								     both belong beside the visibility chip, not on the
+								     formatting toolbar. -->
+								<button class="head-chip" id="shareBtn" type="button" data-tip="Beta readers">👥 Readers</button>
+								<button
+									class="head-chip"
+									id="commentToggle"
+									type="button"
+									aria-pressed="false"
+									aria-label="Comment mode"
+									title="Comment mode — leave notes on the words instead of editing them"
+									data-tip="Comment mode — leave notes on the words instead of editing them"
+								>
+									💬 Comment
+								</button>
 								<!-- beta readers currently viewing; hover shows the name -->
 								<span class="presence-row" id="presenceRow"></span>
 							</div>
@@ -136,26 +151,15 @@
 						</div>
 
 						<div class="toolbar-right">
-							<button class="ghost icon-btn" id="shareBtn" type="button" data-tip="Beta readers">👥</button>
 							<!-- Segmented control: the highlighted segment IS the current
-							     mode. Comment mode is a third mode, not a stray button. -->
+							     mode. Comment mode used to be a third segment here; it now
+							     sits with the other "who's in this document" controls. -->
 							<div class="mode-switch" id="modeSwitch" role="group" aria-label="Editor mode">
 								<button class="mode-btn on" id="modeRich" type="button" aria-pressed="true" title="Write with the toolbar">
 									Rich text
 								</button>
 								<button class="mode-btn" id="modeHtml" type="button" aria-pressed="false" title="Edit the raw HTML">
 									HTML
-								</button>
-								<button
-									class="mode-btn"
-									id="commentToggle"
-									type="button"
-									aria-pressed="false"
-									aria-label="Comment mode"
-									title="Comment mode — leave notes on the words instead of editing them"
-									data-tip="Comment mode — leave notes on the words instead of editing them"
-								>
-									💬
 								</button>
 							</div>
 						</div>
