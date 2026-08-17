@@ -81,6 +81,71 @@ export function absorbFontTags(root, px) {
 	return made
 }
 
+// Blocks whose own type IS a size statement. An explicit fs-* span inside one
+// of them wins on nearest-ancestor, so a paragraph carrying a 12px span turns
+// into a Heading 1 that renders at 12px — the format appears not to work.
+const SIZED_BLOCKS = ["h1", "h2", "h3", "p", "blockquote", "li"]
+
+// Drop the explicit sizes inside every block the range touches. Called when a
+// block format is applied: choosing Heading 2 is choosing a size, so the
+// per-word overrides in that block have been superseded.
+export function clearSizesInBlocks(root, range) {
+	if (!root || !range) return 0
+	let cleared = 0
+	for (const block of root.querySelectorAll(SIZED_BLOCKS.join(","))) {
+		let touches = false
+		try {
+			touches = range.intersectsNode(block)
+		} catch {
+			touches = false
+		}
+		if (!touches) continue
+		block.querySelectorAll("span[class]").forEach((sp) => {
+			if (!isSizeEl(sp)) return
+			sp.replaceWith(...sp.childNodes)
+			cleared++
+		})
+		if (cleared) block.normalize()
+	}
+	return cleared
+}
+
+// Is everything the range touches inside a heading? A heading owns its own
+// size (the css makes it win), so the size box has nothing to say there — and
+// a control that silently does nothing is worse than one that's plainly off.
+export function headingOnly(root, range) {
+	if (!root || !range) return false
+	const walker = root.ownerDocument.createTreeWalker(root, 4 /* SHOW_TEXT */)
+	let sawText = false
+	for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+		if (!n.nodeValue.trim()) continue
+		let touches = false
+		try {
+			touches = range.intersectsNode(n)
+		} catch {
+			touches = false
+		}
+		if (!touches) continue
+		sawText = true
+		let el = n.parentElement
+		let inHeading = false
+		while (el && el !== root) {
+			if (/^h[123]$/i.test(el.nodeName)) { inHeading = true; break }
+			el = el.parentElement
+		}
+		if (!inHeading) return false
+	}
+	if (sawText) return true
+	// a caret in an empty heading counts too
+	const node = range.startContainer
+	let el = node?.nodeType === 1 ? node : node?.parentElement
+	while (el && el !== root) {
+		if (/^h[123]$/i.test(el.nodeName)) return true
+		el = el.parentElement
+	}
+	return false
+}
+
 // Every size present in a range: a caret reports the one size it sits in; a
 // selection spanning 18px and 36px reports both, which is how the size box
 // knows to say "Multi" instead of lying with a number.

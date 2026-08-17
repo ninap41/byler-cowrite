@@ -5,7 +5,7 @@
 // wiring live here, and both pages mount it. Everything it can produce is
 // inside sanitizeRich's allowlist — no links, no images: a story line is
 // shaped text and never carries a url.
-import { absorbFontTags, sizesInRange, nearestSize, parseSize, DEFAULT_SIZE } from "./font-size.js"
+import { absorbFontTags, sizesInRange, nearestSize, parseSize, clearSizesInBlocks, headingOnly, DEFAULT_SIZE } from "./font-size.js"
 import { FONT_SIZES } from "./editor.js"
 import { createHistory } from "./history.js"
 
@@ -109,7 +109,17 @@ export function mountRichToolbar(editor, toolbar, { onEdit = () => {}, idPrefix 
 		edited()
 		sync()
 	})
-	$("blockFormat")?.addEventListener("change", (e) => exec("formatBlock", "<" + e.target.value + ">"))
+	// Choosing a block format is choosing a size, so the per-word size spans in
+	// those blocks go with it — otherwise the new Heading renders at whatever
+	// the old span said, and the control looks broken.
+	$("blockFormat")?.addEventListener("change", (e) => {
+		editor.focus()
+		document.execCommand("formatBlock", false, "<" + e.target.value + ">")
+		const sel = window.getSelection()
+		if (sel?.rangeCount) clearSizesInBlocks(editor, sel.getRangeAt(0))
+		edited()
+		sync()
+	})
 	$("listSelect")?.addEventListener("change", (e) => {
 		const v = e.target.value
 		editor.focus()
@@ -193,8 +203,17 @@ export function mountRichToolbar(editor, toolbar, { onEdit = () => {}, idPrefix 
 	function sync() {
 		const sizes = sizesNow()
 		const box = $("fsInput")
+		// A heading owns its own size, so the box turns off rather than showing a
+		// number that would do nothing.
+		const sel0 = window.getSelection()
+		const inHeading = sel0?.rangeCount ? headingOnly(editor, sel0.getRangeAt(0)) : false
+		for (const id of ["fsInput", "fsUp", "fsDown"]) {
+			const el = $(id)
+			if (el) el.disabled = inHeading
+		}
 		if (box) {
-			if (sizes.length > 1) box.value = "Multi"
+			if (inHeading) box.value = "—"
+			else if (sizes.length > 1) box.value = "Multi"
 			else if (sizes.length === 1) box.value = sizes[0]
 		}
 		try {

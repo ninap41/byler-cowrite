@@ -5369,6 +5369,19 @@ body.doc-page .topbar {
 .doc-editor .fs-36, .doc-read .fs-36, .story .fs-36, .editor .fs-36, .live .fs-36 { font-size: 36px; }
 .doc-editor .fs-48, .doc-read .fs-48, .story .fs-48, .editor .fs-48, .live .fs-48 { font-size: 48px; }
 
+/* A heading's size is the heading's to decide. An fs-* span inside one wins on
+   nearest-ancestor, so a pasted or leftover 12px span could render an H1 at
+   12px — the same span the toolbar strips when you APPLY a heading. This is
+   the standing rule for anything that arrives another way (a paste, an older
+   document, a story line written before the toolbar had sizes). */
+.doc-editor :is(h1, h2, h3) [class*="fs-"],
+.doc-read :is(h1, h2, h3) [class*="fs-"],
+.story :is(h1, h2, h3) [class*="fs-"],
+.editor :is(h1, h2, h3) [class*="fs-"],
+.live :is(h1, h2, h3) [class*="fs-"] {
+	font-size: inherit;
+}
+
 /* ---------- Paper colour (this writer's preference only) ---------- */
 /* data-paper is set from doc-prefs.js on the editing surfaces. Like line
    spacing it is a VIEW preference: it never enters the html, so a beta

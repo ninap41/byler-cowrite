@@ -188,3 +188,22 @@ test("the editor drops an underline the moment its comment stops existing", asyn
   assert.ok(body.includes("renderComments() {\n\t\t\t\tpruneLocalAnchors()"), "…on every comments update, and after an undo");
   assert.ok(body.includes("pendingCids"), "a just-sent comment's anchor is exempt until the server echoes it");
 });
+
+test("choosing a block format clears the sizes it supersedes, on both editors", async () => {
+  const write = await page("/write");
+  assert.ok(write.body.includes("clearSizesInBlocks($(\"docEditor\")"), "the solo editor");
+  const toolbar = await page("/js/components/rich-toolbar.js");
+  assert.ok(toolbar.body.includes("clearSizesInBlocks(editor"), "and the shared toolbar the game mounts");
+});
+
+test("a heading's size is the heading's — spans inside can't shrink it", async () => {
+  const css = await page("/css/base.css");
+  assert.match(css.body, /:is\(h1, h2, h3\) \[class\*="fs-"\][\s\S]{0,400}font-size: inherit/,
+    "an fs span inside a heading renders at the heading's size");
+  for (const surface of [".doc-editor", ".story", ".live"])
+    assert.ok(css.body.includes(`${surface} :is(h1, h2, h3) [class*="fs-"]`), surface + " is covered");
+
+  const write = await page("/write");
+  assert.ok(write.body.includes("headingOnly"), "and the size box turns off in a heading rather than lying");
+  assert.ok(write.body.includes("The heading style sets this text's size"), "with a tooltip that says why");
+});

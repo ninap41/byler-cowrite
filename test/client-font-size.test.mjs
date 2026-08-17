@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { installDom, mount } from "./dom.mjs";
 
 installDom();
-const { absorbFontTags, pruneRedundantSizes, sizesInRange, sizeOf, nearestSize, parseSize, DEFAULT_SIZE } = await import(
+const { absorbFontTags, pruneRedundantSizes, sizesInRange, sizeOf, nearestSize, parseSize, clearSizesInBlocks, headingOnly, DEFAULT_SIZE } = await import(
   "../public/js/components/font-size.js"
 );
 const { FONT_SIZES } = await import("../public/js/components/editor.js");
@@ -135,4 +135,85 @@ test("a mistyped size never collapses to the smallest rung by accident", () => {
   // and the real path: digits pulled out, then snapped to the ladder
   assert.equal(nearestSize(parseSize("23px")), 24);
   assert.equal(nearestSize(parseSize("7 pt")), 6);
+});
+
+// ---- block format vs explicit sizes ----
+// A heading IS a size statement. An fs-* span inside one wins on
+// nearest-ancestor, so converting a 12px paragraph to Heading 1 produced a
+// heading that still rendered at 12px — the control looked broken.
+
+test("applying a block format drops the explicit sizes inside those blocks", () => {
+  const root = mount('<h1><span class="fs-12">was a small paragraph</span></h1>');
+  const range = document.createRange();
+  range.selectNodeContents(root.querySelector("h1"));
+  assert.equal(clearSizesInBlocks(root, range), 1);
+  assert.equal(root.innerHTML, "<h1>was a small paragraph</h1>", "the heading is free to be heading-sized");
+});
+
+test("other formatting inside the block is untouched", () => {
+  const root = mount('<h2><b>bold</b> <span class="fs-36"><i>big italic</i></span></h2>');
+  const range = document.createRange();
+  range.selectNodeContents(root.querySelector("h2"));
+  clearSizesInBlocks(root, range);
+  assert.equal(root.innerHTML, "<h2><b>bold</b> <i>big italic</i></h2>");
+});
+
+test("blocks the selection doesn't touch keep their sizes", () => {
+  const root = mount('<h1><span class="fs-12">changed</span></h1><p><span class="fs-24">left alone</span></p>');
+  const range = document.createRange();
+  range.selectNodeContents(root.querySelector("h1"));
+  clearSizesInBlocks(root, range);
+  assert.equal(root.querySelector("h1").innerHTML, "changed");
+  assert.equal(root.querySelector("p").innerHTML, '<span class="fs-24">left alone</span>', "a paragraph elsewhere is none of its business");
+});
+
+test("a selection spanning several blocks clears all of them", () => {
+  const root = mount('<h3><span class="fs-12">one</span></h3><h3><span class="fs-48">two</span></h3>');
+  const range = document.createRange();
+  range.setStart(root.querySelector("h3"), 0);
+  range.setEnd(root.querySelectorAll("h3")[1], 1);
+  clearSizesInBlocks(root, range);
+  assert.equal(root.querySelectorAll("span[class^=fs-]").length, 0);
+});
+
+test("nothing to clear is not an error, and a missing range is a no-op", () => {
+  const root = mount("<p>plain</p>");
+  const range = document.createRange();
+  range.selectNodeContents(root);
+  assert.equal(clearSizesInBlocks(root, range), 0);
+  assert.equal(clearSizesInBlocks(root, null), 0);
+  assert.equal(clearSizesInBlocks(null, range), 0);
+});
+
+test("headingOnly spots a selection that lives entirely in headings", () => {
+  const root = mount("<h1>a title</h1><p>a paragraph</p>");
+  const inH = document.createRange();
+  inH.selectNodeContents(root.querySelector("h1"));
+  assert.equal(headingOnly(root, inH), true, "the size box has nothing to say here");
+
+  const inP = document.createRange();
+  inP.selectNodeContents(root.querySelector("p"));
+  assert.equal(headingOnly(root, inP), false);
+
+  const both = document.createRange();
+  both.setStart(root.querySelector("h1"), 0);
+  both.setEnd(root.querySelector("p"), 1);
+  assert.equal(headingOnly(root, both), false, "one word of body text and the box works again");
+});
+
+test("headingOnly handles a caret in an empty heading, and no range at all", () => {
+  const root = mount("<h2></h2>");
+  const caret = document.createRange();
+  caret.setStart(root.querySelector("h2"), 0);
+  caret.collapse(true);
+  assert.equal(headingOnly(root, caret), true);
+  assert.equal(headingOnly(root, null), false);
+  assert.equal(headingOnly(null, caret), false);
+});
+
+test("nested formatting inside a heading is still a heading", () => {
+  const root = mount("<h3>plain <b>bold <i>and italic</i></b></h3>");
+  const r = document.createRange();
+  r.selectNodeContents(root.querySelector("i"));
+  assert.equal(headingOnly(root, r), true);
 });

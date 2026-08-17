@@ -215,7 +215,7 @@
 			import { mountChrome, setUserChip } from "/js/chrome.js"
 			import { requireAuth } from "/js/auth-guard.js"
 			import { cleanHtml, asterisksToTags, FONT_SIZES, newCid } from "/js/components/editor.js"
-			import { absorbFontTags, sizesInRange, nearestSize, parseSize, DEFAULT_SIZE } from "/js/components/font-size.js"
+			import { absorbFontTags, sizesInRange, nearestSize, parseSize, clearSizesInBlocks, headingOnly, DEFAULT_SIZE } from "/js/components/font-size.js"
 			import { loadPrefs, savePrefs, stepLine, DEFAULT_LINE, PAPERS } from "/js/doc-prefs.js"
 			import { mountSlashPalette } from "/js/components/slash-palette.js"
 			import { loadDraft, saveDraft, clearDraft, draftIsNewer } from "/js/doc-store.js"
@@ -599,9 +599,16 @@
 				document.execCommand(b.dataset.cmd, false, null)
 				onEdit({ immediate: true })
 			})
+			// Choosing a block format is choosing a size: a heading carrying an
+			// old fs-* span renders at the SPAN's size (nearest ancestor wins), so
+			// the format would appear to do nothing. The spans in the blocks the
+			// selection touches go with the change.
 			$("blockFormat").addEventListener("change", () => {
 				document.execCommand("formatBlock", false, "<" + $("blockFormat").value + ">")
+				const sel = window.getSelection()
+				if (sel?.rangeCount) clearSizesInBlocks($("docEditor"), sel.getRangeAt(0))
 				$("docEditor").focus()
+				syncFontBox()
 				onEdit({ immediate: true })
 			})
 			// Lists and alignment are each one dropdown: the options are mutually
@@ -710,7 +717,16 @@
 			}
 			const syncFontBox = () => {
 				const sizes = sizesInSelection()
-				if (sizes.length > 1) $("fsInput").value = "Multi"
+				// In a heading the size box is off, not lying: the heading owns its
+				// size, so a number there would do nothing.
+				const sel0 = window.getSelection()
+				const inHeading = sel0?.rangeCount ? headingOnly($("docEditor"), sel0.getRangeAt(0)) : false
+				for (const id of ["fsInput", "fsUp", "fsDown"]) $(id).disabled = inHeading
+				$("fontStepper").dataset.tip = inHeading
+					? "The heading style sets this text's size"
+					: "Font size of the selected text"
+				if (inHeading) $("fsInput").value = "—"
+				else if (sizes.length > 1) $("fsInput").value = "Multi"
 				else if (sizes.length === 1) $("fsInput").value = sizes[0]
 				try {
 					$("listSelect").value = document.queryCommandState("insertUnorderedList")
