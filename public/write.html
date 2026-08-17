@@ -166,7 +166,7 @@
 
 					<aside class="doc-side" id="docSide">
 						<div class="card doc-side-card">
-							<h3 class="dash-h">💬 Comments</h3>
+							<h3 class="dash-h" style="margin-top: 0">💬 Comments</h3>
 							<p class="subtle" id="commentHelp">Turn on comment mode to leave notes on your own words.</p>
 							<!-- The composer is pinned: a note you are in the middle of
 							     writing must never scroll out of the pane. Only the list
@@ -317,6 +317,10 @@
 				renderDoc()
 				updateWords()
 				setDirty(false)
+				// A document whose anchors had to be repaired on the way in is
+				// genuinely different from what's stored, so it reads as unsaved
+				// rather than quietly writing itself back.
+				if (repairedOnLoad) setDirty(true)
 
 				const draft = loadDraft(docId)
 				if (canEdit && draftIsNewer(draft, doc)) $("restoreBar").classList.remove("hidden")
@@ -337,6 +341,30 @@
 			// rather than by politeness. The server re-checks all of this.
 			const canEditDoc = () => !!doc?.mine
 			const anchorsInDoc = () => [...$("docEditor").querySelectorAll("span.cmt[data-cid]")]
+
+			// A comment anchor is an INLINE marker. If it ever wraps a block —
+			// <span class="cmt"><p>…</p></span> — the browser gives it zero-height
+			// line boxes and draws the underline on nothing, so the commented words
+			// look uncommented. Selections that cross a paragraph boundary are the
+			// way in, so they're clamped to the block they start in.
+			let repairedOnLoad = false
+			const BLOCKS_SEL = "p,h1,h2,h3,blockquote,li"
+			const blockOf = (node) => {
+				let el = node?.nodeType === 1 ? node : node?.parentElement
+				while (el && el !== $("docEditor")) {
+					if (el.matches?.(BLOCKS_SEL)) return el
+					el = el.parentElement
+				}
+				return null
+			}
+			function clampToBlock(range) {
+				if (!range) return range
+				const block = blockOf(range.startContainer)
+				if (!block || block.contains(range.endContainer)) return range
+				const r = range.cloneRange()
+				r.setEnd(block, block.childNodes.length)
+				return r
+			}
 
 			function setCommentMode(on) {
 				commentMode = canEditDoc() ? !!on : true // readers can never leave it
@@ -433,6 +461,28 @@
 			function pruneLocalAnchors() {
 				const live = new Set(comments.filter((c) => !c.resolved && c.cid).map((c) => c.cid))
 				let changed = false
+				// Repair anchors that wrap a block (written before the clamp above,
+				// or pasted in). Only the author may: a reader's copy of the html
+				// has to stay byte-identical to the stored one or their next
+				// comment is refused.
+				if (canEditDoc()) {
+					for (const a of anchorsInDoc()) {
+						const block = a.querySelector(BLOCKS_SEL)
+						if (!block) continue
+						const cid = a.dataset.cid
+						a.replaceWith(...a.childNodes)
+						const span = document.createElement("span")
+						span.className = "cmt"
+						span.dataset.cid = cid
+						while (block.firstChild) span.appendChild(block.firstChild)
+						block.appendChild(span)
+						changed = true
+					}
+					if (changed) {
+						repairedOnLoad = true // a real edit: it has to be saved
+						if (doc) setDirty(true)
+					}
+				}
 				for (const a of anchorsInDoc()) {
 					const cid = a.dataset.cid
 					if (live.has(cid) || pendingCids.has(cid)) continue
@@ -474,9 +524,53 @@
 			// Opened by selecting text in comment mode. It holds the note AND the
 			// suggestion box: typing a different wording there is how an edit
 			// becomes a proposal the author can accept.
+			// Motion. GSAP when it's there and the reader hasn't asked for less;
+			// otherwise the class/attribute change alone still does the job.
+			const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+			const anim = () => (window.gsap && !reduceMotion ? window.gsap : null)
+			// Fold an element open or shut: height and opacity together, so nothing
+			// jumps. The END STATE is applied by finish(), which the tween calls —
+			// and a timer calls too, because requestAnimationFrame is frozen in a
+			// background tab and a half-open box that never resolves is worse than
+			// no animation at all. finish() is idempotent, so both callers are safe.
+			function foldTo(el, show, { onDone } = {}) {
+				const g = anim()
+				const finish = () => {
+					clearTimeout(el._foldTimer)
+					el.classList.toggle("hidden", !show)
+					g?.set(el, { clearProps: "height,opacity,marginTop" })
+					onDone?.()
+				}
+				if (!g) return finish()
+				g.killTweensOf(el)
+				clearTimeout(el._foldTimer)
+				const from = show ? 0 : el.getBoundingClientRect().height
+				if (show) el.classList.remove("hidden")
+				const to = show ? el.scrollHeight : 0
+				g.fromTo(el, { height: from, opacity: show ? 0 : 1 },
+					{ height: to, opacity: show ? 1 : 0, duration: 0.2, ease: show ? "power2.out" : "power2.in", onComplete: finish })
+				el._foldTimer = setTimeout(finish, 420)
+			}
+
+			// The help line explains how to START a comment, so it has no business
+			// being on screen once one is being written. Same fold as the boxes —
+			// height and opacity together, so nothing jumps.
+			const showCommentHelp = (show) => {
+				const el = $("commentHelp")
+				if (el.textContent.trim()) foldTo(el, show)
+			}
+
 			function clearComposer() {
 				pendingRange = null
-				$("commentComposer").replaceChildren()
+				const box = $("commentComposer").firstElementChild
+				const g = anim()
+				const drop = () => $("commentComposer").replaceChildren()
+				if (box && g) {
+					g.killTweensOf(box)
+					g.to(box, { opacity: 0, y: -6, duration: 0.15, ease: "power2.in", onComplete: drop })
+					setTimeout(drop, 380) // rAF can be frozen; the box still has to go
+				} else drop()
+				showCommentHelp(true)
 			}
 
 			function renderComposer() {
@@ -492,15 +586,22 @@
 					`<div class="row"><button class="ghost" id="newCancel" type="button">Cancel</button>` +
 					`<button class="primary" id="newSend" type="button">Comment</button></div>`
 				$("commentComposer").replaceChildren(box)
+				showCommentHelp(false)
+				anim()?.from(box, { opacity: 0, y: -8, duration: 0.22, ease: "power2.out" })
+				// Suggesting swaps the note out for the rewrite: the proposed words
+				// ARE the message, and two boxes at once crowd a narrow rail.
 				$("suggestOn").addEventListener("change", () => {
 					const on = $("suggestOn").checked
-					$("newSuggestion").classList.toggle("hidden", !on)
+					foldTo($("newComment"), !on)
+					foldTo($("newSuggestion"), on, {
+						onDone: () => {
+							if (!on) return
+							$("newSuggestion").focus()
+							$("newSuggestion").select()
+						},
+					})
 					// prefilled with the current words, so editing them IS the suggestion
-					if (on) {
-						$("newSuggestion").value = quote
-						$("newSuggestion").focus()
-						$("newSuggestion").select()
-					}
+					if (on) $("newSuggestion").value = quote
 					$("newSend").textContent = on ? "Suggest" : "Comment"
 				})
 				$("newSend").addEventListener("click", sendComment)
@@ -516,7 +617,9 @@
 				const r = sel.getRangeAt(0)
 				if (!$("docEditor").contains(r.commonAncestorContainer)) return
 				if (!r.toString().trim()) return
-				pendingRange = r.cloneRange()
+				// clamped here too, so the quote in the composer is exactly the text
+				// the underline will end up on
+				pendingRange = clampToBlock(r.cloneRange())
 				clearTimeout(composerTimer)
 				// debounced: a drag fires selectionchange on every mousemove
 				composerTimer = setTimeout(() => {

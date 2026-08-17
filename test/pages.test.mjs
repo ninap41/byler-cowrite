@@ -227,3 +227,20 @@ test("the composer is pinned above the comments, which scroll under it", async (
   assert.match(css.body, /#commentPane \{[^}]*overflow-y: auto/, "only the list does");
   assert.match(css.body, /\.doc-side-card \{[^}]*flex-direction: column/, "which is what makes the two behave differently");
 });
+
+test("a comment anchor can never wrap a block", async () => {
+  const { body } = await page("/write");
+  assert.ok(body.includes("function clampToBlock"), "a cross-paragraph selection is clamped before it becomes an anchor");
+  assert.ok(body.includes("pendingRange = clampToBlock("), "clamped where the quote is taken, so the preview matches");
+  assert.ok(body.includes("a.querySelector(BLOCKS_SEL)"), "and existing block-wrapping anchors are repaired");
+  assert.ok(body.includes("if (canEditDoc()) {"), "by the author only — a reader's html must stay byte-identical");
+});
+
+test("the composer's motion is GSAP, with a reduced-motion path", async () => {
+  const { body } = await page("/write");
+  assert.ok(body.includes("prefers-reduced-motion"), "motion is optional");
+  assert.ok(body.includes("function foldTo"), "the boxes fold rather than blink");
+  assert.ok(body.includes("showCommentHelp(false)"), "the how-to-start line goes while a comment is being written");
+  assert.ok(body.includes("showCommentHelp(true)"), "and comes back when the composer closes");
+  assert.ok(body.includes('foldTo($("newComment"), !on)'), "checking Suggest swaps the note out for the rewrite");
+});
