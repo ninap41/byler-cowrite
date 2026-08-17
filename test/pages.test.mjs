@@ -134,3 +134,21 @@ test("the game page carries the shared toolbar, not its own", async () => {
   assert.ok(body.includes("rich-toolbar.js"));
   assert.ok(!body.includes('data-cmd="justifyLeft"'), "the old hand-rolled buttons are gone");
 });
+
+test("visibility is a chip in the editor head, not a checkbox in the share modal", async () => {
+  const { body } = await page("/write");
+  assert.ok(!body.includes('id="visToggle"'), "the ambiguous checkbox is gone");
+  assert.ok(body.includes('id="visWrap"'), "the chip sits with the title and word count");
+  assert.ok(body.indexOf('id="visWrap"') < body.indexOf('id="shareModal"'), "in the head, ahead of the modal");
+  assert.ok(body.includes("visChipHtml") && body.includes("visMenuHtml"));
+  assert.ok(body.includes('id="sharePrivateNote"'), "the modal warns when readers can't actually see it");
+});
+
+test("the unsaved-draft bar is sticky under the toolbar", async () => {
+  const { body } = await page("/write");
+  const shell = body.slice(body.indexOf('id="docShell"'), body.indexOf('id="docErr"'));
+  assert.ok(shell.includes('id="restoreBar"'), "it lives inside the sticky shell");
+  assert.ok(shell.indexOf('id="docToolbar"') < shell.indexOf('id="restoreBar"'), "below the toolbar");
+  const css = await page("/css/base.css");
+  assert.match(css.body, /\.restore-bar \{[^}]*border-top/, "it reads as attached to the toolbar above it");
+});

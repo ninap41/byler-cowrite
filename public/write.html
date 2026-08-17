@@ -31,6 +31,11 @@
 								<span id="saveState" class="doc-save-state">Saved</span>
 								<span class="doc-dot">·</span>
 								<span id="wordCount" class="subtle">0 words</span>
+								<span class="doc-dot">·</span>
+								<!-- Who can see this: a chip naming the CURRENT state, with a
+								     three-option menu. Visibility sits with the document's
+								     identity; the 👥 modal stays about WHO, not what. -->
+								<span class="vis-wrap" id="visWrap"></span>
 								<!-- beta readers currently viewing; hover shows the name -->
 								<span class="presence-row" id="presenceRow"></span>
 							</div>
@@ -136,13 +141,15 @@
 						</div>
 
 					</div>
-				</div>
-
-				<!-- offer to restore a newer local draft rather than clobbering either copy -->
-				<div class="restore-bar hidden" id="restoreBar">
-					<span>You have unsaved changes from a previous session.</span>
-					<button class="ghost" id="restoreYes" type="button">Restore them</button>
-					<button class="linky" id="restoreNo" type="button">Discard</button>
+					<!-- Offer to restore a newer local draft rather than clobbering
+					     either copy. It lives inside the sticky shell, under the
+					     toolbar, so scrolling a long chapter never hides the fact
+					     that there's unsaved work waiting. -->
+					<div class="restore-bar hidden" id="restoreBar">
+						<span>You have unsaved changes from a previous session.</span>
+						<button class="ghost" id="restoreYes" type="button">Restore them</button>
+						<button class="linky" id="restoreNo" type="button">Discard</button>
+					</div>
 				</div>
 
 				<div class="err" id="docErr"></div>
@@ -175,10 +182,10 @@
 				<p class="subtle" style="text-align: left">
 					Only friends can be beta readers. They can read and comment — never edit.
 				</p>
-				<label class="share-toggle">
-					<input type="checkbox" id="visToggle" />
-					<span>Share with my beta readers</span>
-				</label>
+				<p class="subtle hidden" id="sharePrivateNote" style="text-align: left">
+					This write is <b>🔒 Private</b> — the readers below can't open it yet.
+					<button class="linky" id="shareGoReaders" type="button">Share it with them</button>
+				</p>
 				<div id="readerChips" style="margin: 10px 0"></div>
 				<div class="row">
 					<input id="readerName" placeholder="Friend's username" />
@@ -213,7 +220,7 @@
 			import { mountSlashPalette } from "/js/components/slash-palette.js"
 			import { loadDraft, saveDraft, clearDraft, draftIsNewer } from "/js/doc-store.js"
 			import { createHistory } from "/js/components/history.js"
-			import { presenceHtml, commentThreadHtml, readerChipsHtml, wordsLabel, formatSource, unformatSource, plainBlockHtml } from "/js/write-view.js"
+			import { presenceHtml, commentThreadHtml, readerChipsHtml, wordsLabel, formatSource, unformatSource, plainBlockHtml, visChipHtml, visMenuHtml, visOf } from "/js/write-view.js"
 			import { esc } from "/js/util.js"
 
 			mountChrome({ page: "write" })
@@ -246,6 +253,15 @@
 			let composerTimer = null
 			let socket = null
 
+			// A short-lived line in the head, for things the user just did (a
+			// visibility change) that deserve confirming without a modal.
+			let statusTimer = null
+			function setStatus(text) {
+				$("saveState").textContent = text
+				clearTimeout(statusTimer)
+				statusTimer = setTimeout(() => setDirty(dirty), 2600)
+			}
+
 			// ---- dirty tracking ----
 			const setDirty = (v) => {
 				dirty = v
@@ -276,6 +292,7 @@
 				}
 				$("docTitle").value = doc.title
 				$("docEditor").innerHTML = doc.html || ""
+				renderVis() // the chip is part of the document's identity, so it loads with it
 				comments = doc.comments || []
 				const canEdit = doc.mine
 				$("docTitle").disabled = !canEdit
@@ -962,11 +979,64 @@
 				if (await save()) location.href = leaveTo
 			})
 
+			// ---- who can see this ----
+			// The chip states the current level; the menu offers all three with
+			// their consequences. Narrowing is instant (the safe direction);
+			// widening to public is the only step that asks first.
+			function renderVis() {
+				if (!doc.mine) return ($("visWrap").innerHTML = `<span class="doc-pill on">📖 Reading</span>`)
+				$("visWrap").innerHTML = visChipHtml(doc.visibility) + visMenuHtml(doc.visibility)
+				$("visChip").addEventListener("click", (e) => {
+					e.stopPropagation()
+					const open = $("visMenu").classList.toggle("open")
+					$("visChip").setAttribute("aria-expanded", String(open))
+				})
+				$("visMenu").addEventListener("click", async (e) => {
+					const opt = e.target.closest(".vis-opt")
+					if (!opt) return
+					closeVis()
+					await setVisibility(opt.dataset.vis)
+				})
+			}
+			const closeVis = () => {
+				$("visMenu")?.classList.remove("open")
+				$("visChip")?.setAttribute("aria-expanded", "false")
+			}
+			document.addEventListener("click", closeVis)
+			document.addEventListener("keydown", (e) => e.key === "Escape" && closeVis())
+
+			async function setVisibility(next) {
+				if (!next || next === doc.visibility) return
+				// Only widening to public needs a word first — and it states the
+				// consequence rather than asking "are you sure".
+				if (next === "public") {
+					const readers = doc.readerRows?.length || 0
+					const line =
+						`Anyone with an account will be able to read “${doc.title || "Untitled"}”.` +
+						(readers ? `\n\nYour ${readers} beta reader${readers === 1 ? "" : "s"} keep${readers === 1 ? "s" : ""} their comments — nobody else can comment.` : "") +
+						`\n\nYou can make it private again at any time.`
+					if (!window.confirm(line)) return
+				}
+				try {
+					doc = (await api(`/api/docs/${encodeURIComponent(docId)}/visibility`, { visibility: next })).doc
+					renderVis()
+					renderShare()
+					// going private boots whoever was reading — say so rather than
+					// letting a beta reader vanish mid-sentence unexplained
+					if (next === "private" && (doc.readerRows?.length || 0))
+						setStatus(`Now private — your beta readers were closed out.`)
+					else setStatus(`Now ${visOf(next).label.toLowerCase()}.`)
+				} catch (e) {
+					$("docErr").textContent = e.message
+				}
+			}
+
 			// ---- beta readers ----
 			function renderShare() {
-				$("visToggle").checked = doc.visibility === "readers"
+				$("sharePrivateNote").classList.toggle("hidden", doc.visibility !== "private")
 				$("readerChips").innerHTML = readerChipsHtml(doc.readerRows, doc.mine)
 			}
+			$("shareGoReaders").addEventListener("click", () => setVisibility("readers"))
 			$("shareBtn").addEventListener("click", () => {
 				renderShare()
 				$("shareErr").textContent = ""
@@ -975,14 +1045,6 @@
 			$("shareClose").addEventListener("click", () => $("shareModal").classList.add("hidden"))
 			$("shareModal").addEventListener("click", (e) => {
 				if (e.target === $("shareModal")) $("shareModal").classList.add("hidden")
-			})
-			$("visToggle").addEventListener("change", async () => {
-				try {
-					doc = (await api(`/api/docs/${encodeURIComponent(docId)}/visibility`, { visibility: $("visToggle").checked ? "readers" : "private" })).doc
-					renderShare()
-				} catch (e) {
-					$("shareErr").textContent = e.message
-				}
 			})
 			$("readerAdd").addEventListener("click", async () => {
 				$("shareErr").textContent = ""

@@ -4787,16 +4787,17 @@ body.doc-page .topbar {
 .doc-dot {
 	color: var(--muted);
 }
+/* Inside the sticky shell, under the toolbar: unsaved work from a previous
+   session must not scroll away unnoticed. */
 .restore-bar {
 	display: flex;
 	align-items: center;
 	gap: 10px;
 	flex-wrap: wrap;
-	padding: 10px 14px;
-	margin-bottom: 12px;
-	border-radius: 12px;
+	padding: 8px 12px;
+	border-top: 1px solid var(--line);
+	border-radius: 0 0 17px 17px;
 	background: var(--chip);
-	border: 1px solid var(--accent-2);
 	font-size: 0.9rem;
 }
 .restore-bar button {
@@ -5190,6 +5191,85 @@ body.doc-page .topbar {
 .toolbar.hidden,
 .doc-main.hidden {
 	display: none;
+}
+
+/* ---------- Who can see this: the visibility chip + menu ---------- */
+/* The chip names the CURRENT state, so it reads rather than asks. Three
+   levels can't be a switch, so the menu is a radio list with each option's
+   consequence spelled out under its label. */
+.vis-wrap {
+	position: relative;
+	display: inline-flex;
+}
+.vis-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	padding: 2px 8px;
+	border: 1px solid var(--line);
+	border-radius: 999px;
+	background: var(--panel-2);
+	color: var(--ink);
+	font: inherit;
+	font-size: 0.76rem;
+	cursor: pointer;
+	white-space: nowrap;
+}
+.vis-chip:hover {
+	border-color: var(--accent-2);
+}
+.vis-chip[data-vis="public"] {
+	border-color: var(--accent);
+}
+.vis-chip .chev {
+	color: var(--muted);
+	font-size: 0.7rem;
+}
+.vis-menu {
+	display: none;
+	position: absolute;
+	top: calc(100% + 6px);
+	left: 0;
+	z-index: 70;
+	min-width: 260px;
+	padding: 6px;
+	border: 1px solid var(--panel-brd);
+	border-radius: 14px;
+	background: var(--panel);
+	box-shadow: var(--panel-glow);
+	backdrop-filter: blur(14px);
+	-webkit-backdrop-filter: blur(14px);
+}
+.vis-menu.open {
+	display: block;
+}
+.vis-opt {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	width: 100%;
+	padding: 8px 10px;
+	border: 0;
+	border-radius: 10px;
+	background: none;
+	color: var(--ink);
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+}
+.vis-opt:hover {
+	background: var(--panel-2);
+}
+.vis-opt.on {
+	background: var(--chip);
+}
+.vis-opt-label {
+	font-size: 0.86rem;
+	font-weight: 600;
+}
+.vis-opt-blurb {
+	font-size: 0.74rem;
+	color: var(--muted);
 }
 
 /* ---------- Rich text / HTML mode switch ---------- */

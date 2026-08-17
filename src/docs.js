@@ -52,7 +52,7 @@ export function createDoc(ownerId, title) {
   const now = Date.now();
   return writeDoc({
     id: randomUUID(), ownerId, title: cleanTitle(title), html: "",
-    betaReaders: [], visibility: "private", comments: [],
+    betaReaders: [], visibility: "private", comments: [], // private until the author says otherwise
     wordCount: 0, createdAt: now, updatedAt: now,
   });
 }
@@ -77,13 +77,24 @@ export const allDocs = () => {
   }
 };
 
-// The author writes; approved beta readers may read + comment once the doc is
-// shared. A doc left "private" is invisible to everyone but its owner, even to
-// readers who were invited earlier.
+// Three visibility levels, narrowest first. "private" is invisible to everyone
+// but the author, even to beta readers invited earlier; "readers" opens it to
+// the invited friends, who may comment; "public" lets any signed-in account
+// READ it — commenting stays with the invited readers, so going public never
+// hands anyone a pen.
+export const VISIBILITIES = ["private", "readers", "public"];
+export const cleanVisibility = (v) => (VISIBILITIES.includes(v) ? v : "private");
 export const isReader = (doc, userId) => (doc.betaReaders || []).includes(userId);
 export const canEdit = (doc, userId) => !!doc && doc.ownerId === userId;
 export const canView = (doc, userId) =>
-  !!doc && (doc.ownerId === userId || (doc.visibility === "readers" && isReader(doc, userId)));
+  !!doc &&
+  (doc.ownerId === userId ||
+    doc.visibility === "public" ||
+    (doc.visibility === "readers" && isReader(doc, userId)));
+// Commenting is the beta-reader right, NOT a side effect of being able to see
+// it: a public reader reads and nothing more.
+export const canComment = (doc, userId) =>
+  !!doc && (doc.ownerId === userId || (doc.visibility !== "private" && isReader(doc, userId)));
 
 // Listing shape — never carries the document body.
 export const docSummary = (doc, nameOf) => ({
@@ -98,9 +109,19 @@ export const docSummary = (doc, nameOf) => ({
   comments: (doc.comments || []).length,
 });
 
+// The /writes shelf is YOUR writes plus the ones you were invited to beta
+// read — a public document belongs to the all-stories page, not to everyone's
+// personal shelf.
+const onMyShelf = (doc, userId) =>
+  doc.ownerId === userId || (doc.visibility === "readers" && isReader(doc, userId));
+
+// Public writes, for the all-stories listing. "Public" means LISTED: one tier
+// fewer to explain than a link-only one.
+export const publicDocs = () => allDocs().filter((d) => d.visibility === "public");
+
 export const listDocsFor = (userId, nameOf) =>
   allDocs()
-    .filter((d) => canView(d, userId))
+    .filter((d) => onMyShelf(d, userId))
     .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
     .map((d) => ({ ...docSummary(d, nameOf), mine: d.ownerId === userId }));
 

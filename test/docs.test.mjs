@@ -393,3 +393,179 @@ test("a missing cid is a no-op on every anchor helper", () => {
   assert.equal(stripAnchor(html, CID), html);
   assert.equal(applySuggestion(html, CID, "x"), html);
 });
+
+// ---- public writes ----
+// Three levels, narrowest first: private -> readers -> public. "Public" means
+// any signed-in account may READ; commenting stays a beta-reader right.
+
+const setVis = (id, visibility, token = alice.token) =>
+  ctx.api(`/api/docs/${id}/visibility`, { visibility }, token);
+
+test("a public write is readable by anyone signed in; private and shared are not", async () => {
+  const doc = await newDoc(alice.token, "Open Draft");
+  await ctx.api("/api/docs/" + doc.id, { html: "<p>hello</p>" }, alice.token, "PUT");
+
+  assert.equal((await ctx.api("/api/docs/" + doc.id, null, carol.token, "GET")).status, 403, "private by default");
+  await setVis(doc.id, "readers");
+  assert.equal((await ctx.api("/api/docs/" + doc.id, null, carol.token, "GET")).status, 403, "a stranger is not a reader");
+
+  const pub = await setVis(doc.id, "public");
+  assert.equal(pub.data.doc.visibility, "public");
+  const seen = await ctx.api("/api/docs/" + doc.id, null, carol.token, "GET");
+  assert.equal(seen.status, 200, "now anyone signed in can read it");
+  assert.ok(seen.data.doc.html.includes("hello"));
+  assert.equal(seen.data.doc.mine, false);
+
+  await setVis(doc.id, "private");
+  assert.equal((await ctx.api("/api/docs/" + doc.id, null, carol.token, "GET")).status, 403, "narrowing takes it back");
+});
+
+test("going public hands out a reader, not a pen", async () => {
+  const doc = await newDoc(alice.token, "No Pens");
+  await ctx.api("/api/docs/" + doc.id, { html: BODY }, alice.token, "PUT");
+  await setVis(doc.id, "public");
+
+  // carol can read it, but she is not a beta reader
+  const C = await ctx.conn();
+  C.emit("doc-open", { auth: carol.token, id: doc.id });
+  await ctx.wait(150);
+  C.emit("doc-comment", { auth: carol.token, id: doc.id, cid: "cccccccccccc", html: anchored("cccccccccccc"), text: "hi" });
+  await ctx.wait(200);
+  const after = await docOf(doc.id);
+  assert.equal(after.comments.length, 0, "a public reader cannot comment");
+  assert.ok(!after.html.includes("data-cid"), "and cannot touch the html");
+
+  // editing is refused too, as it always was
+  const edit = await ctx.api("/api/docs/" + doc.id, { html: "<p>mine now</p>" }, carol.token, "PUT");
+  assert.equal(edit.status, 403);
+});
+
+test("an unknown visibility narrows to private rather than guessing", async () => {
+  const doc = await newDoc(alice.token, "Junk Vis");
+  await setVis(doc.id, "public");
+  const r = await setVis(doc.id, "everyone-on-earth");
+  assert.equal(r.data.doc.visibility, "private", "the safe direction wins");
+});
+
+test("only the author sets visibility", async () => {
+  const doc = await newDoc(alice.token, "Not Yours");
+  await setVis(doc.id, "public");
+  const r = await setVis(doc.id, "private", carol.token);
+  assert.equal(r.status, 403);
+  assert.equal((await docOf(doc.id)).visibility, "public", "a reader can't lock the author out either");
+});
+
+test("public writes are listed on the all-stories shelf, never on someone else's writes page", async () => {
+  const doc = await newDoc(alice.token, "Shelf Test");
+  await ctx.api("/api/docs/" + doc.id, { html: "<p>words words</p>" }, alice.token, "PUT");
+  await setVis(doc.id, "public");
+
+  const shelf = await ctx.api("/api/docs", null, carol.token, "GET");
+  assert.ok(!shelf.data.docs.some((d) => d.id === doc.id), "a public write is not on everyone's personal shelf");
+
+  const stories = await ctx.api("/api/stories?limit=50", null, carol.token, "GET");
+  const row = stories.data.stories.find((x) => x.id === doc.id);
+  assert.ok(row, "it IS in the library");
+  assert.equal(row.kind, "write", "and says which kind it is");
+  assert.equal(row.name, "Shelf Test");
+  assert.equal(row.hostName, "aliceauthor");
+  assert.equal(row.wordCount, 2);
+
+  await setVis(doc.id, "readers");
+  const gone = await ctx.api("/api/stories?limit=50", null, carol.token, "GET");
+  assert.ok(!gone.data.stories.some((x) => x.id === doc.id), "reader-shared writes are not public");
+});
+
+test("the author's own shelf and the invited reader's still work as before", async () => {
+  const doc = await newDoc(alice.token, "Shelf Rules");
+  await ctx.api("/api/docs/" + doc.id + "/readers", { username: "bobbeta" }, alice.token);
+  await setVis(doc.id, "readers");
+  const mine = await ctx.api("/api/docs", null, alice.token, "GET");
+  assert.ok(mine.data.docs.some((d) => d.id === doc.id && d.mine));
+  const theirs = await ctx.api("/api/docs", null, bob.token, "GET");
+  assert.ok(theirs.data.docs.some((d) => d.id === doc.id && !d.mine), "invited readers keep their shelf copy");
+});
+
+// ---- the reported bug: comments that never land ----
+// Reported from the author's own seat: "comments and suggestions aren't
+// saving or showing". The client sends the html AS IT SITS IN THE EDITOR, so
+// the moment the author has typed anything since their last save, stripping
+// the new anchor no longer equals the stored html — and the whole comment was
+// dropped in silence. The author is allowed to edit their own document, so
+// for them the html that arrives IS the document.
+
+test("the author can comment while they have unsaved edits", async () => {
+  const doc = await newDoc(alice.token, "Unsaved");
+  await ctx.api("/api/docs/" + doc.id, { html: BODY }, alice.token, "PUT");
+  const A = await ctx.conn();
+  A.emit("doc-open", { auth: alice.token, id: doc.id });
+  await ctx.wait(150);
+
+  // what the editor holds: a fresh sentence AND the new anchor
+  const edited = "<p>first</p><p>a new line typed just now</p><p>his " +
+    '<span class="cmt" data-cid="dddddddddddd">striped shirt</span> hangs</p>';
+  A.emit("doc-comment", { auth: alice.token, id: doc.id, cid: "dddddddddddd", html: edited, text: "does this land?" });
+  await ctx.wait(250);
+
+  const after = await docOf(doc.id);
+  assert.equal(after.comments.length, 1, "the comment saved");
+  assert.equal(after.comments[0].text, "does this land?");
+  assert.equal(after.comments[0].quote, "striped shirt", "and knows the words it is about");
+  assert.ok(after.html.includes('data-cid="dddddddddddd"'), "the underline is in the html");
+  assert.ok(after.html.includes("typed just now"), "the author's own edit came with it");
+});
+
+test("the author's comment comes straight back to them, so the pane can render it", async () => {
+  const doc = await newDoc(alice.token, "Echo");
+  await ctx.api("/api/docs/" + doc.id, { html: BODY }, alice.token, "PUT");
+  const A = await ctx.conn();
+  const seen = [];
+  A.on("doc-comments", (p) => seen.push(p));
+  A.emit("doc-open", { auth: alice.token, id: doc.id });
+  await ctx.wait(150);
+  A.emit("doc-comment", { auth: alice.token, id: doc.id, cid: "eeeeeeeeeeee", html: anchored("eeeeeeeeeeee"), text: "mine" });
+  await ctx.wait(250);
+
+  const last = seen[seen.length - 1];
+  assert.ok(last, "the commenter is told about their own comment");
+  assert.equal(last.id, doc.id);
+  assert.equal(last.comments.length, 1);
+  assert.equal(last.comments[0].text, "mine");
+  assert.equal(last.comments[0].author, "aliceauthor");
+});
+
+test("an author's suggestion on their own words saves like any other comment", async () => {
+  const doc = await newDoc(alice.token, "Self Suggest");
+  await ctx.api("/api/docs/" + doc.id, { html: BODY }, alice.token, "PUT");
+  const A = await ctx.conn();
+  A.emit("doc-open", { auth: alice.token, id: doc.id });
+  await ctx.wait(150);
+  A.emit("doc-comment", {
+    auth: alice.token, id: doc.id, cid: "ffffffffffff", html: anchored("ffffffffffff"),
+    text: "", suggestion: "faded denim jacket",
+  });
+  await ctx.wait(250);
+  const after = await docOf(doc.id);
+  assert.equal(after.comments.length, 1);
+  assert.equal(after.comments[0].suggestion, "faded denim jacket");
+});
+
+test("a beta reader's comment lands while the author has unsaved work — without taking the author's edit", async () => {
+  const doc = await commentableDoc();
+  const B = await ctx.conn();
+  B.emit("doc-open", { auth: bob.token, id: doc.id });
+  await ctx.wait(150);
+  // bob's copy is the SAVED html plus his anchor — that must still be the only
+  // thing a non-author is ever allowed to change
+  B.emit("doc-comment", { auth: bob.token, id: doc.id, cid: "abababababab", html: anchored("abababababab"), text: "lovely" });
+  await ctx.wait(250);
+  let after = await docOf(doc.id);
+  assert.equal(after.comments.length, 1, "a legitimate reader comment still lands");
+
+  const sneaky = anchored("bcbcbcbcbcbc").replace("first", "BOB WAS HERE");
+  B.emit("doc-comment", { auth: bob.token, id: doc.id, cid: "bcbcbcbcbcbc", html: sneaky, text: "and an edit" });
+  await ctx.wait(250);
+  after = await docOf(doc.id);
+  assert.equal(after.comments.length, 1, "the smuggled edit is still refused whole");
+  assert.ok(!after.html.includes("BOB WAS HERE"));
+});

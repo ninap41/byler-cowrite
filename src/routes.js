@@ -8,7 +8,7 @@ import { WORD_TIERS, USAGE, USAGE_OPEN, badgeName, awardWordBadges } from "../li
 import { cleanColor, stripTags, httpUrl, sanitizeAbout, sanitizeDoc } from "./sanitize.js";
 import {
   readDoc, writeDoc, createDoc, deleteDoc, listDocsFor, docSummary,
-  canView, canEdit, isReader, cleanTitle,
+  canView, canEdit, canComment, isReader, cleanTitle, cleanVisibility, publicDocs,
 } from "./docs.js";
 import { referenceBundle } from "./reference.js";
 import { hashPassword, checkPassword } from "./passwords.js";
@@ -599,8 +599,22 @@ export function registerRoutes(app, game) {
         if (q && !`${d.name || ""} ${d.prompt || ""}`.toLowerCase().includes(q)) continue;
         if (tag && !(d.tags || []).some((t) => String(t).toLowerCase() === tag)) continue;
         if (forUser && !inGame(d, forUser) && d.hostUserId !== forUser.id) continue;
-        all.push({ ...gameSummary(d), wordCount: storyWordCount(d) });
+        all.push({ ...gameSummary(d), kind: "game", wordCount: storyWordCount(d) });
       } catch { /* skip unreadable snapshot */ }
+    }
+    // Public solo writes are listed here too — "public" means listed, not
+    // merely reachable by link. Private and reader-shared ones never appear.
+    for (const d of publicDocs()) {
+      if (q && !String(d.title || "").toLowerCase().includes(q)) continue;
+      if (tag) continue; // documents carry no tags
+      if (forUser && d.ownerId !== forUser.id) continue;
+      all.push({
+        kind: "write", id: d.id, name: d.title, prompt: "", code: "",
+        lines: 0, phase: "write", tags: [], cover: "", writers: [],
+        hostName: nameOf(d.ownerId),
+        createdAt: d.createdAt, savedAt: d.updatedAt,
+        wordCount: d.wordCount || 0,
+      });
     }
     all.sort((a, b) => dir * (sort === "words" ? a.wordCount - b.wordCount : a.createdAt - b.createdAt));
     const total = all.length;
@@ -739,8 +753,11 @@ export function registerRoutes(app, game) {
     const doc = readDoc(req.params.id);
     if (!doc) return res.status(404).json({ error: "No such document." });
     if (!canEdit(doc, u.id)) return res.status(403).json({ error: "Only the author can share this." });
-    doc.visibility = req.body?.visibility === "readers" ? "readers" : "private";
+    // Anything unrecognised narrows to private — the safe direction.
+    doc.visibility = cleanVisibility(req.body?.visibility);
     writeDoc(doc);
+    // Narrowing to private boots whoever is reading it right now, so the UI
+    // has to say so — nobody should vanish mid-sentence without being told.
     if (doc.visibility === "private") closeDocReaders(doc.id, doc.ownerId);
     res.json({ doc: docPayload(doc, u) });
   });

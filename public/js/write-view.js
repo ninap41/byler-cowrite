@@ -57,9 +57,42 @@ export function plainBlockHtml(html) {
 	return out.map((t) => `<p>${esc(t).replace(/\n/g, "<br>")}</p>`).join("")
 }
 
+// ---- visibility ----
+// One vocabulary for all three levels, used by the editor's chip, its menu and
+// the listing pills — so the thing you set and the thing you see are visibly
+// the same object. Mirrors VISIBILITIES in src/docs.js.
+export const VIS = {
+	private: { icon: "🔒", label: "Private", blurb: "Only you." },
+	readers: { icon: "👥", label: "Beta readers", blurb: "The friends you invite can read and comment." },
+	public: { icon: "🌍", label: "Public", blurb: "Anyone with an account can read it. Only your beta readers can comment." },
+}
+export const visOf = (v) => VIS[v] || VIS.private
+export const visLabel = (v) => `${visOf(v).icon} ${visOf(v).label}`
+
+// The chip in the editor head: it names the CURRENT state rather than an
+// action, so you can read where you stand without decoding a checkbox.
+export const visChipHtml = (v) =>
+	`<button type="button" class="vis-chip" id="visChip" aria-haspopup="menu" aria-expanded="false" ` +
+	`data-tip="Who can see this write" data-vis="${esc(v)}">${visLabel(v)}<span class="chev">&#9662;</span></button>`
+
+// Three options, each with its consequence spelled out. A radio list, not a
+// switch: three states can't be a toggle.
+export const visMenuHtml = (current) =>
+	`<div class="vis-menu" id="visMenu" role="menu">` +
+	Object.entries(VIS)
+		.map(
+			([key, v]) =>
+				`<button type="button" class="vis-opt${key === current ? " on" : ""}" role="menuitemradio" ` +
+				`aria-checked="${key === current}" data-vis="${key}">` +
+				`<span class="vis-opt-label">${v.icon} ${esc(v.label)}</span>` +
+				`<span class="vis-opt-blurb">${esc(v.blurb)}</span></button>`,
+		)
+		.join("") +
+	`</div>`
+
 // ---- /writes listing ----
 export function docCardHtml(d) {
-	const shared = d.visibility === "readers"
+	const v = d.visibility || "private"
 	return (
 		`<article class="doc-card" data-id="${esc(d.id)}">` +
 		`<h3 class="doc-card-title">${esc(d.title)}</h3>` +
@@ -68,8 +101,8 @@ export function docCardHtml(d) {
 		`</p>` +
 		`<p class="doc-card-tags">` +
 		(d.mine
-			? `<span class="doc-pill ${shared ? "on" : ""}">${shared ? "👥 Shared" : "🔒 Private"}</span>`
-			: `<span class="doc-pill on">📖 Beta reading</span>`) +
+			? `<span class="doc-pill ${v === "private" ? "" : "on"}">${visLabel(v)}</span>`
+			: `<span class="doc-pill on">${v === "public" ? "📖 Public read" : "📖 Beta reading"}</span>`) +
 		(d.comments ? `<span class="doc-pill">💬 ${d.comments}</span>` : "") +
 		(d.readers?.length ? `<span class="doc-pill">✍ ${esc(d.readers.join(", "))}</span>` : "") +
 		`</p>` +

@@ -21,6 +21,21 @@ export function gameCardHtml(g) {
 	)
 }
 
+// A public solo write on the all-stories shelf. Same card shape as a game so
+// the two read as one library, but it says plainly which it is and who wrote
+// it — a write has no code, no host and no turns.
+export function writeCardHtml(d) {
+	return (
+		`<span class="gc-cover" style="${coverStyle({ code: d.id || "", cover: "" })}"></span>` +
+		`<p class="gc-prompt" style="font-weight:700">${esc(d.name) || "<em>Untitled</em>"}</p>` +
+		`<span class="gc-meta">` +
+		`<span>✒️ solo write</span>` +
+		(d.hostName ? `<span>by ${esc(d.hostName)}</span>` : "") +
+		`<span>${fmtWhen(d.savedAt)}</span>` +
+		`</span>`
+	)
+}
+
 export const archiveMetaText = (g) => `${g.code} · ${g.phase === "over" ? "finished" : "paused"} · ${fmtWhen(g.savedAt)}`
 
 // Story html in snapshots already passed through sanitizeRich() server-side.

@@ -10,7 +10,7 @@ import { badgeName, badgeDesc, usageMatches, awardWordBadges } from "../lib/achi
 import { PALETTE, cleanColor, sanitizeRich, stripTags, httpUrl, sanitizeDoc, CID_RE } from "./sanitize.js";
 import { store, saveStore, userByToken, makeMsg, isAdmin } from "./store.js";
 import { mirror, mirrorDelete } from "./persist.js";
-import { readDoc, writeDoc, canView, canEdit, anchorCids, anchorText, stripAnchor, applySuggestion } from "./docs.js";
+import { readDoc, writeDoc, canView, canEdit, canComment, anchorCids, anchorText, stripAnchor, applySuggestion } from "./docs.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -1074,7 +1074,10 @@ export function createGame(io) {
     socket.on("doc-comment", ({ auth, id, cid, html, text, suggestion }) => {
       const u = userByToken(auth);
       const doc = readDoc(id);
-      if (!u || !doc || !canView(doc, u.id)) return;
+      // canComment, not canView: a public document is READ by anyone signed in,
+      // but only the author and the invited beta readers may write on it — and
+      // this is the one path where a non-owner's action touches the html.
+      if (!u || !doc || !canComment(doc, u.id)) return;
       const body = stripTags(String(text ?? "")).slice(0, 1000);
       const suggest = suggestion == null ? null : stripTags(String(suggestion)).slice(0, 1000);
       if (!body && suggest == null) return; // a comment says something or proposes something
@@ -1082,7 +1085,12 @@ export function createGame(io) {
       if (anchorCids(doc.html).includes(cid)) return; // never reuse an anchor id
       const next = sanitizeDoc(String(html ?? ""));
       if (!anchorCids(next).includes(cid)) return; // the anchor has to be there
-      if (stripAnchor(next, cid) !== doc.html) return; // …and be the ONLY change
+      // …and, for a BETA READER, be the only change: strip it back out and what
+      // remains must equal the stored html byte for byte. The author is a
+      // different case — they may edit their own document, and the editor sends
+      // its live html, so insisting on a byte match would silently drop every
+      // comment they made after typing anything (which is exactly what it did).
+      if (!canEdit(doc, u.id) && stripAnchor(next, cid) !== doc.html) return;
       doc.html = next;
       doc.comments = [...(doc.comments || []), {
         id: randomUUID(), cid,

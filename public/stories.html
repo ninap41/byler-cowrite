@@ -63,7 +63,7 @@
 			import { api } from "/js/api.js"
 			import { mountChrome, setUserChip } from "/js/chrome.js"
 			import { requireAuth } from "/js/auth-guard.js"
-			import { gameCardHtml, archiveMetaText, archiveStoryHtml, fmtWhen } from "/js/archive-view.js"
+			import { gameCardHtml, writeCardHtml, archiveMetaText, archiveStoryHtml, fmtWhen } from "/js/archive-view.js"
 			import { esc } from "/js/util.js"
 
 			mountChrome({ page: "stories" })
@@ -117,12 +117,15 @@
 					// read-only listing: a big readable date, the card, word count, tags
 					b.innerHTML =
 						`<span class="gc-date">📅 ${new Date(g.createdAt || g.savedAt).toLocaleDateString([], { dateStyle: "long" })}</span>` +
-						gameCardHtml(g) +
+						(g.kind === "write" ? writeCardHtml(g) : gameCardHtml(g)) +
 						`<span class="gc-meta" style="margin-top:6px">` +
 						`<span>${g.wordCount.toLocaleString()} word${g.wordCount === 1 ? "" : "s"}</span>` +
 						(g.tags?.length ? `<span>🏷 ${esc(g.tags.join(", "))}</span>` : "") +
 						`</span>`
-					b.onclick = () => openStory(g.code)
+					// a public write opens in the editor (read-only for anyone but
+					// its author); a game opens in the read-only story view here
+					b.onclick = () =>
+						g.kind === "write" ? (location.href = "/write?id=" + encodeURIComponent(g.id)) : openStory(g.code)
 					list.appendChild(b)
 					if (window.gsap && hasGsap)
 						gsap.from(b, { opacity: 0, y: 18, duration: 0.45, delay: 0.04 * list.children.length, ease: "power2.out" })

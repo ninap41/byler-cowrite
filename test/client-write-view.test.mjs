@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { installDom } from "./dom.mjs";
 
 installDom(); // plainBlockHtml parses through a detached div
-import { docCardHtml, docListHtml, presenceHtml, commentHtml, commentThreadHtml, readerChipsHtml, wordsLabel, formatSource, unformatSource, plainBlockHtml } from "../public/js/write-view.js";
+import { docCardHtml, docListHtml, presenceHtml, commentHtml, commentThreadHtml, readerChipsHtml, wordsLabel, formatSource, unformatSource, plainBlockHtml, visChipHtml, visMenuHtml, visLabel, VIS } from "../public/js/write-view.js";
 
 const DOC = {
   id: "abc", title: "The Upside Down", wordCount: 120, visibility: "private",
@@ -28,7 +28,7 @@ test("a doc card shows state and links to the editor", () => {
   assert.ok(html.includes("doc-del"), "the author gets a delete button");
 
   const shared = docCardHtml({ ...DOC, visibility: "readers", readers: ["bob"], comments: 3 });
-  assert.ok(shared.includes("👥 Shared"));
+  assert.ok(shared.includes("👥 Beta readers"), "the pill uses the same words as the editor's chip");
   assert.ok(shared.includes("💬 3"));
   assert.ok(shared.includes("bob"));
 });
@@ -232,4 +232,36 @@ test("Resolve/Delete appear only for someone who could actually use them", () =>
   // the document's author can manage anyone's
   const owner = commentHtml({ ...CMT, author: "bobbeta" }, { isOwner: true, meName: "aliceauthor" });
   assert.ok(owner.includes("dc-resolve") && owner.includes("dc-del"));
+});
+
+// ---- visibility: one vocabulary, three levels ----
+
+test("the chip states where you stand, it does not ask", () => {
+  for (const v of ["private", "readers", "public"]) {
+    const chip = visChipHtml(v);
+    assert.ok(chip.includes(VIS[v].icon) && chip.includes(VIS[v].label), v + " names itself");
+    assert.ok(chip.includes(`data-vis="${v}"`), "the state is readable by the page too");
+  }
+  // an action label ("Share…") would leave the off state ambiguous
+  assert.ok(!visChipHtml("private").includes("Share"));
+});
+
+test("the menu is a radio list of all three, each with its consequence", () => {
+  const html = visMenuHtml("readers");
+  assert.equal((html.match(/role="menuitemradio"/g) || []).length, 3, "three levels can't be a switch");
+  assert.ok(html.includes('data-vis="private"') && html.includes('data-vis="readers"') && html.includes('data-vis="public"'));
+  assert.ok(html.includes('aria-checked="true"'), "the current one is marked");
+  assert.equal((html.match(/aria-checked="true"/g) || []).length, 1, "and only one is");
+  assert.ok(html.includes("Only you."), "private says what it means");
+  assert.ok(html.includes("Anyone with an account can read it"), "so does public");
+  assert.ok(html.includes("Only your beta readers can comment"), "public hands out a reader, not a pen");
+});
+
+test("the listing pill and the editor chip say the same words", () => {
+  for (const v of ["private", "readers", "public"]) {
+    const pill = docCardHtml({ ...DOC, visibility: v });
+    assert.ok(pill.includes(visLabel(v)), v + " reads the same in both places");
+  }
+  const notMine = docCardHtml({ ...DOC, mine: false, visibility: "public" });
+  assert.ok(notMine.includes("📖 Public read"), "someone else's public write says why you can see it");
 });
