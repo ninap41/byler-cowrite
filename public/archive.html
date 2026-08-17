@@ -23,6 +23,10 @@
 					<a class="ghost" href="/dashboard" id="archiveBack" style="text-decoration: none; padding: 10px 16px; border-radius: 12px">← Back</a>
 					<h2>Previous Games</h2>
 				</div>
+				<!-- how many covers per row: the same picker, and the same saved
+				     choice, as the all-stories shelf. Its own row, not the head —
+				     the head's right-hand corner belongs to the fixed topbar. -->
+				<div class="arch-tools"><span id="archViewWrap"></span></div>
 				<p class="hidden" id="archNotice" style="color: var(--good); text-align: left; margin: 0 0 12px"></p>
 				<div id="archiveList"></div>
 				<div id="archiveDetail" class="hidden">
@@ -70,6 +74,7 @@
 			import { mountChrome, setUserChip } from "/js/chrome.js"
 			import { requireAuth } from "/js/auth-guard.js"
 			import { gameCardHtml, archiveStoryHtml, fmtWhen } from "/js/archive-view.js"
+			import { mountViewPicker, applyGrid } from "/js/components/view-picker.js"
 			import { safeColor } from "/js/util.js"
 			import { buildExports, exportDocument } from "/js/export.js"
 			import { mountTagEditor } from "/js/components/tag-chips.js"
@@ -87,6 +92,20 @@
 				$("archiveList").classList.remove("hidden")
 				history.replaceState(null, "", "/archive")
 			}
+
+			// ---- layout ----
+			// List or N-across, shared with the all-stories shelf (same picker, same
+			// stored choice). The two group headings stay OUTSIDE the grids — a
+			// heading is not a card and must not take a column — so each group gets
+			// its own container and the grid class lands there.
+			let cardCols = 1
+			mountViewPicker(document.getElementById("archViewWrap"), (cols) => {
+				cardCols = cols
+				document.querySelector(".archive-inner").classList.toggle("wide", cols > 1)
+				$("archiveList")
+					.querySelectorAll(".arch-group")
+					.forEach((box) => applyGrid(box, cols))
+			})
 
 			function renderGameCards(games) {
 				const list = $("archiveList")
@@ -106,9 +125,13 @@
 					h.className = "arch-sub"
 					h.textContent = title
 					list.appendChild(h)
-					group.forEach((g) => appendCard(g))
+					const box = document.createElement("div")
+					box.className = "arch-group"
+					applyGrid(box, cardCols)
+					list.appendChild(box)
+					group.forEach((g) => appendCard(g, box))
 				})
-				function appendCard(g) {
+				function appendCard(g, box) {
 					const b = document.createElement("div")
 					b.className = "game-card"
 					b.style.cursor = "pointer"
@@ -123,9 +146,9 @@
 					}
 					b.appendChild(cont)
 					b.onclick = () => openGameDetail(g.code)
-					list.appendChild(b)
+					box.appendChild(b)
 					if (window.gsap && hasGsap)
-						gsap.from(b, { opacity: 0, y: 18, duration: 0.45, delay: 0.05 * list.children.length, ease: "power2.out" })
+						gsap.from(b, { opacity: 0, y: 18, duration: 0.45, delay: 0.05 * box.children.length, ease: "power2.out" })
 				}
 			}
 

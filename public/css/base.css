@@ -1000,6 +1000,19 @@ body {
 	margin-bottom: 0;
 	height: 100%;
 }
+/* The archive groups its cards under headings; the heading stays outside the
+   grid (it isn't a card and mustn't take a column), so the grid class lands on
+   a per-group container instead of the whole list. */
+.arch-group {
+	margin-bottom: 18px;
+}
+/* The archive has no search row to hang the layout picker off, so it gets a
+   thin one of its own — right-aligned, clear of the fixed topbar. */
+.arch-tools {
+	display: flex;
+	justify-content: flex-end;
+	margin: 0 0 14px;
+}
 /* Past four across there isn't room for a paragraph of prompt — the cover and
    the title do the work, and the metadata stops competing with them. */
 .st-grid .gc-date {

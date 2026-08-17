@@ -384,11 +384,19 @@ test("the theme peek and the tip jar live in one thin foot bar, not two floating
   assert.match(css.body, /\.doc-side \{[^}]*bottom: var\(--footbar-h\)/s, "and the comments sheet");
 });
 
-test("the all-stories shelf can be read as a list or as 3/4/6 across", async () => {
+test("both shelves can be read as a list or as 3/4/6 across", async () => {
   const { body } = await page("/stories");
   assert.ok(body.includes('id="stViewWrap"'), "the picker has a home in the tools row");
-  assert.ok(body.includes("cowriteStoriesView"), "the choice is a habit, so it's remembered");
-  assert.ok(body.includes("viewToggleHtml") && body.includes("cleanStoryView"), "wired to the shared builders");
+  assert.ok(body.includes("mountViewPicker"), "wired to the shared picker");
+
+  // /archive gets the same control, and shares the stored choice with it
+  const arch = await page("/archive");
+  assert.ok(arch.body.includes('id="archViewWrap"') && arch.body.includes("mountViewPicker"), "same picker on the archive");
+  assert.ok(arch.body.includes("arch-group"), "its group headings stay outside the grids");
+
+  const picker = await page("/js/components/view-picker.js");
+  assert.ok(picker.body.includes("cowriteStoriesView"), "the choice is a habit, so it's remembered");
+  assert.ok(picker.body.includes("cleanStoryView"), "and validated before it's used");
 
   const css = await page("/css/base.css");
   assert.match(css.body, /\.st-grid \{[^}]*grid-template-columns: repeat\(\s*auto-fill/s,

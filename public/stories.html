@@ -72,10 +72,8 @@
 				archiveMetaText,
 				archiveStoryHtml,
 				fmtWhen,
-				viewToggleHtml,
-				storyView,
-				cleanStoryView,
 			} from "/js/archive-view.js"
+			import { mountViewPicker, applyGrid } from "/js/components/view-picker.js"
 			import { esc } from "/js/util.js"
 
 			mountChrome({ page: "stories" })
@@ -90,31 +88,14 @@
 			let pages = 1
 
 			// ---- layout ----
-			// List or N-across, remembered per browser. The column count is a CSS
-			// variable on the list; the grid itself falls back to fewer columns
-			// when they'd be narrower than a card can usefully be, so choosing 6
-			// on a laptop degrades instead of producing slivers. Multi-column
-			// views also widen the page — 4 covers can't share an 860px column.
-			const VIEW_KEY = "cowriteStoriesView"
-			let view = cleanStoryView(localStorage.getItem(VIEW_KEY))
-			function applyView() {
-				const v = storyView(view)
-				const list = $("storiesList")
-				list.classList.toggle("st-grid", v.cols > 1)
-				list.style.setProperty("--st-cols", String(v.cols))
-				document.querySelector(".archive-inner").classList.toggle("wide", v.cols > 1)
-				$("stViewWrap").innerHTML = viewToggleHtml(view)
-			}
-			$("stViewWrap").addEventListener("click", (e) => {
-				const btn = e.target.closest(".st-view")
-				if (!btn) return
-				view = cleanStoryView(btn.dataset.view)
-				try {
-					localStorage.setItem(VIEW_KEY, view)
-				} catch (err) {}
-				applyView()
+			// List or N-across, remembered per browser and shared with /archive:
+			// how you like a shelf laid out is a habit, not a per-library setting.
+			// Multi-column views also widen the page — four covers can't share an
+			// 860px reading column.
+			mountViewPicker($("stViewWrap"), (cols) => {
+				applyGrid($("storiesList"), cols)
+				document.querySelector(".archive-inner").classList.toggle("wide", cols > 1)
 			})
-			applyView()
 
 			// ?user=NAME narrows the library to one writer's games (linked from
 			// their profile) — the heading and a back-to-profile link follow suit
