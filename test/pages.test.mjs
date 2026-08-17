@@ -290,3 +290,13 @@ test("the theme menu scrolls and sits above the write page's toolbar", async () 
   assert.match(menu, /overflow-y: auto/);
   assert.match(menu, /z-index: 120/, "and it paints over the sticky toolbar below it");
 });
+
+test("the block-format picker shows tag names, with the full name on each option", async () => {
+  for (const file of ["/write", "/js/components/rich-toolbar.js"]) {
+    const { body } = await page(file);
+    for (const [value, label] of [["p", ">p<"], ["h1", ">h1<"], ["h2", ">h2<"], ["h3", ">h3<"]])
+      assert.ok(body.includes(`value="${value}" title=`) && body.includes(label), `${value} reads as its tag in ${file}`);
+    assert.ok(!body.includes(">Heading 1<"), "the long labels are gone from " + file);
+    assert.ok(body.includes('title="Heading 1"'), "…but survive as the tooltip in " + file);
+  }
+});

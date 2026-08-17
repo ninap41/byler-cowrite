@@ -28,10 +28,13 @@ export function toolbarHtml(idPrefix = "") {
 		`<button class="ghost" id="${id("redoBtn")}" title="Redo (Ctrl/⌘+Shift+Z)" type="button">↻</button>` +
 		`</span>` +
 		`<span class="tb-group">` +
-		`<select id="${id("blockFormat")}" class="ghost" title="Paragraph style">` +
-		`<option value="p">Paragraph</option><option value="h1">Heading 1</option>` +
-		`<option value="h2">Heading 2</option><option value="h3">Heading 3</option>` +
-		`<option value="blockquote">Quote</option></select>` +
+		// the tag names are the vocabulary; the full name rides the tooltip
+		`<select id="${id("blockFormat")}" class="ghost align-select" title="Paragraph style">` +
+		`<option value="p" title="Paragraph">p</option>` +
+		`<option value="h1" title="Heading 1">h1</option>` +
+		`<option value="h2" title="Heading 2">h2</option>` +
+		`<option value="h3" title="Heading 3">h3</option>` +
+		`<option value="blockquote" title="Quote">\u201c\u201d</option></select>` +
 		`</span>` +
 		`<span class="tb-group">` +
 		`<button class="ghost tb-b" data-cmd="bold" title="Bold" type="button">B</button>` +
