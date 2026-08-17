@@ -42,13 +42,15 @@
 		<script src="/socket.io/socket.io.js"></script>
 		<script type="module">
 			import { getToken } from "/js/api.js"
-			import { mountChrome } from "/js/chrome.js"
+			import { mountChrome, setUserChip } from "/js/chrome.js"
 			import { requireAuth } from "/js/auth-guard.js"
 			import { mountInbox } from "/js/inbox-panel.js"
 
 			mountChrome({ page: "inbox" })
 			const $ = (id) => document.getElementById(id)
-			await requireAuth("/")
+			// setUserChip is what puts the account in the topbar and reveals the
+			// admin entrance in the nav — without it this page looks signed out.
+			setUserChip(await requireAuth("/"))
 
 			// The whole inbox — no limit, same rows and actions as the dashboard's
 			// preview, because they're the same module.
