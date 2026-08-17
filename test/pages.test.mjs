@@ -152,3 +152,32 @@ test("the unsaved-draft bar is sticky under the toolbar", async () => {
   const css = await page("/css/base.css");
   assert.match(css.body, /\.restore-bar \{[^}]*border-top/, "it reads as attached to the toolbar above it");
 });
+
+test("the comments pane sticks under the head, and jumps land clear of it", async () => {
+  const css = await page("/css/base.css");
+  assert.match(css.body, /\.doc-side-card \{[^}]*position: sticky/, "the pane is pinned");
+  assert.match(css.body, /\.doc-side-card \{[^}]*top: calc\(var\(--doc-sticky/, "…directly under the sticky head");
+  assert.match(css.body, /\.doc-side-card \{[^}]*overflow-y: auto/, "a long list scrolls inside itself");
+  assert.match(css.body, /span\.cmt \{[^}]*scroll-margin-top: calc\(var\(--doc-sticky/, "a jumped-to word clears the toolbar");
+  assert.match(css.body, /@media \(max-width: 860px\) \{\s*\.doc-side-card \{[^}]*position: static/, "one column: not pinned");
+
+  const { body } = await page("/write");
+  assert.ok(body.includes("--doc-sticky"), "the head's real height is published, not guessed");
+  assert.ok(body.includes("ResizeObserver"), "and re-measured when the head grows");
+});
+
+test("clicking a comment scrolls the document to the words it is about", async () => {
+  const { body } = await page("/write");
+  assert.ok(body.includes('focusComment(li.dataset.cid || null, { scroll: "anchor" })'), "card click jumps to the text");
+  assert.ok(body.includes('focusComment(a.dataset.cid, { scroll: "card" })'), "and an underline jumps to the card");
+  assert.ok(body.includes("scrollToAnchor(anchor)"), "to a computed position, clear of the sticky head");
+  assert.ok(body.includes('window.scrollTo({ top, behavior: "smooth" })'), "smoothly…");
+  assert.ok(body.includes("Math.abs(window.scrollY - top) > 4"), "…but it lands even where smooth scrolling is off");
+  assert.ok(body.includes("void anchor.offsetWidth"), "the arrival flash replays on a second click");
+});
+
+test("the comments column is tall enough for its sticky child to travel", async () => {
+  const css = await page("/css/base.css");
+  assert.match(css.body, /\.doc-side \{[^}]*align-self: stretch/,
+    "grid items don't stretch under align-items:start, and a short column can't stick");
+});

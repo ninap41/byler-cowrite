@@ -4912,13 +4912,48 @@ body.doc-page .topbar {
 }
 
 /* comments rail */
+/* The column has to be as tall as the prose beside it, or its sticky child
+   has nowhere to travel and simply scrolls away (grid items don't stretch
+   under align-items: start). */
+.doc-side {
+	align-self: stretch;
+}
+
+/* The comments pane sticks directly UNDER the sticky head — --doc-sticky is
+   the live height of the shell (title + toolbar + the unsaved-draft bar when
+   it's showing), written by write.html, so the pane never slides beneath the
+   toolbar and never has to be scrolled back to. It scrolls inside itself when
+   there are more comments than viewport. */
 .doc-side-card {
 	position: sticky;
-	top: 16px;
+	top: calc(var(--doc-sticky, 120px) + 18px);
+	max-height: calc(100vh - var(--doc-sticky, 120px) - 34px);
+	overflow-y: auto;
 	text-align: left;
+}
+/* One column: the pane sits under the prose, where sticking it would just
+   eat the screen. */
+@media (max-width: 860px) {
+	.doc-side-card {
+		position: static;
+		max-height: none;
+	}
 }
 .dc-group {
 	margin-bottom: 14px;
+}
+/* Jumping to a comment must not park its words under the sticky head. */
+.doc-editor span.cmt {
+	scroll-margin-top: calc(var(--doc-sticky, 120px) + 30px);
+	scroll-margin-bottom: 30px;
+}
+/* A jump you asked for should be visible when you arrive. */
+@keyframes cmt-ping {
+	from { background: var(--chip); box-shadow: 0 0 0 4px var(--chip); }
+	to { background: transparent; box-shadow: 0 0 0 0 transparent; }
+}
+.doc-editor span.cmt.active {
+	animation: cmt-ping 1.1s ease-out;
 }
 .dc-anchor {
 	margin: 0 0 6px;

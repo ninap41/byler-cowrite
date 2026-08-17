@@ -220,7 +220,7 @@
 			import { mountSlashPalette } from "/js/components/slash-palette.js"
 			import { loadDraft, saveDraft, clearDraft, draftIsNewer } from "/js/doc-store.js"
 			import { createHistory } from "/js/components/history.js"
-			import { presenceHtml, commentThreadHtml, readerChipsHtml, wordsLabel, formatSource, unformatSource, plainBlockHtml, visChipHtml, visMenuHtml, visOf } from "/js/write-view.js"
+			import { presenceHtml, commentThreadHtml, readerChipsHtml, wordsLabel, formatSource, unformatSource, plainBlockHtml, visChipHtml, visMenuHtml, visOf, scrollTargetFor } from "/js/write-view.js"
 			import { esc } from "/js/util.js"
 
 			mountChrome({ page: "write" })
@@ -352,6 +352,40 @@
 
 			// Highlight one comment's words and its card together, and bring
 			// whichever half you didn't click into view.
+			// The sticky head's real height, published as a CSS variable so the
+			// comments pane can sit directly under it and a jumped-to word never
+			// lands beneath it. The head grows and shrinks — the unsaved-draft bar
+			// appears, the toolbar wraps on a narrow window — so it's measured, not
+			// guessed.
+			function measureSticky() {
+				const h = $("docShell")?.getBoundingClientRect().height || 0
+				document.documentElement.style.setProperty("--doc-sticky", Math.round(h) + "px")
+			}
+			if (window.ResizeObserver) new ResizeObserver(measureSticky).observe($("docShell"))
+			window.addEventListener("resize", measureSticky)
+			measureSticky()
+
+			// Put the commented words in the middle of the usable window. We aim at
+			// a computed position rather than handing it to scrollIntoView: the
+			// sticky head is not usable space, and a smooth scroll that silently
+			// does nothing (some browsers, some settings) would read as "clicking
+			// the comment is broken" — so we check and land it outright.
+			function scrollToAnchor(anchor) {
+				const rect = anchor.getBoundingClientRect()
+				const top = scrollTargetFor({
+					rectTop: rect.top,
+					rectH: rect.height,
+					scrollY: window.scrollY,
+					viewportH: window.innerHeight,
+					headH: $("docShell")?.getBoundingClientRect().height || 0,
+					maxScroll: document.documentElement.scrollHeight - window.innerHeight,
+				})
+				window.scrollTo({ top, behavior: "smooth" })
+				setTimeout(() => {
+					if (Math.abs(window.scrollY - top) > 4) window.scrollTo(0, top)
+				}, 320)
+			}
+
 			function focusComment(cid, { scroll = "both" } = {}) {
 				activeCid = cid || null
 				anchorsInDoc().forEach((a) => a.classList.toggle("active", a.dataset.cid === cid))
@@ -361,7 +395,14 @@
 				if (!cid) return
 				const anchor = anchorsInDoc().find((a) => a.dataset.cid === cid)
 				const card = $("commentPane").querySelector(`.doc-comment[data-cid="${CSS.escape(cid)}"]`)
-				if (scroll !== "card" && anchor) anchor.scrollIntoView({ behavior: "smooth", block: "center" })
+				if (scroll !== "card" && anchor) {
+					scrollToAnchor(anchor)
+					// re-trigger the arrival flash even when the same comment is
+					// clicked twice (an animation only plays on a class it just got)
+					anchor.classList.remove("active")
+					void anchor.offsetWidth
+					anchor.classList.add("active")
+				}
 				if (scroll !== "anchor" && card) card.scrollIntoView({ behavior: "smooth", block: "nearest" })
 			}
 

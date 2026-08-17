@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { installDom } from "./dom.mjs";
 
 installDom(); // plainBlockHtml parses through a detached div
-import { docCardHtml, docListHtml, presenceHtml, commentHtml, commentThreadHtml, readerChipsHtml, wordsLabel, formatSource, unformatSource, plainBlockHtml, visChipHtml, visMenuHtml, visLabel, VIS } from "../public/js/write-view.js";
+import { docCardHtml, docListHtml, presenceHtml, commentHtml, commentThreadHtml, readerChipsHtml, wordsLabel, formatSource, unformatSource, plainBlockHtml, visChipHtml, visMenuHtml, visLabel, VIS, scrollTargetFor } from "../public/js/write-view.js";
 
 const DOC = {
   id: "abc", title: "The Upside Down", wordCount: 120, visibility: "private",
@@ -264,4 +264,29 @@ test("the listing pill and the editor chip say the same words", () => {
   }
   const notMine = docCardHtml({ ...DOC, mine: false, visibility: "public" });
   assert.ok(notMine.includes("📖 Public read"), "someone else's public write says why you can see it");
+});
+
+// ---- jumping to a comment's words ----
+
+test("scrollTargetFor centres the words in the space the sticky head leaves", () => {
+  // 800px window, a 120px head: the usable band is 680, so a 20px line wants
+  // to sit 330px below the head.
+  const at = (rectTop, extra = {}) =>
+    scrollTargetFor({ rectTop, rectH: 20, scrollY: 0, viewportH: 800, headH: 120, maxScroll: 5000, ...extra });
+  assert.equal(at(450), 0, "already in the middle — don't move");
+  assert.equal(at(1450), 1000, "further down the page scrolls down");
+  assert.equal(at(-550), 0, "above the viewport, but the page can't go past the top");
+  assert.equal(scrollTargetFor({ rectTop: 1450, rectH: 20, scrollY: 200, viewportH: 800, headH: 120, maxScroll: 5000 }), 1200,
+    "the answer is absolute, so it accounts for where the page already is");
+});
+
+test("scrollTargetFor never asks for a position the page doesn't have", () => {
+  assert.equal(scrollTargetFor({ rectTop: 9000, rectH: 20, scrollY: 0, viewportH: 800, headH: 120, maxScroll: 300 }), 300);
+  assert.equal(scrollTargetFor({ rectTop: -9000, rectH: 20, scrollY: 0, viewportH: 800, headH: 120, maxScroll: 300 }), 0);
+  assert.equal(scrollTargetFor({ rectTop: 100, rectH: 20, scrollY: 0, viewportH: 800, headH: 120, maxScroll: 0 }), 0,
+    "a document shorter than the window can't scroll at all");
+});
+
+test("with no sticky head it is plain centring", () => {
+  assert.equal(scrollTargetFor({ rectTop: 900, rectH: 100, scrollY: 0, viewportH: 500, headH: 0, maxScroll: 5000 }), 700);
 });

@@ -57,6 +57,21 @@ export function plainBlockHtml(html) {
 	return out.map((t) => `<p>${esc(t).replace(/\n/g, "<br>")}</p>`).join("")
 }
 
+// Where the page has to scroll to put a comment's words in the middle of the
+// window, clear of the sticky head. Pure arithmetic so it can be tested — the
+// element-and-window part is the caller's problem.
+//   rectTop   – the words' current offset from the top of the viewport
+//   rectH     – their height
+//   scrollY   – where the page is now
+//   viewportH – the window's height
+//   headH     – the sticky head, which is not usable space
+//   maxScroll – the furthest the page can go (doc height - viewport)
+export function scrollTargetFor({ rectTop, rectH = 0, scrollY, viewportH, headH = 0, maxScroll = Infinity }) {
+	const usable = Math.max(0, viewportH - headH)
+	const want = scrollY + rectTop - headH - Math.max(0, (usable - rectH) / 2)
+	return Math.max(0, Math.min(Math.round(want), Math.max(0, Math.round(maxScroll))))
+}
+
 // ---- visibility ----
 // One vocabulary for all three levels, used by the editor's chip, its menu and
 // the listing pills — so the thing you set and the thing you see are visibly
