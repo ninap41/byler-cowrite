@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { installDom } from "./dom.mjs";
 
 installDom();
-const { mountChrome, mountKofi, KOFI_ACCOUNT, KOFI_CONFIG } = await import("../public/js/chrome.js");
+const { mountChrome, mountKofi, KOFI_ACCOUNT, KOFI_EMBED, KOFI_PAGE } = await import("../public/js/chrome.js");
 const { THEMES, THEME_LABELS, initTheme } = await import("../public/js/theme.js");
 
 test("theme registry: all nineteen themes present with labels", () => {
@@ -78,37 +78,52 @@ test("chrome menu lists every theme and switching updates data-theme + storage",
   assert.equal(document.getElementById("themeCurLabel").textContent, "Snow Ball");
 });
 
-test("mountChrome injects shared chrome + the ko-fi widget loader", () => {
+test("mountChrome injects shared chrome + the foot bar", () => {
   document.body.innerHTML = "";
   mountChrome({ page: "dashboard" });
   assert.ok(document.querySelector(".bg-layers"), "background layers injected");
   assert.ok(document.getElementById("navDrawer"), "nav drawer injected");
   assert.ok(document.getElementById("themeSwitch"), "theme switch injected");
   assert.equal(document.querySelector('#navDrawer a[aria-current="page"]').getAttribute("href"), "/dashboard");
-  const s = document.querySelector('script[src^="https://storage.ko-fi.com/"]');
-  assert.ok(s, "ko-fi loader script appended");
-  assert.equal(s.async, true);
+  // The two bits of furniture live in one thin strip, not two floating chips.
+  assert.ok(document.getElementById("footBar"), "foot bar injected");
+  assert.ok(document.getElementById("peekBtn") && document.getElementById("kofiBtn"), "both controls sit in it");
+  assert.ok(!document.querySelector(".peek-btn"), "the old floating peek chip is gone");
+  assert.ok(!document.querySelector('script[src^="https://storage.ko-fi.com/"]'),
+    "and no third-party widget script loads itself onto the page");
 });
 
-test("ko-fi widget draws with the right account + floating-chat config once loaded", () => {
+test("theme peek relabels itself without losing the eye it lives behind", () => {
   document.body.innerHTML = "";
-  const calls = [];
-  window.kofiWidgetOverlay = { draw: (acct, cfg) => calls.push({ acct, cfg }) };
-  const s = mountKofi(document);
-  s.onload(); // simulate the CDN script arriving
-  assert.equal(calls.length, 1, "widget rendered");
-  assert.equal(calls[0].acct, "justthegatekeeper");
-  assert.equal(calls[0].acct, KOFI_ACCOUNT);
-  assert.equal(calls[0].cfg.type, "floating-chat");
-  assert.equal(calls[0].cfg["floating-chat.donateButton.text"], KOFI_CONFIG["floating-chat.donateButton.text"]);
-  assert.equal(calls[0].cfg["floating-chat.donateButton.background-color"], KOFI_CONFIG["floating-chat.donateButton.background-color"]);
-  assert.equal(calls[0].cfg["floating-chat.donateButton.text-color"], "#fff");
-  assert.deepEqual(calls[0].cfg, KOFI_CONFIG);
-  delete window.kofiWidgetOverlay;
+  mountChrome({ page: "dashboard" });
+  const btn = document.getElementById("peekBtn");
+  btn.click();
+  assert.equal(document.body.classList.contains("ui-peek"), true);
+  assert.equal(btn.getAttribute("aria-pressed"), "true");
+  assert.equal(document.getElementById("peekLabel").textContent, "Show UI");
+  btn.click();
+  assert.equal(document.body.classList.contains("ui-peek"), false);
+  assert.equal(document.getElementById("peekLabel").textContent, "View theme");
 });
 
-test("ko-fi loader survives the CDN script failing to define the overlay", () => {
-  document.body.innerHTML = "";
-  const s = mountKofi(document);
-  s.onload(); // no kofiWidgetOverlay global -> must not throw
+test("the ko-fi iframe is built only when someone actually asks to tip", () => {
+  document.body.innerHTML = '<button id="kofiBtn"></button>';
+  const { modal, frame } = mountKofi(document);
+  assert.equal(frame.getAttribute("src"), null, "nothing is fetched from ko-fi on a page view");
+  assert.ok(modal.classList.contains("hidden"));
+
+  document.getElementById("kofiBtn").click();
+  assert.equal(frame.getAttribute("src"), KOFI_EMBED, "the panel loads on the first open");
+  assert.ok(KOFI_EMBED.startsWith(KOFI_PAGE) && KOFI_EMBED.includes("embed=true"), "ko-fi's own embeddable panel");
+  assert.ok(KOFI_PAGE.endsWith(KOFI_ACCOUNT));
+  assert.ok(!modal.classList.contains("hidden"));
+
+  document.getElementById("kofiClose").click();
+  assert.ok(modal.classList.contains("hidden"), "the ✕ closes it");
+  assert.equal(frame.getAttribute("src"), KOFI_EMBED, "and it isn't refetched on the next open");
+
+  // a way out that doesn't depend on the embed rendering at all
+  const out = document.querySelector(".kofi-out");
+  assert.equal(out.getAttribute("href"), KOFI_PAGE);
+  assert.equal(out.getAttribute("rel"), "noopener noreferrer");
 });

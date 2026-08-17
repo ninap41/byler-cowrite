@@ -191,12 +191,30 @@
 						</p>
 					</div>
 
+					<!-- The comments rail is a DRAWER: it opens and closes, and its
+					     size is yours to set — drag the grip on its inner edge for
+					     width (bottom-sheet height on a phone). Both live in the
+					     editor prefs, so the page comes back the way you left it. -->
 					<aside class="doc-side" id="docSide">
-						<div class="card doc-side-card">
-							<!-- How to start a comment is a hint, not a standing
-							     announcement: it rides the heading's tooltip so it
-							     doesn't take a line of the rail forever. -->
-							<h3 id="commentsHeading" data-tip="Turn on comment mode to leave notes on your own words.">💬 Comments</h3>
+						<div class="card doc-side-card" id="docSideCard">
+							<div
+								class="doc-side-grip"
+								id="docSideGrip"
+								role="separator"
+								aria-orientation="vertical"
+								tabindex="0"
+								aria-label="Resize the comments drawer"
+								data-tip="Drag to resize · double-click to reset"
+							></div>
+							<div class="doc-side-head">
+								<!-- How to start a comment is a hint, not a standing
+								     announcement: it rides the heading's tooltip so it
+								     doesn't take a line of the rail forever. -->
+								<h3 id="commentsHeading" data-tip="Turn on comment mode to leave notes on your own words.">💬 Comments</h3>
+								<button class="ghost doc-side-close" id="commentsClose" type="button" aria-label="Close the comments drawer" data-tip="Close">
+									✕
+								</button>
+							</div>
 							<!-- The composer is pinned: a note you are in the middle of
 							     writing must never scroll out of the pane. Only the list
 							     of existing comments below it scrolls. -->
@@ -204,28 +222,53 @@
 							<div id="commentPane"></div>
 						</div>
 					</aside>
+					<!-- The way back in when the drawer is closed: a tab on the edge
+					     carrying the comment count, so a closed drawer never hides
+					     the fact that there are notes waiting. -->
+					<button class="doc-side-tab hidden" id="commentsOpen" type="button" data-tip="Open the comments drawer">
+						💬 <span id="commentsOpenCount"></span>
+					</button>
 				</div>
 			</div>
 		</div>
 
 		<!-- beta readers -->
+		<!-- Two questions, two sections: who is already reading this, and who
+		     you'd like to add. The invite field is a search over every writer
+		     rather than a name you have to spell from memory. -->
 		<div class="confirm-modal hidden" id="shareModal">
-			<div class="confirm-card">
-				<h3>Beta readers</h3>
-				<p class="subtle" style="text-align: left">
-					Only friends can be beta readers. They can read and comment — never edit.
-				</p>
-				<p class="subtle hidden" id="sharePrivateNote" style="text-align: left">
+			<div class="confirm-card share-card">
+				<h3>👥 Beta readers</h3>
+				<p class="subtle share-blurb">They can read your draft and comment on it — never edit it.</p>
+				<p class="subtle share-warn hidden" id="sharePrivateNote">
 					This write is <b>🔒 Private</b> — the readers below can't open it yet.
 					<button class="linky" id="shareGoReaders" type="button">Share it with them</button>
 				</p>
-				<div id="readerChips" style="margin: 10px 0"></div>
-				<div class="row">
-					<input id="readerName" placeholder="Friend's username" />
-					<button class="ghost" id="readerAdd" type="button" style="flex: 0 0 auto">Invite</button>
+
+				<div class="share-sec">
+					<h4 class="share-h">Reading along</h4>
+					<div id="readerChips" class="reader-chips"></div>
 				</div>
+
+				<div class="share-sec">
+					<h4 class="share-h">Invite someone</h4>
+					<div class="user-picker">
+						<input
+							id="readerName"
+							type="search"
+							autocomplete="off"
+							role="combobox"
+							aria-expanded="false"
+							aria-controls="readerList"
+							placeholder="Search writers…"
+						/>
+						<div class="pick-list" id="readerList" role="listbox"></div>
+					</div>
+					<p class="subtle pick-foot">Only friends can be invited — a draft is a trust decision.</p>
+				</div>
+
 				<div class="err" id="shareErr"></div>
-				<div class="row"><button class="ghost" id="shareClose" type="button">Done</button></div>
+				<div class="row share-foot"><button class="ghost" id="shareClose" type="button">Done</button></div>
 			</div>
 		</div>
 
@@ -257,7 +300,17 @@
 				headingOnly,
 				DEFAULT_SIZE,
 			} from "/js/components/font-size.js"
-			import { loadPrefs, savePrefs, stepLine, DEFAULT_LINE, PAPERS, DOC_FONTS, fontOf } from "/js/doc-prefs.js"
+			import {
+				loadPrefs,
+				savePrefs,
+				stepLine,
+				DEFAULT_LINE,
+				PAPERS,
+				DOC_FONTS,
+				fontOf,
+				clampSide,
+				DEFAULT_SIDE,
+			} from "/js/doc-prefs.js"
 			import { mountSlashPalette } from "/js/components/slash-palette.js"
 			import { loadDraft, saveDraft, clearDraft, draftIsNewer } from "/js/doc-store.js"
 			import { createHistory } from "/js/components/history.js"
@@ -273,6 +326,8 @@
 				visMenuHtml,
 				visOf,
 				scrollTargetFor,
+				inviteOptions,
+				inviteListHtml,
 			} from "/js/write-view.js"
 			import { esc } from "/js/util.js"
 
@@ -436,9 +491,17 @@
 			// lands beneath it. The head grows and shrinks — the unsaved-draft bar
 			// appears, the toolbar wraps on a narrow window — so it's measured, not
 			// guessed.
+			// The head only steals unusable space while it is PINNED. On a phone
+			// (≤760px) it is position:relative and scrolls away with the prose, so
+			// it costs a jump nothing — reporting its height there would push every
+			// jump target a headful too far down.
+			function stickyH() {
+				const el = $("docShell")
+				if (!el) return 0
+				return getComputedStyle(el).position === "sticky" ? el.getBoundingClientRect().height : 0
+			}
 			function measureSticky() {
-				const h = $("docShell")?.getBoundingClientRect().height || 0
-				document.documentElement.style.setProperty("--doc-sticky", Math.round(h) + "px")
+				document.documentElement.style.setProperty("--doc-sticky", Math.round(stickyH()) + "px")
 			}
 			if (window.ResizeObserver) new ResizeObserver(measureSticky).observe($("docShell"))
 			window.addEventListener("resize", measureSticky)
@@ -456,7 +519,34 @@
 					rectH: rect.height,
 					scrollY: window.scrollY,
 					viewportH: window.innerHeight,
-					headH: $("docShell")?.getBoundingClientRect().height || 0,
+					headH: stickyH(),
+					maxScroll: document.documentElement.scrollHeight - window.innerHeight,
+				})
+				window.scrollTo({ top, behavior: "smooth" })
+				setTimeout(() => {
+					if (Math.abs(window.scrollY - top) > 4) window.scrollTo(0, top)
+				}, 320)
+			}
+
+			// Bring a comment card into view. In two columns the pane is its own
+			// scroller and `nearest` moves it a few pixels — the page must not
+			// budge. In one column (phones) the pane is a plain block far below
+			// the prose, so the PAGE has to move, and `nearest` on a smooth
+			// scroll can silently do nothing — the same failure that made
+			// scrollToAnchor compute its own target. So: same treatment.
+			function scrollToCard(card) {
+				const pane = $("commentPane")
+				if (pane && pane.scrollHeight > pane.clientHeight + 1) {
+					card.scrollIntoView({ behavior: "smooth", block: "nearest" })
+					return
+				}
+				const rect = card.getBoundingClientRect()
+				const top = scrollTargetFor({
+					rectTop: rect.top,
+					rectH: rect.height,
+					scrollY: window.scrollY,
+					viewportH: window.innerHeight,
+					headH: stickyH(),
 					maxScroll: document.documentElement.scrollHeight - window.innerHeight,
 				})
 				window.scrollTo({ top, behavior: "smooth" })
@@ -482,7 +572,7 @@
 					void anchor.offsetWidth
 					anchor.classList.add("active")
 				}
-				if (scroll !== "anchor" && card) card.scrollIntoView({ behavior: "smooth", block: "nearest" })
+				if (scroll !== "anchor" && card) scrollToCard(card)
 			}
 
 			// Click an underline -> go to its comment.
@@ -560,6 +650,9 @@
 				if (done.length)
 					html += `<div class="dc-group done"><p class="dc-orphan-note">Done (${done.length})</p>${commentThreadHtml(done, opts)}</div>`
 				$("commentPane").innerHTML = html || `<p class="subtle">No comments yet.</p>`
+				// The edge tab carries the count, so closing the drawer hides the
+				// notes but never the fact that they exist.
+				$("commentsOpenCount").textContent = live.length + orphans.length || ""
 				if (activeCid) focusComment(activeCid, { scroll: "none" })
 				renderComposer()
 			}
@@ -590,6 +683,9 @@
 
 			function renderComposer() {
 				if (!pendingRange) return
+				// A note has to be visible to be written: opening the composer opens
+				// the drawer, whatever state it was left in.
+				if (!prefs.sideOpen) setSideOpen(true)
 				const quote = pendingRange.toString().trim()
 				const box = document.createElement("div")
 				box.className = "dc-new"
@@ -622,10 +718,36 @@
 				})
 				$("newSend").addEventListener("click", sendComment)
 				$("newCancel").addEventListener("click", () => (clearComposer(), renderComments()))
-				$("newComment").focus()
+				// Autofocus is a DESKTOP convenience only. On a touch device, focusing
+				// a textarea collapses the selection and tears down the selection
+				// handles — you would lose the very words you just highlighted, and
+				// the keyboard would cover them. There, the box waits to be tapped.
+				if (!coarsePointer()) $("newComment").focus()
 			}
 
 			// Selecting words in comment mode offers to comment on them.
+			//
+			// Touch needs different timing from a mouse. A drag with a mouse is over
+			// when the movement stops, so a debounce is enough. A touch selection is
+			// NOT: the words appear selected and then you drag the handles to adjust
+			// them, which can take seconds — and anything that renders (or focuses)
+			// mid-gesture drops the selection and the handles with it. So on a coarse
+			// pointer the composer waits for the gesture to actually finish.
+			const coarsePointer = () => window.matchMedia?.("(pointer: coarse)").matches
+			let touchingText = false
+			for (const ev of ["pointerdown", "touchstart"])
+				$("docEditor").addEventListener(ev, () => (touchingText = true), { passive: true })
+			for (const ev of ["pointerup", "pointercancel", "touchend", "touchcancel"])
+				document.addEventListener(
+					ev,
+					() => {
+						if (!touchingText) return
+						touchingText = false
+						// the handles settle a beat after the finger lifts
+						if (pendingRange && commentMode) (clearTimeout(composerTimer), (composerTimer = setTimeout(renderComposer, 400)))
+					},
+					{ passive: true },
+				)
 			document.addEventListener("selectionchange", () => {
 				if (!commentMode || !doc) return
 				const sel = window.getSelection()
@@ -637,10 +759,10 @@
 				// the underline will end up on
 				pendingRange = clampToBlock(r.cloneRange())
 				clearTimeout(composerTimer)
-				// debounced: a drag fires selectionchange on every mousemove
-				composerTimer = setTimeout(() => {
-					renderComposer()
-				}, 250)
+				// debounced: a drag fires selectionchange on every mousemove. While a
+				// finger is still down the composer is not scheduled at all — the
+				// pointerup handler above does it once the selection is final.
+				if (!touchingText) composerTimer = setTimeout(() => renderComposer(), 250)
 			})
 
 			// Wrap the selected words in a fresh anchor and send the WHOLE html.
@@ -1048,6 +1170,63 @@
 			})
 			applyPaper()
 
+			// ---- the comments drawer (this writer's preference only) ----
+			// Open/closed and how wide, remembered per browser. Closing it gives the
+			// prose the whole width; the edge tab keeps the comment count visible so
+			// a closed drawer never hides the fact that there are notes waiting. The
+			// same number drives the grid column on desktop and the sheet's height on
+			// a phone, where the drawer comes up from the bottom instead of in from
+			// the side.
+			const phoneSide = () => window.matchMedia("(max-width: 860px)").matches
+			function applySide() {
+				document.documentElement.style.setProperty("--doc-side-w", prefs.sideWidth + "px")
+				document.querySelector(".doc-main")?.classList.toggle("side-closed", !prefs.sideOpen)
+				$("docSide").classList.toggle("open", !!prefs.sideOpen)
+				$("commentsOpen").classList.toggle("hidden", !!prefs.sideOpen)
+				$("commentsOpen").setAttribute("aria-expanded", String(!!prefs.sideOpen))
+			}
+			function setSideOpen(open) {
+				prefs = savePrefs({ ...prefs, sideOpen: !!open })
+				applySide()
+			}
+			function setSideWidth(px) {
+				prefs = savePrefs({ ...prefs, sideWidth: clampSide(px) })
+				applySide()
+			}
+			$("commentsClose").addEventListener("click", () => setSideOpen(false))
+			$("commentsOpen").addEventListener("click", () => setSideOpen(true))
+
+			// Drag the grip: on desktop the pointer's distance from the right edge IS
+			// the width; on a phone the sheet's height is measured up from the bottom.
+			// Pointer events cover mouse, pen and touch in one path.
+			let sideDrag = false
+			const gripEnd = () => {
+				sideDrag = false
+				document.body.classList.remove("resizing-side")
+			}
+			$("docSideGrip").addEventListener("pointerdown", (e) => {
+				sideDrag = true
+				document.body.classList.add("resizing-side")
+				$("docSideGrip").setPointerCapture?.(e.pointerId)
+			})
+			$("docSideGrip").addEventListener("pointermove", (e) => {
+				if (!sideDrag) return
+				e.preventDefault()
+				setSideWidth(phoneSide() ? window.innerHeight - e.clientY : window.innerWidth - e.clientX)
+			})
+			$("docSideGrip").addEventListener("pointerup", gripEnd)
+			$("docSideGrip").addEventListener("pointercancel", gripEnd)
+			$("docSideGrip").addEventListener("dblclick", () => setSideWidth(DEFAULT_SIDE))
+			// Keyboard-reachable: a drag handle nobody can tab to is a control that
+			// doesn't exist for part of the audience.
+			$("docSideGrip").addEventListener("keydown", (e) => {
+				const step = e.shiftKey ? 48 : 16
+				if (e.key === "ArrowLeft") (e.preventDefault(), setSideWidth(prefs.sideWidth + step))
+				else if (e.key === "ArrowRight") (e.preventDefault(), setSideWidth(prefs.sideWidth - step))
+				else if (e.key === "Escape") setSideOpen(false)
+			})
+			applySide()
+
 			$("linkBtn").addEventListener("mousedown", (e) => {
 				e.preventDefault()
 				const url = prompt("Link URL (http:// or https://)")
@@ -1281,29 +1460,72 @@
 			}
 
 			// ---- beta readers ----
+			// The directory is fetched when the modal is first opened and kept for
+			// the session: it is a list of names, and refetching it on every
+			// keystroke would make the search feel slower than typing.
+			let directory = null
+			let myFriends = []
+			async function loadDirectory() {
+				if (directory) return
+				try {
+					directory = (await api("/api/users", null, "GET")).users || []
+					myFriends = (await api("/api/friends", null, "GET")).friends || []
+				} catch (e) {
+					directory = directory || []
+				}
+				renderPicker()
+			}
+			function renderPicker() {
+				if (!doc?.mine) return
+				const rows = inviteOptions({
+					users: directory || [],
+					friends: myFriends,
+					readers: doc.readerRows || [],
+					me: me.username,
+					q: $("readerName").value,
+				})
+				$("readerList").innerHTML = directory
+					? inviteListHtml(rows)
+					: `<p class="subtle pick-empty">Loading writers…</p>`
+			}
+			async function invite(username) {
+				$("shareErr").textContent = ""
+				try {
+					doc = (await api(`/api/docs/${encodeURIComponent(docId)}/readers`, { username })).doc
+					$("readerName").value = ""
+					renderShare()
+					setStatus(`${username} can read along now.`)
+				} catch (e) {
+					$("shareErr").textContent = e.message
+				}
+			}
 			function renderShare() {
 				$("sharePrivateNote").classList.toggle("hidden", doc.visibility !== "private")
 				$("readerChips").innerHTML = readerChipsHtml(doc.readerRows, doc.mine)
+				renderPicker()
 			}
+			$("readerName").addEventListener("input", renderPicker)
+			// Enter takes the first invitable name — the common case is that you
+			// typed enough of it to leave exactly one.
+			$("readerName").addEventListener("keydown", (e) => {
+				if (e.key !== "Enter") return
+				e.preventDefault()
+				$("readerList").querySelector(".pick-row:not([disabled])")?.click()
+			})
+			$("readerList").addEventListener("click", (e) => {
+				const row = e.target.closest(".pick-row")
+				if (row && !row.disabled) invite(row.dataset.user)
+			})
 			$("shareGoReaders").addEventListener("click", () => setVisibility("readers"))
 			$("shareBtn").addEventListener("click", () => {
 				renderShare()
 				$("shareErr").textContent = ""
 				$("shareModal").classList.remove("hidden")
+				loadDirectory()
 			})
 			$("shareClose").addEventListener("click", () => $("shareModal").classList.add("hidden"))
 			$("shareModal").addEventListener("click", (e) => {
 				if (e.target === $("shareModal")) $("shareModal").classList.add("hidden")
-			})
-			$("readerAdd").addEventListener("click", async () => {
-				$("shareErr").textContent = ""
-				try {
-					doc = (await api(`/api/docs/${encodeURIComponent(docId)}/readers`, { username: $("readerName").value })).doc
-					$("readerName").value = ""
-					renderShare()
-				} catch (e) {
-					$("shareErr").textContent = e.message
-				}
 			})
 			$("readerChips").addEventListener("click", async (e) => {
 				const x = e.target.closest(".reader-x")

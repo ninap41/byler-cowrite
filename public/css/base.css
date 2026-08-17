@@ -36,6 +36,9 @@
 	--font-story: "Space Grotesk", sans-serif;
 	--font-mono: "Inconsolata", ui-monospace, monospace;
 	--tsn: 0.5s cubic-bezier(0.6, 0.01, 0.05, 1);
+	/* The bottom strip carrying theme peek + the tip jar. Everything else
+	   pinned to the bottom of the window clears itself by this. */
+	--footbar-h: 32px;
 }
 [data-theme="neon"] {
 	--bg: #0a0616;
@@ -134,7 +137,7 @@ body {
 	font-family: var(--font-body);
 	display: flex;
 	justify-content: center;
-	padding: 20px 0 0;
+	padding: 20px 0 var(--footbar-h);
 	transition:
 		background var(--tsn),
 		color var(--tsn);
@@ -1241,7 +1244,7 @@ body {
 .chat-dock {
 	position: fixed;
 	right: 18px;
-	bottom: 0;
+	bottom: var(--footbar-h);
 	z-index: 45;
 	width: min(340px, calc(100vw - 36px));
 	display: flex;
@@ -2495,6 +2498,22 @@ input[type="checkbox"]:focus-visible {
 	color: var(--accent-2);
 	text-decoration: none;
 	border-bottom: 1px dotted var(--accent-2);
+}
+/* A .linky that happens to be a BUTTON has to be un-buttoned first: the global
+   button rules (pill fill, min-width, form padding) otherwise win and turn a
+   text action into a slab. Same reset the comment-card actions do locally. */
+button.linky {
+	display: inline;
+	min-width: 0;
+	width: auto;
+	padding: 0;
+	border: 0;
+	border-bottom: 1px dotted var(--accent-2);
+	border-radius: 0;
+	background: none;
+	box-shadow: none;
+	font: inherit;
+	cursor: pointer;
 }
 .linky:hover {
 	border-bottom-style: solid;
@@ -4384,22 +4403,105 @@ button.danger,
    bubble, bottom-left) toggles body.ui-peek, which hides every UI layer so
    the theme background shows through. The game chat dock stays visible.
    ========================================================================== */
-.peek-btn {
+/* ---------- The foot bar ----------
+   Theme peek and the tip jar are site furniture, not anybody's task, so they
+   get a thin strip along the bottom instead of two floating chips parked over
+   the page (where they covered modals and the corner of every layout). One
+   line of small text; --footbar-h is what everything else pinned to the bottom
+   clears itself by. */
+.foot-bar {
 	position: fixed;
-	left: 14px;
-	bottom: 84px;
-	z-index: 9999;
-	padding: 8px 14px;
-	border: 1px solid var(--panel-brd);
-	border-radius: 999px;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	height: var(--footbar-h);
+	z-index: 100;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 4px;
 	background: var(--panel);
-	color: var(--ink);
-	font: 600 13px/1 var(--font-body);
-	cursor: pointer;
-	backdrop-filter: blur(6px);
-	box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+	border-top: 1px solid var(--panel-brd);
+	backdrop-filter: blur(10px);
+	-webkit-backdrop-filter: blur(10px);
 }
-.peek-btn:hover { border-color: var(--accent); }
+.foot-btn {
+	min-width: 0;
+	width: auto;
+	flex: 0 0 auto;
+	padding: 4px 10px;
+	border: 0;
+	border-radius: 8px;
+	background: none;
+	box-shadow: none;
+	color: var(--muted);
+	font: 600 0.72rem/1 var(--font-body);
+	letter-spacing: 0.02em;
+	cursor: pointer;
+}
+.foot-btn:hover {
+	color: var(--ink);
+	background: var(--chip);
+}
+.foot-dot {
+	color: var(--line);
+	font-size: 0.72rem;
+}
+/* Peeking hides everything but the way back out of it. */
+body.ui-peek .foot-bar {
+	background: none;
+	border-top: 0;
+	backdrop-filter: none;
+	-webkit-backdrop-filter: none;
+}
+body.ui-peek #kofiBtn,
+body.ui-peek .foot-dot {
+	display: none;
+}
+
+/* Ko-fi's own embeddable panel, in our modal. The floating widget script is
+   gone — it drew an iframe button at a size and z-index we didn't control.
+   This iframe we do control: it needs ~300px of width to lay out, so the card
+   is sized for it rather than squeezed. */
+.kofi-card {
+	max-width: 380px;
+	padding: 14px;
+}
+.kofi-head {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+.kofi-head h3 {
+	margin: 0;
+	flex: 1 1 auto;
+	text-align: left;
+}
+.kofi-x {
+	flex: 0 0 auto;
+	width: 34px;
+	min-width: 0;
+	height: 34px;
+	padding: 0;
+	line-height: 1;
+}
+#kofiFrame {
+	width: 100%;
+	/* Ko-fi's panel is ~560 tall before it scrolls itself; give it as much of
+	   that as the window can spare so the tip button isn't below the fold. */
+	height: min(560px, 72vh);
+	height: min(560px, 72svh);
+	margin-top: 10px;
+	border: 0;
+	border-radius: 12px;
+	background: #fff; /* ko-fi's panel is a light page; don't flash the theme through it */
+}
+.kofi-out {
+	display: inline-block;
+	margin-top: 10px;
+	font-size: 0.78rem;
+}
+
 body.ui-peek .wrap,
 body.ui-peek .topbar,
 body.ui-peek .hamburger,
@@ -4407,10 +4509,7 @@ body.ui-peek .nav-drawer,
 body.ui-peek .nav-scrim,
 body.ui-peek .toasts,
 body.ui-peek .join-reqs,
-body.ui-peek .turn-toast,
-body.ui-peek .floatingchat-container-wrap,
-body.ui-peek .floatingchat-container-wrap-mobi,
-body.ui-peek iframe[src*="ko-fi"] {
+body.ui-peek .turn-toast {
 	visibility: hidden !important;
 }
 
@@ -4459,16 +4558,27 @@ body.ui-peek iframe[src*="ko-fi"] {
 	color: var(--ink);
 	border-color: var(--accent-2);
 }
+/* Open and Delete are one pair of matched buttons on the left of the card,
+   not a stretched row: they're the same weight of action on the same object,
+   so they get the same width and sit together instead of pushing apart. */
 .doc-card-actions {
-	margin-top: 10px;
+	display: flex;
+	justify-content: flex-start;
+	gap: 8px;
+	margin-top: 12px;
 }
-.doc-card-actions .doc-open {
+.doc-card-actions > * {
+	flex: 0 0 auto;
+	width: 96px;
+	min-width: 0; /* the global button min-width would break the match */
+	min-height: 38px;
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	text-decoration: none;
-	padding: 8px 14px;
+	padding: 8px 10px;
 	border-radius: 12px;
+	text-decoration: none;
+	font-size: 0.85rem;
 }
 
 /* editor page */
@@ -4813,12 +4923,26 @@ body.doc-page .topbar {
 	min-width: 0;
 	padding: 6px 12px;
 }
+/* The second column is the comments DRAWER, and its width is the writer's:
+   --doc-side-w is written by write.html from the saved editor prefs. Closed,
+   the column is gone entirely and the prose gets the whole page. */
 .doc-main {
 	display: grid;
-	grid-template-columns: minmax(0, 1fr) 300px;
+	grid-template-columns: minmax(0, 1fr) var(--doc-side-w, 300px);
 	gap: 18px;
 	align-items: start;
 }
+.doc-main.side-closed {
+	grid-template-columns: minmax(0, 1fr);
+}
+.doc-main.side-closed .doc-side {
+	display: none;
+}
+/* 860 is about COLUMNS ONLY, and is deliberately not the same number as the
+   760 phone block at the end of this file. An iPad in portrait (768–834px)
+   lands in the gap on purpose: it wants one column, but it keeps the sticky
+   single-row toolbar, because it has the vertical room and doesn't hit the iOS
+   keyboard/sticky-caret bug. Don't unify the two. */
 @media (max-width: 860px) {
 	.doc-main {
 		grid-template-columns: 1fr;
@@ -4832,6 +4956,13 @@ body.doc-page .topbar {
 	min-height: 58vh;
 	max-height: none;
 	font-size: 16px; /* the ladder's default — unstyled text really is 16 */
+	/* Highlighting the words is how you comment on them, and in comment mode
+	   the surface isn't editable — so say out loud that the prose is
+	   selectable, including the long-press callout iOS otherwise suppresses on
+	   a non-editable box inside an app-like page. */
+	-webkit-user-select: text;
+	user-select: text;
+	-webkit-touch-callout: default;
 }
 .doc-source {
 	font-family: var(--font-mono);
@@ -4940,6 +5071,91 @@ body.doc-page .topbar {
 	flex-direction: column;
 	min-height: 0;
 	text-align: left;
+	padding-left: 20px; /* room for the grip, which sits on the inner edge */
+}
+
+/* ---- the drawer's own furniture ----
+   A grip you drag, a ✕ that closes, and a tab that brings it back. The grip is
+   a real focusable separator (arrow keys resize it) because a control that
+   only answers to a drag is a control some people don't have. */
+.doc-side-grip {
+	position: absolute;
+	left: 0;
+	top: 0;
+	bottom: 0;
+	width: 14px;
+	cursor: col-resize;
+	border-radius: 18px 0 0 18px;
+	touch-action: none;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+.doc-side-grip::before {
+	content: "";
+	width: 3px;
+	height: 42px;
+	border-radius: 3px;
+	background: var(--line);
+	transition: background 0.15s ease, height 0.15s ease;
+}
+.doc-side-grip:hover::before,
+.doc-side-grip:focus-visible::before,
+body.resizing-side .doc-side-grip::before {
+	background: var(--accent-2);
+	height: 72px;
+}
+.doc-side-grip:focus-visible {
+	outline: 2px solid var(--accent-2);
+	outline-offset: -2px;
+}
+/* A drag must not select the prose it's dragging past. */
+body.resizing-side {
+	user-select: none;
+	cursor: col-resize;
+}
+.doc-side-head {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+.doc-side-head h3 {
+	margin: 0;
+	flex: 1 1 auto;
+}
+/* An icon button, so it takes an icon's room — buttons here carry a min-width
+   for tap targets, which on a ✕ just makes a wide empty slab. */
+.doc-side-close {
+	flex: 0 0 auto;
+	width: 34px;
+	min-width: 0;
+	height: 34px;
+	padding: 0;
+	font-size: 0.85rem;
+	line-height: 1;
+}
+/* The way back in: a tab on the right edge carrying the comment count. */
+.doc-side-tab {
+	position: fixed;
+	right: 0;
+	top: 50%;
+	transform: translateY(-50%);
+	z-index: 40;
+	border: 1px solid var(--panel-brd);
+	border-right: 0;
+	background: var(--panel);
+	color: var(--ink);
+	border-radius: 12px 0 0 12px;
+	padding: 12px 10px;
+	cursor: pointer;
+	box-shadow: var(--panel-glow);
+	font-size: 0.9rem;
+}
+.doc-side-tab:hover {
+	background: var(--chip);
+}
+.doc-side-tab.hidden {
+	display: none;
 }
 /* The note you're writing is pinned; only the comments below it scroll. */
 #commentComposer {
@@ -4956,15 +5172,63 @@ body.doc-page .topbar {
 	overflow-y: auto;
 	overscroll-behavior: contain;
 }
-/* One column: the pane sits under the prose, where sticking it would just
-   eat the screen. */
+/* One column, so the drawer comes up from the BOTTOM instead of in from the
+   side: a rail narrow enough to sit beside the prose here would be too narrow
+   to read a comment in. The same saved number is now a height, dragged with
+   the grip that has moved to the top edge. A sheet is the one place a nested
+   scroller is right — it's pinned to the viewport, so the page behind it isn't
+   competing for the gesture. */
 @media (max-width: 860px) {
+	.doc-side {
+		position: fixed;
+		left: 0;
+		right: 0;
+		bottom: var(--footbar-h);
+		z-index: 60;
+		align-self: auto;
+	}
 	.doc-side-card {
 		position: static;
-		max-height: none;
+		height: var(--doc-side-w, 300px);
+		max-height: 85vh;
+		margin: 0;
+		padding: 12px 14px 14px;
+		border-radius: 16px 16px 0 0;
 	}
-	#commentPane {
-		overflow-y: visible;
+	.doc-side-grip {
+		left: 0;
+		right: 0;
+		top: 0;
+		bottom: auto;
+		width: auto;
+		height: 18px;
+		cursor: row-resize;
+		border-radius: 16px 16px 0 0;
+	}
+	.doc-side-grip::before {
+		width: 44px;
+		height: 3px;
+	}
+	.doc-side-grip:hover::before,
+	.doc-side-grip:focus-visible::before,
+	body.resizing-side .doc-side-grip::before {
+		width: 72px;
+		height: 3px;
+	}
+	body.resizing-side {
+		cursor: row-resize;
+	}
+	.doc-side-head {
+		margin-top: 6px;
+	}
+	/* the sheet covers the foot of the page — give the prose somewhere to end */
+	.doc-main:not(.side-closed) .doc-col {
+		padding-bottom: calc(var(--doc-side-w, 300px) + 20px);
+	}
+	.doc-side-tab {
+		top: auto;
+		bottom: calc(var(--footbar-h) + 16px);
+		border-radius: 12px 0 0 12px;
 	}
 }
 .dc-group {
@@ -5159,6 +5423,123 @@ body.doc-page .topbar {
 }
 
 /* beta reader chips */
+/* ---- the beta-reader modal ----
+   Two sections with their own headings, so "who is reading this" and "who do
+   I add" stop being one undifferentiated stack of controls. */
+.share-card {
+	text-align: left;
+	max-width: 460px;
+}
+.share-card h3 {
+	margin: 0 0 4px;
+}
+.share-blurb {
+	text-align: left;
+	margin: 0 0 4px;
+}
+.share-warn {
+	text-align: left;
+	margin: 10px 0 0;
+	padding: 8px 10px;
+	border-left: 2px solid var(--accent-2);
+	background: var(--chip);
+	border-radius: 0 10px 10px 0;
+}
+.share-sec {
+	margin-top: 16px;
+}
+.share-h {
+	margin: 0 0 8px;
+	font-family: var(--font-mono);
+	font-size: 0.72rem;
+	letter-spacing: 0.09em;
+	text-transform: uppercase;
+	color: var(--muted);
+}
+.share-foot {
+	justify-content: flex-end;
+	margin-top: 18px;
+}
+.share-foot button {
+	flex: 0 0 auto;
+}
+/* The "nobody yet" line belongs with the section it's under, not centred in
+   the middle of a left-aligned card. */
+.reader-chips .subtle {
+	text-align: left;
+	margin: 0;
+}
+
+/* ---- the writer picker ----
+   Every writer is listed and the list is filtered as you type; friends sort to
+   the top and wear a chip, because they're the only ones invitable. */
+.user-picker input {
+	width: 100%;
+}
+.pick-list {
+	margin-top: 8px;
+	max-height: 210px;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	border: 1px solid var(--line);
+	border-radius: 12px;
+	background: var(--panel-2);
+}
+.pick-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	width: 100%;
+	padding: 8px 10px;
+	background: none;
+	border: 0;
+	border-bottom: 1px solid var(--line);
+	color: var(--ink);
+	font-size: 0.9rem;
+	text-align: left;
+	cursor: pointer;
+}
+.pick-row:last-child {
+	border-bottom: 0;
+}
+.pick-row:hover:not([disabled]) {
+	background: var(--chip);
+}
+.pick-name {
+	font-weight: 600;
+}
+.pick-chip {
+	margin-left: auto;
+	padding: 2px 8px;
+	border-radius: 999px;
+	background: var(--chip);
+	border: 1px solid var(--line);
+	font-family: var(--font-mono);
+	font-size: 0.68rem;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+}
+/* Listed but not offerable: the answer to "why can't I pick them?" belongs on
+   the row itself, not in an error after the click. */
+.pick-row.not-friend {
+	opacity: 0.55;
+	cursor: not-allowed;
+}
+.pick-note {
+	margin-left: auto;
+	font-size: 0.72rem;
+	color: var(--muted);
+}
+.pick-empty,
+.pick-foot {
+	text-align: left;
+	margin: 8px 2px 0;
+	font-size: 0.78rem;
+}
+.pick-empty {
+	margin: 10px;
+}
+
 .reader-chip {
 	display: inline-flex;
 	align-items: center;
@@ -5587,4 +5968,316 @@ body.doc-page .topbar {
 .pref-stepper {
 	background: transparent;
 	border-style: dashed;
+}
+
+/* ==========================================================================
+   Phones (≤760px): the solo-write pages
+   --------------------------------------------------------------------------
+   Three breakpoints, three jobs, and the gap between them is deliberate:
+
+     860  write-specific COLUMNS only — .doc-main goes to one column and the
+          comments pane stops being pinned. An iPad in portrait (768–834px)
+          lives here: it wants one column but keeps the sticky, single-row
+          toolbar, because it has the vertical room and doesn't have the
+          keyboard bug below.
+     760  the site's PHONE breakpoint (already where .topbar, .chat-dock and
+          .game-cols reflow). Everything in this block lives here.
+     600  a very narrow squeeze (already hides .user-chip).
+
+   Don't "unify" 860 and 760 — they mean different things.
+   ========================================================================== */
+@media (max-width: 760px) {
+	/* ---- The head stops being pinned ----
+	   On a 390×844 phone with the keyboard up the visual viewport is ~390×390.
+	   A sticky slab would leave almost no prose. Worse, iOS Safari resolves
+	   position:sticky against the LAYOUT viewport while the keyboard shrinks
+	   the VISUAL one, and WebKit's caret-following scroll inside a
+	   contenteditable doesn't account for sticky overlap — so the caret ends up
+	   typing underneath the toolbar. There's no CSS fix for that; letting the
+	   head scroll away with the prose is the fix. Scrolling back one screen to
+	   reach the toolbar is cheap: on a phone, formatting is punctuated, not
+	   continuous. See stickyH() in write.html — --doc-sticky goes to 0 here.
+
+	   relative, NOT static: un-pinning it is the point, but `z-index: 45` only
+	   applies to a positioned box, and going static would drop the whole head
+	   below the editor — the visibility menu would render *under* the prose. */
+	.doc-shell {
+		position: relative;
+		top: auto;
+		margin-bottom: 10px;
+		border-radius: 14px;
+	}
+
+	/* ---- ~20 controls become ONE strip you swipe, not five wrapped rows ----
+	   This is what makes losing the sticky head cheap: nothing is hidden and
+	   nothing is folded behind a toggle — the whole toolbar is still there,
+	   sideways. No edge fade: the strip is ~1400px of controls in ~350px, so a
+	   glyph is always visibly cut off at the edge, and that IS the affordance.
+	   A permanent gradient mask would instead dim whichever control you had
+	   just scrolled to. */
+	.doc-toolbar-row {
+		flex-wrap: nowrap;
+		overflow-x: auto;
+		overflow-y: hidden;
+		overscroll-behavior-x: contain;
+		-webkit-overflow-scrolling: touch;
+		scrollbar-width: none;
+		gap: 6px;
+		padding: 5px 10px;
+	}
+	.doc-toolbar-row::-webkit-scrollbar {
+		display: none;
+	}
+	.doc-toolbar-row .toolbar {
+		flex: 0 0 auto;
+		flex-wrap: nowrap;
+	}
+	.doc-toolbar-row .toolbar-right {
+		flex: 0 0 auto;
+		margin-left: 6px;
+	}
+
+	/* ---- The head reflows into three rows, with no markup change ----
+	   Row 1: ← All writes … [theme][Save][☰]  (the shared chrome is moved in
+	   here at runtime by write.html, so the right cluster is heavier than the
+	   markup suggests). Row 2: the title, full width. Row 3: the chips.
+	   DOM order is already back / main / right, so one `order` does it. */
+	.doc-head {
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 6px 10px;
+		padding: 8px 10px;
+	}
+	.doc-back {
+		order: 1;
+		display: inline-flex;
+		align-items: center;
+		min-height: 40px;
+		padding: 8px 4px;
+		font-size: 0.82rem;
+	}
+	/* Row 1 is back-link + [theme][Save][☰], and at 390px it fits by a hair —
+	   so the pieces are trimmed to keep it ONE row rather than two. */
+	.doc-head-right {
+		order: 2;
+		margin-left: auto;
+		gap: 5px;
+		min-width: 0;
+	}
+	body.doc-page .hamburger {
+		width: 38px;
+		height: 38px;
+	}
+	.doc-head-main {
+		order: 3;
+		flex: 1 1 100%;
+	}
+	.doc-head-main .doc-title-input {
+		font-size: 1.15rem;
+		padding: 4px 8px;
+		margin: 0 0 1px -8px;
+	}
+	.doc-save {
+		padding: 9px 14px;
+		font-size: 0.92rem;
+	}
+	body.doc-page .topbar {
+		gap: 5px;
+		min-width: 0;
+	}
+	/* The theme name can be long ("Rink-O-Mania"); let the switch give up
+	   width rather than push Save onto its own row. */
+	body.doc-page .theme-switch {
+		min-width: 0;
+		max-width: 108px;
+	}
+	body.doc-page .theme-switch .theme-toggle {
+		min-width: 0;
+		max-width: 100%;
+	}
+	body.doc-page .theme-switch #themeCurLabel {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		min-width: 0;
+	}
+
+	/* ---- Chips: same row of state, grown to a thumb ----
+	   The word labels stay. Glyph-only would be narrower but would cost anyone
+	   who doesn't read the icons; two chips wrapping to a second row at 360px
+	   is the better trade. */
+	.doc-head-meta {
+		gap: 6px;
+		row-gap: 6px;
+		font-size: 0.82rem;
+	}
+	.head-chip,
+	.vis-chip {
+		min-height: 32px;
+		padding: 6px 11px;
+		font-size: 0.8rem;
+		line-height: 1.25;
+	}
+
+	/* ---- The writing surface ----
+	   svh is the SMALL viewport height, so the box doesn't overshoot while the
+	   iOS URL bar is expanded; the vh line above it is the fallback. */
+	.doc-editor {
+		min-height: 52vh;
+		min-height: 52svh;
+		padding: 14px 12px;
+		border-radius: 12px;
+	}
+	#editorHint {
+		font-size: 0.8rem;
+	}
+
+	/* Anything under 16px makes iOS Safari zoom the page on focus, and it never
+	   zooms back. These four are the write page's offenders. */
+	.doc-source,
+	.doc-toolbar-row .step-input,
+	.doc-side-card textarea,
+	.confirm-card input {
+		font-size: 16px;
+	}
+	.doc-toolbar-row .step-input {
+		width: 34px; /* 16px digits need the extra room */
+	}
+
+	/* ---- Comments ----
+	   The drawer is already a bottom sheet at 860 (see there); here it just
+	   gets phone padding. */
+	.doc-side-card {
+		padding: 12px 12px 14px;
+	}
+	.dc-actions button {
+		padding: 7px 10px;
+		font-size: 0.82rem;
+	}
+
+	/* ---- Popovers clamp to the viewport ----
+	   The visibility chip sits mid-row (after "Saved · N words"), so a menu
+	   anchored to the chip with left:0 hangs off the right edge and makes the
+	   whole page scroll sideways. Anchor it to the chips ROW instead: it then
+	   spans the row's full width and drops below the chips, both edges on
+	   screen no matter where the chip itself landed after wrapping. */
+	.doc-head-meta {
+		position: relative;
+	}
+	.vis-wrap {
+		position: static;
+	}
+	.vis-menu {
+		left: 0;
+		right: 0;
+		width: auto;
+		min-width: 0;
+		max-height: 70vh;
+		overflow-y: auto;
+		/* --panel is half-transparent and used to be legible because the menu
+		   sat over the shell's own slab. Here it hangs past the shell onto bare
+		   prose, so paint the opaque page colour under the panel tint. */
+		background-color: var(--bg);
+		background-image: linear-gradient(var(--panel), var(--panel));
+	}
+	.slash-palette {
+		width: calc(100vw - 20px);
+		max-width: 320px;
+		max-height: min(300px, 42svh);
+		/* same reason as .vis-menu: it floats over bare prose here */
+		background-color: var(--bg);
+		background-image: linear-gradient(var(--panel), var(--panel));
+	}
+
+	/* ---- Page gutters ----
+	   .write-inner and .archive-inner are max-width + auto margins with no
+	   padding of their own, so below ~880px they run flush against the bezel.
+	   The .wrap > guard keeps this off .archive-drawer, which is padded already.
+	   This also gutters /archive, /stories and /admin — same wrapper. */
+	.write-inner,
+	.wrap > .archive-inner {
+		padding-left: 14px;
+		padding-right: 14px;
+	}
+	.archive-head {
+		flex-wrap: wrap;
+		gap: 10px;
+		margin: 4px 0 16px;
+	}
+	.doc-grid {
+		gap: 12px;
+	}
+	.doc-card {
+		padding: 14px;
+	}
+	.doc-card-actions > * {
+		min-height: 42px;
+	}
+
+	/* ---- Modals ----
+	   .confirm-card is already fluid. The problem is the keyboard: a centred
+	   flex item on a shrunk viewport clips its own top with no way to reach it,
+	   so the modal top-aligns and scrolls instead. */
+	.confirm-modal {
+		align-items: flex-start;
+		overflow-y: auto;
+		padding: 16px 12px 48px;
+	}
+	.confirm-card {
+		padding: 18px 16px;
+	}
+
+	/* ---- Touch targets ----
+	   44px is the guideline, but it would make the strip three screens long.
+	   40px is the practical floor for a swipeable strip where a mis-tap is
+	   cheap and undoable. */
+	.tb-group > button.ghost,
+	.tb-group > select.ghost {
+		min-width: 40px;
+		min-height: 40px;
+		padding: 8px 9px;
+		font-size: 0.95rem;
+	}
+	.tb-group + .tb-group {
+		margin-left: 6px;
+		padding-left: 6px;
+	}
+	.doc-toolbar-row #blockFormat {
+		max-width: 74px;
+	}
+	.doc-toolbar-row .step-btn {
+		min-width: 32px;
+		min-height: 32px;
+		padding: 4px 7px;
+		font-size: 1rem;
+	}
+	.doc-toolbar-row .mode-switch .mode-btn {
+		min-height: 36px;
+		padding: 8px 12px;
+	}
+}
+
+@media (max-width: 600px) {
+	/* The interpuncts separate a single line of meta. Once the row wraps they
+	   just cost width and point at nothing. */
+	.doc-head-meta .doc-dot {
+		display: none;
+	}
+	/* At 360px the head's first row misses fitting by ~13px, which costs a
+	   whole row. The theme name is the one label that can be shortened without
+	   losing anything — the swatch beside it already says which theme it is. */
+	body.doc-page .theme-switch {
+		max-width: 84px;
+	}
+}
+
+/* A hover lift becomes a STUCK state after a tap on touch — the button looks
+   jammed rather than pressed. */
+@media (hover: none) {
+	.toolbar button:hover,
+	.doc-card:hover,
+	.head-chip:hover,
+	.vis-chip:hover {
+		transform: none;
+	}
 }

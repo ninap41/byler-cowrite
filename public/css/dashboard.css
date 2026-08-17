@@ -383,8 +383,14 @@ a.rg-row {
 	gap: 6px;
 	margin-top: 8px;
 }
-.ib-reply textarea {
+/* The message boxes are fixed-size on purpose: a drag handle in a card this
+   narrow only ever breaks the layout, and the rows already size themselves. */
+.ib-reply textarea,
+#helpText {
 	width: 100%;
+	resize: none;
+}
+.ib-reply textarea {
 	font-size: 0.85rem;
 }
 .ib-reply-row {

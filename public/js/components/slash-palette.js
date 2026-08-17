@@ -170,12 +170,31 @@ export function mountSlashPalette(editor, { bundle, onInsert = () => {}, isEnabl
 		const sel = window.getSelection()
 		if (!sel || !sel.rangeCount) return
 		const r = sel.getRangeAt(0).cloneRange()
-		const rect = r.getBoundingClientRect()
-		const top = (rect.bottom || 0) + window.scrollY + 6
-		const left = (rect.left || 0) + window.scrollX
-		el.style.top = top + "px"
-		// keep it on screen
-		el.style.left = Math.min(left, window.innerWidth - 300) + "px"
+		let rect = r.getBoundingClientRect()
+		// A collapsed range at the start of an empty block measures 0×0. Fall
+		// back to the block itself so we position against the line, not (0,0).
+		if (!rect.width && !rect.height) {
+			const node = r.startContainer
+			const box = (node.nodeType === 1 ? node : node.parentElement)?.getBoundingClientRect()
+			if (box) rect = box
+		}
+		// render() has already run and the element is un-hidden, so it measures.
+		const w = el.offsetWidth || 290
+		const h = el.offsetHeight || 300
+		// All of this is done in VIEWPORT space and converted to page space
+		// exactly once, at the end — mixing the two is how a popover ends up
+		// hundreds of pixels off after a scroll.
+		// visualViewport is the part NOT covered by the on-screen keyboard,
+		// which is exactly what "is there room below the caret" means on a phone.
+		const vpH = window.visualViewport?.height ?? window.innerHeight
+		const vpW = document.documentElement.clientWidth || window.innerWidth
+		// Below the caret when it fits; otherwise above it. Then clamp into the
+		// viewport either way, so a tight screen still shows the whole palette.
+		let vTop = rect.bottom + 6 + h <= vpH ? rect.bottom + 6 : rect.top - h - 6
+		vTop = Math.max(8, Math.min(vTop, vpH - h - 8))
+		const vLeft = Math.max(8, Math.min(rect.left, vpW - w - 8))
+		el.style.top = vTop + window.scrollY + "px"
+		el.style.left = vLeft + window.scrollX + "px"
 	}
 
 	function openAt() {

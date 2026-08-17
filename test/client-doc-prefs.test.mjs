@@ -107,7 +107,7 @@ test("the two preferences are stored together — saving one keeps the other", (
 test("a legacy prefs blob with only a line height still loads", () => {
   const s = mem();
   s.setItem("cowriteEditorPrefs", '{"lineHeight":1.8}');
-  assert.deepEqual(loadPrefs(s), { lineHeight: 1.8, paper: "theme", font: "theme" });
+  assert.deepEqual(loadPrefs(s), { lineHeight: 1.8, paper: "theme", font: "theme", sideWidth: 300, sideOpen: true });
 });
 
 // ---- typeface ----
@@ -137,5 +137,29 @@ test("an unknown typeface falls back to the theme's, and can't reach the DOM as 
 test("all three view preferences live together and survive each other", () => {
   const s = mem();
   savePrefs({ lineHeight: 2.0, paper: "dark", font: "newsreader" }, s);
-  assert.deepEqual(loadPrefs(s), { lineHeight: 2.0, paper: "dark", font: "newsreader" });
+  assert.deepEqual(loadPrefs(s), { lineHeight: 2.0, paper: "dark", font: "newsreader", sideWidth: 300, sideOpen: true });
+});
+
+// ---- the comments drawer ----
+
+test("the comments drawer remembers its state, and its width can't be dragged useless", async () => {
+  const { loadPrefs, savePrefs, clampSide, SIDE_MIN, SIDE_MAX, DEFAULT_SIDE } = await import("../public/js/doc-prefs.js");
+  const s = mem();
+  assert.equal(loadPrefs(s).sideOpen, true, "open is the default — the rail is where comments live");
+  assert.equal(loadPrefs(s).sideWidth, DEFAULT_SIDE);
+
+  savePrefs({ ...loadPrefs(s), sideOpen: false, sideWidth: 420 }, s);
+  assert.equal(loadPrefs(s).sideOpen, false);
+  assert.equal(loadPrefs(s).sideWidth, 420);
+
+  // a drag past either end clamps rather than collapsing the column or the prose
+  assert.equal(clampSide(10), SIDE_MIN);
+  assert.equal(clampSide(9999), SIDE_MAX);
+  assert.equal(clampSide("nope"), DEFAULT_SIDE);
+  assert.equal(clampSide(321.6), 322);
+
+  // and the drawer survives an unrelated preference change
+  savePrefs({ ...loadPrefs(s), paper: "dark" }, s);
+  assert.equal(loadPrefs(s).sideWidth, 420);
+  assert.equal(loadPrefs(s).sideOpen, false);
 });

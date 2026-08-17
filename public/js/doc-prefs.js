@@ -42,6 +42,19 @@ export const DEFAULT_FONT = "theme"
 export const fontOf = (key) => DOC_FONTS.find((f) => f.key === key) || DOC_FONTS[0]
 const cleanFont = (v) => (DOC_FONTS.some((f) => f.key === v) ? v : DEFAULT_FONT)
 
+// The comments drawer: whether it's open, and how wide you dragged it. Same
+// class of preference as the others — it changes your view of the page and
+// never the document. Width is clamped so a drag can't leave the prose column
+// unusable or the rail too narrow to hold a comment card.
+export const SIDE_MIN = 240
+export const SIDE_MAX = 560
+export const DEFAULT_SIDE = 300
+export const clampSide = (v) => {
+	const n = Number(v)
+	if (!Number.isFinite(n)) return DEFAULT_SIDE
+	return Math.round(Math.min(SIDE_MAX, Math.max(SIDE_MIN, n)))
+}
+
 const clampLine = (v) => {
 	const n = Number(v)
 	if (!Number.isFinite(n)) return DEFAULT_LINE
@@ -55,14 +68,22 @@ export function loadPrefs(storage = localStorage) {
 			lineHeight: v && v.lineHeight != null ? clampLine(v.lineHeight) : DEFAULT_LINE,
 			paper: cleanPaper(v?.paper),
 			font: cleanFont(v?.font),
+			sideWidth: clampSide(v?.sideWidth),
+			sideOpen: v?.sideOpen !== false,
 		}
 	} catch (e) {
-		return { lineHeight: DEFAULT_LINE, paper: DEFAULT_PAPER, font: DEFAULT_FONT }
+		return { lineHeight: DEFAULT_LINE, paper: DEFAULT_PAPER, font: DEFAULT_FONT, sideWidth: DEFAULT_SIDE, sideOpen: true }
 	}
 }
 
 export function savePrefs(prefs, storage = localStorage) {
-	const clean = { lineHeight: clampLine(prefs?.lineHeight), paper: cleanPaper(prefs?.paper), font: cleanFont(prefs?.font) }
+	const clean = {
+		lineHeight: clampLine(prefs?.lineHeight),
+		paper: cleanPaper(prefs?.paper),
+		font: cleanFont(prefs?.font),
+		sideWidth: clampSide(prefs?.sideWidth),
+		sideOpen: prefs?.sideOpen !== false,
+	}
 	try {
 		storage.setItem(KEY, JSON.stringify(clean))
 	} catch (e) {

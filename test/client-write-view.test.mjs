@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { installDom } from "./dom.mjs";
 
 installDom(); // plainBlockHtml parses through a detached div
-import { docCardHtml, docListHtml, presenceHtml, commentHtml, commentThreadHtml, readerChipsHtml, wordsLabel, formatSource, unformatSource, plainBlockHtml, visChipHtml, visMenuHtml, visLabel, VIS, scrollTargetFor } from "../public/js/write-view.js";
+import { docCardHtml, docListHtml, presenceHtml, commentHtml, commentThreadHtml, readerChipsHtml, wordsLabel, formatSource, unformatSource, plainBlockHtml, visChipHtml, visMenuHtml, visLabel, VIS, scrollTargetFor, inviteOptions, inviteRowHtml, inviteListHtml } from "../public/js/write-view.js";
 
 const DOC = {
   id: "abc", title: "The Upside Down", wordCount: 120, visibility: "private",
@@ -289,4 +289,48 @@ test("scrollTargetFor never asks for a position the page doesn't have", () => {
 
 test("with no sticky head it is plain centring", () => {
   assert.equal(scrollTargetFor({ rectTop: 900, rectH: 100, scrollY: 0, viewportH: 500, headH: 0, maxScroll: 5000 }), 700);
+});
+
+
+// ---- inviting a beta reader ----
+
+const U = (username, extra = {}) => ({ username, color: "#ff3ea5", ...extra });
+
+test("the invite picker lists everyone, friends first and chipped", () => {
+  const rows = inviteOptions({
+    users: [U("zoe"), U("alice"), U("mike"), U("will")],
+    friends: [U("will"), U("zoe")],
+    readers: [],
+    me: "mike",
+  });
+  assert.deepEqual(rows.map((r) => r.username), ["will", "zoe", "alice"], "friends first, then the rest, each A-Z");
+  assert.ok(!rows.some((r) => r.username === "mike"), "you can't invite yourself");
+  assert.equal(rows[0].friend, true);
+  assert.equal(rows[2].friend, false);
+
+  const html = inviteListHtml(rows);
+  assert.ok(html.includes(">friend<"), "a friend says so on the row");
+  assert.ok(html.includes("not a friend yet"), "and everyone else says why they're not offerable");
+  assert.ok(/data-user="alice"[^>]*disabled/.test(inviteRowHtml(rows[2])), "the server's friends-only rule is visible, not an error after the click");
+  assert.ok(!/data-user="will"[^>]*disabled/.test(inviteRowHtml(rows[0])));
+});
+
+test("the picker filters by what you type and drops people already reading", () => {
+  const users = [U("will"), U("willow"), U("mike")];
+  const friends = users;
+  assert.deepEqual(
+    inviteOptions({ users, friends, q: " WIL " }).map((r) => r.username), ["will", "willow"],
+    "case- and space-insensitive substring search",
+  );
+  assert.deepEqual(
+    inviteOptions({ users, friends, readers: [U("will")] }).map((r) => r.username), ["mike", "willow"],
+    "a current beta reader isn't offered again",
+  );
+  assert.ok(inviteListHtml([]).includes("Nobody here by that name"));
+});
+
+test("a picker row escapes the name and can't smuggle a color into the style", () => {
+  const html = inviteRowHtml({ username: '<img src=x onerror=alert(1)>', color: "red;}bad", friend: true });
+  assert.ok(!html.includes("<img"), "the name is escaped");
+  assert.ok(!html.includes("bad"), "and an unpalettable color is dropped");
 });

@@ -121,7 +121,7 @@ export function docCardHtml(d) {
 		(d.comments ? `<span class="doc-pill">💬 ${d.comments}</span>` : "") +
 		(d.readers?.length ? `<span class="doc-pill">✍ ${esc(d.readers.join(", "))}</span>` : "") +
 		`</p>` +
-		`<div class="row doc-card-actions">` +
+		`<div class="doc-card-actions">` +
 		`<a class="ghost doc-open" href="/write?id=${encodeURIComponent(d.id)}">Open</a>` +
 		(d.mine ? `<button class="ghost danger doc-del" type="button">Delete</button>` : "") +
 		`</div>` +
@@ -199,6 +199,35 @@ export function commentThreadHtml(comments, { orphaned = false, isOwner = false,
 		`<ul class="dc-list">${comments.map((c) => commentHtml(c, { isOwner, meName })).join("")}</ul>`
 	)
 }
+
+// ---- inviting a beta reader ----
+// The picker lists EVERY writer, because you shouldn't have to remember how a
+// username is spelled to find it. Friends come first and wear a chip, since
+// they're the only ones who can actually be invited (the server enforces that
+// — sharing a draft is a trust decision). Everyone else is listed but not
+// offerable, which answers "why isn't so-and-so here?" without an error.
+export function inviteOptions({ users = [], friends = [], readers = [], me = "", q = "" } = {}) {
+	const isFriend = new Set(friends.map((f) => f.username))
+	const taken = new Set([...readers.map((r) => r.username), me].filter(Boolean))
+	const s = String(q || "").trim().toLowerCase()
+	return users
+		.filter((u) => !taken.has(u.username) && (!s || u.username.toLowerCase().includes(s)))
+		.map((u) => ({ ...u, friend: isFriend.has(u.username) }))
+		.sort((a, b) => b.friend - a.friend || a.username.localeCompare(b.username))
+}
+
+export const inviteRowHtml = (u) =>
+	`<button type="button" class="pick-row${u.friend ? "" : " not-friend"}" data-user="${esc(u.username)}"` +
+	`${u.friend ? "" : ' disabled aria-disabled="true"'}>` +
+	miniAvatar({ avatar: u.avatar, avatarFit: u.avatarFit, name: u.username, color: u.color }) +
+	`<span class="pick-name" style="color:${safeColor(u.color)}">${esc(u.username)}</span>` +
+	(u.friend ? `<span class="pick-chip">friend</span>` : `<span class="pick-note">not a friend yet</span>`) +
+	`</button>`
+
+export const inviteListHtml = (rows) =>
+	!rows || !rows.length
+		? `<p class="subtle pick-empty">Nobody here by that name.</p>`
+		: rows.map(inviteRowHtml).join("")
 
 // ---- beta-reader chips ----
 export const readerChipsHtml = (readers, canManage) =>

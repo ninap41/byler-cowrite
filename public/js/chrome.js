@@ -98,6 +98,7 @@ const NAV = (page) => `
 	<nav class="nav-drawer" id="navDrawer" aria-label="Main menu">
 		<p class="nav-title">Menu</p>
 		<a href="/dashboard" ${page === "dashboard" ? 'aria-current="page"' : ""}>🏠 Dashboard</a>
+		<a href="/inbox" ${page === "inbox" ? 'aria-current="page"' : ""}>📬 Inbox</a>
 		<a href="/game" ${page === "game" ? 'aria-current="page"' : ""}>✍️ Current game</a>
 		<a href="/writes" ${page === "writes" || page === "write" ? 'aria-current="page"' : ""}>✒️ Solo writes</a>
 		<a href="/archive" ${page === "archive" ? 'aria-current="page"' : ""}>📚 Previous games</a>
@@ -128,25 +129,50 @@ const TOPBAR = `
 		</div>
 	</div>`
 
-// Ko-fi tip widget (floating chat button, bottom-left) — loaded on every page.
+// ---- the foot bar ----
+// Two bits of site furniture that are nobody's main task — viewing the theme
+// and tipping — used to be big floating chips parked over the page, where they
+// covered modals and the corner of every layout. They now live in one thin
+// sticky strip along the bottom: always reachable, never in the way.
+export const FOOT_BAR = `<div class="foot-bar" id="footBar">
+		<button type="button" class="foot-btn" id="peekBtn" aria-pressed="false" title="Hide the UI to view the theme">👁 <span id="peekLabel">View theme</span></button>
+		<span class="foot-dot" aria-hidden="true">·</span>
+		<button type="button" class="foot-btn" id="kofiBtn" title="Support Byler Cowrite on Ko-fi">☕ Support</button>
+	</div>`
+
+// Ko-fi. The floating widget script is gone: it drew its own iframe button
+// wherever it liked, at a size and z-index we didn't control. Instead the tip
+// jar is Ko-fi's own embeddable panel inside our modal — and the iframe is
+// only created the first time someone asks for it, so no third-party script
+// loads on a page view that never wanted one.
 export const KOFI_ACCOUNT = "justthegatekeeper"
-export const KOFI_CONFIG = {
-	type: "floating-chat",
-	"floating-chat.donateButton.text": "Donate?",
-	"floating-chat.donateButton.background-color": "#0a0a0a",
-	"floating-chat.donateButton.text-color": "#fff",
-}
+export const KOFI_PAGE = `https://ko-fi.com/${KOFI_ACCOUNT}`
+export const KOFI_EMBED = `${KOFI_PAGE}/?hidefeed=true&widget=true&embed=true&preview=true`
+export const KOFI_MODAL = `<div class="confirm-modal hidden" id="kofiModal">
+		<div class="confirm-card kofi-card">
+			<div class="kofi-head">
+				<h3>☕ Support Byler Cowrite</h3>
+				<button type="button" class="ghost kofi-x" id="kofiClose" aria-label="Close">✕</button>
+			</div>
+			<iframe id="kofiFrame" title="Ko-fi" loading="lazy"></iframe>
+			<a class="linky kofi-out" href="${KOFI_PAGE}" target="_blank" rel="noopener noreferrer">Open Ko-fi in a new tab instead →</a>
+		</div>
+	</div>`
+
 export function mountKofi(doc = document) {
-	const s = doc.createElement("script")
-	s.src = "https://storage.ko-fi.com/cdn/scripts/overlay-widget.js"
-	s.async = true
-	s.onload = () => {
-		try {
-			;(doc.defaultView || window).kofiWidgetOverlay?.draw(KOFI_ACCOUNT, KOFI_CONFIG)
-		} catch (e) {}
+	doc.body.insertAdjacentHTML("beforeend", KOFI_MODAL)
+	const modal = doc.getElementById("kofiModal")
+	const frame = doc.getElementById("kofiFrame")
+	const close = () => modal.classList.add("hidden")
+	const open = () => {
+		if (!frame.getAttribute("src")) frame.setAttribute("src", KOFI_EMBED) // pay for it only when asked
+		modal.classList.remove("hidden")
 	}
-	doc.body.appendChild(s)
-	return s
+	doc.getElementById("kofiBtn")?.addEventListener("click", open)
+	doc.getElementById("kofiClose").addEventListener("click", close)
+	modal.addEventListener("click", (e) => e.target === modal && close())
+	doc.addEventListener("keydown", (e) => e.key === "Escape" && close())
+	return { open, close, modal, frame }
 }
 
 export function mountChrome({ page = "", nav = true, kofi = true } = {}) {
@@ -184,13 +210,11 @@ export function mountChrome({ page = "", nav = true, kofi = true } = {}) {
 			}
 		})
 	}
-	// Theme peek: a sticky button just above the ko-fi "Support me" chat that
-	// hides every UI layer (content, topbar, nav, toasts, ko-fi) so the theme
-	// background can be admired. The game chat dock deliberately stays visible.
-	document.body.insertAdjacentHTML(
-		"beforeend",
-		`<button type="button" class="peek-btn" id="peekBtn" aria-pressed="false" title="Hide the UI to view the theme">👁 View theme</button>`,
-	)
+	// Theme peek lives in the foot bar: it hides every UI layer (content,
+	// topbar, nav, toasts) so the theme background can be admired. The bar
+	// itself stays — it's the way back — and the game chat dock deliberately
+	// stays visible too.
+	document.body.insertAdjacentHTML("beforeend", FOOT_BAR)
 	const peekBtn = document.getElementById("peekBtn")
 	// GSAP eases the UI layers out/in around the visibility flip; without
 	// GSAP (or with reduced motion) the class toggle alone does the job.
@@ -198,7 +222,7 @@ export function mountChrome({ page = "", nav = true, kofi = true } = {}) {
 	peekBtn.addEventListener("click", () => {
 		const on = !document.body.classList.contains("ui-peek")
 		peekBtn.setAttribute("aria-pressed", String(on))
-		peekBtn.textContent = on ? "👁 Show UI" : "👁 View theme"
+		document.getElementById("peekLabel").textContent = on ? "Show UI" : "View theme"
 		const g = window.gsap
 		if (!g || reduceMotion) return document.body.classList.toggle("ui-peek", on)
 		g.killTweensOf(PEEK_LAYERS)

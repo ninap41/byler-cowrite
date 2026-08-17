@@ -159,7 +159,10 @@ test("the comments pane sticks under the head, and jumps land clear of it", asyn
   assert.match(css.body, /\.doc-side-card \{[^}]*top: calc\(var\(--doc-sticky/, "…directly under the sticky head");
   assert.match(css.body, /#commentPane \{[^}]*overflow-y: auto/, "a long list scrolls inside the pane");
   assert.match(css.body, /span\.cmt \{[^}]*scroll-margin-top: calc\(var\(--doc-sticky/, "a jumped-to word clears the toolbar");
-  assert.match(css.body, /@media \(max-width: 860px\) \{\s*\.doc-side-card \{[^}]*position: static/, "one column: not pinned");
+  // One column: the rail stops being a pinned column and becomes a bottom
+  // sheet, sized by the same saved number the desktop drawer uses for width.
+  assert.match(css.body, /@media \(max-width: 860px\) \{\s*\.doc-side \{[^}]*position: fixed/, "one column: a sheet, not a pinned rail");
+  assert.match(css.body, /\.doc-side-card \{[^}]*height: var\(--doc-side-w/, "the sheet's height is the writer's own");
 
   const { body } = await page("/write");
   assert.ok(body.includes("--doc-sticky"), "the head's real height is published, not guessed");
@@ -313,4 +316,70 @@ test("readers and comment mode sit with visibility, not on the formatting toolba
   const css = await page("/css/base.css");
   assert.match(css.body, /\.head-chip \{[^}]*border-radius: 999px/, "they wear the same chip shape as the visibility one");
   assert.match(css.body, /\.head-chip\.on \{/, "comment mode still shows that it's on");
+});
+
+test("the inbox has a page of its own, linked from the dashboard and the nav", async () => {
+  const inbox = await page("/inbox");
+  assert.equal(inbox.status, 200);
+  assert.ok(inbox.body.includes('id="inboxList"'), "the messages land here");
+  assert.ok(inbox.body.includes("mountInbox"), "same rows and actions as the dashboard preview");
+
+  const dash = await page("/dashboard");
+  assert.ok(dash.body.includes('href="/inbox"'), "the dashboard links to it");
+  assert.ok(dash.body.includes("limit: 5"), "and only previews the newest few");
+
+  const chrome = await page("/js/chrome.js");
+  assert.ok(chrome.body.includes('href="/inbox"'), "it's in the nav drawer too");
+});
+
+test("the messages you type are fixed boxes, not drag-to-resize ones", async () => {
+  const css = await page("/css/dashboard.css");
+  assert.match(css.body, /#helpText \{[^}]*resize: none/s, "the ask-the-admin box");
+  assert.match(css.body, /\.ib-reply textarea,\s*#helpText \{[^}]*resize: none/s, "and the inline reply");
+});
+
+test("a write card's two actions are one matched pair on one side", async () => {
+  const css = await page("/css/base.css");
+  assert.match(css.body, /\.doc-card-actions \{[^}]*justify-content: flex-start/, "both sit at one end");
+  assert.match(css.body, /\.doc-card-actions > \* \{[^}]*width: 96px/, "and Open and Delete are the same size");
+});
+
+test("the comments rail is a drawer: it opens, it closes, and you can resize it", async () => {
+  const { body } = await page("/write");
+  assert.ok(body.includes('id="docSideGrip"'), "a grip to drag");
+  assert.ok(body.includes('id="commentsClose"') && body.includes('id="commentsOpen"'), "closed by the ✕, reopened by the edge tab");
+  assert.ok(body.includes("sideWidth") && body.includes("sideOpen"), "both are remembered as editor prefs");
+  assert.ok(body.includes("window.innerHeight - e.clientY"), "on a phone the sheet is dragged by its height");
+  assert.ok(body.includes('e.key === "ArrowLeft"'), "and the grip answers to the keyboard, not only a drag");
+
+  const css = await page("/css/base.css");
+  assert.match(css.body, /\.doc-main \{[^}]*grid-template-columns: minmax\(0, 1fr\) var\(--doc-side-w/, "the writer's width drives the column");
+  assert.match(css.body, /\.doc-main\.side-closed \{[^}]*grid-template-columns: minmax\(0, 1fr\);/, "closed, the prose gets the page");
+});
+
+test("prose stays selectable on a phone — highlighting it is how you comment", async () => {
+  const css = await page("/css/base.css");
+  assert.match(css.body, /\.doc-editor \{[^}]*-webkit-user-select: text/s, "the surface says it is selectable");
+  assert.match(css.body, /\.doc-editor \{[^}]*-webkit-touch-callout: default/s, "including the long-press callout iOS suppresses");
+
+  const { body } = await page("/write");
+  assert.ok(body.includes("coarsePointer"), "touch is treated differently from a mouse");
+  assert.ok(body.includes("if (!coarsePointer()) $(\"newComment\").focus()"),
+    "autofocus is desktop-only: focusing a box mid-gesture drops the selection you just made");
+  assert.ok(body.includes("if (!touchingText) composerTimer"), "and the composer waits for the finger to lift");
+});
+
+test("the theme peek and the tip jar live in one thin foot bar, not two floating chips", async () => {
+  const chrome = await page("/js/chrome.js");
+  assert.ok(chrome.body.includes('class="foot-bar"'), "one strip holds both");
+  assert.ok(!chrome.body.includes("storage.ko-fi.com"), "the third-party floating widget script is gone");
+  assert.ok(chrome.body.includes("embed=true"), "replaced by ko-fi's own panel in our modal");
+  assert.ok(chrome.body.includes('frame.setAttribute("src"'), "and the iframe is built only when asked for");
+
+  const css = await page("/css/base.css");
+  assert.match(css.body, /--footbar-h: 32px/, "one number the rest of the page clears itself by");
+  assert.match(css.body, /\.foot-bar \{[^}]*height: var\(--footbar-h\)/s);
+  assert.match(css.body, /body \{[^}]*padding: 20px 0 var\(--footbar-h\)/s, "page content ends above it");
+  assert.match(css.body, /\.chat-dock \{[^}]*bottom: var\(--footbar-h\)/s, "so does the game's chat dock");
+  assert.match(css.body, /\.doc-side \{[^}]*bottom: var\(--footbar-h\)/s, "and the comments sheet");
 });
