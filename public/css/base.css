@@ -4928,8 +4928,25 @@ body.doc-page .topbar {
 	position: sticky;
 	top: calc(var(--doc-sticky, 120px) + 18px);
 	max-height: calc(100vh - var(--doc-sticky, 120px) - 34px);
-	overflow-y: auto;
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
 	text-align: left;
+}
+/* The note you're writing is pinned; only the comments below it scroll. */
+#commentComposer {
+	flex: 0 0 auto;
+}
+#commentComposer:not(:empty) {
+	margin-bottom: 10px;
+	padding-bottom: 10px;
+	border-bottom: 1px solid var(--line);
+}
+#commentPane {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-y: auto;
+	overscroll-behavior: contain;
 }
 /* One column: the pane sits under the prose, where sticking it would just
    eat the screen. */
@@ -4937,6 +4954,9 @@ body.doc-page .topbar {
 	.doc-side-card {
 		position: static;
 		max-height: none;
+	}
+	#commentPane {
+		overflow-y: visible;
 	}
 }
 .dc-group {
@@ -4998,18 +5018,49 @@ body.doc-page .topbar {
 	white-space: pre-wrap;
 	word-break: break-word;
 }
+/* Card actions. These are BUTTONS wearing .linky, so the global button rules
+   (pill background, min-width, form padding) were fighting the link styling
+   and winning — hence the squashed, half-clipped lozenges. Reset them into
+   plain text actions: no fill, no border, a hover tint, and Delete in the
+   danger colour so the destructive one reads as destructive. */
 .dc-actions {
 	display: flex;
 	flex-wrap: wrap; /* Accept + Reject + Delete must not widen the rail */
-	gap: 10px;
-	font-size: 0.78rem;
+	align-items: center;
+	gap: 4px;
+	margin-top: 8px;
 }
-/* …and must not stretch to fill it either, the way form buttons do */
-.dc-actions .linky {
+.dc-actions button {
 	flex: 0 0 auto;
 	min-width: 0;
 	width: auto;
-	padding: 2px 0;
+	padding: 4px 8px;
+	border: 0;
+	border-radius: 8px;
+	background: none;
+	box-shadow: none;
+	color: var(--accent-2);
+	font: inherit;
+	font-size: 0.78rem;
+	font-weight: 600;
+	line-height: 1.2;
+	text-decoration: none;
+	cursor: pointer;
+}
+.dc-actions button:hover {
+	background: var(--chip);
+	text-decoration: none;
+}
+.dc-actions .dc-accept {
+	color: var(--good);
+}
+.dc-actions .dc-del,
+.dc-actions .dc-reject {
+	color: var(--accent);
+}
+.dc-actions button:focus-visible {
+	outline: 2px solid var(--accent-2);
+	outline-offset: 1px;
 }
 .dc-orphan-note {
 	font-size: 0.8rem;

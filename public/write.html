@@ -168,6 +168,10 @@
 						<div class="card doc-side-card">
 							<h3 class="dash-h">💬 Comments</h3>
 							<p class="subtle" id="commentHelp">Turn on comment mode to leave notes on your own words.</p>
+							<!-- The composer is pinned: a note you are in the middle of
+							     writing must never scroll out of the pane. Only the list
+							     of existing comments below it scrolls. -->
+							<div id="commentComposer"></div>
 							<div id="commentPane"></div>
 						</div>
 					</aside>
@@ -472,7 +476,7 @@
 			// becomes a proposal the author can accept.
 			function clearComposer() {
 				pendingRange = null
-				$("commentPane").querySelector(".dc-new")?.remove()
+				$("commentComposer").replaceChildren()
 			}
 
 			function renderComposer() {
@@ -487,7 +491,7 @@
 					`<textarea id="newSuggestion" class="hidden" rows="2"></textarea>` +
 					`<div class="row"><button class="ghost" id="newCancel" type="button">Cancel</button>` +
 					`<button class="primary" id="newSend" type="button">Comment</button></div>`
-				$("commentPane").prepend(box)
+				$("commentComposer").replaceChildren(box)
 				$("suggestOn").addEventListener("change", () => {
 					const on = $("suggestOn").checked
 					$("newSuggestion").classList.toggle("hidden", !on)
@@ -516,7 +520,6 @@
 				clearTimeout(composerTimer)
 				// debounced: a drag fires selectionchange on every mousemove
 				composerTimer = setTimeout(() => {
-					$("commentPane").querySelector(".dc-new")?.remove()
 					renderComposer()
 				}, 250)
 			})

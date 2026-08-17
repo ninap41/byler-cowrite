@@ -157,7 +157,7 @@ test("the comments pane sticks under the head, and jumps land clear of it", asyn
   const css = await page("/css/base.css");
   assert.match(css.body, /\.doc-side-card \{[^}]*position: sticky/, "the pane is pinned");
   assert.match(css.body, /\.doc-side-card \{[^}]*top: calc\(var\(--doc-sticky/, "…directly under the sticky head");
-  assert.match(css.body, /\.doc-side-card \{[^}]*overflow-y: auto/, "a long list scrolls inside itself");
+  assert.match(css.body, /#commentPane \{[^}]*overflow-y: auto/, "a long list scrolls inside the pane");
   assert.match(css.body, /span\.cmt \{[^}]*scroll-margin-top: calc\(var\(--doc-sticky/, "a jumped-to word clears the toolbar");
   assert.match(css.body, /@media \(max-width: 860px\) \{\s*\.doc-side-card \{[^}]*position: static/, "one column: not pinned");
 
@@ -206,4 +206,24 @@ test("a heading's size is the heading's — spans inside can't shrink it", async
   const write = await page("/write");
   assert.ok(write.body.includes("headingOnly"), "and the size box turns off in a heading rather than lying");
   assert.ok(write.body.includes("The heading style sets this text's size"), "with a tooltip that says why");
+});
+
+test("comment actions are text buttons, not squashed pills", async () => {
+  const css = await page("/css/base.css");
+  const block = css.body.slice(css.body.indexOf("\n.dc-actions button {"), css.body.indexOf("\n.dc-actions button:hover"));
+  assert.match(block, /border: 0/, "the global button pill is reset");
+  assert.match(block, /background: none/);
+  assert.match(block, /width: auto/, "and they don't stretch to fill the rail");
+  assert.match(css.body, /\.dc-actions \.dc-del,\n\.dc-actions \.dc-reject \{\s*color: var\(--accent\)/,
+    "the destructive ones read as destructive");
+});
+
+test("the composer is pinned above the comments, which scroll under it", async () => {
+  const { body } = await page("/write");
+  assert.ok(body.includes('id="commentComposer"'), "it has its own slot");
+  assert.ok(body.indexOf('id="commentComposer"') < body.indexOf('id="commentPane"'), "above the list");
+  const css = await page("/css/base.css");
+  assert.match(css.body, /#commentComposer \{\s*flex: 0 0 auto/, "the composer never scrolls away");
+  assert.match(css.body, /#commentPane \{[^}]*overflow-y: auto/, "only the list does");
+  assert.match(css.body, /\.doc-side-card \{[^}]*flex-direction: column/, "which is what makes the two behave differently");
 });
