@@ -383,3 +383,28 @@ test("the theme peek and the tip jar live in one thin foot bar, not two floating
   assert.match(css.body, /\.chat-dock \{[^}]*bottom: var\(--footbar-h\)/s, "so does the game's chat dock");
   assert.match(css.body, /\.doc-side \{[^}]*bottom: var\(--footbar-h\)/s, "and the comments sheet");
 });
+
+test("the all-stories shelf can be read as a list or as 3/4/6 across", async () => {
+  const { body } = await page("/stories");
+  assert.ok(body.includes('id="stViewWrap"'), "the picker has a home in the tools row");
+  assert.ok(body.includes("cowriteStoriesView"), "the choice is a habit, so it's remembered");
+  assert.ok(body.includes("viewToggleHtml") && body.includes("cleanStoryView"), "wired to the shared builders");
+
+  const css = await page("/css/base.css");
+  assert.match(css.body, /\.st-grid \{[^}]*grid-template-columns: repeat\(\s*auto-fill/s,
+    "auto-fill, so too many columns degrade instead of shredding the cards");
+  assert.match(css.body, /\.st-grid \{[^}]*var\(--st-cols, 3\)/s, "the chosen count drives the floor");
+  assert.match(css.body, /\.archive-inner\.wide \{[^}]*max-width: min\(1560px/, "multi-column views get more page");
+});
+
+test("the write page is full-bleed and square, not a centred card", async () => {
+  const { body } = await page("/write");
+  assert.ok(body.includes('<body class="write-page">'), "the page owns the layout switch");
+
+  const css = await page("/css/base.css");
+  assert.match(css.body, /\.write-inner \{[^}]*max-width: none/s, "the drafting surface gets the whole window");
+  assert.match(css.body, /body\.write-page \{\s*padding-top: 0;/, "and starts at the top of it");
+  assert.match(css.body, /\.write-page \.doc-shell \{[^}]*border-radius: 0/s, "the sticky slab runs edge to edge");
+  assert.match(css.body, /\.write-page \.doc-editor,[^{]*\{\s*border-radius: 0/s, "so nothing inside it keeps a rounded corner");
+  assert.match(css.body, /\.write-page \.doc-main \{\s*padding: 0 14px/, "only the prose keeps a gutter off the bezel");
+});

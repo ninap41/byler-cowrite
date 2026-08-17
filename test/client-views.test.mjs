@@ -142,3 +142,22 @@ test("exportDocument wraps the html in a standalone styled page", () => {
   assert.ok(doc.includes("<p>body</p>"));
   assert.ok(doc.includes(".al-c{text-align:center}"), "alignment styles included");
 });
+
+// ---- the all-stories layout picker ----
+
+test("the shelf's layout picker offers a list and three column counts", async () => {
+  const { STORY_VIEWS, viewToggleHtml, cleanStoryView, storyView, DEFAULT_STORY_VIEW } =
+    await import("../public/js/archive-view.js");
+  assert.deepEqual(STORY_VIEWS.map((v) => v.key), ["list", "g3", "g4", "g6"]);
+  assert.deepEqual(STORY_VIEWS.map((v) => v.cols), [1, 3, 4, 6]);
+  assert.equal(DEFAULT_STORY_VIEW, "list", "a full-width card per row is the reading default");
+
+  // anything unrecognised (a stale or hand-edited localStorage value) reads as the default
+  for (const junk of ["g9", "", null, 4, "<img>"]) assert.equal(cleanStoryView(junk), "list", JSON.stringify(junk));
+  assert.equal(storyView("g6").cols, 6);
+
+  const html = viewToggleHtml("g4");
+  assert.ok(html.includes('data-view="g4"') && html.includes('aria-pressed="true"'), "the current view is announced");
+  assert.equal((html.match(/aria-pressed="true"/g) || []).length, 1, "exactly one segment is pressed");
+  assert.ok(html.includes('aria-label="4 across"'), "each segment says what it does, glyph or not");
+});

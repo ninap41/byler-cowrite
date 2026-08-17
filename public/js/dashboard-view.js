@@ -115,7 +115,10 @@ function coverGrad(code) {
 	let h = 7
 	for (const ch of String(code)) h = (h * 31 + ch.charCodeAt(0)) >>> 0
 	const a = PALETTE[h % PALETTE.length]
-	const b = PALETTE[(h >> 3) % PALETTE.length]
+	// >>> not >>: a hash past 2^31 is negative under a signed shift, which
+	// indexes off the end of the palette and paints "undefined" into the css —
+	// a card with no cover at all.
+	const b = PALETTE[(h >>> 3) % PALETTE.length]
 	return `linear-gradient(${115 + (h % 130)}deg, ${a}, ${b})`
 }
 export const coverArt = (code) => `background:${coverGrad(code)}`

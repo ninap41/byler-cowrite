@@ -36,6 +36,32 @@ export function writeCardHtml(d) {
 	)
 }
 
+// ---- how the shelf is laid out ----
+// A library is browsed differently depending on what you're doing: reading the
+// details of a few, or scanning the covers of many. The choice is the reader's
+// and it sticks (localStorage), because it's a habit, not a per-visit decision.
+// "list" is one wide card per row (the original); the rest are column counts.
+export const STORY_VIEWS = [
+	{ key: "list", label: "List", glyph: "☰", cols: 1 },
+	{ key: "g3", label: "3 across", glyph: "▤", cols: 3 },
+	{ key: "g4", label: "4 across", glyph: "▦", cols: 4 },
+	{ key: "g6", label: "6 across", glyph: "⣿", cols: 6 },
+]
+export const DEFAULT_STORY_VIEW = "list"
+export const storyView = (key) => STORY_VIEWS.find((v) => v.key === key) || STORY_VIEWS[0]
+export const cleanStoryView = (key) => storyView(key).key
+
+// A segmented control: the pressed segment IS the current layout.
+export const viewToggleHtml = (current) =>
+	`<div class="st-views" id="stViews" role="group" aria-label="Layout">` +
+	STORY_VIEWS.map(
+		(v) =>
+			`<button type="button" class="st-view${v.key === cleanStoryView(current) ? " on" : ""}" ` +
+			`data-view="${v.key}" aria-pressed="${v.key === cleanStoryView(current)}" ` +
+			`data-tip="${v.label}" aria-label="${v.label}">${v.glyph}${v.cols > 1 ? `<span class="st-view-n">${v.cols}</span>` : ""}</button>`,
+	).join("") +
+	`</div>`
+
 export const archiveMetaText = (g) => `${g.code} · ${g.phase === "over" ? "finished" : "paused"} · ${fmtWhen(g.savedAt)}`
 
 // Story html in snapshots already passed through sanitizeRich() server-side.

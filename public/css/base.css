@@ -982,6 +982,85 @@ body {
 	flex: none;
 	min-width: 0;
 }
+/* ---- The all-stories shelf: list or N across ----
+   The reader picks how many covers share a row. `auto-fill` with a floor
+   derived from the chosen count gives exactly that many columns when they fit
+   and quietly drops to fewer when they'd be slivers — so "6 across" on a
+   laptop degrades instead of shredding the cards. */
+.st-grid {
+	display: grid;
+	gap: 14px;
+	grid-template-columns: repeat(
+		auto-fill,
+		minmax(max(190px, calc((100% - (var(--st-cols, 3) - 1) * 14px) / var(--st-cols, 3))), 1fr)
+	);
+	align-items: stretch;
+}
+.st-grid .game-card {
+	margin-bottom: 0;
+	height: 100%;
+}
+/* Past four across there isn't room for a paragraph of prompt — the cover and
+   the title do the work, and the metadata stops competing with them. */
+.st-grid .gc-date {
+	font-size: 0.68rem;
+}
+.st-grid .game-card .gc-prompt {
+	font-size: 0.94rem;
+	display: -webkit-box;
+	-webkit-line-clamp: 3;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+.st-grid .game-card .gc-meta {
+	gap: 6px;
+	font-size: 0.66rem;
+}
+/* Multi-column views need more page than the 860px reading column. */
+.archive-inner.wide {
+	max-width: min(1560px, 100%);
+}
+
+/* the layout picker: one segment per view, the pressed one is the current */
+.st-views {
+	display: flex;
+	gap: 4px;
+	align-items: center;
+	background: var(--panel-2);
+	border: 1px solid var(--panel-brd);
+	border-radius: 12px;
+	padding: 3px;
+}
+.st-view {
+	display: inline-flex;
+	align-items: center;
+	gap: 3px;
+	min-width: 0;
+	width: auto;
+	flex: 0 0 auto;
+	padding: 6px 9px;
+	border: 0;
+	border-radius: 9px;
+	background: none;
+	box-shadow: none;
+	color: var(--muted);
+	font: 600 0.78rem/1 var(--font-body);
+	cursor: pointer;
+}
+.st-view:hover {
+	color: var(--ink);
+}
+.st-view.on {
+	background: var(--chip);
+	color: var(--ink);
+	border: 1px solid var(--chip-brd);
+	padding: 5px 8px; /* the border must not move the row */
+}
+.st-view-n {
+	font-family: var(--font-mono);
+	font-size: 0.7rem;
+}
+
 .game-card {
 	width: 100%;
 	text-align: left;
@@ -4582,10 +4661,38 @@ body.ui-peek .turn-toast {
 }
 
 /* editor page */
+/* ---- The write page is full-bleed ----
+   A drafting surface is the whole app while you're in it, so it gets the whole
+   window rather than a centred 1180px card floating on the theme: the sticky
+   head/toolbar slab runs edge to edge with square corners (a full-width bar
+   with rounded ends reads as a card that overflowed), and only the prose row
+   keeps a gutter so the text never touches the bezel. */
 .write-inner {
-	max-width: 1180px;
-	margin: 0 auto;
+	max-width: none;
+	margin: 0;
 	text-align: left;
+}
+body.write-page {
+	padding-top: 0;
+}
+.write-page .doc-shell {
+	top: 0;
+	margin: 0 0 14px;
+	border-radius: 0;
+	border-left: 0;
+	border-right: 0;
+	border-top: 0;
+}
+.write-page .doc-main {
+	padding: 0 14px;
+}
+/* Square everything the slab touches — mixed radii inside a full-bleed page
+   look like leftovers rather than a decision. */
+.write-page .doc-editor,
+.write-page .doc-source,
+.write-page .doc-side-card,
+.write-page .restore-bar {
+	border-radius: 0;
 }
 .doc-title-input {
 	flex: 1;
@@ -6005,7 +6112,7 @@ body.resizing-side {
 		position: relative;
 		top: auto;
 		margin-bottom: 10px;
-		border-radius: 14px;
+		border-radius: 0;
 	}
 
 	/* ---- ~20 controls become ONE strip you swipe, not five wrapped rows ----
@@ -6190,11 +6297,11 @@ body.resizing-side {
 	}
 
 	/* ---- Page gutters ----
-	   .write-inner and .archive-inner are max-width + auto margins with no
-	   padding of their own, so below ~880px they run flush against the bezel.
+	   .archive-inner is max-width + auto margins with no padding of its own,
+	   so below ~880px it runs flush against the bezel. (The write page is
+	   deliberately full-bleed — .doc-main carries its own gutter there.)
 	   The .wrap > guard keeps this off .archive-drawer, which is padded already.
 	   This also gutters /archive, /stories and /admin — same wrapper. */
-	.write-inner,
 	.wrap > .archive-inner {
 		padding-left: 14px;
 		padding-right: 14px;

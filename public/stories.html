@@ -36,6 +36,9 @@
 						<option value="words-desc">Most words</option>
 						<option value="words-asc">Fewest words</option>
 					</select>
+					<!-- how many covers per row: filled in by the page from the
+					     reader's saved choice -->
+					<span id="stViewWrap" style="flex: 0 0 auto"></span>
 				</div>
 
 				<div id="storiesList"></div>
@@ -63,7 +66,16 @@
 			import { api } from "/js/api.js"
 			import { mountChrome, setUserChip } from "/js/chrome.js"
 			import { requireAuth } from "/js/auth-guard.js"
-			import { gameCardHtml, writeCardHtml, archiveMetaText, archiveStoryHtml, fmtWhen } from "/js/archive-view.js"
+			import {
+				gameCardHtml,
+				writeCardHtml,
+				archiveMetaText,
+				archiveStoryHtml,
+				fmtWhen,
+				viewToggleHtml,
+				storyView,
+				cleanStoryView,
+			} from "/js/archive-view.js"
 			import { esc } from "/js/util.js"
 
 			mountChrome({ page: "stories" })
@@ -76,6 +88,33 @@
 
 			let page = 1
 			let pages = 1
+
+			// ---- layout ----
+			// List or N-across, remembered per browser. The column count is a CSS
+			// variable on the list; the grid itself falls back to fewer columns
+			// when they'd be narrower than a card can usefully be, so choosing 6
+			// on a laptop degrades instead of producing slivers. Multi-column
+			// views also widen the page — 4 covers can't share an 860px column.
+			const VIEW_KEY = "cowriteStoriesView"
+			let view = cleanStoryView(localStorage.getItem(VIEW_KEY))
+			function applyView() {
+				const v = storyView(view)
+				const list = $("storiesList")
+				list.classList.toggle("st-grid", v.cols > 1)
+				list.style.setProperty("--st-cols", String(v.cols))
+				document.querySelector(".archive-inner").classList.toggle("wide", v.cols > 1)
+				$("stViewWrap").innerHTML = viewToggleHtml(view)
+			}
+			$("stViewWrap").addEventListener("click", (e) => {
+				const btn = e.target.closest(".st-view")
+				if (!btn) return
+				view = cleanStoryView(btn.dataset.view)
+				try {
+					localStorage.setItem(VIEW_KEY, view)
+				} catch (err) {}
+				applyView()
+			})
+			applyView()
 
 			// ?user=NAME narrows the library to one writer's games (linked from
 			// their profile) — the heading and a back-to-profile link follow suit
