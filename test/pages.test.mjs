@@ -240,7 +240,25 @@ test("the composer's motion is GSAP, with a reduced-motion path", async () => {
   const { body } = await page("/write");
   assert.ok(body.includes("prefers-reduced-motion"), "motion is optional");
   assert.ok(body.includes("function foldTo"), "the boxes fold rather than blink");
-  assert.ok(body.includes("showCommentHelp(false)"), "the how-to-start line goes while a comment is being written");
-  assert.ok(body.includes("showCommentHelp(true)"), "and comes back when the composer closes");
+  assert.ok(!body.includes('id="commentHelp"'), "the how-to-start line is a tooltip, not a standing line of the rail");
   assert.ok(body.includes('foldTo($("newComment"), !on)'), "checking Suggest swaps the note out for the rewrite");
+});
+
+test("the composer asks what you're leaving before it asks for the words", async () => {
+  const { body } = await page("/write");
+  const composer = body.slice(body.indexOf('class="dc-quote"'), body.indexOf('id="newCancel"'));
+  assert.ok(composer.indexOf('id="suggestOn"') < composer.indexOf('id="newComment"'),
+    "the note/rewrite choice sits above the box it decides");
+  assert.ok(composer.includes('rows="5"'), "and the box is tall enough to write in");
+  const css = await page("/css/base.css");
+  assert.match(css.body, /\.dc-new textarea \{[^}]*min-height: 116px/);
+  assert.match(css.body, /\.dc-new textarea \{[^}]*font-size: 0\.84rem/, "sized for a side rail, not for prose");
+});
+
+test("how to start a comment lives on the Comments heading's tooltip", async () => {
+  const { body } = await page("/write");
+  assert.ok(body.includes('id="commentsHeading"'), "the heading is the trigger");
+  assert.match(body, /id="commentsHeading" data-tip="Turn on comment mode/, "and carries the hint for the resting state");
+  assert.ok(body.includes('$("commentsHeading").dataset.tip = commentMode'), "which follows the mode");
+  assert.ok(body.includes("Select any words in the story to comment on them."), "the comment-mode wording is kept");
 });

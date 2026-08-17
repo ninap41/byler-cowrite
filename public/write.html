@@ -5,7 +5,10 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<script>
 			// Apply the saved theme before first paint (initTheme() re-validates it later)
-			try { var _t = localStorage.getItem("cowriteTheme"); if (_t) document.documentElement.setAttribute("data-theme", _t) } catch (e) {}
+			try {
+				var _t = localStorage.getItem("cowriteTheme")
+				if (_t) document.documentElement.setAttribute("data-theme", _t)
+			} catch (e) {}
 		</script>
 		<title>Byler Cowrite — Solo Write</title>
 		<link rel="icon" type="image/x-icon" href="./favicon.ico?v=2" />
@@ -100,7 +103,11 @@
 							<!-- Line spacing is a VIEW preference: it never enters the html,
 							     never reaches the server, and is remembered per browser. -->
 							<span class="tb-group">
-								<span class="stepper pref-stepper" id="lineStepper" data-tip="Line spacing — your view only, not saved into the story">
+								<span
+									class="stepper pref-stepper"
+									id="lineStepper"
+									data-tip="Line spacing — your view only, not saved into the story"
+								>
 									<span class="step-label">↕</span>
 									<button class="step-btn" id="lsDown" type="button" aria-label="Tighter line spacing">−</button>
 									<span class="step-value" id="lsValue">1.7</span>
@@ -124,8 +131,12 @@
 							<!-- Segmented control: the highlighted segment IS the current
 							     mode. Comment mode is a third mode, not a stray button. -->
 							<div class="mode-switch" id="modeSwitch" role="group" aria-label="Editor mode">
-								<button class="mode-btn on" id="modeRich" type="button" aria-pressed="true" title="Write with the toolbar">Rich text</button>
-								<button class="mode-btn" id="modeHtml" type="button" aria-pressed="false" title="Edit the raw HTML">HTML</button>
+								<button class="mode-btn on" id="modeRich" type="button" aria-pressed="true" title="Write with the toolbar">
+									Rich text
+								</button>
+								<button class="mode-btn" id="modeHtml" type="button" aria-pressed="false" title="Edit the raw HTML">
+									HTML
+								</button>
 								<button
 									class="mode-btn"
 									id="commentToggle"
@@ -139,7 +150,6 @@
 								</button>
 							</div>
 						</div>
-
 					</div>
 					<!-- Offer to restore a newer local draft rather than clobbering
 					     either copy. It lives inside the sticky shell, under the
@@ -156,18 +166,24 @@
 
 				<div class="doc-main">
 					<div class="doc-col">
-						<div class="editor doc-editor" id="docEditor" contenteditable="true" data-placeholder="Start writing… type / for the reference bank"></div>
+						<div
+							class="editor doc-editor"
+							id="docEditor"
+							contenteditable="true"
+							data-placeholder="Start writing… type / for the reference bank"
+						></div>
 						<textarea class="editor doc-editor doc-source hidden" id="docSource" spellcheck="false"></textarea>
 						<p class="hint" id="editorHint">
 							Type <b>/</b> for action verbs, dialogue tags and more · Ctrl/⌘+S to save · autosaved locally every 30s
 						</p>
-
 					</div>
 
 					<aside class="doc-side" id="docSide">
 						<div class="card doc-side-card">
-							<h3 class="dash-h" style="margin-top: 0">💬 Comments</h3>
-							<p class="subtle" id="commentHelp">Turn on comment mode to leave notes on your own words.</p>
+							<!-- How to start a comment is a hint, not a standing
+							     announcement: it rides the heading's tooltip so it
+							     doesn't take a line of the rail forever. -->
+							<h3 id="commentsHeading" data-tip="Turn on comment mode to leave notes on your own words.">💬 Comments</h3>
 							<!-- The composer is pinned: a note you are in the middle of
 							     writing must never scroll out of the pane. Only the list
 							     of existing comments below it scrolls. -->
@@ -219,12 +235,32 @@
 			import { mountChrome, setUserChip } from "/js/chrome.js"
 			import { requireAuth } from "/js/auth-guard.js"
 			import { cleanHtml, asterisksToTags, FONT_SIZES, newCid } from "/js/components/editor.js"
-			import { absorbFontTags, sizesInRange, nearestSize, parseSize, clearSizesInBlocks, headingOnly, DEFAULT_SIZE } from "/js/components/font-size.js"
+			import {
+				absorbFontTags,
+				sizesInRange,
+				nearestSize,
+				parseSize,
+				clearSizesInBlocks,
+				headingOnly,
+				DEFAULT_SIZE,
+			} from "/js/components/font-size.js"
 			import { loadPrefs, savePrefs, stepLine, DEFAULT_LINE, PAPERS } from "/js/doc-prefs.js"
 			import { mountSlashPalette } from "/js/components/slash-palette.js"
 			import { loadDraft, saveDraft, clearDraft, draftIsNewer } from "/js/doc-store.js"
 			import { createHistory } from "/js/components/history.js"
-			import { presenceHtml, commentThreadHtml, readerChipsHtml, wordsLabel, formatSource, unformatSource, plainBlockHtml, visChipHtml, visMenuHtml, visOf, scrollTargetFor } from "/js/write-view.js"
+			import {
+				presenceHtml,
+				commentThreadHtml,
+				readerChipsHtml,
+				wordsLabel,
+				formatSource,
+				unformatSource,
+				plainBlockHtml,
+				visChipHtml,
+				visMenuHtml,
+				visOf,
+				scrollTargetFor,
+			} from "/js/write-view.js"
 			import { esc } from "/js/util.js"
 
 			mountChrome({ page: "write" })
@@ -374,11 +410,9 @@
 				$("commentToggle").setAttribute("aria-pressed", String(commentMode))
 				$("docToolbar").classList.toggle("dimmed", commentMode || sourceMode)
 				$("docEditor").classList.toggle("commenting", commentMode)
-				$("commentHelp").textContent = commentMode
+				$("commentsHeading").dataset.tip = commentMode
 					? "Select any words in the story to comment on them."
-					: canEditDoc()
-						? "Turn on comment mode to leave notes on your own words."
-						: "Select any words in the story to comment on them."
+					: "Turn on comment mode to leave notes on your own words."
 				if (!commentMode) clearComposer()
 			}
 
@@ -508,7 +542,8 @@
 				const isOwner = canEditDoc()
 				const opts = { isOwner, meName: me?.username || "" }
 				let html = live.map((c) => commentThreadHtml([c], opts)).join("")
-				if (orphans.length) html += `<div class="dc-group orphan">${commentThreadHtml(orphans, { ...opts, orphaned: true })}</div>`
+				if (orphans.length)
+					html += `<div class="dc-group orphan">${commentThreadHtml(orphans, { ...opts, orphaned: true })}</div>`
 				if (done.length)
 					html += `<div class="dc-group done"><p class="dc-orphan-note">Done (${done.length})</p>${commentThreadHtml(done, opts)}</div>`
 				$("commentPane").innerHTML = html || `<p class="subtle">No comments yet.</p>`
@@ -547,17 +582,12 @@
 				const from = show ? 0 : el.getBoundingClientRect().height
 				if (show) el.classList.remove("hidden")
 				const to = show ? el.scrollHeight : 0
-				g.fromTo(el, { height: from, opacity: show ? 0 : 1 },
-					{ height: to, opacity: show ? 1 : 0, duration: 0.2, ease: show ? "power2.out" : "power2.in", onComplete: finish })
+				g.fromTo(
+					el,
+					{ height: from, opacity: show ? 0 : 1 },
+					{ height: to, opacity: show ? 1 : 0, duration: 0.2, ease: show ? "power2.out" : "power2.in", onComplete: finish },
+				)
 				el._foldTimer = setTimeout(finish, 420)
-			}
-
-			// The help line explains how to START a comment, so it has no business
-			// being on screen once one is being written. Same fold as the boxes —
-			// height and opacity together, so nothing jumps.
-			const showCommentHelp = (show) => {
-				const el = $("commentHelp")
-				if (el.textContent.trim()) foldTo(el, show)
 			}
 
 			function clearComposer() {
@@ -570,7 +600,6 @@
 					g.to(box, { opacity: 0, y: -6, duration: 0.15, ease: "power2.in", onComplete: drop })
 					setTimeout(drop, 380) // rAF can be frozen; the box still has to go
 				} else drop()
-				showCommentHelp(true)
 			}
 
 			function renderComposer() {
@@ -580,13 +609,14 @@
 				box.className = "dc-new"
 				box.innerHTML =
 					`<p class="dc-quote">${esc(quote.slice(0, 200))}</p>` +
-					`<textarea id="newComment" rows="3" placeholder="Leave a note…"></textarea>` +
+					// the choice of WHAT you're leaving comes before the box you
+					// leave it in, since it decides which box that is
 					`<label class="dc-suggest-toggle"><input type="checkbox" id="suggestOn" /> Suggest a rewrite</label>` +
-					`<textarea id="newSuggestion" class="hidden" rows="2"></textarea>` +
+					`<textarea id="newComment" rows="5" placeholder="Leave a note…"></textarea>` +
+					`<textarea id="newSuggestion" class="hidden" rows="5"></textarea>` +
 					`<div class="row"><button class="ghost" id="newCancel" type="button">Cancel</button>` +
 					`<button class="primary" id="newSend" type="button">Comment</button></div>`
 				$("commentComposer").replaceChildren(box)
-				showCommentHelp(false)
 				anim()?.from(box, { opacity: 0, y: -8, duration: 0.22, ease: "power2.out" })
 				// Suggesting swaps the note out for the rewrite: the proposed words
 				// ARE the message, and two boxes at once crowd a narrow rail.
@@ -685,18 +715,27 @@
 					// copy is dirty the moment they place an anchor, and a dirty editor
 					// ignores incoming html pushes rather than moving their caret.
 					const accept = !!e.target.closest(".dc-accept")
-					decideLocally(comments.find((c) => c.id === commentId), accept)
+					decideLocally(
+						comments.find((c) => c.id === commentId),
+						accept,
+					)
 					socket?.emit("doc-comment-decide", { auth: getToken(), id: docId, commentId, accept })
-				}
-				else if (e.target.closest(".dc-resolve"))
-					socket?.emit("doc-comment-resolve", { auth: getToken(), id: docId, commentId, resolved: !li.classList.contains("resolved") })
+				} else if (e.target.closest(".dc-resolve"))
+					socket?.emit("doc-comment-resolve", {
+						auth: getToken(),
+						id: docId,
+						commentId,
+						resolved: !li.classList.contains("resolved"),
+					})
 				else if (e.target.closest(".dc-del")) socket?.emit("doc-comment-delete", { auth: getToken(), id: docId, commentId })
 				// a plain click on the card jumps to the words it's about
 				else focusComment(li.dataset.cid || null, { scroll: "anchor" })
 			})
 			// ---- editing ----
 			// Prefer real tags over <span style> for execCommand output.
-			try { document.execCommand("styleWithCSS", false, false) } catch (e) {}
+			try {
+				document.execCommand("styleWithCSS", false, false)
+			} catch (e) {}
 
 			$("docToolbar").addEventListener("mousedown", (e) => {
 				const b = e.target.closest("button[data-cmd]")
@@ -848,8 +887,15 @@
 					// Without a border on each button, the pressed state IS the only
 					// signal that bold/italic/underline/strike are on — so keep it
 					// in step with the caret.
-					for (const [cls, cmd] of [["tb-b", "bold"], ["tb-i", "italic"], ["tb-u", "underline"], ["tb-s", "strikeThrough"]])
-						$("docToolbar").querySelector("." + cls)?.classList.toggle("on", document.queryCommandState(cmd))
+					for (const [cls, cmd] of [
+						["tb-b", "bold"],
+						["tb-i", "italic"],
+						["tb-u", "underline"],
+						["tb-s", "strikeThrough"],
+					])
+						$("docToolbar")
+							.querySelector("." + cls)
+							?.classList.toggle("on", document.queryCommandState(cmd))
 				} catch (e) {}
 			}
 			$("docEditor").addEventListener("keyup", syncFontBox)
@@ -1073,7 +1119,7 @@
 				$("modeHtml").setAttribute("aria-pressed", String(toSource))
 				$("editorHint").innerHTML = toSource
 					? "Editing raw HTML — unsupported tags are stripped when you switch back or save."
-					: 'Type <b>/</b> for action verbs, dialogue tags and more · Ctrl/⌘+S to save · autosaved locally every 30s'
+					: "Type <b>/</b> for action verbs, dialogue tags and more · Ctrl/⌘+S to save · autosaved locally every 30s"
 				if (!toSource) updateWords()
 				;(toSource ? $("docSource") : $("docEditor")).focus()
 				setDirty(true)
@@ -1202,7 +1248,9 @@
 					const readers = doc.readerRows?.length || 0
 					const line =
 						`Anyone with an account will be able to read “${doc.title || "Untitled"}”.` +
-						(readers ? `\n\nYour ${readers} beta reader${readers === 1 ? "" : "s"} keep${readers === 1 ? "s" : ""} their comments — nobody else can comment.` : "") +
+						(readers
+							? `\n\nYour ${readers} beta reader${readers === 1 ? "" : "s"} keep${readers === 1 ? "s" : ""} their comments — nobody else can comment.`
+							: "") +
 						`\n\nYou can make it private again at any time.`
 					if (!window.confirm(line)) return
 				}
