@@ -36,6 +36,12 @@ export function readDoc(id) {
 }
 
 export function writeDoc(doc) {
+  // An anchor with no live comment behind it is not a legal state, and the
+  // author's editor is the one thing that can reintroduce one: their undo
+  // stack remembers the span, and a dirty editor ignores the server's html
+  // push, so a resolve-then-undo-then-save used to smuggle the marker back in.
+  // Every write goes through here, so this is where it's guaranteed.
+  doc.html = pruneAnchors(doc.html, doc.comments);
   doc.updatedAt = Date.now();
   doc.wordCount = countWords(doc.html);
   const json = JSON.stringify(doc, null, 1);
@@ -160,6 +166,21 @@ function anchorSpan(html, cid) {
 export function stripAnchor(html, cid) {
   const s = anchorSpan(html, cid);
   return s ? html.slice(0, s.at) + html.slice(s.from, s.to) + html.slice(s.end) : String(html ?? "");
+}
+
+// The cids that may legally wear an underline: a comment that still exists
+// and hasn't been resolved. Resolving deliberately un-underlines the words, so
+// a resolved comment's cid is no more anchorable than a deleted one's.
+export const liveCids = (comments) =>
+  new Set((comments || []).filter((c) => c && !c.resolved && c.cid).map((c) => c.cid));
+
+// Unwrap every anchor whose comment is gone or resolved. The words always
+// stay — only the marker goes.
+export function pruneAnchors(html, comments) {
+  const live = liveCids(comments);
+  let out = String(html ?? "");
+  for (const cid of anchorCids(out)) if (!live.has(cid)) out = stripAnchor(out, cid);
+  return out;
 }
 
 // Accept a suggestion: the anchored text becomes the proposed text, and the

@@ -181,3 +181,10 @@ test("the comments column is tall enough for its sticky child to travel", async 
   assert.match(css.body, /\.doc-side \{[^}]*align-self: stretch/,
     "grid items don't stretch under align-items:start, and a short column can't stick");
 });
+
+test("the editor drops an underline the moment its comment stops existing", async () => {
+  const { body } = await page("/write");
+  assert.ok(body.includes("function pruneLocalAnchors"), "the editor mirrors the server's rule");
+  assert.ok(body.includes("renderComments() {\n\t\t\t\tpruneLocalAnchors()"), "…on every comments update, and after an undo");
+  assert.ok(body.includes("pendingCids"), "a just-sent comment's anchor is exempt until the server echoes it");
+});

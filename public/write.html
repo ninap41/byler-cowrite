@@ -416,7 +416,32 @@
 			// Cards are ordered by where their words sit in the story, so the pane
 			// reads top-to-bottom like the prose does. Comments whose anchor is gone
 			// (the author rewrote that passage) fall to the bottom as orphans.
+			// Anchors we've just placed but the server hasn't echoed back yet —
+			// without this the prune below would strip a brand-new comment's
+			// underline in the moment between sending it and hearing about it.
+			const pendingCids = new Set()
+
+			// The editor's mirror of writeDoc's rule: an underline is only legal
+			// while a live, unresolved comment stands behind it. Resolving,
+			// deleting, rejecting — and then undoing — all used to leave the span
+			// sitting in the html (visible in the HTML view, and saved back on the
+			// next save). The words always stay; only the marker goes.
+			function pruneLocalAnchors() {
+				const live = new Set(comments.filter((c) => !c.resolved && c.cid).map((c) => c.cid))
+				let changed = false
+				for (const a of anchorsInDoc()) {
+					const cid = a.dataset.cid
+					if (live.has(cid) || pendingCids.has(cid)) continue
+					a.replaceWith(...a.childNodes)
+					changed = true
+				}
+				// merge the text nodes the unwrap left split apart
+				if (changed) $("docEditor").normalize()
+				return changed
+			}
+
 			function renderComments() {
+				pruneLocalAnchors()
 				const order = anchorsInDoc().map((a) => a.dataset.cid)
 				const anchored = (c) => c.cid && order.includes(c.cid)
 				const live = comments.filter((c) => !c.resolved && anchored(c))
@@ -520,6 +545,7 @@
 				// The author owns the html, so their copy is now dirty and must be
 				// saved; a reader's copy is only a local echo of what they proposed.
 				if (canEditDoc()) setDirty(true)
+				pendingCids.add(cid)
 				clearComposer()
 				window.getSelection()?.removeAllRanges()
 				activeCid = cid
@@ -1124,6 +1150,9 @@
 				socket.on("doc-comments", ({ id, comments: rows }) => {
 					if (id !== docId) return
 					comments = rows
+					// the server has spoken: nothing is "just sent" any more, so any
+					// anchor it doesn't know about is fair game for the prune
+					for (const cid of pendingCids) if (rows.some((c) => c.cid === cid)) pendingCids.delete(cid)
 					renderComments()
 				})
 				socket.on("doc-updated", ({ id, html, title }) => {

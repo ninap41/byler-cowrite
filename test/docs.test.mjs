@@ -569,3 +569,104 @@ test("a beta reader's comment lands while the author has unsaved work — withou
   assert.equal(after.comments.length, 1, "the smuggled edit is still refused whole");
   assert.ok(!after.html.includes("BOB WAS HERE"));
 });
+
+// ---- an anchor with no live comment is not a legal state ----
+// Reported from the HTML view: resolve or delete a comment, hit undo, save —
+// and the <span class="cmt" data-cid="…"> was still sitting in the document.
+// The author's editor is the one place that can reintroduce one (their undo
+// stack remembers it, and a dirty editor ignores the server's html push), so
+// the write path itself has to be the guarantee.
+
+const anchorsIn = (html) => (html.match(/data-cid="[0-9a-f]{12}"/g) || []).length;
+
+test("saving strips an anchor whose comment no longer exists", async () => {
+  const doc = await newDoc(alice.token, "Orphan Anchor");
+  const html = '<p>his <span class="cmt" data-cid="0f0f0f0f0f0f">striped shirt</span> hangs</p>';
+  const saved = await ctx.api("/api/docs/" + doc.id, { html }, alice.token, "PUT");
+  assert.equal(saved.status, 200);
+  assert.equal(anchorsIn(saved.data.doc.html), 0, "no comment, no anchor");
+  assert.ok(saved.data.doc.html.includes("striped shirt"), "the words stay — only the marker goes");
+  assert.equal((await docOf(doc.id)).html.includes("data-cid"), false, "and it's gone from the stored data too");
+});
+
+test("a live comment's anchor survives the same save", async () => {
+  const doc = await commentableDoc();
+  const B = await ctx.conn();
+  B.emit("doc-open", { auth: bob.token, id: doc.id });
+  await ctx.wait(150);
+  B.emit("doc-comment", { auth: bob.token, id: doc.id, cid: "1a1a1a1a1a1a", html: anchored("1a1a1a1a1a1a"), text: "keep me" });
+  await ctx.wait(250);
+
+  const withAnchor = (await docOf(doc.id)).html;
+  assert.equal(anchorsIn(withAnchor), 1);
+  const saved = await ctx.api("/api/docs/" + doc.id, { html: withAnchor }, alice.token, "PUT");
+  assert.equal(anchorsIn(saved.data.doc.html), 1, "an anchor with a live comment is left alone");
+});
+
+test("resolving, then undoing and saving, does not put the underline back", async () => {
+  const doc = await commentableDoc();
+  const B = await ctx.conn();
+  B.emit("doc-open", { auth: bob.token, id: doc.id });
+  await ctx.wait(150);
+  B.emit("doc-comment", { auth: bob.token, id: doc.id, cid: "2b2b2b2b2b2b", html: anchored("2b2b2b2b2b2b"), text: "resolve me" });
+  await ctx.wait(250);
+  const c = (await docOf(doc.id)).comments[0];
+
+  const A = await ctx.conn();
+  A.emit("doc-open", { auth: alice.token, id: doc.id });
+  await ctx.wait(150);
+  A.emit("doc-comment-resolve", { auth: alice.token, id: doc.id, commentId: c.id, resolved: true });
+  await ctx.wait(250);
+  assert.equal(anchorsIn((await docOf(doc.id)).html), 0, "resolving takes the underline");
+
+  // the author's undo brings the anchor back into THEIR editor, and they save
+  const undone = await ctx.api("/api/docs/" + doc.id, { html: anchored("2b2b2b2b2b2b") }, alice.token, "PUT");
+  assert.equal(anchorsIn(undone.data.doc.html), 0, "a resolved comment's anchor cannot come back");
+  assert.ok(undone.data.doc.html.includes("striped shirt"), "the words are untouched");
+});
+
+test("deleting, then undoing and saving, does not put the underline back", async () => {
+  const doc = await commentableDoc();
+  const B = await ctx.conn();
+  B.emit("doc-open", { auth: bob.token, id: doc.id });
+  await ctx.wait(150);
+  B.emit("doc-comment", { auth: bob.token, id: doc.id, cid: "3c3c3c3c3c3c", html: anchored("3c3c3c3c3c3c"), text: "delete me" });
+  await ctx.wait(250);
+  const c = (await docOf(doc.id)).comments[0];
+
+  B.emit("doc-comment-delete", { auth: bob.token, id: doc.id, commentId: c.id });
+  await ctx.wait(250);
+  const after = await docOf(doc.id);
+  assert.equal(after.comments.length, 0);
+  assert.equal(anchorsIn(after.html), 0);
+
+  const undone = await ctx.api("/api/docs/" + doc.id, { html: anchored("3c3c3c3c3c3c") }, alice.token, "PUT");
+  assert.equal(anchorsIn(undone.data.doc.html), 0, "a deleted comment's anchor cannot come back");
+});
+
+test("pruning an orphan anchor leaves the formatting around it alone", async () => {
+  // the shape from the report: a size span wrapping the comment anchor
+  const doc = await newDoc(alice.token, "Nested Orphan");
+  const html = '<p><span class="fs-12"><span class="cmt" data-cid="4d4d4d4d4d4d">The bedroom threshold</span> feels like a boundary</span></p>';
+  const saved = await ctx.api("/api/docs/" + doc.id, { html }, alice.token, "PUT");
+  assert.equal(anchorsIn(saved.data.doc.html), 0, "the marker goes");
+  assert.ok(saved.data.doc.html.includes('<span class="fs-12">'), "the size span stays");
+  assert.ok(saved.data.doc.html.includes("The bedroom threshold feels like a boundary"), "and so does every word");
+});
+
+test("a resolved comment keeps its record, it just stops underlining", async () => {
+  const doc = await commentableDoc();
+  const B = await ctx.conn();
+  B.emit("doc-open", { auth: bob.token, id: doc.id });
+  await ctx.wait(150);
+  B.emit("doc-comment", { auth: bob.token, id: doc.id, cid: "5e5e5e5e5e5e", html: anchored("5e5e5e5e5e5e"), text: "still here" });
+  await ctx.wait(250);
+  const c = (await docOf(doc.id)).comments[0];
+  B.emit("doc-comment-resolve", { auth: bob.token, id: doc.id, commentId: c.id, resolved: true });
+  await ctx.wait(250);
+
+  const after = await docOf(doc.id);
+  assert.equal(after.comments.length, 1, "the note itself is not deleted");
+  assert.equal(after.comments[0].resolved, true);
+  assert.equal(anchorsIn(after.html), 0, "but nothing is underlined for it");
+});
