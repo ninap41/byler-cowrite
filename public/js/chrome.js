@@ -80,6 +80,7 @@ const BG = `
 			<div class="specks p1"></div><div class="specks p2"></div><div class="sweep"></div>
 		</div>
 		<div class="bg-set cleradin">
+			<div class="glimmer g1"></div><div class="glimmer g2"></div><div class="glimmer g3"></div>
 			<div class="moon"></div><div class="mist"></div>
 			<div class="moonglow"></div>
 			<div class="castle c-far" data-par="0.08"></div>

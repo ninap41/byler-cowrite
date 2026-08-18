@@ -732,6 +732,102 @@ body {
 	}
 }
 
+/* ---------- flip-select: the theme switcher's dropdown, reusable ----------
+   Same fold, one difference that is the whole point: this menu is OPAQUE. The
+   theme menu can afford to be translucent — a colour swatch reads through
+   anything — but a typeface preview cannot: letterforms over a busy background
+   are exactly the thing you were trying to judge. `--flip-bg` is a solid
+   panel colour, so every face is read against one flat surface. */
+.flip-select {
+	position: relative;
+	perspective: 700px;
+	display: inline-flex;
+	--flip-bg: color-mix(in srgb, var(--bg-2) 92%, var(--ink) 8%);
+}
+.flip-toggle {
+	display: inline-flex;
+	align-items: center;
+	gap: 7px;
+	max-width: 190px;
+	font-family: var(--font-body);
+	font-size: 12px;
+	font-weight: 600;
+	color: var(--ink);
+	background: var(--chip);
+	border: 1px solid var(--chip-brd);
+	border-radius: 10px;
+	padding: 6px 10px;
+	cursor: pointer;
+}
+.flip-toggle:hover {
+	border-color: var(--accent-2);
+}
+.flip-cur {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.flip-toggle .chev {
+	font-style: normal;
+	font-size: 10px;
+	opacity: 0.7;
+	transition: transform 0.3s ease;
+}
+.flip-select.open .chev {
+	transform: rotate(180deg);
+}
+.flip-menu {
+	position: absolute;
+	top: calc(100% + 8px);
+	left: 0;
+	z-index: 130;
+	min-width: 200px;
+	max-height: min(60vh, 420px);
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+	padding: 6px;
+	border-radius: 14px;
+	background: var(--flip-bg); /* opaque on purpose — see above */
+	border: 1px solid var(--panel-brd);
+	box-shadow: var(--panel-glow);
+	transform-origin: 50% 0;
+	visibility: hidden;
+	opacity: 0;
+	transform: rotateX(-90deg);
+	transition:
+		opacity 0.3s,
+		transform 0.35s ease-out,
+		visibility 0s 0.35s;
+}
+.flip-select.open .flip-menu {
+	visibility: visible;
+	opacity: 1;
+	transform: rotateX(0deg);
+	transition-delay: 0s;
+}
+.flip-menu button {
+	width: 100%;
+	text-align: left;
+	font-size: 14px;
+	line-height: 1.5;
+	color: var(--ink);
+	background: transparent;
+	border: 0;
+	border-radius: 9px;
+	padding: 7px 10px;
+	cursor: pointer;
+}
+.flip-menu button:hover {
+	background: var(--chip);
+}
+.flip-menu button.active {
+	background: var(--chip);
+	box-shadow: inset 0 0 0 1px var(--chip-brd);
+}
+
 /* ---------- Hamburger + slide-in nav drawer ---------- */
 .hamburger {
 	position: fixed;
@@ -4442,22 +4538,101 @@ button.danger,
 .bg-set.cleradin .moon::after {
 	content: "";
 	position: absolute;
-	inset: 6%;
+	inset: 0;
 	border-radius: 50%;
-	-webkit-mask-image: radial-gradient(circle at 50% 50%, #000 76%, transparent 96%);
-	mask-image: radial-gradient(circle at 50% 50%, #000 76%, transparent 96%);
+	/* the feather sits right at the rim, so the lunar disc reaches the edge of
+	   the circle instead of floating inside it */
+	-webkit-mask-image: radial-gradient(circle at 50% 50%, #000 93%, transparent 100%);
+	mask-image: radial-gradient(circle at 50% 50%, #000 93%, transparent 100%);
 }
 .bg-set.cleradin .moon::before {
-	background: url("/img/moon.webp") center / cover no-repeat;
+	/* The source photo frames its disc with black sky: the lunar disc measures
+	   516 of 560px, i.e. 92% of the file. Scaling the image to 109% therefore
+	   lands the disc itself at ~100% of this circle — the moon fills the sphere
+	   rather than sitting inside the photograph's framing. */
+	background: url("/img/moon.webp") center / 109% 109% no-repeat;
 	mix-blend-mode: screen;
-	opacity: 0.92;
-	filter: brightness(0.92) contrast(1.06);
+	opacity: 0.95;
+	filter: brightness(0.95) contrast(1.08);
 }
-/* the tint: theme violet, hue only, so the craters keep their own values */
+/* The colour pass. `screen` above puts the grey surface in the sky; this layer
+   puts it in THIS sky — `color` takes the theme's violet hue and saturation
+   and leaves every crater's own brightness alone, so the moon is tinted rather
+   than painted over. */
 .bg-set.cleradin .moon::after {
-	background: radial-gradient(circle at 42% 38%, rgba(214, 198, 252, 0.55), rgba(139, 116, 190, 0.5) 70%, rgba(109, 75, 150, 0.45));
+	background: radial-gradient(circle at 42% 38%, rgba(222, 206, 255, 0.85), rgba(150, 122, 208, 0.8) 62%, rgba(120, 82, 165, 0.8));
 	mix-blend-mode: color;
-	opacity: 0.55;
+	opacity: 0.75;
+}
+
+/* Stars: three sheets of them, each a background-image of tiny dots. They do
+   two things at once and deliberately not in step — every sheet GLIMMERS on
+   its own opacity cycle and DRIFTS on its own long, slow translation, so the
+   sky is never quite the same twice and never obviously looping. The far sheet
+   is dimmest and slowest, which is the only depth cue a dot can carry. */
+.bg-set.cleradin .glimmer {
+	position: absolute;
+	inset: -6% -6% 30%;
+	background-repeat: repeat;
+	will-change: opacity, transform;
+}
+.bg-set.cleradin .g1 {
+	--gl: 0.9;
+	opacity: 0.9;
+	background-image:
+		radial-gradient(circle 1.4px at 12% 18%, rgba(255, 253, 245, 0.95) 60%, transparent 61%),
+		radial-gradient(circle 1px at 34% 9%, rgba(226, 214, 255, 0.9) 60%, transparent 61%),
+		radial-gradient(circle 1.6px at 58% 24%, rgba(255, 255, 255, 0.9) 60%, transparent 61%),
+		radial-gradient(circle 1.1px at 77% 13%, rgba(240, 226, 255, 0.85) 60%, transparent 61%),
+		radial-gradient(circle 1.3px at 90% 32%, rgba(255, 255, 255, 0.8) 60%, transparent 61%),
+		radial-gradient(circle 1px at 22% 42%, rgba(226, 214, 255, 0.8) 60%, transparent 61%);
+	background-size: 620px 520px;
+}
+.bg-set.cleradin .g2 {
+	--gl: 0.6;
+	opacity: 0.6;
+	filter: blur(0.5px);
+	background-image:
+		radial-gradient(circle 2px at 18% 30%, rgba(255, 255, 255, 0.8) 60%, transparent 61%),
+		radial-gradient(circle 1.4px at 46% 12%, rgba(200, 186, 250, 0.8) 60%, transparent 61%),
+		radial-gradient(circle 1.8px at 70% 38%, rgba(255, 255, 255, 0.7) 60%, transparent 61%),
+		radial-gradient(circle 1.4px at 88% 22%, rgba(226, 214, 255, 0.7) 60%, transparent 61%);
+	background-size: 460px 380px;
+}
+.bg-set.cleradin .g3 {
+	--gl: 0.4;
+	opacity: 0.4;
+	filter: blur(1.4px);
+	background-image:
+		radial-gradient(circle 2.6px at 8% 44%, rgba(255, 255, 255, 0.6) 60%, transparent 61%),
+		radial-gradient(circle 2.2px at 40% 26%, rgba(214, 198, 252, 0.6) 60%, transparent 61%),
+		radial-gradient(circle 2.8px at 66% 8%, rgba(255, 255, 255, 0.5) 60%, transparent 61%),
+		radial-gradient(circle 2px at 94% 46%, rgba(190, 200, 255, 0.55) 60%, transparent 61%);
+	background-size: 780px 640px;
+}
+@media (prefers-reduced-motion: no-preference) {
+	.bg-set.cleradin .glimmer {
+		animation:
+			star-glimmer 6s ease-in-out infinite,
+			star-drift 220s linear infinite;
+	}
+	.bg-set.cleradin .g2 {
+		animation-duration: 9s, 330s;
+		animation-delay: -3.5s, -60s;
+	}
+	.bg-set.cleradin .g3 {
+		animation-duration: 13s, 480s;
+		animation-delay: -7s, -140s;
+	}
+}
+@keyframes star-glimmer {
+	0%, 100% { opacity: var(--gl, 0.9); }
+	38% { opacity: calc(var(--gl, 0.9) * 0.35); }
+	64% { opacity: var(--gl, 0.9); }
+}
+@keyframes star-drift {
+	from { transform: translate3d(0, 0, 0); }
+	to { transform: translate3d(-140px, 26px, 0); }
 }
 
 /* The moonlight itself, pooled BEHIND the tower — the tower is a shape cut out
@@ -6858,6 +7033,16 @@ body.resizing-side {
 }
 .guided-controls select {
 	width: 100%;
+	/* opaque, like the typeface menu: a translucent control over a themed
+	   background makes its own text hard to read, and these are choices you
+	   read before you make them */
+	background: color-mix(in srgb, var(--bg-2) 92%, var(--ink) 8%);
+	color: var(--ink);
+	border-color: var(--chip-brd);
+}
+.guided-controls select option {
+	background: var(--bg-2);
+	color: var(--ink);
 }
 .mode-hint {
 	font-size: 0.78rem;

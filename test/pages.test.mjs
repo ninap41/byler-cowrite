@@ -283,7 +283,10 @@ test("the typeface dropdown offers the site's own families and never touches the
   const { body } = await page("/write");
   assert.ok(body.includes('id="fontSelect"'), "the control is on the toolbar");
   assert.ok(body.indexOf('id="fontSelect"') < body.indexOf('id="paperSelect"'), "beside the other view preferences");
-  assert.ok(body.includes("fontMenuHtml()"), "built from the shared list, not hand-written options");
+  // our own dropdown, not a native select: a browser-drawn option list can't be
+  // trusted to render a face legibly (see components/flip-select.js)
+  assert.ok(body.includes("mountFlipSelect($(\"fontSelect\")"), "the flip menu, mounted on the toolbar slot");
+  assert.ok(body.includes("rows: fontRows()"), "built from the shared list, not hand-written options");
   assert.ok(body.includes('setProperty("--doc-font"'), "applied as a css variable");
   // the choice dresses the WHOLE page, so it is set on the page root and the
   // page's hard-coded faces are told to inherit

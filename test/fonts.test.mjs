@@ -59,7 +59,7 @@ test("every page requests the same font set — one stale <head> would change a 
   const pages = ["index", "dashboard", "game", "archive", "stories", "profile", "settings", "write", "writes", "admin", "reset"];
   for (const p of pages) {
     const html = read(`public/${p}.html`);
-    for (const name of Object.keys(fonts.families))
+    for (const name of [...Object.keys(fonts.families), ...Object.keys(extras())])
       assert.ok(html.includes("family=" + name.replaceAll(" ", "+")), `${p}.html is missing ${name}`);
   }
 });
@@ -70,16 +70,28 @@ test("each theme's label is the one the switcher shows", () => {
     assert.ok(themeJs.includes(`${name}: "${row.label}"`), `${name} label drifted`);
 });
 
+// Loaded, but not by a theme: `extraFamilies` is the editor menu's own shelf.
+const extras = () => Object.fromEntries(Object.entries(fonts.extraFamilies || {}).filter(([k]) => k !== "_comment"));
+
 test("the solo editor's typeface menu offers exactly the families this site loads", async () => {
   // fonts.json is the map of what's loaded; doc-prefs.js is what a writer can
   // pick. A face in the menu that nothing downloads would silently fall back.
   const { DOC_FONTS } = await import("../public/js/doc-prefs.js");
   const offered = DOC_FONTS.filter((f) => f.key !== "theme");
+  const loaded = { ...fonts.families, ...extras() };
   assert.deepEqual(
     offered.map((f) => f.label).sort(),
-    Object.keys(fonts.families).sort(),
+    Object.keys(loaded).sort(),
     "every family, and nothing that isn't loaded",
   );
-  for (const f of offered)
-    assert.equal(f.stack, fonts.families[f.label].stack, f.label + "'s stack drifted from fonts.json");
+  for (const f of offered) assert.equal(f.stack, loaded[f.label].stack, f.label + "'s stack drifted from fonts.json");
+});
+
+test("an extra family is downloaded like any other, and belongs to no theme", () => {
+  const themeFaces = new Set();
+  for (const roles of Object.values(fonts.themes)) for (const r of ROLES) themeFaces.add(roles[r].split(",")[0].replaceAll('"', "").trim());
+  for (const name of Object.keys(extras())) {
+    assert.ok(fonts.source.googleFontsHref.includes(name.replaceAll(" ", "+")), name + " is in the CDN link");
+    assert.ok(!themeFaces.has(name), name + " is an editor face, not a theme face");
+  }
 });

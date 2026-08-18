@@ -37,6 +37,10 @@ export const DOC_FONTS = [
 	{ key: "grotesk", label: "Space Grotesk", stack: '"Space Grotesk", sans-serif' },
 	{ key: "orbitron", label: "Orbitron", stack: '"Orbitron", sans-serif' },
 	{ key: "inconsolata", label: "Inconsolata", stack: '"Inconsolata", ui-monospace, monospace' },
+	// The one face here that no theme uses — loaded for this menu alone
+	// (fonts.json's `extraFamilies`), because a pixel font is a drafting mood,
+	// not a site-wide voice.
+	{ key: "tiny5", label: "Tiny5", stack: '"Tiny5", system-ui, sans-serif' },
 ]
 export const DEFAULT_FONT = "theme"
 export const fontOf = (key) => DOC_FONTS.find((f) => f.key === key) || DOC_FONTS[0]
@@ -51,6 +55,16 @@ export function fontMenuHtml(selected) {
 				f.key === selected ? " selected" : ""
 			}>${f.label}</option>`,
 	).join("")
+}
+// The same list shaped for the flip menu (components/flip-select.js): each row
+// previews itself in its own face, which is the entire reason that menu is our
+// markup rather than a native option list.
+export function fontRows() {
+	return DOC_FONTS.map((f) => ({
+		value: f.key,
+		label: f.label,
+		style: `font-family:${f.stack || "var(--font-story)"}`,
+	}))
 }
 const cleanFont = (v) => (DOC_FONTS.some((f) => f.key === v) ? v : DEFAULT_FONT)
 
