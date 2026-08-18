@@ -490,10 +490,25 @@ test("reading one story hides everything that describes the list", async () => {
 test("the dashboard's first card holds the whole of how you're doing", async () => {
   const { body } = await page("/dashboard");
   const card = body.slice(body.indexOf('class="welcome"'), body.indexOf("games in progress"));
-  // counts, then the streak that keeps them moving, then what they earned
-  assert.ok(card.indexOf('id="statWords"') < card.indexOf('id="rankFill"'), "stats then rank");
-  assert.ok(card.indexOf('id="rankFill"') < card.indexOf('id="streakBox"'), "streak under the stats");
-  assert.ok(card.indexOf('id="streakBox"') < card.indexOf('id="achStrip"'), "achievements last");
+  // three counts of a kind in one row — words, badges, streak — then the rank
+  // bar spanning under them, then what the counts have earned
+  const row = card.slice(card.indexOf('class="stat-row"'), card.indexOf('class="rank-bar"'));
+  for (const id of ["statWords", "statBadges", "streakBox"]) assert.ok(row.includes(`id="${id}"`), id + " is a column");
+  assert.ok(card.indexOf('id="streakBox"') < card.indexOf('id="rankFill"'), "the rank bar spans underneath");
+  assert.ok(card.indexOf('id="rankFill"') < card.indexOf('id="achStrip"'), "achievements last");
   const rail = body.slice(body.indexOf("RIGHT RAIL"));
   assert.ok(!rail.includes('id="achStrip"') && !rail.includes('id="streakBox"'), "and none of it is in the rail");
+});
+
+test("pause and end-and-reveal live in the session bar, host-only", async () => {
+  const { body } = await page("/game");
+  const bar = body.slice(body.indexOf('<div id="game"'), body.indexOf('id="gamePrompt"'));
+  assert.ok(bar.includes('id="hostGame"'), "the two game-level actions sit in the writing card's session bar");
+  assert.ok(bar.includes('id="pauseBtn"') && bar.includes('id="endBtn"'), "pause and reveal, both of them");
+  assert.ok(bar.includes('class="sess-acts hidden"'), "hidden until you are the host");
+  // one condition drives both places, so they can never disagree
+  assert.match(body, /\$\("hostGame"\)\.classList\.toggle\("hidden", !host\)/);
+  // and the host panel keeps only the settings — the rules form and the cover
+  const panel = body.slice(body.indexOf('id="hostPanel"'), body.indexOf("</aside>"));
+  assert.ok(!panel.includes('id="pauseBtn"') && !panel.includes('id="endBtn"'), "not left behind in the panel too");
 });

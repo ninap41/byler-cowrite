@@ -79,10 +79,10 @@
 	color: var(--muted);
 	font-size: 0.78rem;
 }
+/* the rank bar is a progress bar, not a count: it spans the card under the
+   three stats rather than competing with them for a column */
 .rank-bar {
-	flex: 1 1 170px;
-	min-width: 150px;
-	align-self: center;
+	margin-top: 14px;
 }
 .rank-bar .rank-label {
 	display: block;
@@ -249,16 +249,17 @@
 	background: transparent;
 	color: var(--muted);
 }
+/* the streak is the third stat — same row, same baseline as the two counts */
 .streak-box {
 	display: flex;
 	align-items: center;
-	gap: 16px;
-	margin-top: 12px;
+	gap: 12px;
+	margin: 0;
 	text-align: left;
 }
 .streak-ring {
-	width: 84px;
-	height: 84px;
+	width: 62px;
+	height: 62px;
 	flex: none;
 }
 .ring-bg {
@@ -335,20 +336,24 @@ a.rg-row {
 }
 
 /* ---- inbox ---- */
+/* A row is an entry in a list, not a card: no outline, no rounded corners —
+   just a panel of its own colour with 8px of air between it and the next one.
+   Unread says so with a left mark and its own dot, since there is no border
+   left to tint. */
 .ib-row {
 	position: relative; /* the compact row hangs its ✕ in the corner */
 	display: flex;
 	align-items: flex-start;
 	gap: 10px;
 	background: var(--panel-2);
-	border: 1px solid var(--line);
-	border-radius: 12px;
+	border: 0;
+	border-radius: 0;
 	padding: 10px 12px;
 	margin-top: 8px;
 	text-align: left;
 }
 .ib-row.unread {
-	border-color: var(--accent-2);
+	box-shadow: inset 3px 0 0 var(--accent-2);
 	cursor: pointer;
 }
 .ib-dot {

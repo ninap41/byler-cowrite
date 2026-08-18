@@ -58,18 +58,19 @@
 								<div class="err" id="meErr"></div>
 							</div>
 						</div>
+						<!-- Everything about how you are doing lives in this one card. The
+						     top row is three counts of the same kind — words, badges, and
+						     the streak that keeps both moving — and the rank bar, which is
+						     a progress bar rather than a count, spans underneath them. -->
 						<div class="stat-row">
 							<div class="stat"><b id="statWords">0</b><span>words written</span></div>
 							<div class="stat"><b id="statBadges">0</b><span>badges earned</span></div>
-							<div class="rank-bar">
-								<span class="rank-label" id="rankLabel"></span>
-								<div class="rank-track"><div class="rank-fill" id="rankFill" style="width: 0%"></div></div>
-							</div>
+							<div class="streak-box" id="streakBox"></div>
 						</div>
-						<!-- Everything about how you are doing now lives in this one card,
-						     in the order you'd ask it: the counts, then the streak that
-						     keeps them moving, then what the counts have earned. -->
-						<div class="streak-box" id="streakBox"></div>
+						<div class="rank-bar">
+							<span class="rank-label" id="rankLabel"></span>
+							<div class="rank-track"><div class="rank-fill" id="rankFill" style="width: 0%"></div></div>
+						</div>
 						<h4 class="dash-h dash-sub-h">Recent achievements</h4>
 						<div class="ach-strip" id="achStrip"></div>
 					</div>

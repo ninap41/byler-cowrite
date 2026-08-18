@@ -107,6 +107,15 @@
 						<button class="ghost" data-sess-code title="Copy game code" type="button">
 							&middot;&middot;&middot;&middot; &#x2398;
 						</button>
+						<!-- The two controls that act on the GAME rather than on the
+						     story live where the game is named, not buried in the host
+						     panel beside the rules form: they are the only host actions
+						     you reach for mid-turn. Host-only, same condition as the
+						     panel itself. -->
+						<span class="sess-acts hidden" id="hostGame">
+							<button class="ghost" id="pauseBtn">⏸ Pause</button>
+							<button class="ghost" id="endBtn">End game &amp; reveal</button>
+						</span>
 					</div>
 					<div class="prompt-banner" id="gamePrompt"></div>
 					<div id="doomFx" aria-hidden="true">
@@ -152,10 +161,6 @@
 									<button class="ghost" id="coverBtn2" style="flex: 0 0 auto; min-width: auto">Set</button>
 								</div>
 								<img id="coverPreview2" class="cover-preview hidden" alt="Cover preview" loading="lazy" />
-								<div id="hostGame" class="row">
-									<button class="ghost" id="pauseBtn">⏸ Pause</button>
-									<button class="ghost" id="endBtn">End game &amp; reveal</button>
-								</div>
 							</div>
 						</aside>
 					</div>
@@ -735,6 +740,9 @@
 				if (!myTurn) turnAlert(false)
 				else if (newTurn && !st.paused && (st.writers || []).length > 1) turnAlert(true)
 				$("hostPanel").classList.toggle("hidden", !host)
+				// the session bar carries the same two host actions, so it follows
+				// the same condition
+				$("hostGame").classList.toggle("hidden", !host)
 				liveRules.set(st)
 				$("pauseBtn").textContent = st.paused ? "▶ Resume" : "⏸ Pause"
 				$("progress").textContent =

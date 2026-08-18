@@ -2678,6 +2678,13 @@ input[type="checkbox"]:focus-visible {
 	font-weight: 500;
 	font-style: italic;
 }
+/* the game-level actions ride at the far end of the bar, away from the name */
+.session-bar .sess-acts {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-left: auto;
+}
 .session-bar .sess-input {
 	flex: 1 1 140px;
 	width: auto;
@@ -2834,6 +2841,13 @@ button.linky {
 	font-size: 0.8rem;
 }
 ul.roster .badge-chip,
+/* Inside the topbar's user chip the badge is already inside a bordered pill;
+   a second outline around it reads as a box in a box. */
+#ucBadge {
+	border: 0;
+	padding-left: 4px;
+	padding-right: 4px;
+}
 .chat-log .badge-chip {
 	font-size: 0.6rem;
 	padding: 1px 6px;
@@ -6523,6 +6537,7 @@ body.resizing-side {
 .presence-row.hidden,
 .toolbar.hidden,
 .chat-row.hidden,
+.sess-acts.hidden,
 .guided-controls.hidden,
 .player-chip.hidden,
 .doc-main.hidden {
