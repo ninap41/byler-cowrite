@@ -283,3 +283,29 @@ test("Castle Byers stands on ground, and the ground is under the fort", () => {
   assert.ok(set.indexOf("cbground") < set.indexOf("fortpic"), "the fort is planted in it, not floating over it");
   assert.ok(set.indexOf("trees") < set.indexOf("cbground"), "and the treeline is behind both");
 });
+
+test("anything the markup calls hidden can actually be hidden", () => {
+  // `.hidden { display: none }` sits early in base.css, so ANY later rule that
+  // sets `display:` on a class of equal specificity silently outranks it — the
+  // stories toolbar (.chat-row) and the guided knobs (.guided-controls) both
+  // stayed on screen that way. This is that whole class of bug, caught once.
+  const css = readFileSync(new URL("../public/css/base.css", import.meta.url), "utf-8");
+  const cut = css.indexOf("\n.hidden {");
+  assert.ok(cut > 0, "the generic rule exists");
+  const after = css.slice(cut + 1);
+  const pages = ["index", "dashboard", "game", "archive", "stories", "profile", "settings", "write", "writes", "admin", "inbox"];
+  const chrome = readFileSync(new URL("../public/js/chrome.js", import.meta.url), "utf-8");
+  const sources = [chrome, ...pages.map((p) => readFileSync(new URL(`../public/${p}.html`, import.meta.url), "utf-8"))];
+
+  const offenders = new Set();
+  for (const src of sources)
+    for (const [, attr] of src.matchAll(/class="([^"]*\bhidden\b[^"]*)"/g))
+      for (const cls of attr.split(/\s+/).filter((c) => c && c !== "hidden")) {
+        // does a later rule give this class its own display?
+        const rule = new RegExp(`(^|,|\\})\\s*\\.${cls.replace(/[.*+?^$()|[\]\\]/g, "\\$&")}\\s*(,[^{]*)?\\{[^}]*display:`, "m");
+        if (!rule.test(after)) continue;
+        // ...and if so, is it re-hidden at the same specificity?
+        if (!after.includes(`.${cls}.hidden`)) offenders.add(cls);
+      }
+  assert.deepEqual([...offenders], [], "these classes outrank .hidden and need a `.CLASS.hidden { display: none }`");
+});

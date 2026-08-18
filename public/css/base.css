@@ -6522,6 +6522,9 @@ body.resizing-side {
 .doc-statusbar.hidden,
 .presence-row.hidden,
 .toolbar.hidden,
+.chat-row.hidden,
+.guided-controls.hidden,
+.player-chip.hidden,
 .doc-main.hidden {
 	display: none;
 }
@@ -7147,12 +7150,6 @@ body.resizing-side {
 	gap: 8px;
 	margin: 0 0 12px;
 	flex-wrap: wrap;
-}
-/* `.hidden` is declared far earlier in this file, so a later `display: grid`
-   of equal specificity was winning and the guided knobs stayed on screen in
-   Simple mode. This says it at the same specificity, after. */
-.guided-controls.hidden {
-	display: none;
 }
 .guided-controls {
 	display: grid;
