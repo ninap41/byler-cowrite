@@ -512,3 +512,23 @@ test("pause and end-and-reveal live in the session bar, host-only", async () => 
   const panel = body.slice(body.indexOf('id="hostPanel"'), body.indexOf("</aside>"));
   assert.ok(!panel.includes('id="pauseBtn"') && !panel.includes('id="endBtn"'), "not left behind in the panel too");
 });
+
+test("host controls are the comments drawer, on the game page", async () => {
+  const { body } = await page("/game");
+  // the same classes as the solo editor's rail — one set of CSS, one behaviour
+  const write = (await page("/write")).body;
+  for (const cls of ["doc-side", "doc-side-card", "doc-side-grip", "doc-side-head", "doc-side-close", "doc-side-tab"])
+    assert.ok(body.includes(cls) && write.includes(cls), cls + " is shared with the write page");
+  assert.ok(body.includes('id="hostSide"') && body.includes('id="hostOpen"'), "drawer and the tab that reopens it");
+  assert.ok(body.includes("mountSideDrawer"), "wired by the shared component");
+  // the settings moved INTO it, and the prompt moved into the main column so
+  // the side runs beside it
+  const drawer = body.slice(body.indexOf('id="hostSide"'), body.indexOf('id="hostOpen"'));
+  assert.ok(drawer.includes('id="hostRules"') && drawer.includes('id="coverInput2"'), "rules and cover live in the drawer");
+  const main = body.slice(body.indexOf('class="game-main"'), body.indexOf("</aside>"));
+  assert.ok(main.includes('id="gamePrompt"'), "the prompt banner is inside the main column");
+  // and the drawer is a real column that can close
+  const css = (await page("/css/base.css")).body;
+  assert.match(css, /\.game-cols \{[^}]*var\(--doc-side-w/, "the drawer's width is the rail's own variable");
+  assert.match(css, /\.game-cols\.side-closed \{/, "closing it gives the width back");
+});

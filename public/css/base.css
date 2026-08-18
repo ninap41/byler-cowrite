@@ -1778,7 +1778,7 @@ h1.brand-link:focus-visible {
 .card {
 	background: var(--panel);
 	border: 1px solid var(--panel-brd);
-	border-radius: 20px;
+	border-radius: 12px;
 	padding: 24px;
 	box-shadow: var(--panel-glow);
 	backdrop-filter: blur(16px);
@@ -2841,9 +2841,12 @@ button.linky {
 	font-size: 0.8rem;
 }
 ul.roster .badge-chip,
-/* Inside the topbar's user chip the badge is already inside a bordered pill;
-   a second outline around it reads as a box in a box. */
-#ucBadge {
+/* The badge you are WEARING is a label on your own name, not a control: inside
+   the topbar chip it would be a pill inside a pill, and on a profile head it is
+   read, never clicked. Both lose the outline; the chips that stand alone in a
+   list keep theirs. */
+#ucBadge,
+#meBadge {
 	border: 0;
 	padding-left: 4px;
 	padding-right: 4px;
@@ -3685,11 +3688,28 @@ button.danger,
 .main:has(#game:not(.hidden)) {
 	max-width: 1200px;
 }
+/* Three columns while the host's drawer is open — story, who's here, settings —
+   and two when it is closed. The drawer's width is the SAME custom property the
+   solo editor's comments rail uses (--doc-side-w), because it is the same
+   drawer: see js/components/side-drawer.js and the .doc-side rules further
+   down, which give it its sticky card, its grip and its phone sheet. */
 .game-cols {
 	display: grid;
-	grid-template-columns: minmax(0, 1fr) 280px;
+	grid-template-columns: minmax(0, 1fr) 280px var(--doc-side-w, 300px);
 	gap: 28px;
 	align-items: start;
+}
+.game-cols.side-closed {
+	grid-template-columns: minmax(0, 1fr) 280px;
+}
+.game-cols.side-closed .doc-side {
+	display: none;
+}
+/* the drawer's card is sticky against the top of the window here — the game
+   page has no sticky editor head to clear */
+.game-cols .doc-side-card {
+	top: 18px;
+	max-height: calc(100vh - 36px);
 }
 .game-main {
 	position: relative;
@@ -3708,7 +3728,7 @@ button.danger,
 }
 .side-sec {
 	border: 1px solid var(--panel-brd);
-	border-radius: 14px;
+	border-radius: 10px;
 	padding: 16px 18px 18px;
 }
 .side-sec h4 {
@@ -3730,8 +3750,21 @@ button.danger,
 	gap: 10px;
 	margin-bottom: 10px;
 }
+@media (max-width: 860px) {
+	/* the drawer becomes a bottom sheet (the .doc-side phone rules do that
+	   part); the grid just stops holding a column for it */
+	.game-cols,
+	.game-cols.side-closed {
+		grid-template-columns: minmax(0, 1fr) 280px;
+	}
+	/* the sheet covers the foot of the page — give the story somewhere to end */
+	.game-cols:not(.side-closed) .game-main {
+		padding-bottom: calc(var(--doc-side-w, 300px) + 20px);
+	}
+}
 @media (max-width: 760px) {
-	.game-cols {
+	.game-cols,
+	.game-cols.side-closed {
 		grid-template-columns: 1fr;
 	}
 }
