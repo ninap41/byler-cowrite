@@ -4416,15 +4416,77 @@ button.danger,
 	--font-mono: "Inconsolata", ui-monospace, monospace;
 }
 [data-theme="cleradin"] .bg-set.cleradin { opacity: 1; }
+/* The moon (public/js/components/cleradin-moon.js). It hangs on the right,
+   opposite the tower, and it does NOT parallax — it is the one thing far
+   enough away to stay put while everything else moves. */
 .bg-set.cleradin .moon {
 	position: absolute;
-	left: 68%;
-	top: 12%;
-	width: 190px;
-	height: 190px;
-	border-radius: 50%;
-	background: radial-gradient(circle at 40% 38%, rgba(238, 230, 250, 0.9), rgba(180, 160, 210, 0.35) 58%, transparent 70%);
-	filter: blur(1px);
+	right: 8%;
+	top: 7%;
+	width: clamp(150px, 17vw, 280px);
+	--cm-hi: #f6f1ff;
+	--cm-mid: #d9d0e8;
+	--cm-low: #a99cc0;
+	--cm-dark: #4a3d63;
+	--cm-ray: #fdfaff;
+	filter: drop-shadow(0 0 46px rgba(210, 190, 250, 0.32));
+}
+.bg-set.cleradin .cm-moon-svg {
+	width: 100%;
+	height: auto;
+	display: block;
+}
+/* the halo, painted just outside the disc */
+.bg-set.cleradin .cm-glowring circle {
+	fill: none;
+	stroke: rgba(226, 214, 250, 0.3);
+	stroke-width: 6;
+	filter: blur(14px);
+}
+.bg-set.cleradin .cm-maria path {
+	fill: var(--cm-dark);
+	opacity: 0.5;
+	filter: blur(1.5px);
+}
+.bg-set.cleradin .cm-rays path {
+	fill: var(--cm-ray);
+	opacity: 0.16;
+}
+/* crater parts: a dark floor, a hairline wall, one lit arc facing the light */
+.bg-set.cleradin .cm-floor {
+	fill: var(--cm-dark);
+	opacity: 0.16;
+}
+.bg-set.cleradin .cm-bowl {
+	fill: var(--cm-dark);
+	opacity: 0.2;
+}
+.bg-set.cleradin .cm-rim {
+	fill: none;
+	stroke: var(--cm-dark);
+	stroke-width: 0.8;
+	opacity: 0.45;
+}
+.bg-set.cleradin .cm-lit {
+	fill: none;
+	stroke: var(--cm-ray);
+	stroke-width: 1.1;
+	stroke-linecap: round;
+	opacity: 0.75;
+}
+.bg-set.cleradin .cm-speckle circle {
+	fill: var(--cm-dark);
+	opacity: 0.18;
+}
+.bg-set.cleradin .cm-shade {
+	fill: var(--cm-dark);
+	opacity: 0.2;
+	filter: blur(12px);
+}
+.bg-set.cleradin .cm-edge {
+	fill: none;
+	stroke: rgba(70, 54, 96, 0.28);
+	stroke-width: 0.8;
 }
 .bg-set.cleradin .mist {
 	position: absolute;
@@ -4443,7 +4505,7 @@ button.danger,
 }
 .bg-set.cleradin .c-far {
 	height: 46vh;
-	opacity: 0.4;
+	opacity: 0.28;
 	filter: blur(2px);
 	background-image:
 		conic-gradient(from 45deg at 18% 34%, rgba(60, 42, 82, 0.9) 0 90deg, transparent 90deg),
@@ -4460,10 +4522,16 @@ button.danger,
    custom property, so the whole tower re-skins with the theme. */
 .bg-set.cleradin .tower {
 	position: absolute;
-	inset: auto 0 -3%;
-	height: 96vh;
+	/* Deliberately enormous and hard left: you are standing at the foot of it,
+	   not looking at a picture of it. Only the roof is in frame at the top of a
+	   page — the rest is below the fold, and scrolling walks down the stone.
+	   The height is what the parallax rate is derived from (theme.js), so
+	   changing this number changes how fast the tower passes, and nothing else. */
+	top: 0;
+	left: -14%;
+	height: 420vh;
 	display: flex;
-	justify-content: center;
+	justify-content: flex-start;
 	will-change: transform;
 	--cl-stone: #cfc6d8;
 	--cl-stone-lit: #eae4f2;
@@ -4483,7 +4551,8 @@ button.danger,
 }
 .bg-set.cleradin .cl-tower-svg {
 	height: 100%;
-	max-width: 100%;
+	width: auto;
+	max-width: none;
 	filter: drop-shadow(0 18px 40px rgba(4, 2, 8, 0.55));
 }
 /* masonry: hairlines, not outlines — enough to read as blocks up close and to

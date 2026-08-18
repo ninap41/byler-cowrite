@@ -71,18 +71,44 @@ export function initTheme() {
 		const layers = [...document.querySelectorAll(".bg-set.cleradin [data-par]")]
 		if (!layers.length) return
 		let frame = 0
+		// data-par="auto" is the tower: it is taller than the window on purpose,
+		// and its rate is DERIVED from the page rather than picked — the whole
+		// drawing travels exactly once over the whole scrollable height, so the
+		// roof is what you land on and the door is where the page ends,
+		// whatever the page happens to be. A short page moves it slowly; a long
+		// one moves it fast; neither runs out of tower.
+		const rateOf = (l) => {
+			if (l.dataset.par !== "auto") return parseFloat(l.dataset.par) || 0
+			const page = Math.max(1, document.documentElement.scrollHeight - window.innerHeight)
+			const travel = Math.max(0, l.offsetHeight - window.innerHeight)
+			return travel / page
+		}
+		let rates = layers.map(rateOf)
 		const paint = () => {
 			frame = 0
 			const y = window.scrollY || window.pageYOffset || 0
-			for (const l of layers) l.style.transform = `translate3d(0, ${-y * (parseFloat(l.dataset.par) || 0)}px, 0)`
+			layers.forEach((l, i) => {
+				l.style.transform = `translate3d(0, ${-y * rates[i]}px, 0)`
+			})
+		}
+		const remeasure = () => {
+			rates = layers.map(rateOf)
+			paint()
 		}
 		const onScroll = () => {
 			if (!frame) frame = requestAnimationFrame(paint)
 		}
 		window.addEventListener("scroll", onScroll, { passive: true })
+		window.addEventListener("resize", remeasure)
+		// a page that grows after load (a list that finished loading, a drawer
+		// that opened) changes the rate, so watch the document, not just resize
+		const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(remeasure) : null
+		ro?.observe(document.body)
 		paint()
 		stopScroll = () => {
 			window.removeEventListener("scroll", onScroll)
+			window.removeEventListener("resize", remeasure)
+			ro?.disconnect()
 			if (frame) cancelAnimationFrame(frame)
 			for (const l of layers) l.style.transform = ""
 		}
