@@ -95,11 +95,15 @@ test("a help question and its answer are one conversation for the asker", async 
   }
 });
 
-test("the dashboard preview holds no conversation; /inbox does", async () => {
+test("the dashboard holds no messages at all; /inbox holds the conversation", async () => {
   const dash = await fetch(ctx.url + "/dashboard").then((r) => r.text());
   const inbox = await fetch(ctx.url + "/inbox").then((r) => r.text());
-  assert.match(dash, /replies: false/, "the preview is a notice board");
-  assert.ok(!/replies: false/.test(inbox), "the inbox page keeps its composer");
+  // a message is a conversation and conversations happen on one page; what the
+  // dashboard carries is the fact that one is waiting, on the link that goes there
+  assert.ok(!/id="inboxList"/.test(dash) && !/inbox-panel\.js/.test(dash), "no message list on the dashboard");
+  assert.match(dash, /id="navInbox"/, "the count rides the rail's Inbox link");
+  assert.match(dash, /api\("\/api\/inbox"/, "fed by the same endpoint, read for its count only");
+  assert.match(inbox, /mountInbox/, "the inbox page keeps the whole panel");
   // and the module honors it: no composer markup, no Reply button, no chain
   const panel = await fetch(ctx.url + "/js/inbox-panel.js").then((r) => r.text());
   assert.match(panel, /reply: replies && !!t\.replyTo/, "the composer is only built where replies live");

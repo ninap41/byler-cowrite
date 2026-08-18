@@ -2,6 +2,7 @@
 // top bar (user chip + theme switch), and the hamburger nav drawer. Injected
 // by every page so the markup lives in exactly one place.
 import { towerSvg } from "./components/cleradin-tower.js"
+import { clockSvg } from "./components/vecna-clock.js"
 import { initTheme, THEMES, THEME_LABELS } from "./theme.js"
 import { logoHtml, quillHtml } from "./logo.js"
 import { initNav } from "./nav.js"
@@ -58,7 +59,9 @@ const BG = `
 			<div class="trees"></div><div class="fortpic"></div><div class="beam drift"></div>
 		</div>
 		<div class="bg-set vecna">
-			<div class="clockface"></div><div class="cvines"></div><div class="embers drift"></div>
+			<div class="clockface"></div><div class="cvines"></div>
+			<div class="grandfather">${clockSvg()}</div>
+			<div class="embers drift"></div>
 		</div>
 		<div class="bg-set void">
 			<div class="stars"></div><div class="stars st2"></div>

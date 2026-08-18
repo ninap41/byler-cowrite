@@ -250,3 +250,26 @@ test("the Cleradin tower is drawn from its own numbers, part by part", async () 
   assert.ok(!/\sid="(?!cl-)/.test(svg), "every id is namespaced cl-");
 });
 
+
+test("Vecna's clock is a grandfather clock, and its pendulum still swings", async () => {
+  const { clockSvg, CLOCK } = await import("../public/js/components/vecna-clock.js");
+  const svg = clockSvg();
+  for (const id of ["case", "glass", "dial", "vines"]) assert.ok(svg.includes(`id="vc-${id}"`), id + " group");
+  // a long case is stacked boxes, each narrower than the one under it
+  assert.ok(CLOCK.waistHalf < CLOCK.hoodHalf && CLOCK.waistHalf < CLOCK.baseHalf, "the waist is the narrow part");
+  // twelve numerals, the clockmaker's IIII among them
+  assert.ok(svg.includes(">XII<") && svg.includes(">IIII<") && svg.includes(">IX<"));
+  assert.equal(svg.match(/class="vc-num"/g).length, 12);
+  // the pendulum hangs inside the door and is clipped by it, so the bob passes
+  // out of sight at the extremes the way it does behind a real case
+  assert.ok(svg.includes('clip-path="url(#vc-door)"') && svg.indexOf('id="vc-pend"') > svg.indexOf("vc-door"));
+  const css = readFileSync(new URL("../public/css/base.css", import.meta.url), "utf-8");
+  const swing = css.slice(css.indexOf(".bg-set.vecna #vc-pend"), css.indexOf("@keyframes vc-swing") + 120);
+  assert.ok(swing.includes(`transform-origin: ${CLOCK.cx}px ${CLOCK.pivotY}px`), "hinged at the pivot, not the middle");
+  assert.ok(swing.includes("prefers-reduced-motion") === false, "the guard is outside this slice");
+  assert.match(css, /@media \(prefers-reduced-motion: no-preference\) \{\n\t\.bg-set\.vecna #vc-pend/, "it only swings when motion is welcome");
+  // the chrome mounts it, and the old ghost dial stays as sky behind it
+  const chrome = readFileSync(new URL("../public/js/chrome.js", import.meta.url), "utf-8");
+  assert.ok(chrome.includes('class="grandfather"') && chrome.includes("clockSvg()"));
+  assert.ok(chrome.includes('class="clockface"'), "the turning dial is still the sky");
+});

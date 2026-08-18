@@ -85,14 +85,18 @@ test("the dashboard rail is navigation: inbox count, start, join, solo write", a
 
   // the unread count rides the Inbox row
   assert.ok(rail.includes('class="dnav-badge hidden" id="navInbox"'), "hidden until there is something to say");
-  assert.ok(body.includes("onLoad: ({ unread })"), "fed by the same inbox load as the card");
+  assert.match(body, /b\.classList\.toggle\("hidden", !unread\)/, "the badge appears only when something is waiting");
 
   // joining needs a code, so the row unfolds one
   assert.ok(rail.includes('id="joinFold"') && rail.includes('id="code"'), "the code field folds into the row");
   assert.ok(rail.includes('aria-expanded="false"') && rail.includes('aria-controls="joinFold"'), "and says so");
   assert.ok(body.includes('$("code").focus()'), "opening it puts the caret where you'd type");
 
-  // the quote and the friends list live here too
-  assert.ok(rail.includes('class="card quote-card"') && rail.includes('id="friendsBox"'), "quote + friends are in the rail");
-  assert.ok(rail.indexOf("dash-nav") < rail.indexOf("friendsBox"), "navigation comes first");
+  // the quote lives here too; friends moved beside the writers directory,
+  // because they are two columns of the same question
+  assert.ok(rail.includes('class="card quote-card"'), "the quote is in the rail");
+  assert.ok(!rail.includes('id="friendsBox"'), "friends are not");
+  const main = body.slice(0, body.indexOf("RIGHT RAIL"));
+  assert.ok(main.includes('class="writers-split"'), "writers and friends share one card");
+  assert.ok(main.indexOf('id="writerSearch"') < main.indexOf('id="friendsBox"'), "search first, friends beside it");
 });

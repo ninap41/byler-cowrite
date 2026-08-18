@@ -68,19 +68,6 @@
 						</div>
 					</div>
 
-					<!-- inbox -->
-					<div class="card">
-						<div class="me-row">
-							<h3 class="dash-h" style="margin: 0">📬 Inbox <span class="badge-chip hidden" id="inboxUnread"></span></h3>
-							<button class="ghost hidden" id="inboxReadAll" style="margin-left: auto">Mark all read</button>
-						</div>
-						<p class="subtle" style="text-align: left; margin: 4px 0 0">Friend requests and notes from other writers.</p>
-						<div id="inboxList"></div>
-						<p class="subtle" style="text-align: left; margin-top: 12px">
-							<a href="/inbox" class="linky" id="inboxMore">Open your inbox →</a>
-						</p>
-					</div>
-
 					<!-- games in progress -->
 					<div class="card">
 						<h3 class="dash-h" style="margin-top: 0">Games in progress</h3>
@@ -90,14 +77,27 @@
 						<div id="dashLive"></div>
 					</div>
 
-					<!-- writers directory -->
+					<!-- writers directory + friends: two columns of the same question,
+					     "who else is here" — everyone on the left to search through,
+					     the ones you already know on the right. -->
 					<div class="card">
-						<h3 class="dash-h" style="margin-top: 0">Writers</h3>
-						<p class="subtle" style="text-align: left; margin: 4px 0 0">
-							Everyone with an account — click a name to see their profile.
-						</p>
-						<input id="writerSearch" placeholder="Search writers…" style="margin-top: 10px" />
-						<div id="writersList"></div>
+						<div class="writers-split">
+							<section class="wsplit-col">
+								<h3 class="dash-h" style="margin-top: 0">Writers</h3>
+								<p class="subtle" style="text-align: left; margin: 4px 0 0">
+									Everyone with an account — click a name to see their profile.
+								</p>
+								<input id="writerSearch" placeholder="Search writers…" style="margin-top: 10px" />
+								<div id="writersList"></div>
+							</section>
+							<section class="wsplit-col">
+								<h3 class="dash-h" style="margin-top: 0">Friends</h3>
+								<p class="subtle" style="text-align: left; margin: 4px 0 0">
+									Your friends &mdash; online ones first.
+								</p>
+								<div id="friendsBox"></div>
+							</section>
+						</div>
 					</div>
 
 					<!-- previous games (achievements + streak live in the right rail) -->
@@ -158,12 +158,6 @@
 						<div class="err" id="lobbyErr"></div>
 					</nav>
 
-					<div class="card">
-						<h3 class="dash-h" style="margin-top: 0">Friends</h3>
-						<p class="subtle" style="text-align: left; margin: 4px 0 0">Your friends &mdash; online ones first.</p>
-						<div id="friendsBox"></div>
-					</div>
-
 					<div class="card quote-card">
 						<span class="qmark">&ldquo;</span>
 						<span id="quoteText">Every story is better together. One turn at a time.</span>
@@ -196,7 +190,6 @@
 				writerRowHtml,
 				friendRowHtml,
 			} from "/js/dashboard-view.js"
-			import { mountInbox } from "/js/inbox-panel.js"
 			import { avatarHtml } from "/js/profile-view.js"
 			import { showInviteToast } from "/js/turn-alert.js"
 
@@ -452,28 +445,21 @@
 			}
 
 			// ---- Inbox ----
-			// The rows, the reply composer and every action live in inbox-panel.js,
-			// shared with the full /inbox page. The dashboard shows a preview of
-			// the newest few and links to the rest.
-			const inboxPanel = mountInbox({
-				list: $("inboxList"),
-				unreadChip: $("inboxUnread"),
-				readAllBtn: $("inboxReadAll"),
-				moreLink: $("inboxMore"),
-				limit: 5,
-				// a preview is a notice board, not a place to hold a conversation
-				replies: false,
-				// the rail's Inbox row carries the same count, so an unread message
-				// is visible from the top of the page without opening the card
-				onLoad: ({ unread }) => {
-					const b = $("navInbox")
-					b.classList.toggle("hidden", !unread)
-					b.textContent = unread > 99 ? "99+" : String(unread || "")
-					b.setAttribute("aria-label", `${unread} unread message${unread === 1 ? "" : "s"}`)
-				},
-			})
+			// The dashboard does NOT show messages any more. A message is a
+			// conversation and /inbox is where conversations happen; what belongs
+			// here is only the fact that one is waiting. So the rail's Inbox row
+			// wears the count and the page never renders a single message.
 			async function loadInbox() {
-				inboxPanel.reload()
+				let unread = 0
+				try {
+					unread = (await api("/api/inbox", null, "GET")).unread || 0
+				} catch (e) {
+					return
+				}
+				const b = $("navInbox")
+				b.classList.toggle("hidden", !unread)
+				b.textContent = unread > 99 ? "99+" : String(unread || "")
+				b.setAttribute("aria-label", `${unread} unread message${unread === 1 ? "" : "s"}`)
 				try {
 					renderFriends((await api("/api/friends", null, "GET")).friends)
 				} catch (e) {}

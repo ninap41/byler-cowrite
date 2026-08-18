@@ -296,8 +296,8 @@ test("the dashboard carries the help box, and it starts hidden for everyone", as
 });
 
 test("the inbox reply composer is inline markup on the page, not a browser prompt", async () => {
-  // The rows and their actions live in one module, shared by the dashboard's
-  // preview and the full /inbox page — so they can't drift apart.
+  // The rows and their actions live in one module, mounted by /inbox. The
+  // dashboard shows no messages at all — only that some are waiting.
   const body = await fetch(ctx.url + "/js/inbox-panel.js").then((r) => r.text());
   assert.ok(!body.includes("window.prompt"), "no modal prompt anywhere in the inbox");
   assert.ok(body.includes("ib-reply-send"), "the composer is wired")
@@ -305,6 +305,7 @@ test("the inbox reply composer is inline markup on the page, not a browser promp
   assert.ok(body.includes("/api/inbox/reply"), "wired to the reply route");
   assert.ok(body.includes('e.key === "Escape"'), "Escape clears it");
   assert.ok(body.includes("metaKey || e.ctrlKey"), "and Ctrl/Cmd+Enter sends");
-  for (const page of ["/dashboard", "/inbox"])
-    assert.ok((await fetch(ctx.url + page).then((r) => r.text())).includes("inbox-panel.js"), page + " uses it");
+  assert.ok((await fetch(ctx.url + "/inbox").then((r) => r.text())).includes("inbox-panel.js"), "/inbox uses it");
+  const dash = await fetch(ctx.url + "/dashboard").then((r) => r.text());
+  assert.ok(!dash.includes("inbox-panel.js"), "the dashboard does not render messages at all");
 });

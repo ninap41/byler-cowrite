@@ -310,6 +310,25 @@ a.rg-row {
 	text-decoration: none;
 }
 
+/* Writers and Friends are two columns of one question — who else is here.
+   Everyone on the left to search through, the people you already know on the
+   right. Under 860px they stack, because two lists of names side by side on a
+   phone is two half-lists. */
+.writers-split {
+	display: grid;
+	grid-template-columns: 1.35fr 1fr;
+	gap: 18px 24px;
+	align-items: start;
+}
+.writers-split .wsplit-col {
+	min-width: 0;
+}
+@media (max-width: 860px) {
+	.writers-split {
+		grid-template-columns: 1fr;
+	}
+}
+
 /* ---- inbox ---- */
 .ib-row {
 	position: relative; /* the compact row hangs its ✕ in the corner */

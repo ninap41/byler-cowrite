@@ -3991,6 +3991,146 @@ button.danger,
 	--font-mono: "Inconsolata", ui-monospace, monospace;
 }
 [data-theme="vecna"] .bg-set.vecna { opacity: 1; }
+/* ---- the grandfather clock (public/js/components/vecna-clock.js) ----------
+   Vecna's clock as the object it actually is: a long-case clock standing where
+   it has no business standing. It is the subject of the background, centred and
+   nearly floor-height, with the old ghost dial still turning behind it as the
+   sky. Colours are --vc-* properties so the case re-skins in CSS. */
+.bg-set.vecna .grandfather {
+	position: absolute;
+	inset: auto 0 -2%;
+	height: 92vh;
+	display: flex;
+	justify-content: center;
+	opacity: 0.9;
+	--vc-wood: #2a0f12;
+	--vc-wood-lit: #4a1d1f;
+	--vc-wood-dark: #150507;
+	--vc-line: rgba(6, 1, 2, 0.75);
+	--vc-brass: #c98f4e;
+	--vc-face: #23161a;
+	--vc-face-lit: #3a2228;
+	--vc-hand: #e02f2f;
+	--vc-vine: #4a0c12;
+}
+.bg-set.vecna .vc-clock-svg {
+	height: 100%;
+	width: auto;
+	max-width: 100%;
+}
+.bg-set.vecna .vc-wood {
+	fill: url(#vc-grain);
+	stroke: var(--vc-line);
+	stroke-width: 1.4;
+}
+.bg-set.vecna .vc-mould {
+	fill: var(--vc-wood-lit);
+	stroke: var(--vc-line);
+	stroke-width: 1.2;
+}
+.bg-set.vecna .vc-edge {
+	fill: var(--vc-wood-lit);
+	opacity: 0.5;
+}
+.bg-set.vecna .vc-pediment {
+	fill: none;
+	stroke: var(--vc-wood-lit);
+	stroke-width: 12;
+	stroke-linecap: round;
+}
+.bg-set.vecna .vc-finial {
+	fill: var(--vc-brass);
+	opacity: 0.75;
+}
+/* the waist door: dark glass, brass frame */
+.bg-set.vecna .vc-pane {
+	fill: #0c0407;
+	opacity: 0.9;
+}
+.bg-set.vecna .vc-frame {
+	fill: none;
+	stroke: var(--vc-brass);
+	stroke-width: 2;
+	opacity: 0.55;
+}
+.bg-set.vecna .vc-rod {
+	stroke: var(--vc-brass);
+	stroke-width: 3;
+	opacity: 0.7;
+}
+.bg-set.vecna .vc-bob {
+	fill: var(--vc-brass);
+	opacity: 0.72;
+}
+.bg-set.vecna .vc-bob-in {
+	fill: #7a5326;
+	opacity: 0.8;
+}
+/* The pendulum is the only moving part, hinged at its pivot. A stopped clock is
+   a prop; this one is counting down to something. */
+@media (prefers-reduced-motion: no-preference) {
+	.bg-set.vecna #vc-pend {
+		transform-origin: 160px 330px; /* CLOCK.cx, CLOCK.pivotY */
+		animation: vc-swing 3.4s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
+	}
+}
+@keyframes vc-swing {
+	from { transform: rotate(-7deg); }
+	to { transform: rotate(7deg); }
+}
+/* the face */
+.bg-set.vecna .vc-face {
+	fill: url(#vc-facepaint);
+	stroke: var(--vc-brass);
+	stroke-width: 3;
+	opacity: 0.95;
+}
+.bg-set.vecna .vc-chapter {
+	fill: none;
+	stroke: var(--vc-brass);
+	stroke-width: 1;
+	opacity: 0.4;
+}
+.bg-set.vecna .vc-tick {
+	stroke: var(--vc-brass);
+	stroke-width: 1.2;
+	opacity: 0.45;
+}
+.bg-set.vecna .vc-num {
+	fill: var(--vc-brass);
+	font-family: var(--font-display);
+	font-size: 13px;
+	text-anchor: middle;
+	opacity: 0.8;
+}
+.bg-set.vecna .vc-hour,
+.bg-set.vecna .vc-min {
+	stroke: var(--vc-hand);
+	stroke-linecap: round;
+	filter: none;
+}
+.bg-set.vecna .vc-hour {
+	stroke-width: 5;
+}
+.bg-set.vecna .vc-min {
+	stroke-width: 3;
+}
+.bg-set.vecna .vc-cap {
+	fill: var(--vc-hand);
+}
+/* the other side, getting in at the joints */
+.bg-set.vecna .vc-vine {
+	fill: none;
+	stroke: var(--vc-vine);
+	stroke-width: 5;
+	stroke-linecap: round;
+	opacity: 0.75;
+}
+.bg-set.vecna .vc-vine-thin {
+	stroke-width: 3;
+	opacity: 0.5;
+}
+
 .bg-set.vecna .clockface {
 	position: absolute;
 	top: 50%;
@@ -4005,7 +4145,7 @@ button.danger,
 		repeating-conic-gradient(from 0deg, rgba(201, 143, 78, 0.16) 0deg 0.7deg, transparent 0.7deg 30deg);
 	-webkit-mask: radial-gradient(circle, transparent 55%, #000 56%);
 	mask: radial-gradient(circle, transparent 55%, #000 56%);
-	opacity: 0.6;
+	opacity: 0.32;
 }
 .bg-set.vecna .cvines {
 	position: absolute;

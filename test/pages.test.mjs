@@ -378,11 +378,14 @@ test("the inbox has a page of its own, linked from the dashboard and the nav", a
   const inbox = await page("/inbox");
   assert.equal(inbox.status, 200);
   assert.ok(inbox.body.includes('id="inboxList"'), "the messages land here");
-  assert.ok(inbox.body.includes("mountInbox"), "same rows and actions as the dashboard preview");
+  assert.ok(inbox.body.includes("mountInbox"), "the whole panel — rows, chains and composer");
 
+  // The dashboard doesn't preview messages: it carries the fact that some are
+  // waiting, and the link to go and read them.
   const dash = await page("/dashboard");
   assert.ok(dash.body.includes('href="/inbox"'), "the dashboard links to it");
-  assert.ok(dash.body.includes("limit: 5"), "and only previews the newest few");
+  assert.ok(!dash.body.includes('id="inboxList"'), "and renders no messages of its own");
+  assert.ok(dash.body.includes('id="navInbox"'), "just the unread count on the link");
 
   const chrome = await page("/js/chrome.js");
   assert.ok(chrome.body.includes('href="/inbox"'), "it's in the nav drawer too");
