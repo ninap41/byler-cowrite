@@ -82,7 +82,13 @@ export function registerRoutes(app, game) {
     res.json({
       modes: ["simple", "intermediate"],
       intermediate: {
-        timePeriods: data.timePeriods.map((p) => ({ id: p.id, label: p.label, ageGroup: p.ageGroup })),
+        universes: menu(data.universes || []),
+        // periods carry the universes that admit them, so the Time period menu
+        // can narrow itself to the chosen universe instead of offering a
+        // century the generator would have to overrule
+        timePeriods: data.timePeriods.map((p) => ({
+          id: p.id, label: p.label, ageGroup: p.ageGroup, universes: p.compatibleUniverses || [],
+        })),
         relationshipContexts: menu(data.relationshipContexts),
         tones: menu(data.tones),
         categories: [...new Set(data.tensions.map((t) => t.category))].sort(),

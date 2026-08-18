@@ -15,7 +15,12 @@ const {
 const MENUS = {
   modes: ["simple", "intermediate"],
   intermediate: {
-    timePeriods: [{ id: "post-vecna", label: "Post-Vecna", ageGroup: "minor" }, { id: "modern-au", label: "Modern AU", ageGroup: "adult" }],
+    universes: [{ id: "hawkins-canon", label: "Hawkins, as it happened" }, { id: "high-seas", label: "The high seas" }],
+    timePeriods: [
+      { id: "post-vecna", label: "Post-Vecna", ageGroup: "minor", universes: ["hawkins-canon"] },
+      { id: "modern-au", label: "Modern AU", ageGroup: "adult", universes: ["hawkins-canon"] },
+      { id: "age-of-sail", label: "The age of sail", ageGroup: "adult", universes: ["high-seas"] },
+    ],
     relationshipContexts: [{ id: "mutual-unspoken", label: "Mutual but unspoken" }],
     tones: [{ id: "nostalgic", label: "Nostalgic" }],
     categories: ["confession", "forced-proximity"],
@@ -80,7 +85,8 @@ test("guided is off until the component pools are known", () => {
 
   pm.setMenus(MENUS);
   assert.equal(guidedBtn.disabled, false);
-  assert.equal(root.querySelector("#t1Period").options.length, 3); // Random + 2
+  assert.equal(root.querySelector("#t1Period").options.length, 4); // Random + 3
+  assert.equal(root.querySelector("#t1Universe").options.length, 3); // Random + 2
   assert.equal(root.querySelector("#t1Category").options[1].textContent, "Confession");
 });
 
@@ -151,4 +157,26 @@ test("game.html mounts the picker in both the lobby and the vote card", () => {
   assert.match(html, /start-game", \{ \.\.\.lobbyRules\.values\(\), \.\.\.lobbyPrompt\.values\(\) \}/);
   // and the chat dock starts minimized
   assert.match(html, /id="chatCard" class="chat-dock hidden collapsed"/);
+});
+
+test("periodsIn narrows the time periods to the chosen universe", async () => {
+  const { periodsIn } = await import("../public/js/components/prompt-modes.js");
+  const all = MENUS.intermediate.timePeriods;
+  assert.equal(periodsIn(all, "random").length, 3, "Random universe offers every period");
+  assert.deepEqual(periodsIn(all, "high-seas").map((p) => p.id), ["age-of-sail"]);
+  // a period that belongs to no universe in particular belongs everywhere
+  assert.ok(periodsIn([{ id: "any", label: "Any" }], "high-seas").length);
+});
+
+test("choosing a universe reshapes the period menu and drops an impossible period", () => {
+  const root = mount('<div id="pm"></div>');
+  const api = mountPromptModes(root, { prefix: "t" });
+  api.setMenus(MENUS).setState("intermediate", { timePeriodId: "post-vecna" });
+  const uni = root.querySelector("#tUniverse");
+  const per = root.querySelector("#tPeriod");
+  assert.equal(per.value, "post-vecna");
+  uni.value = "high-seas";
+  fire(uni, "change");
+  assert.deepEqual([...per.options].map((o) => o.value), ["random", "age-of-sail"]);
+  assert.equal(per.value, "random", "a period this universe has no room for falls back to Random");
 });

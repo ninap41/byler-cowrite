@@ -13,6 +13,7 @@ export const PROMPT_MODES = [
 // Every guided knob: the id suffix its control gets, its label, and where its
 // choices come from. `menu` names a pool from /api/prompt-options.
 export const GUIDED_FIELDS = [
+	{ key: "universeId", suffix: "Universe", label: "Universe", menu: "universes" },
 	{ key: "timePeriodId", suffix: "Period", label: "Time period", menu: "timePeriods" },
 	{ key: "relationshipContextId", suffix: "Rel", label: "Relationship", menu: "relationshipContexts" },
 	{ key: "toneId", suffix: "Tone", label: "Tone", menu: "tones" },
@@ -24,6 +25,7 @@ export const INTENSITIES = [
 	{ id: "high", label: "High" },
 ]
 export const DEFAULT_CONTROLS = {
+	universeId: "random",
 	timePeriodId: "random",
 	relationshipContextId: "random",
 	toneId: "random",
@@ -60,11 +62,20 @@ export function menuHtml(items, selected) {
 export function optionChipsHtml(meta) {
 	const labels = meta?.labels
 	if (!labels) return ""
-	const chips = ["timePeriod", "location", "relationshipContext", "tension", "catalyst", "tone"]
+	const chips = ["universe", "timePeriod", "location", "relationshipContext", "tension", "catalyst", "tone"]
 		.map((k) => labels[k])
 		.filter(Boolean)
 	if (!chips.length) return ""
 	return `<span class="opt-chips">${chips.map((c) => `<span class="opt-chip">${esc(c)}</span>`).join("")}</span>`
+}
+
+// The periods a universe admits. A period lists the universes it belongs to
+// (the server ships that list with the menu), so choosing "the high seas"
+// leaves the Time period menu offering the age of sail and not the Wheeler
+// basement's decade. A period that lists nothing belongs everywhere.
+export function periodsIn(periods = [], universeId) {
+	if (!universeId || universeId === "random") return periods
+	return periods.filter((p) => !p.universes?.length || p.universes.includes(universeId))
 }
 
 // One page can hold two of these (lobby + vote card), so every id is prefixed.
@@ -124,7 +135,25 @@ export function mountPromptModes(root, { prefix = "pm", onChange } = {}) {
 			paint()
 			fire()
 		})
-	el("Controls").addEventListener("change", fire)
+	// Narrowing the period menu is not a change of anything the server needs to
+	// hear about — it just stops the menu offering a century this universe has
+	// no room for. A period that falls out of the list falls back to Random.
+	function paintPeriods() {
+		const d = menus?.intermediate
+		if (!d?.timePeriods) return
+		const u = el("Universe")?.value || "random"
+		const allowed = periodsIn(d.timePeriods, u)
+		const want = allowed.some((p) => p.id === controls.timePeriodId) ? controls.timePeriodId : "random"
+		el("Period").innerHTML = menuHtml(allowed, want)
+		controls.timePeriodId = want
+	}
+	el("Controls").addEventListener("change", (e) => {
+		if (e.target === el("Universe")) {
+			controls = readControls()
+			paintPeriods()
+		}
+		fire()
+	})
 
 	const api = {
 		// The menus arrive from /api/prompt-options; ids+labels only.
@@ -132,6 +161,7 @@ export function mountPromptModes(root, { prefix = "pm", onChange } = {}) {
 			menus = next
 			const d = next?.intermediate
 			if (d) for (const f of GUIDED_FIELDS) el(f.suffix).innerHTML = menuHtml(d[f.menu], controls[f.key])
+			paintPeriods()
 			paint()
 			return api
 		},
@@ -139,6 +169,7 @@ export function mountPromptModes(root, { prefix = "pm", onChange } = {}) {
 			if (nextMode) mode = nextMode
 			if (nextControls) {
 				controls = { ...controls, ...nextControls }
+				paintPeriods()
 				for (const f of GUIDED_FIELDS) if (el(f.suffix).options.length) el(f.suffix).value = controls[f.key]
 				el("Intensity").value = controls.tensionIntensity || "medium"
 				el("Catalyst").checked = !!controls.includeCatalyst

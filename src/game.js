@@ -31,6 +31,7 @@ function cleanPromptControls(c = {}) {
     return /^[a-z0-9-]+$/.test(x) ? x : "random";
   };
   return {
+    universeId: id(c.universeId),
     timePeriodId: id(c.timePeriodId),
     relationshipContextId: id(c.relationshipContextId),
     toneId: id(c.toneId),

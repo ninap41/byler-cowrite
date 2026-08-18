@@ -54,6 +54,137 @@
     "Modern-day, no monsters, no powers: they're just two boys at the same high school, and the hardest thing in the world is a hand held under a lunch table."
   ],
   "intermediate": {
+    "universes": [
+      {
+        "id": "hawkins-canon",
+        "label": "Hawkins, as it happened",
+        "text": "This is the world of the show: Hawkins, the party, and the thing under the town that nobody outside it believes in.",
+        "tags": [
+          "canon",
+          "hawkins",
+          "supernatural"
+        ],
+        "weight": 6
+      },
+      {
+        "id": "no-monsters",
+        "label": "No monsters",
+        "text": "Same town, same people, no Upside Down — nothing has ever come for either of them, so the only thing left to be afraid of is each other.",
+        "tags": [
+          "mundane",
+          "hawkins"
+        ],
+        "weight": 4
+      },
+      {
+        "id": "dnd-realm",
+        "label": "The campaign, for real",
+        "text": "The campaign is the world: Will is a cleric, Mike is a paladin sworn to the party, and the dice were always going to land here.",
+        "tags": [
+          "au",
+          "fantasy",
+          "magic",
+          "quest"
+        ],
+        "weight": 3
+      },
+      {
+        "id": "spell-school",
+        "label": "School of magic",
+        "text": "They are students at a school of magic, in a castle that keeps rearranging itself around the two of them.",
+        "tags": [
+          "au",
+          "fantasy",
+          "magic",
+          "school"
+        ],
+        "weight": 3
+      },
+      {
+        "id": "high-seas",
+        "label": "The high seas",
+        "text": "Mike captains a ship with a bad reputation, and the sea gave him Will — who is not entirely a man, and not letting go of his wrist.",
+        "tags": [
+          "au",
+          "fantasy",
+          "sea",
+          "danger"
+        ],
+        "weight": 3
+      },
+      {
+        "id": "long-night",
+        "label": "The long night",
+        "text": "One of them stopped aging decades ago. Immortality is mostly waiting, and he has been waiting for this face to come back around.",
+        "tags": [
+          "au",
+          "supernatural",
+          "immortal",
+          "night"
+        ],
+        "weight": 3
+      },
+      {
+        "id": "haunted",
+        "label": "A haunting",
+        "text": "One of them is dead and has not left, and the other has just moved into the house he never stopped living in.",
+        "tags": [
+          "au",
+          "supernatural",
+          "ghost",
+          "house"
+        ],
+        "weight": 3
+      },
+      {
+        "id": "stage-lights",
+        "label": "Stage lights and ink",
+        "text": "Mike's band is bigger than anyone planned and Will tattoos out of a shop three states away, which has never once stopped either of them from getting on a plane.",
+        "tags": [
+          "au",
+          "music",
+          "art",
+          "fame"
+        ],
+        "weight": 3
+      },
+      {
+        "id": "staff-room",
+        "label": "Two teachers",
+        "text": "They teach at the same high school — English and art, adjoining hallways — and their students worked it out roughly a year before they did.",
+        "tags": [
+          "au",
+          "work",
+          "school",
+          "adult-life"
+        ],
+        "weight": 3
+      },
+      {
+        "id": "cold-rink",
+        "label": "Shared ice",
+        "text": "Will skates figures and Mike plays hockey and the rink gave them the same terrible five in the morning. It started as a turf war.",
+        "tags": [
+          "au",
+          "sport",
+          "rivalry",
+          "ice"
+        ],
+        "weight": 3
+      },
+      {
+        "id": "after-the-end",
+        "label": "After the end",
+        "text": "The world ended some months ago. What is left is a road, a rifle between them, and the fact that neither will go on without the other.",
+        "tags": [
+          "au",
+          "apocalypse",
+          "danger",
+          "survival"
+        ],
+        "weight": 3
+      }
+    ],
     "timePeriods": [
       {
         "id": "1980s-canon",
@@ -66,7 +197,11 @@
           "supernatural",
           "school"
         ],
-        "weight": 5
+        "weight": 5,
+        "compatibleUniverses": [
+          "hawkins-canon",
+          "no-monsters"
+        ]
       },
       {
         "id": "post-vecna",
@@ -79,7 +214,11 @@
           "post-season-4",
           "supernatural"
         ],
-        "weight": 5
+        "weight": 5,
+        "compatibleUniverses": [
+          "hawkins-canon",
+          "no-monsters"
+        ]
       },
       {
         "id": "california-split",
@@ -92,7 +231,11 @@
           "distance",
           "supernatural"
         ],
-        "weight": 4
+        "weight": 4,
+        "compatibleUniverses": [
+          "hawkins-canon",
+          "no-monsters"
+        ]
       },
       {
         "id": "senior-year",
@@ -105,7 +248,11 @@
           "school",
           "future"
         ],
-        "weight": 4
+        "weight": 4,
+        "compatibleUniverses": [
+          "hawkins-canon",
+          "no-monsters"
+        ]
       },
       {
         "id": "early-1990s",
@@ -117,7 +264,11 @@
           "post-canon",
           "future"
         ],
-        "weight": 3
+        "weight": 3,
+        "compatibleUniverses": [
+          "hawkins-canon",
+          "no-monsters"
+        ]
       },
       {
         "id": "adult-post-canon",
@@ -129,7 +280,11 @@
           "post-canon",
           "reunion"
         ],
-        "weight": 3
+        "weight": 3,
+        "compatibleUniverses": [
+          "hawkins-canon",
+          "no-monsters"
+        ]
       },
       {
         "id": "college-au",
@@ -142,7 +297,14 @@
           "mundane",
           "school"
         ],
-        "weight": 3
+        "weight": 3,
+        "compatibleUniverses": [
+          "hawkins-canon",
+          "no-monsters",
+          "cold-rink",
+          "stage-lights",
+          "spell-school"
+        ]
       },
       {
         "id": "modern-au",
@@ -154,7 +316,92 @@
           "au",
           "mundane"
         ],
-        "weight": 3
+        "weight": 3,
+        "compatibleUniverses": [
+          "hawkins-canon",
+          "no-monsters",
+          "stage-lights",
+          "staff-room",
+          "cold-rink",
+          "haunted",
+          "long-night",
+          "after-the-end"
+        ]
+      },
+      {
+        "id": "high-fantasy-age",
+        "label": "An age of quests",
+        "text": "Set this in an age of long roads, bad kings and worse gods, where a party of six is the only thing standing between a village and the dark.",
+        "ageGroup": "adult",
+        "compatibleUniverses": [
+          "dnd-realm"
+        ],
+        "tags": [
+          "fantasy",
+          "quest",
+          "danger"
+        ],
+        "weight": 4
+      },
+      {
+        "id": "school-years-au",
+        "label": "Their school years, elsewhere",
+        "text": "Set this while they are still students — the same age they were in the basement, in a life that never included Hawkins.",
+        "ageGroup": "minor",
+        "compatibleUniverses": [
+          "spell-school",
+          "cold-rink",
+          "no-monsters"
+        ],
+        "tags": [
+          "school",
+          "young"
+        ],
+        "weight": 4
+      },
+      {
+        "id": "age-of-sail",
+        "label": "The age of sail",
+        "text": "Set this on open water in a century of charts and superstition, where the map runs out a week west of here.",
+        "ageGroup": "adult",
+        "compatibleUniverses": [
+          "high-seas"
+        ],
+        "tags": [
+          "historical",
+          "sea",
+          "danger"
+        ],
+        "weight": 4
+      },
+      {
+        "id": "endless-night",
+        "label": "An endless night",
+        "text": "Set this in a present that never quite gets to morning, where one of them has had far too much time to think about it.",
+        "ageGroup": "adult",
+        "compatibleUniverses": [
+          "long-night",
+          "haunted"
+        ],
+        "tags": [
+          "night",
+          "supernatural"
+        ],
+        "weight": 4
+      },
+      {
+        "id": "first-year-after",
+        "label": "The first year after",
+        "text": "Set this in the first year after everything fell over, close enough to remember what bread tasted like.",
+        "ageGroup": "adult",
+        "compatibleUniverses": [
+          "after-the-end"
+        ],
+        "tags": [
+          "apocalypse",
+          "survival"
+        ],
+        "weight": 4
       }
     ],
     "relationshipContexts": [
@@ -375,7 +622,11 @@
           "senior-year",
           "early-1990s"
         ],
-        "weight": 5
+        "weight": 5,
+        "compatibleUniverses": [
+          "hawkins-canon",
+          "no-monsters"
+        ]
       },
       {
         "id": "castle-byers-rain",
@@ -395,7 +646,11 @@
           "post-vecna",
           "senior-year"
         ],
-        "weight": 4
+        "weight": 4,
+        "compatibleUniverses": [
+          "hawkins-canon",
+          "no-monsters"
+        ]
       },
       {
         "id": "byers-kitchen-3am",
@@ -409,7 +664,11 @@
           "canon-friendly"
         ],
         "categoryStrict": false,
-        "weight": 5
+        "weight": 5,
+        "compatibleUniverses": [
+          "hawkins-canon",
+          "no-monsters"
+        ]
       },
       {
         "id": "mikes-bedroom",
@@ -429,7 +688,11 @@
           "senior-year",
           "california-split"
         ],
-        "weight": 4
+        "weight": 4,
+        "compatibleUniverses": [
+          "hawkins-canon",
+          "no-monsters"
+        ]
       },
       {
         "id": "empty-gym",
@@ -449,7 +712,11 @@
           "senior-year",
           "college-au"
         ],
-        "weight": 3
+        "weight": 3,
+        "compatibleUniverses": [
+          "hawkins-canon",
+          "no-monsters"
+        ]
       },
       {
         "id": "record-store",
@@ -462,7 +729,11 @@
           "town"
         ],
         "categoryStrict": false,
-        "weight": 3
+        "weight": 3,
+        "compatibleUniverses": [
+          "hawkins-canon",
+          "no-monsters"
+        ]
       },
       {
         "id": "stalled-car",
@@ -476,7 +747,11 @@
           "road"
         ],
         "categoryStrict": false,
-        "weight": 4
+        "weight": 4,
+        "compatibleUniverses": [
+          "hawkins-canon",
+          "no-monsters"
+        ]
       },
       {
         "id": "motel-room",
@@ -489,7 +764,11 @@
           "forced-proximity"
         ],
         "categoryStrict": false,
-        "weight": 3
+        "weight": 3,
+        "compatibleUniverses": [
+          "hawkins-canon",
+          "no-monsters"
+        ]
       },
       {
         "id": "dorm-hallway",
@@ -507,7 +786,11 @@
           "modern-au",
           "early-1990s"
         ],
-        "weight": 3
+        "weight": 3,
+        "compatibleUniverses": [
+          "hawkins-canon",
+          "no-monsters"
+        ]
       },
       {
         "id": "shared-apartment",
@@ -526,7 +809,11 @@
           "college-au",
           "modern-au"
         ],
-        "weight": 3
+        "weight": 3,
+        "compatibleUniverses": [
+          "hawkins-canon",
+          "no-monsters"
+        ]
       },
       {
         "id": "reunion-porch",
@@ -546,7 +833,11 @@
           "college-au",
           "modern-au"
         ],
-        "weight": 3
+        "weight": 3,
+        "compatibleUniverses": [
+          "hawkins-canon",
+          "no-monsters"
+        ]
       },
       {
         "id": "hospital-waiting",
@@ -559,7 +850,11 @@
           "hurt-comfort"
         ],
         "categoryStrict": false,
-        "weight": 3
+        "weight": 3,
+        "compatibleUniverses": [
+          "hawkins-canon",
+          "no-monsters"
+        ]
       },
       {
         "id": "graduation-party",
@@ -577,7 +872,11 @@
           "senior-year",
           "early-1990s"
         ],
-        "weight": 3
+        "weight": 3,
+        "compatibleUniverses": [
+          "hawkins-canon",
+          "no-monsters"
+        ]
       },
       {
         "id": "long-drive-van",
@@ -591,7 +890,11 @@
           "quiet"
         ],
         "categoryStrict": false,
-        "weight": 4
+        "weight": 4,
+        "compatibleUniverses": [
+          "hawkins-canon",
+          "no-monsters"
+        ]
       },
       {
         "id": "cabin-storm",
@@ -605,7 +908,11 @@
           "rain"
         ],
         "categoryStrict": false,
-        "weight": 3
+        "weight": 3,
+        "compatibleUniverses": [
+          "hawkins-canon",
+          "no-monsters"
+        ]
       },
       {
         "id": "upside-down-echo",
@@ -625,7 +932,11 @@
           "california-split",
           "senior-year"
         ],
-        "weight": 3
+        "weight": 3,
+        "compatibleUniverses": [
+          "hawkins-canon",
+          "no-monsters"
+        ]
       },
       {
         "id": "arcade-closing",
@@ -645,7 +956,11 @@
           "senior-year",
           "california-split"
         ],
-        "weight": 3
+        "weight": 3,
+        "compatibleUniverses": [
+          "hawkins-canon",
+          "no-monsters"
+        ]
       },
       {
         "id": "phone-line",
@@ -665,7 +980,11 @@
           "modern-au",
           "early-1990s"
         ],
-        "weight": 3
+        "weight": 3,
+        "compatibleUniverses": [
+          "hawkins-canon",
+          "no-monsters"
+        ]
       },
       {
         "id": "byers-attic-boxes",
@@ -678,7 +997,11 @@
           "nostalgic"
         ],
         "categoryStrict": false,
-        "weight": 3
+        "weight": 3,
+        "compatibleUniverses": [
+          "hawkins-canon",
+          "no-monsters"
+        ]
       },
       {
         "id": "diner-booth",
@@ -692,7 +1015,331 @@
           "town"
         ],
         "categoryStrict": false,
-        "weight": 4
+        "weight": 4,
+        "compatibleUniverses": [
+          "hawkins-canon",
+          "no-monsters"
+        ]
+      },
+      {
+        "id": "temple-ruin-camp",
+        "label": "Camp in a ruined temple",
+        "text": "The party sleeps in a ruined temple and the two of them take the same watch, again, the way they always somehow do.",
+        "category": "quiet",
+        "privacy": "semi-private",
+        "compatibleUniverses": [
+          "dnd-realm"
+        ],
+        "tags": [
+          "fantasy",
+          "night",
+          "quest"
+        ],
+        "categoryStrict": false,
+        "weight": 5
+      },
+      {
+        "id": "after-the-healing",
+        "label": "After the healing spell",
+        "text": "The fight is over, Will's hands are still shaking from what he had to pour into Mike, and nobody else has come back yet.",
+        "category": "hurt-comfort",
+        "privacy": "private",
+        "compatibleUniverses": [
+          "dnd-realm"
+        ],
+        "tags": [
+          "fantasy",
+          "magic",
+          "hurt"
+        ],
+        "categoryStrict": false,
+        "weight": 5
+      },
+      {
+        "id": "astronomy-tower",
+        "label": "The top of the tower",
+        "text": "The highest window in the castle, well after curfew, with the whole grounds asleep underneath them.",
+        "category": "quiet",
+        "privacy": "private",
+        "compatibleUniverses": [
+          "spell-school"
+        ],
+        "tags": [
+          "magic",
+          "school",
+          "night"
+        ],
+        "categoryStrict": false,
+        "weight": 5
+      },
+      {
+        "id": "detention-together",
+        "label": "Detention, together",
+        "text": "They are being punished for the same thing in the same empty classroom, and there are two hours left of it.",
+        "category": "forced-proximity",
+        "privacy": "semi-private",
+        "compatibleUniverses": [
+          "spell-school",
+          "no-monsters",
+          "cold-rink"
+        ],
+        "tags": [
+          "school",
+          "forced-proximity"
+        ],
+        "categoryStrict": false,
+        "weight": 5
+      },
+      {
+        "id": "crows-nest",
+        "label": "The crow's nest",
+        "text": "Up in the rigging with the crew asleep below, the only two awake on the whole ship.",
+        "category": "quiet",
+        "privacy": "private",
+        "compatibleUniverses": [
+          "high-seas"
+        ],
+        "tags": [
+          "sea",
+          "night"
+        ],
+        "categoryStrict": false,
+        "weight": 5
+      },
+      {
+        "id": "tidepool-cove",
+        "label": "A cove nobody charted",
+        "text": "A cove that is on no map, warm water, and the understanding that one of them cannot follow the other home.",
+        "category": "longing",
+        "privacy": "private",
+        "compatibleUniverses": [
+          "high-seas"
+        ],
+        "tags": [
+          "sea",
+          "fantasy",
+          "longing"
+        ],
+        "categoryStrict": false,
+        "weight": 5
+      },
+      {
+        "id": "bar-that-doesnt-close",
+        "label": "The bar that never closes",
+        "text": "A bar at the hour when everyone sober has gone, where one of them has been sitting in the same seat for rather more years than he looks.",
+        "category": "reunion",
+        "privacy": "public",
+        "compatibleUniverses": [
+          "long-night"
+        ],
+        "tags": [
+          "night",
+          "immortal"
+        ],
+        "categoryStrict": false,
+        "weight": 5
+      },
+      {
+        "id": "rooftop-before-dawn",
+        "label": "A rooftop, before dawn",
+        "text": "A rooftop with maybe forty minutes of dark left in it, which is the whole problem.",
+        "category": "longing",
+        "privacy": "private",
+        "compatibleUniverses": [
+          "long-night",
+          "after-the-end",
+          "haunted"
+        ],
+        "tags": [
+          "night",
+          "longing"
+        ],
+        "categoryStrict": false,
+        "weight": 5
+      },
+      {
+        "id": "house-that-remembers",
+        "label": "The house that remembers him",
+        "text": "The front room of a house that has been empty for forty years and is very obviously not empty now.",
+        "category": "supernatural",
+        "privacy": "private",
+        "compatibleUniverses": [
+          "haunted"
+        ],
+        "tags": [
+          "ghost",
+          "house",
+          "night"
+        ],
+        "categoryStrict": false,
+        "weight": 5
+      },
+      {
+        "id": "boxes-of-a-dead-boy",
+        "label": "Boxes in the attic",
+        "text": "An attic full of somebody's whole unfinished life, being sorted by the one person who can see him standing there watching.",
+        "category": "shared-memory",
+        "privacy": "private",
+        "compatibleUniverses": [
+          "haunted"
+        ],
+        "tags": [
+          "ghost",
+          "memory"
+        ],
+        "categoryStrict": false,
+        "weight": 5
+      },
+      {
+        "id": "dressing-room-after",
+        "label": "The dressing room, after",
+        "text": "Twenty minutes after the encore, ears still ringing, the only person he actually wanted out there sitting on the counter.",
+        "category": "reunion",
+        "privacy": "private",
+        "compatibleUniverses": [
+          "stage-lights"
+        ],
+        "tags": [
+          "music",
+          "fame",
+          "reunion"
+        ],
+        "categoryStrict": false,
+        "weight": 5
+      },
+      {
+        "id": "tattoo-chair",
+        "label": "The chair at closing",
+        "text": "The shop is shut, the needle is off, and one of them has an hour of being held perfectly still to get through.",
+        "category": "tension",
+        "privacy": "private",
+        "compatibleUniverses": [
+          "stage-lights"
+        ],
+        "tags": [
+          "art",
+          "touch"
+        ],
+        "categoryStrict": false,
+        "weight": 5
+      },
+      {
+        "id": "staff-room-late",
+        "label": "The staff room at six",
+        "text": "The staff room long after the buses have gone, two piles of marking and one working coffee machine.",
+        "category": "quiet",
+        "privacy": "semi-private",
+        "compatibleUniverses": [
+          "staff-room"
+        ],
+        "tags": [
+          "work",
+          "school"
+        ],
+        "categoryStrict": false,
+        "weight": 5
+      },
+      {
+        "id": "art-room-after-bell",
+        "label": "The art room after the bell",
+        "text": "The art room with the chairs still down, paint drying, and someone from the English department who has run out of reasons to be in here.",
+        "category": "quiet",
+        "privacy": "private",
+        "compatibleUniverses": [
+          "staff-room"
+        ],
+        "tags": [
+          "art",
+          "work"
+        ],
+        "categoryStrict": false,
+        "weight": 5
+      },
+      {
+        "id": "five-am-ice",
+        "label": "Five in the morning, shared ice",
+        "text": "An empty rink at five in the morning, one half of it marked out for figures and the other for a net nobody has moved yet.",
+        "category": "tension",
+        "privacy": "semi-private",
+        "compatibleUniverses": [
+          "cold-rink"
+        ],
+        "tags": [
+          "sport",
+          "ice",
+          "rivalry"
+        ],
+        "categoryStrict": false,
+        "weight": 5
+      },
+      {
+        "id": "locker-room-tape",
+        "label": "The locker room, taping up",
+        "text": "An empty locker room, one of them taping the other's wrist because there is nobody else left in the building to do it.",
+        "category": "hurt-comfort",
+        "privacy": "private",
+        "compatibleUniverses": [
+          "cold-rink"
+        ],
+        "tags": [
+          "sport",
+          "touch",
+          "hurt"
+        ],
+        "categoryStrict": false,
+        "weight": 5
+      },
+      {
+        "id": "barricaded-station",
+        "label": "A gas station, barricaded",
+        "text": "A gas station with the doors wedged shut, one night to get through, and something outside that has not gone away.",
+        "category": "forced-proximity",
+        "privacy": "private",
+        "compatibleUniverses": [
+          "after-the-end"
+        ],
+        "tags": [
+          "apocalypse",
+          "danger",
+          "forced-proximity"
+        ],
+        "categoryStrict": false,
+        "weight": 5
+      },
+      {
+        "id": "quiet-mile",
+        "label": "A quiet mile of road",
+        "text": "A mile of empty highway with nothing on it, which is the closest thing to safe either of them has had in months.",
+        "category": "quiet",
+        "privacy": "private",
+        "compatibleUniverses": [
+          "after-the-end"
+        ],
+        "tags": [
+          "apocalypse",
+          "road"
+        ],
+        "categoryStrict": false,
+        "weight": 5
+      },
+      {
+        "id": "lunch-table-under",
+        "label": "Under the lunch table",
+        "text": "A crowded cafeteria, a table they have sat at for four years, and a hand that nobody above the table can see.",
+        "category": "secret",
+        "privacy": "public",
+        "compatibleUniverses": [
+          "no-monsters",
+          "spell-school",
+          "cold-rink"
+        ],
+        "tags": [
+          "school",
+          "secret",
+          "touch"
+        ],
+        "categoryStrict": false,
+        "weight": 5
       }
     ],
     "tensions": [
@@ -841,6 +1488,9 @@
           "post-vecna",
           "california-split",
           "senior-year"
+        ],
+        "incompatibleTags": [
+          "au"
         ]
       },
       {
@@ -903,7 +1553,10 @@
           "party",
           "comedic"
         ],
-        "weight": 3
+        "weight": 3,
+        "incompatibleTags": [
+          "au"
+        ]
       },
       {
         "id": "protective-overreach",
@@ -1063,6 +1716,9 @@
           "post-vecna",
           "senior-year",
           "early-1990s"
+        ],
+        "incompatibleTags": [
+          "au"
         ]
       },
       {
@@ -1142,7 +1798,10 @@
           "senior-year",
           "california-split"
         ],
-        "weight": 3
+        "weight": 3,
+        "incompatibleTags": [
+          "au"
+        ]
       },
       {
         "id": "someone-walks-in",
@@ -1196,7 +1855,10 @@
           "california-split",
           "senior-year"
         ],
-        "weight": 2
+        "weight": 2,
+        "incompatibleTags": [
+          "au"
+        ]
       },
       {
         "id": "last-call",
@@ -1212,6 +1874,7 @@
       {
         "id": "standard-five-part",
         "parts": [
+          "universe",
           "timePeriod",
           "location",
           "relationshipContext",
@@ -1223,6 +1886,7 @@
       {
         "id": "with-catalyst",
         "parts": [
+          "universe",
           "timePeriod",
           "location",
           "relationshipContext",
@@ -1235,6 +1899,7 @@
       {
         "id": "tension-first",
         "parts": [
+          "universe",
           "timePeriod",
           "relationshipContext",
           "location",

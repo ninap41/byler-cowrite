@@ -88,7 +88,7 @@ test("period compatibility and age safety hold over many draws", () => {
 test("a guided prompt is a bulleted clause per line, not a paragraph", () => {
   const r = generateIntermediatePrompt(INT, { seed: "lines", tensionIntensity: "medium" });
   const lines = r.prompt.split("\n");
-  assert.equal(lines.length, 5); // period, location, relationship, tension, tone
+  assert.equal(lines.length, 6); // universe, period, location, relationship, tension, tone
   for (const ln of lines) {
     assert.ok(ln.startsWith(BULLET), "every section is bulleted: " + ln);
     const text = ln.slice(BULLET.length);
@@ -97,11 +97,12 @@ test("a guided prompt is a bulleted clause per line, not a paragraph", () => {
     assert.ok(!text.includes(BULLET.trim()), "one bullet per line, not one per sentence");
   }
   // the sections are the components' own text, in scene order
-  assert.equal(lines[0].slice(2), INT.timePeriods.find((x) => x.id === r.selections.timePeriodId).text);
+  assert.equal(lines[0].slice(2), INT.universes.find((x) => x.id === r.selections.universeId).text);
+  assert.equal(lines[1].slice(2), INT.timePeriods.find((x) => x.id === r.selections.timePeriodId).text);
   assert.equal(lines.at(-1).slice(2), INT.tones.find((x) => x.id === r.selections.toneId).text);
   // a catalyst adds its own bullet rather than crowding another
   const withCat = generateIntermediatePrompt(INT, { seed: "lines", tensionIntensity: "medium", includeCatalyst: true });
-  assert.equal(withCat.prompt.split("\n").length, 6);
+  assert.equal(withCat.prompt.split("\n").length, 7);
   // and a curated prompt is still a single untouched line, never bulleted
   const simple = generateSimplePrompt(DATA.prompts).prompt;
   assert.ok(!simple.includes("\n") && !simple.includes(BULLET.trim()));
@@ -152,4 +153,47 @@ test("generatePrompt dispatches by mode and refuses missing pools", () => {
   assert.equal(generatePrompt("simple", DATA).mode, "simple");
   assert.equal(generatePrompt("intermediate", DATA, { seed: "q" }).mode, "intermediate");
   assert.throws(() => generatePrompt("intermediate", { prompts: DATA.prompts }), /unavailable/);
+});
+
+test("a universe frames the scene: nothing canon-shaped wanders into an AU", () => {
+  const idOf = (list, id) => list.find((x) => x.id === id);
+  for (const u of INT.universes) {
+    for (let i = 0; i < 40; i++) {
+      const r = generateIntermediatePrompt(INT, { seed: `${u.id}-${i}`, universeId: u.id, includeCatalyst: i % 2 === 0 });
+      assert.equal(r.selections.universeId, u.id);
+      const period = idOf(INT.timePeriods, r.selections.timePeriodId);
+      const loc = idOf(INT.locations, r.selections.locationId);
+      // the period admits this universe, and the place belongs to it
+      if (period.compatibleUniverses?.length) assert.ok(period.compatibleUniverses.includes(u.id), `${period.id} vs ${u.id}`);
+      if (loc.compatibleUniverses?.length) assert.ok(loc.compatibleUniverses.includes(u.id), `${loc.id} vs ${u.id}`);
+      // an AU never gets a component that opted out of AUs
+      const chosen = [loc, idOf(INT.tensions, r.selections.tensionId), idOf(INT.catalysts, r.selections.catalystId)].filter(Boolean);
+      for (const c of chosen)
+        for (const bad of c.incompatibleTags || [])
+          assert.ok(!(u.tags || []).includes(bad), `${c.id} carries ${bad} into ${u.id}`);
+      assert.equal(r.prompt.split("\n")[0].slice(2), u.text);
+    }
+  }
+});
+
+test("every universe is reachable, and the canon one is not the only one dealt", () => {
+  assert.deepEqual(validateIntermediateData(INT), []);
+  const seen = new Set();
+  for (let i = 0; i < 300; i++) seen.add(generateIntermediatePrompt(INT, { seed: "u" + i }).selections.universeId);
+  assert.ok(seen.size > 5, "the ballot roams the multiverse: " + [...seen].join(","));
+  assert.ok(seen.has("hawkins-canon"));
+});
+
+test("a universe with no periods behind it is a data error, not a silent dud", () => {
+  const broken = { ...INT, universes: [...INT.universes, { id: "nowhere", label: "Nowhere", text: "x" }] };
+  assert.ok(validateIntermediateData(broken).some((e) => /nowhere: no time period/.test(e)));
+  const dangling = { ...INT, locations: [{ ...INT.locations[0], compatibleUniverses: ["not-a-universe"] }] };
+  assert.ok(validateIntermediateData(dangling).some((e) => /unknown universe/.test(e)));
+});
+
+test("a prompts.json with no universes pool still generates", () => {
+  const { universes, ...noU } = INT;
+  const r = generateIntermediatePrompt(noU, { seed: "old" });
+  assert.equal(r.selections.universeId, undefined);
+  assert.ok(r.prompt.split("\n").length >= 5);
 });

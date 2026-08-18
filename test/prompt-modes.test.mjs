@@ -115,4 +115,9 @@ test("the menu endpoint ships ids and labels, never the clause text", async () =
   const d = r.data.intermediate;
   assert.ok(d.timePeriods.length >= 8 && d.tones.length >= 8 && d.categories.length);
   assert.ok(d.timePeriods.every((p) => p.id && p.label && p.ageGroup && !p.text));
+  // the universes ride along, and each period says which of them admit it
+  assert.ok(d.universes.length >= 5 && d.universes.every((u) => u.id && u.label && !u.text));
+  const ids = new Set(d.universes.map((u) => u.id));
+  assert.ok(d.timePeriods.some((p) => p.universes?.length));
+  for (const p of d.timePeriods) for (const u of p.universes || []) assert.ok(ids.has(u), `unknown universe ${u}`);
 });

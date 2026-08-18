@@ -324,6 +324,41 @@ When set to `Random`, it should not constrain the result.
 
 ## Randomized Intermediate Components
 
+### Universe (shipped)
+
+A universe is the world the scene happens in, and it is resolved FIRST, before
+the time period — everything after it is chosen inside it. Canon Hawkins is one
+universe among several; the AUs the fandom actually writes (the campaign made
+real, a school of magic, the high seas, immortals, a haunting, stage lights and
+ink, two teachers, shared ice, after the end) are the rest, and `no-monsters` is
+Hawkins with nothing under it.
+
+```ts
+interface IntermediateUniverse {
+  id: string;
+  label: string;
+  text: string;
+  tags: string[];   // every non-canon universe carries "au"
+  weight?: number;
+}
+```
+
+Two rules do all the work:
+
+- A component (period, location, …) that lists `compatibleUniverses` belongs to
+  those universes and nowhere else. The Wheeler basement never turns up on a
+  ship; the crow's nest never turns up in Hawkins.
+- A component that lists none is universal, which most feelings are. The few
+  that are canon-specific — the walkie crackling, the party having worked it out
+  already — opt out with `incompatibleTags: ["au"]`.
+
+Age still comes from the PERIOD, never from the universe: the AUs bring their own
+periods (an age of quests, the age of sail, an endless night, the first year
+after, their school years elsewhere) and each declares its own `ageGroup`.
+
+`validateIntermediateData()` fails a universe that no period admits — it could
+never be dealt, which would otherwise show only as a duller ballot.
+
 ### Location
 
 Locations should describe the actual scene setup, not only name a place.
@@ -431,6 +466,7 @@ Add intermediate data beside it:
     "Existing complete curated prompt two."
   ],
   "intermediate": {
+    "universes": [],
     "timePeriods": [],
     "relationshipContexts": [],
     "tones": [],
@@ -1207,7 +1243,7 @@ Validate:
 Intermediate mode is complete when:
 
 1. The existing simple prompt generator still works without data migration.
-2. The user can select a time period, relationship context, tone, and tension intensity.
+2. The user can select a universe, a time period (narrowed to what that universe admits), relationship context, tone, and tension intensity.
 3. Location and tension are randomized from compatible pools.
 4. Generated components appear as lockable chips.
 5. The user can reroll one component or all unlocked components.
