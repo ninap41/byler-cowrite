@@ -4416,17 +4416,48 @@ button.danger,
 	--font-mono: "Inconsolata", ui-monospace, monospace;
 }
 [data-theme="cleradin"] .bg-set.cleradin { opacity: 1; }
-/* The moon: a soft gradient disc, hanging opposite the tower. It does not
-   parallax — it is the one thing far enough away to stay put. */
+/* The moon, hanging opposite the tower. It does not parallax — it is the one
+   thing far enough away to stay put.
+
+   Two layers doing two jobs. The element itself is the HALO: the soft gradient
+   that was here before, which is what makes the moon sit in air rather than on
+   the page. Its ::before is a photograph of the moon (img/moon.webp) laid over
+   that halo in `screen`, which is the whole trick — the photo's black sky
+   contributes nothing under screen, so the surface arrives with no cut-out and
+   no matte, and the halo shows straight through the dark maria. A radial mask
+   feathers the disc's edge so the photo's own limb never lands as a hard
+   circle, and the theme's violet is dropped back over the top in `color` so
+   the moon belongs to this palette instead of being a grey guest in it. */
 .bg-set.cleradin .moon {
 	position: absolute;
 	left: 68%;
 	top: 12%;
-	width: 190px;
-	height: 190px;
+	width: clamp(150px, 15vw, 240px);
+	aspect-ratio: 1;
 	border-radius: 50%;
-	background: radial-gradient(circle at 40% 38%, rgba(238, 230, 250, 0.9), rgba(180, 160, 210, 0.35) 58%, transparent 70%);
-	filter: blur(1px);
+	background: radial-gradient(circle at 40% 38%, rgba(238, 230, 250, 0.55), rgba(180, 160, 210, 0.3) 58%, transparent 72%);
+	filter: drop-shadow(0 0 48px rgba(206, 188, 250, 0.28));
+}
+.bg-set.cleradin .moon::before,
+.bg-set.cleradin .moon::after {
+	content: "";
+	position: absolute;
+	inset: 6%;
+	border-radius: 50%;
+	-webkit-mask-image: radial-gradient(circle at 50% 50%, #000 76%, transparent 96%);
+	mask-image: radial-gradient(circle at 50% 50%, #000 76%, transparent 96%);
+}
+.bg-set.cleradin .moon::before {
+	background: url("/img/moon.webp") center / cover no-repeat;
+	mix-blend-mode: screen;
+	opacity: 0.92;
+	filter: brightness(0.92) contrast(1.06);
+}
+/* the tint: theme violet, hue only, so the craters keep their own values */
+.bg-set.cleradin .moon::after {
+	background: radial-gradient(circle at 42% 38%, rgba(214, 198, 252, 0.55), rgba(139, 116, 190, 0.5) 70%, rgba(109, 75, 150, 0.45));
+	mix-blend-mode: color;
+	opacity: 0.55;
 }
 
 /* The moonlight itself, pooled BEHIND the tower — the tower is a shape cut out
