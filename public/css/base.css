@@ -4526,6 +4526,11 @@ button.danger,
    the moon belongs to this palette instead of being a grey guest in it. */
 .bg-set.cleradin .moon {
 	position: absolute;
+	/* `isolation: isolate` matters for more than tidiness: without it the
+	   screen/color layers blend against whatever is behind them in the sky,
+	   so every frame the tower moved forced the moon to re-composite. Isolated,
+	   the photo blends against the moon's own halo and nothing else. */
+	isolation: isolate;
 	left: 68%;
 	top: 12%;
 	width: clamp(150px, 15vw, 240px);
@@ -4574,7 +4579,10 @@ button.danger,
 	position: absolute;
 	inset: -6% -6% 30%;
 	background-repeat: repeat;
+	/* the sheets are big; keep them on their own composited layer and never
+	   filter them, so glimmer+drift stay pure compositor work */
 	will-change: opacity, transform;
+	contain: paint;
 }
 .bg-set.cleradin .g1 {
 	--gl: 0.9;
@@ -4591,23 +4599,21 @@ button.danger,
 .bg-set.cleradin .g2 {
 	--gl: 0.6;
 	opacity: 0.6;
-	filter: blur(0.5px);
 	background-image:
-		radial-gradient(circle 2px at 18% 30%, rgba(255, 255, 255, 0.8) 60%, transparent 61%),
-		radial-gradient(circle 1.4px at 46% 12%, rgba(200, 186, 250, 0.8) 60%, transparent 61%),
-		radial-gradient(circle 1.8px at 70% 38%, rgba(255, 255, 255, 0.7) 60%, transparent 61%),
-		radial-gradient(circle 1.4px at 88% 22%, rgba(226, 214, 255, 0.7) 60%, transparent 61%);
+		radial-gradient(circle 2px at 18% 30%, rgba(255, 255, 255, 0.8) 25%, transparent 75%),
+		radial-gradient(circle 1.4px at 46% 12%, rgba(200, 186, 250, 0.8) 25%, transparent 75%),
+		radial-gradient(circle 1.8px at 70% 38%, rgba(255, 255, 255, 0.7) 25%, transparent 75%),
+		radial-gradient(circle 1.4px at 88% 22%, rgba(226, 214, 255, 0.7) 25%, transparent 75%);
 	background-size: 460px 380px;
 }
 .bg-set.cleradin .g3 {
 	--gl: 0.4;
 	opacity: 0.4;
-	filter: blur(1.4px);
 	background-image:
-		radial-gradient(circle 2.6px at 8% 44%, rgba(255, 255, 255, 0.6) 60%, transparent 61%),
-		radial-gradient(circle 2.2px at 40% 26%, rgba(214, 198, 252, 0.6) 60%, transparent 61%),
-		radial-gradient(circle 2.8px at 66% 8%, rgba(255, 255, 255, 0.5) 60%, transparent 61%),
-		radial-gradient(circle 2px at 94% 46%, rgba(190, 200, 255, 0.55) 60%, transparent 61%);
+		radial-gradient(circle 2.6px at 8% 44%, rgba(255, 255, 255, 0.6) 12%, transparent 82%),
+		radial-gradient(circle 2.2px at 40% 26%, rgba(214, 198, 252, 0.6) 12%, transparent 82%),
+		radial-gradient(circle 2.8px at 66% 8%, rgba(255, 255, 255, 0.5) 12%, transparent 82%),
+		radial-gradient(circle 2px at 94% 46%, rgba(190, 200, 255, 0.55) 12%, transparent 82%);
 	background-size: 780px 640px;
 }
 @media (prefers-reduced-motion: no-preference) {
@@ -4646,18 +4652,22 @@ button.danger,
 	top: -12%;
 	width: 78%;
 	height: 96%;
+	/* The softness is IN the gradient, not in a filter. `filter: blur()` on a
+	   layer this size re-rasterises whenever it changes, and this one changes
+	   continuously — which is exactly the work that made the tower's scroll
+	   stutter. Wide, low-stop gradients look the same and cost nothing. */
 	background:
-		radial-gradient(closest-side at 46% 32%, rgba(198, 178, 246, 0.34), rgba(150, 120, 210, 0.14) 52%, transparent 76%),
-		radial-gradient(closest-side at 40% 62%, rgba(139, 58, 78, 0.16), transparent 70%);
-	filter: blur(34px);
-	will-change: opacity, transform;
+		radial-gradient(closest-side at 46% 32%, rgba(198, 178, 246, 0.3), rgba(170, 140, 224, 0.16) 38%, rgba(150, 120, 210, 0.07) 62%, transparent 82%),
+		radial-gradient(closest-side at 40% 62%, rgba(139, 58, 78, 0.14), rgba(139, 58, 78, 0.05) 46%, transparent 76%);
+	will-change: opacity;
 }
 @media (prefers-reduced-motion: no-preference) {
 	.bg-set.cleradin .moonglow { animation: moon-breath 11s ease-in-out infinite; }
 }
+/* opacity only: a scaling glow repaints, a fading one composites */
 @keyframes moon-breath {
-	0%, 100% { opacity: 0.72; transform: scale(1); }
-	50% { opacity: 1; transform: scale(1.05); }
+	0%, 100% { opacity: 0.7; }
+	50% { opacity: 1; }
 }
 
 /* ---- the tower itself (public/js/components/cleradin-tower.js) ----------
@@ -4704,7 +4714,9 @@ button.danger,
 	height: 100%;
 	width: auto;
 	max-width: none;
-	filter: drop-shadow(0 18px 46px rgba(3, 1, 7, 0.7));
+	/* NO filter here. A drop-shadow on a drawing this tall is recomputed as it
+	   travels, which is the one thing the scroll cannot afford; the glow pooled
+	   behind the tower already does the separating. */
 }
 /* masonry: hairlines, not outlines — enough to read as blocks up close and to
    vanish into stone at page size */
@@ -4761,8 +4773,7 @@ button.danger,
 }
 .bg-set.cleradin .cl-moss {
 	fill: var(--cl-moss);
-	opacity: 0.42;
-	filter: blur(1.6px);
+	opacity: 0.3;
 }
 .bg-set.cleradin .cl-corbel {
 	fill: var(--cl-stone);
@@ -4808,7 +4819,10 @@ button.danger,
 	stroke: var(--cl-roof-line);
 	stroke-width: 1;
 }
-/* the pennant is the only moving part: one slow gust, hinged at the mast */
+/* The pennant is the only moving part left INSIDE the drawing, and it is a
+   transform on a handful of points. The lit window used to breathe too, but
+   repainting anything inside a 420vh SVG while that SVG is travelling is what
+   a smooth scroll cannot afford — the window is simply lit now. */
 @media (prefers-reduced-motion: no-preference) {
 	.bg-set.cleradin .cl-flag {
 		transform-box: fill-box;
@@ -4819,13 +4833,6 @@ button.danger,
 @keyframes pennant-sway {
 	0%, 100% { transform: rotate(-1.5deg) scaleX(1); }
 	50% { transform: rotate(2deg) scaleX(0.94); }
-}
-@media (prefers-reduced-motion: no-preference) {
-	.bg-set.cleradin .cl-glass-lit { animation: keep-window 6s ease-in-out infinite; }
-}
-@keyframes keep-window {
-	0%, 100% { opacity: 0.85; }
-	55% { opacity: 0.45; }
 }
 
 /* ---- Russian Bunker: cold concrete, amber alarm, Cyrillic stencils ---- */
