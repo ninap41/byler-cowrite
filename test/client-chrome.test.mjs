@@ -11,7 +11,7 @@ test("theme registry: all nineteen themes present with labels", () => {
   assert.equal(THEMES.length, 19);
   for (const id of [
     "neon", "aurora", "ink", "wall", "snowball", "upside", "starcourt", "arcade", "cerebro",
-    "hawkinslab", "castlebyers", "vecna", "void", "video", "hellfire", "rink", "cleradin", "bunker", "crazy",
+    "hawkinslab", "castlebyers", "vecna", "void", "video", "hellfire", "rink", "cleradin", "bunker", "clouds",
   ])
     assert.ok(THEMES.includes(id), id + " registered");
   assert.equal(THEME_LABELS.wall, "The Wall");
@@ -29,7 +29,7 @@ test("theme registry: all nineteen themes present with labels", () => {
   assert.equal(THEME_LABELS.rink, "Rink-O-Mania");
   assert.equal(THEME_LABELS.cleradin, "Cleradin");
   assert.equal(THEME_LABELS.bunker, "Russian Bunker");
-  assert.equal(THEME_LABELS.crazy, "Crazy Together");
+  assert.equal(THEME_LABELS.clouds, "I Miss the Clouds");
 });
 
 test("background layers sit behind the UI and never intercept clicks", () => {

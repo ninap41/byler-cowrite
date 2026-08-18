@@ -3,7 +3,7 @@
 // falls back to static CSS.
 export const THEMES = [
 	"neon", "aurora", "ink", "wall", "snowball", "upside", "starcourt", "arcade", "cerebro",
-	"hawkinslab", "castlebyers", "vecna", "void", "video", "hellfire", "rink", "cleradin", "bunker", "crazy",
+	"hawkinslab", "castlebyers", "vecna", "void", "video", "hellfire", "rink", "cleradin", "bunker", "clouds",
 ]
 export const THEME_LABELS = {
 	neon: "Neon Dusk",
@@ -24,7 +24,7 @@ export const THEME_LABELS = {
 	rink: "Rink-O-Mania",
 	cleradin: "Cleradin",
 	bunker: "Russian Bunker",
-	crazy: "Crazy Together",
+	clouds: "I Miss the Clouds",
 }
 const LABELS = THEME_LABELS
 
@@ -88,7 +88,7 @@ export function initTheme() {
 		}
 	}
 
-	// ---- Crazy Together: layered clouds on sine paths ---------------------
+	// ---- I Miss the Clouds: layered clouds on sine paths ------------------
 	// Depth is the whole effect: the palest, slowest, blurriest formations are
 	// BEHIND (first in the DOM), the darkest and fastest in front. Every layer
 	// gets its own speed, amplitude, wave length, spacing and phase, and each
@@ -96,10 +96,10 @@ export function initTheme() {
 	// marches in step. Horizontal travel dominates; the sine is a drift, not a
 	// bounce.
 	const CLOUD_LAYERS = [
-		{ count: 4, w: 260, h: 78, scale: 0.8, op: 0.5, blur: 12, color: "rgba(236, 234, 255, 0.75)", top: [6, 34], dur: 190, amp: 10, wave: 26 },
-		{ count: 4, w: 330, h: 96, scale: 0.9, op: 0.42, blur: 9, color: "rgba(214, 214, 250, 0.7)", top: [18, 52], dur: 140, amp: 16, wave: 21 },
-		{ count: 3, w: 430, h: 128, scale: 1, op: 0.36, blur: 6, color: "rgba(120, 128, 190, 0.75)", top: [34, 68], dur: 95, amp: 22, wave: 17 },
-		{ count: 3, w: 560, h: 168, scale: 1.1, op: 0.5, blur: 3, color: "rgba(34, 40, 78, 0.85)", top: [52, 88], dur: 62, amp: 30, wave: 13 },
+		{ count: 4, w: 260, h: 118, scale: 0.8, op: 0.5, blur: 12, color: "rgba(236, 234, 255, 0.75)", top: [6, 34], dur: 190, amp: 10, wave: 26 },
+		{ count: 4, w: 330, h: 148, scale: 0.9, op: 0.42, blur: 9, color: "rgba(214, 214, 250, 0.7)", top: [18, 52], dur: 140, amp: 16, wave: 21 },
+		{ count: 3, w: 430, h: 190, scale: 1, op: 0.36, blur: 6, color: "rgba(120, 128, 190, 0.75)", top: [34, 68], dur: 95, amp: 22, wave: 17 },
+		{ count: 3, w: 560, h: 245, scale: 1.1, op: 0.5, blur: 3, color: "rgba(34, 40, 78, 0.85)", top: [52, 88], dur: 62, amp: 30, wave: 13 },
 	]
 	let cloudTweens = []
 	function stopClouds() {
@@ -108,9 +108,9 @@ export function initTheme() {
 	}
 	function startClouds(theme) {
 		stopClouds()
-		const bands = [...document.querySelectorAll(".bg-set.crazy .cloud-band")]
+		const bands = [...document.querySelectorAll(".bg-set.clouds .cloud-band")]
 		if (!bands.length) return
-		if (theme !== "crazy") {
+		if (theme !== "clouds") {
 			// an unseen sky costs nothing to keep, but it costs nothing to drop
 			for (const b of bands) b.innerHTML = ""
 			return

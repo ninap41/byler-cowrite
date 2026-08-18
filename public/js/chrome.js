@@ -87,8 +87,9 @@ const BG = `
 		<div class="bg-set bunker">
 			<div class="concrete"></div><div class="alarm"></div><div class="stencil"></div>
 		</div>
-		<div class="bg-set crazy">
+		<div class="bg-set clouds">
 			<div class="skyglow"></div>
+			<div class="sparks s1"></div><div class="sparks s2"></div><div class="sparks s3"></div>
 			<div class="cloud-band" data-depth="0"></div><div class="cloud-band" data-depth="1"></div>
 			<div class="cloud-band" data-depth="2"></div><div class="cloud-band" data-depth="3"></div>
 		</div>

@@ -164,8 +164,8 @@
    "story": "\"Space Grotesk\", sans-serif",
    "mono": "\"Inconsolata\", ui-monospace, monospace"
   },
-  "crazy": {
-   "label": "Crazy Together",
+  "clouds": {
+   "label": "I Miss the Clouds",
    "display": "\"Fraunces\", serif",
    "body": "\"Plus Jakarta Sans\", sans-serif",
    "story": "\"Newsreader\", serif",
