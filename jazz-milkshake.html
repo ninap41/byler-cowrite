@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Shake It</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Bungee&family=Archivo:wght@500;700&display=swap" rel="stylesheet">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/Draggable.min.js"></script>
+
+<style>
+  :root{
+    --teal:    #04c4c7;
+    --indigo:  #3a2685;
+    --magenta: #9b3d9e;
+    --paper:   #fbf7ee;
+    --counter: #e6dccb;
+    --shake:   #ff8fb1;
+    --ink:     #241a3d;
+    --floor-h: 96px;
+  }
+
+  *{ box-sizing:border-box; }
+  html,body{ height:100%; margin:0; overflow:hidden; }
+
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:"Archivo", ui-sans-serif, system-ui, sans-serif;
+    -webkit-tap-highlight-color:transparent;
+  }
+
+  .room{ position:fixed; inset:0; overflow:hidden; touch-action:none; }
+
+  /* the counter the shake lands on */
+  .floor{
+    position:absolute;
+    left:0; right:0; bottom:0;
+    height:var(--floor-h);
+    background:var(--counter);
+    border-top:6px solid var(--indigo);
+  }
+  .floor::after{
+    content:"";
+    position:absolute; inset:0;
+    background-image:var(--jazz-url);
+    background-size:auto 220%;
+    background-position:center;
+    opacity:.16;
+    mix-blend-mode:multiply;
+  }
+
+  /* play area — the cup can't be dragged below the counter line */
+  .field{ position:absolute; left:0; right:0; top:0; bottom:var(--floor-h); }
+
+  canvas{ position:absolute; inset:0; pointer-events:none; }
+  #ground{ z-index:1; }
+  #drops { z-index:4; }
+
+  /* ---------- the cup ---------- */
+
+  .cup{
+    position:absolute;
+    left:50%; top:42%;
+    width:240px; height:340px;
+    margin:-170px 0 0 -120px;
+    z-index:3;
+    border:0; padding:0; background:none; outline:none;
+    cursor:grab;
+    touch-action:none;
+  }
+  .cup.grabbing{ cursor:grabbing; }
+  .cup svg{ display:block; width:100%; height:100%; overflow:visible; }
+  .tilt{ width:100%; height:100%; transform-origin:50% 86%; }
+
+  .cup:focus-visible .rim-lip{ stroke:var(--magenta); stroke-width:4; }
+
+  /* ---------- hud ---------- */
+
+  .title{
+    position:absolute;
+    left:28px; top:22px;
+    z-index:6;
+    font-family:"Bungee", "Archivo Black", system-ui, sans-serif;
+    font-size:clamp(30px, 6vw, 58px);
+    line-height:.92;
+    letter-spacing:.01em;
+    color:var(--indigo);
+    pointer-events:none;
+  }
+  .title span{ display:block; color:var(--teal); -webkit-text-stroke:2px var(--indigo); }
+
+  .panel{
+    position:absolute;
+    right:26px; top:26px;
+    z-index:6;
+    width:190px;
+    text-align:right;
+  }
+
+  .meter-label{
+    font-family:"Bungee", system-ui, sans-serif;
+    font-size:11px;
+    letter-spacing:.14em;
+    color:var(--indigo);
+    margin-bottom:8px;
+  }
+  .meter{
+    display:flex;
+    gap:3px;
+    justify-content:flex-end;
+    margin-bottom:18px;
+  }
+  .meter i{
+    display:block;
+    width:7px; height:22px;
+    background:#d9cfbe;
+    border-radius:1px;
+    transition:background .18s ease;
+  }
+  .meter i.on{ background:var(--shake); }
+  .meter i.on.low{ background:var(--magenta); }
+
+  .btn{
+    font-family:"Bungee", system-ui, sans-serif;
+    font-size:12px;
+    letter-spacing:.08em;
+    color:var(--paper);
+    background:var(--indigo);
+    border:0;
+    border-radius:2px;
+    padding:11px 15px;
+    margin-left:8px;
+    cursor:pointer;
+    box-shadow:4px 4px 0 var(--teal);
+    transition:transform .12s ease, box-shadow .12s ease;
+  }
+  .btn:hover{ transform:translate(1px,1px); box-shadow:3px 3px 0 var(--teal); }
+  .btn:active{ transform:translate(4px,4px); box-shadow:0 0 0 var(--teal); }
+  .btn.ghost{ background:var(--magenta); box-shadow:4px 4px 0 var(--indigo); }
+  .btn.ghost:hover{ box-shadow:3px 3px 0 var(--indigo); }
+  .btn.ghost:active{ box-shadow:0 0 0 var(--indigo); }
+
+  .hint{
+    position:absolute;
+    left:28px; bottom:calc(var(--floor-h) + 20px);
+    z-index:6;
+    font-size:12px;
+    font-weight:700;
+    letter-spacing:.15em;
+    text-transform:uppercase;
+    color:var(--indigo);
+    opacity:.65;
+    pointer-events:none;
+  }
+
+  @media (max-width:560px){
+    .panel{ right:16px; top:auto; bottom:calc(var(--floor-h) + 16px); width:auto; }
+    .title{ left:16px; top:14px; }
+    .hint{ left:16px; bottom:calc(var(--floor-h) + 96px); }
+    .cup{ transform-origin:50% 86%; }
+  }
+</style>
+</head>
+
+<body>
+
+<div class="room" id="room">
+  <canvas id="ground"></canvas>
+  <canvas id="drops"></canvas>
+
+  <div class="field" id="field">
+    <button class="cup" id="cup" aria-label="Milkshake cup. Drag to move, click to tip and pour.">
+      <div class="tilt" id="tilt"></div>
+    </button>
+  </div>
+
+  <div class="floor"></div>
+
+  <h1 class="title">Shake<span>It</span></h1>
+
+  <div class="panel">
+    <div class="meter-label">Level</div>
+    <div class="meter" id="meter"></div>
+    <button class="btn" id="refill">Refill</button>
+    <button class="btn ghost" id="wipe">Wipe up</button>
+  </div>
+
+  <div class="hint" id="hint">Drag to move · click to tip · whip it to slosh</div>
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  if (typeof window.gsap === "undefined") {
+    document.getElementById("hint").textContent = "GSAP didn't load — check the CDN script tags";
+    return;
+  }
+
+  const TEAL    = "#04c4c7";
+  const INDIGO  = "#3a2685";
+  const MAGENTA = "#9b3d9e";
+  const SHAKE   = "#ff8fb1";
+  const SHAKE_D = "#ef6f97";
+  const CREAM   = "#fff6ea";
+
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  const HINT = "Drag to move · click to tip · whip it to slosh";
+
+  /* ================================================================== *
+   * 1. The jazz wrap — generated, not traced.
+   *
+   *    Broad teal sweeps under thin indigo/magenta zigzags, roughened
+   *    by feDisplacementMap and eaten into by a turbulence mask so the
+   *    edges break up like dry brush on paper.
+   * ================================================================== */
+
+  function makeRng(seed) {
+    let s = seed >>> 0;
+    return () => {
+      s = (Math.imul(s, 1664525) + 1013904223) >>> 0;
+      return s / 4294967296;
+    };
+  }
+
+  function sweep(rnd, W, H, segs, rise) {
+    let x = -W * 0.08 - rnd() * W * 0.1;
+    let y = H * (0.1 + rnd() * 0.78);
+    const step = (W * 1.25) / segs;
+    const d = [`M ${x.toFixed(1)} ${y.toFixed(1)}`];
+    for (let i = 0; i < segs; i++) {
+      const nx = x + step;
+      const ny = y + rise / segs + (rnd() - 0.5) * H * 0.14;
+      d.push(`C ${(x + step * 0.35).toFixed(1)} ${(y + (rnd() - 0.5) * H * 0.22).toFixed(1)}` +
+             ` ${(x + step * 0.68).toFixed(1)} ${(ny + (rnd() - 0.5) * H * 0.22).toFixed(1)}` +
+             ` ${nx.toFixed(1)} ${ny.toFixed(1)}`);
+      x = nx; y = ny;
+    }
+    return d.join(" ");
+  }
+
+  function zigzag(rnd, W, H) {
+    let x = -W * 0.05 - rnd() * W * 0.1;
+    let y = H * (0.25 + rnd() * 0.5);
+    const n = 4 + Math.floor(rnd() * 3);
+    const step = (W * 1.2) / n;
+    const d = [`M ${x.toFixed(1)} ${y.toFixed(1)}`];
+    let up = rnd() > 0.5;
+    for (let i = 0; i < n; i++) {
+      const nx = x + step;
+      const ny = y + (up ? -1 : 1) * H * (0.16 + rnd() * 0.2);
+      // sharp elbow, then a flat run — the angular part of the pattern
+      d.push(`L ${(x + step * 0.55).toFixed(1)} ${ny.toFixed(1)}`);
+      d.push(`L ${nx.toFixed(1)} ${(ny + (rnd() - 0.5) * H * 0.06).toFixed(1)}`);
+      x = nx; y = ny;
+      up = !up;
+    }
+    return d.join(" ");
+  }
+
+  function jazzSvg(seed, W = 640, H = 400) {
+    const rnd = makeRng(seed);
+    const parts = [];
+    const density = H / 400;
+
+    // broad teal
+    for (let i = 0; i < Math.round(7 * density); i++) {
+      parts.push(`<path d="${sweep(rnd, W, H, 3, -H * (0.08 + rnd() * 0.22))}" fill="none"
+        stroke="${TEAL}" stroke-width="${(26 + rnd() * 26).toFixed(1)}"
+        stroke-linecap="round" stroke-linejoin="round" filter="url(#rough)"/>`);
+    }
+    // thin indigo + magenta zigzags on top
+    for (let i = 0; i < Math.round(6 * density); i++) {
+      const col = i % 3 === 2 ? MAGENTA : INDIGO;
+      parts.push(`<path d="${zigzag(rnd, W, H)}" fill="none"
+        stroke="${col}" stroke-width="${(5 + rnd() * 7).toFixed(1)}"
+        stroke-linecap="round" stroke-linejoin="round" filter="url(#rough)"/>`);
+    }
+    // a few loose flecks
+    for (let i = 0; i < Math.round(26 * density); i++) {
+      const c = rnd() > 0.72 ? INDIGO : TEAL;
+      parts.push(`<ellipse cx="${(rnd() * W).toFixed(1)}" cy="${(rnd() * H).toFixed(1)}"
+        rx="${(1 + rnd() * 4).toFixed(1)}" ry="${(1 + rnd() * 3).toFixed(1)}" fill="${c}" opacity="${(0.4 + rnd() * 0.6).toFixed(2)}"/>`);
+    }
+
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+      <defs>
+        <filter id="rough" x="-25%" y="-25%" width="150%" height="150%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.04 0.09" numOctaves="4" seed="${seed % 97}" result="n"/>
+          <feDisplacementMap in="SourceGraphic" in2="n" scale="17" xChannelSelector="R" yChannelSelector="G"/>
+        </filter>
+        <filter id="grit-noise">
+          <feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="2" seed="${(seed + 11) % 89}"/>
+          <feColorMatrix type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  1.6 0 0 0 -0.42"/>
+        </filter>
+        <mask id="grit">
+          <rect width="${W}" height="${H}" fill="#fff" filter="url(#grit-noise)"/>
+        </mask>
+      </defs>
+      <g mask="url(#grit)">${parts.join("")}</g>
+    </svg>`;
+  }
+
+  // Rasterised once by the browser as an <image> href, so rotating the cup
+  // never re-runs those filters.
+  const toUrl = svg => "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+
+  const jazzUrl = toUrl(jazzSvg(20250804));                 // wide band, for the counter
+  const cupUrl  = toUrl(jazzSvg(778231, 420, 560));         // tall wrap, for the cup
+  document.documentElement.style.setProperty("--jazz-url", `url("${jazzUrl}")`);
+
+  /* ================================================================== *
+   * 2. The cup.
+   * ================================================================== */
+
+  const RIM_Y = 84, RIM_RX = 78, RIM_RY = 15;
+  const CUP_SVG = `
+  <svg viewBox="0 0 240 340" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <clipPath id="body">
+        <path d="M42 ${RIM_Y} L66 292 Q120 308 174 292 L198 ${RIM_Y} Z"/>
+      </clipPath>
+      <clipPath id="bowl">
+        <ellipse cx="120" cy="${RIM_Y}" rx="${RIM_RX - 8}" ry="${RIM_RY - 3}"/>
+      </clipPath>
+      <clipPath id="strawClip">
+        <rect x="-60" y="-160" width="360" height="${RIM_Y + 160}"/>
+        <ellipse cx="120" cy="${RIM_Y}" rx="${RIM_RX - 8}" ry="${RIM_RY - 3}"/>
+      </clipPath>
+      <pattern id="straw" width="16" height="16" patternUnits="userSpaceOnUse" patternTransform="rotate(58)">
+        <rect width="16" height="16" fill="#fffdf8"/>
+        <rect width="8" height="16" fill="#e8384f"/>
+      </pattern>
+      <linearGradient id="shakeGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="${SHAKE}"/>
+        <stop offset="1" stop-color="${SHAKE_D}"/>
+      </linearGradient>
+    </defs>
+
+    <!-- cast shadow on the counter -->
+    <ellipse id="cupShadow" cx="120" cy="300" rx="62" ry="11" fill="#000" opacity=".14"/>
+
+    <!-- paper body: white stock, then shading, then the wrap laid over the top -->
+    <g clip-path="url(#body)">
+      <rect x="30" y="70" width="180" height="250" fill="#ffffff"/>
+      <rect x="30" y="70" width="34" height="250" fill="#000" opacity=".10"/>
+      <rect x="176" y="70" width="34" height="250" fill="#000" opacity=".07"/>
+      <image href="${cupUrl}" x="16" y="70" width="208" height="252"
+             preserveAspectRatio="xMidYMid slice" style="mix-blend-mode:multiply"/>
+    </g>
+
+    <!-- interior -->
+    <ellipse cx="120" cy="${RIM_Y}" rx="${RIM_RX - 8}" ry="${RIM_RY - 3}" fill="#3b2431"/>
+    <g clip-path="url(#bowl)">
+      <g id="liquid">
+        <rect id="liquidBody" x="-140" y="${RIM_Y}" width="520" height="300" fill="url(#shakeGrad)"/>
+        <rect x="-140" y="${RIM_Y}" width="520" height="4" fill="#ffb3ca"/>
+      </g>
+    </g>
+
+    <!-- rim lip -->
+    <ellipse class="rim-lip" cx="120" cy="${RIM_Y}" rx="${RIM_RX}" ry="${RIM_RY}"
+             fill="none" stroke="#fffdf8" stroke-width="9"/>
+
+
+    <!-- straw: visible above the rim line, then only inside the dark interior -->
+    <g id="strawG" clip-path="url(#strawClip)">
+      <rect x="152" y="-10" width="15" height="130" rx="7" fill="url(#straw)"
+            transform="rotate(19 159 55)" stroke="#d9cfc0" stroke-width="1"/>
+    </g>
+
+    <!-- invisible markers: the two rim lips, used to find the pour point -->
+    <circle id="lipL" cx="${120 - RIM_RX}" cy="${RIM_Y}" r="1" fill="none"/>
+    <circle id="lipR" cx="${120 + RIM_RX}" cy="${RIM_Y}" r="1" fill="none"/>
+  </svg>`;
+
+  const tilt = document.getElementById("tilt");
+  tilt.innerHTML = CUP_SVG;
+
+  const cup        = document.getElementById("cup");
+  const field      = document.getElementById("field");
+  const liquid     = document.getElementById("liquid");
+  const lipL       = document.getElementById("lipL");
+  const lipR       = document.getElementById("lipR");
+  const meterEl    = document.getElementById("meter");
+  const hint       = document.getElementById("hint");
+
+  /* ================================================================== *
+   * 3. Canvases: falling drops, and the mess they leave behind.
+   * ================================================================== */
+
+  const groundC = document.getElementById("ground");
+  const dropsC  = document.getElementById("drops");
+  const gctx = groundC.getContext("2d");
+  const dctx = dropsC.getContext("2d");
+  let DPR = 1, floorY = 0, counterTop = 0;
+
+  function sizeCanvases() {
+    DPR = Math.min(2, window.devicePixelRatio || 1);
+    const w = window.innerWidth, h = window.innerHeight;
+    for (const c of [groundC, dropsC]) {
+      c.width  = w * DPR;
+      c.height = h * DPR;
+      c.style.width  = w + "px";
+      c.style.height = h + "px";
+      (c === groundC ? gctx : dctx).setTransform(DPR, 0, 0, DPR, 0, 0);
+    }
+    const floorH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--floor-h"));
+    counterTop = h - floorH + 6;      // just under the indigo edge
+    floorY     = h - floorH + 14;
+    groundDirty = true;
+  }
+
+  const drops = [];
+  const MAX_DROPS = 420;
+
+  /* ---- the spill -------------------------------------------------- *
+   * Landed shake isn't a stamp on the canvas — each pool is an object
+   * with a volume. A drop that lands inside one feeds it; pools that
+   * grow into each other collapse into a single larger pool, so the
+   * mess keeps merging outward instead of stacking up as separate
+   * splats. The whole ground layer is redrawn from that model.
+   * ----------------------------------------------------------------- */
+
+  const puddles = [];
+  const flecks  = [];
+  const MAX_PUDDLES = 80;
+  const POOL_X = 1.55;              // pools run wide across the counter...
+  const POOL_Y = 0.30;              // ...and shallow front-to-back
+  const SPREAD = 2.4;
+  let puddleId = 0;
+  let groundDirty = true;
+
+  // r is the pool's base radius; it draws as an ellipse r*POOL_X by r*POOL_Y,
+  // so volume has to divide out that aspect to keep the area honest.
+  const radiusFor = vol => Math.min(230, Math.sqrt(vol / Math.PI) * SPREAD);
+
+  // distance between two points, in units of pool radius
+  const poolDist = (dx, dy) => Math.hypot(dx / POOL_X, dy / POOL_Y);
+
+  function addToPuddles(x, y, r) {
+    const vol = r * r * 2.6;
+
+    let host = null;
+    for (const p of puddles) {
+      if (poolDist(x - p.x, y - p.y) < p.r + r * 2.5) { host = p; break; }
+    }
+
+    if (host) {
+      // the pool drifts a little toward where the drop hit it
+      const w = (vol / (host.vol + vol)) * 0.7;
+      host.x += (x - host.x) * w;
+      host.y += (y - host.y) * w;
+      host.vol += vol;
+      host.rT = radiusFor(host.vol);
+    } else if (puddles.length < MAX_PUDDLES) {
+      puddles.push({ id: ++puddleId, x, y, vol, r, rT: radiusFor(vol) });
+    } else {
+      // at the cap, feed the nearest pool rather than dropping the volume
+      let best = puddles[0], bd = Infinity;
+      for (const p of puddles) {
+        const d = poolDist(x - p.x, y - p.y);
+        if (d < bd) { bd = d; best = p; }
+      }
+      best.vol += vol;
+      best.rT = radiusFor(best.vol);
+    }
+
+    for (let i = 0; i < 2; i++) {
+      flecks.push({
+        x: x + (Math.random() - 0.5) * r * 13,
+        y: y + (Math.random() - 0.5) * r * 2.8,
+        r: 1 + Math.random() * 2.3,
+      });
+    }
+    if (flecks.length > 360) flecks.splice(0, flecks.length - 360);
+
+    groundDirty = true;
+  }
+
+  function mergeOverlapping() {
+    let merged = true;
+    while (merged) {
+      merged = false;
+      for (let i = 0; i < puddles.length && !merged; i++) {
+        for (let j = i + 1; j < puddles.length; j++) {
+          const a = puddles[i], b = puddles[j];
+          if (poolDist(a.x - b.x, a.y - b.y) < (a.r + b.r) * 0.84) {
+            const v = a.vol + b.vol;
+            a.x = (a.x * a.vol + b.x * b.vol) / v;
+            a.y = (a.y * a.vol + b.y * b.vol) / v;
+            a.vol = v;
+            a.r  = Math.max(a.r, b.r);
+            a.rT = radiusFor(v);
+            puddles.splice(j, 1);
+            merged = true;
+            groundDirty = true;
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  // A closed, smoothed outline — irregular, but seeded off the pool's id
+  // so a given pool always has the same shape as it grows.
+  function blobPath(ctx, p, k) {
+    const N = 18, R = p.r * k, pts = [];
+    for (let i = 0; i < N; i++) {
+      const a = (i / N) * 6.28318;
+      const w = 1 + 0.15 * Math.sin(a * 3 + p.id * 1.7) + 0.09 * Math.sin(a * 5 + p.id * 0.9);
+      pts.push([
+        p.x + Math.cos(a) * R * w * POOL_X,
+        p.y + Math.sin(a) * R * w * POOL_Y,
+      ]);
+    }
+    ctx.beginPath();
+    ctx.moveTo((pts[N - 1][0] + pts[0][0]) / 2, (pts[N - 1][1] + pts[0][1]) / 2);
+    for (let i = 0; i < N; i++) {
+      const [cx, cy] = pts[i], [nx, ny] = pts[(i + 1) % N];
+      ctx.quadraticCurveTo(cx, cy, (cx + nx) / 2, (cy + ny) / 2);
+    }
+    ctx.closePath();
+  }
+
+  function drawGround() {
+    gctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+
+    // A big enough spill runs back to the counter's edge and stops there.
+    gctx.save();
+    gctx.beginPath();
+    gctx.rect(0, counterTop, window.innerWidth, window.innerHeight - counterTop);
+    gctx.clip();
+
+    gctx.fillStyle = SHAKE_D;
+    for (const f of flecks) {
+      gctx.beginPath();
+      gctx.ellipse(f.x, f.y, f.r * 1.5, f.r * 0.5, 0, 0, 6.28318);
+      gctx.fill();
+    }
+
+    // One flat colour for every pool, so wherever two overlap before the
+    // merge lands there is still no seam between them.
+    gctx.fillStyle = SHAKE_D;
+    for (const p of puddles) { blobPath(gctx, p, 1); gctx.fill(); }
+
+    gctx.fillStyle = SHAKE;
+    for (const p of puddles) { blobPath(gctx, p, 0.84); gctx.fill(); }
+
+    // Sheen: sized as a fixed fraction of each pool's own ellipse, so a
+    // wide spill gets a long streak of light and a fresh drip gets a dot.
+    for (const p of puddles) {
+      const rx = p.r * POOL_X, ry = p.r * POOL_Y;
+
+      gctx.fillStyle = "rgba(255,255,255,.42)";
+      gctx.beginPath();
+      gctx.ellipse(p.x - rx * 0.30, p.y - ry * 0.40, rx * 0.30, Math.max(1, ry * 0.26), -0.10, 0, 6.28318);
+      gctx.fill();
+
+      gctx.fillStyle = "rgba(255,255,255,.22)";
+      gctx.beginPath();
+      gctx.ellipse(p.x + rx * 0.34, p.y + ry * 0.16, rx * 0.16, Math.max(0.8, ry * 0.15), 0.08, 0, 6.28318);
+      gctx.fill();
+    }
+
+    gctx.restore();
+  }
+
+  /* ================================================================== *
+   * 4. Fill level.
+   * ================================================================== */
+
+  const SEGMENTS = 16;
+  for (let i = 0; i < SEGMENTS; i++) meterEl.appendChild(document.createElement("i"));
+  const segs = [...meterEl.children];
+
+  let level = 1;                                  // 1 = full
+  let lastMeter = -1;
+
+  function drawMeter() {
+    const on = Math.round(level * SEGMENTS);
+    if (on === lastMeter) return;
+    lastMeter = on;
+    segs.forEach((s, i) => {
+      s.classList.toggle("on", i < on);
+      s.classList.toggle("low", on <= 4);
+    });
+  }
+
+  function applyLevel() {
+    // The surface sinks into the cup as it empties. 14px takes it from the
+    // rim to just past the bottom of the visible bowl, so the whole range reads.
+    liquidBodyY = RIM_Y - 2 + (1 - level) * 14;
+    document.getElementById("liquidBody").setAttribute("y", liquidBodyY);
+    liquid.querySelectorAll("rect")[1].setAttribute("y", liquidBodyY);
+    drawMeter();
+  }
+  let liquidBodyY = RIM_Y;
+
+  /* ================================================================== *
+   * 5. Tilt, pour, spill.
+   * ================================================================== */
+
+  let rot = 0;                                     // current cup rotation, degrees
+  let pouring = false;
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // A fuller cup spills at a gentler angle.
+  const spillAngle = () => 20 + (1 - level) * 26;
+
+  const rotState = { r: 0 };
+
+  function setRot(r) {
+    rot = r;
+    gsap.set(tilt, { rotation: r, transformOrigin: "50% 86%" });
+    // The milkshake surface stays level while the cup does not.
+    liquid.setAttribute("transform", `rotate(${-r} 120 ${liquidBodyY})`);
+  }
+
+  function tiltTo(r, dur, ease) {
+    gsap.to(rotState, {
+      r, duration: dur, ease, overwrite: "auto",
+      onUpdate: () => setRot(rotState.r),
+    });
+  }
+
+  function emit(dt) {
+    if (level <= 0) return;
+    const over = Math.abs(rot) - spillAngle();
+    if (over <= 0) return;
+
+    // Pour from whichever lip is lower.
+    const a = lipL.getBoundingClientRect(), b = lipR.getBoundingClientRect();
+    const lip = a.top > b.top ? a : b;
+    const x = lip.left + lip.width / 2;
+    const y = lip.top + lip.height / 2;
+
+    const rate = clamp(over / 30, 0, 1) * 26 * dt;   // drops this frame
+    let n = Math.floor(rate) + (Math.random() < rate % 1 ? 1 : 0);
+
+    while (n-- > 0 && drops.length < MAX_DROPS) {
+      drops.push({
+        x: x + (Math.random() - 0.5) * 14,
+        y: y + (Math.random() - 0.5) * 8,
+        vx: Math.sign(rot) * (30 + Math.random() * 90) + dragVX * 0.32,
+        vy: 40 + Math.random() * 90 + dragVY * 0.3,
+        r: 2.4 + Math.random() * 4.2,
+        depth: Math.random() * 44,          // how far back on the counter it lands
+      });
+      level = Math.max(0, level - 0.0022);
+    }
+    applyLevel();
+    if (level === 0) hint.textContent = "Empty · hit refill";
+  }
+
+  /* ================================================================== *
+   * 6. The loop.
+   * ================================================================== */
+
+  const GRAV = 1750;
+  let last = performance.now();
+
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+
+    emit(dt);
+
+    // Pools ease out to the radius their volume calls for, then check
+    // again whether they have grown into a neighbour.
+    let growing = false;
+    for (const p of puddles) {
+      if (Math.abs(p.r - p.rT) > 0.15) {
+        p.r += (p.rT - p.r) * Math.min(1, dt * 5.5);
+        growing = true;
+      }
+    }
+    if (growing) mergeOverlapping();
+    if (growing || groundDirty) { drawGround(); groundDirty = false; }
+
+    dctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+    for (let i = drops.length - 1; i >= 0; i--) {
+      const d = drops[i];
+      d.vy += GRAV * dt;
+      d.x  += d.vx * dt;
+      d.y  += d.vy * dt;
+
+      const land = floorY + d.depth;
+      if (d.y >= land) { addToPuddles(d.x, land, d.r); drops.splice(i, 1); continue; }
+      if (d.x < -60 || d.x > window.innerWidth + 60) { drops.splice(i, 1); continue; }
+
+      const stretch = clamp(1 + d.vy / 900, 1, 2.6);
+      dctx.fillStyle = SHAKE;
+      dctx.beginPath();
+      dctx.ellipse(d.x, d.y, d.r, d.r * stretch, 0, 0, 6.284);
+      dctx.fill();
+      dctx.fillStyle = "#ffd0de";
+      dctx.beginPath();
+      dctx.ellipse(d.x - d.r * 0.3, d.y - d.r * stretch * 0.3, d.r * 0.34, d.r * 0.5, 0, 0, 6.284);
+      dctx.fill();
+    }
+
+    requestAnimationFrame(frame);
+  }
+
+  /* ================================================================== *
+   * 7. Dragging — GSAP Draggable.
+   * ================================================================== */
+
+  let dragVX = 0, dragVY = 0;
+
+  function setupDrag() {
+    if (typeof window.gsap === "undefined" || typeof window.Draggable === "undefined") {
+      hint.textContent = "GSAP failed to load";
+      return;
+    }
+    gsap.registerPlugin(Draggable);
+
+    let lastX = 0, lastY = 0, lastT = 0;
+
+    Draggable.create(cup, {
+      type: "x,y",
+      bounds: field,
+      allowNativeTouchScrolling: false,
+
+      onPress() {
+        cup.classList.add("grabbing");
+        lastX = this.x; lastY = this.y; lastT = performance.now();
+        dragVX = dragVY = 0;
+        gsap.to(cup, { scale: 1.03, duration: 0.18, ease: "power2.out" });
+      },
+
+      onDrag() {
+        const now = performance.now();
+        const dt = Math.max(16, now - lastT);
+        dragVX = (this.x - lastX) / dt * 1000;
+        dragVY = (this.y - lastY) / dt * 1000;
+        lastX = this.x; lastY = this.y; lastT = now;
+
+        // Whip it sideways and the shake sloshes over the lip.
+        if (!pouring) tiltTo(clamp(-dragVX * 0.035, -58, 58), 0.35, "power2.out");
+      },
+
+      onRelease() {
+        cup.classList.remove("grabbing");
+        gsap.to(cup, { scale: 1, duration: 0.3, ease: "power2.out" });
+        if (!pouring) tiltTo(0, 1.1, "elastic.out(1, 0.4)");
+      },
+
+      // Fires only when the pointer never moved — a clean click.
+      onClick: pour,
+    });
+
+    cup.addEventListener("keydown", e => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pour(); }
+    });
+  }
+
+  function pour() {
+    if (pouring || level <= 0) return;
+    pouring = true;
+    hint.textContent = "Pouring";
+
+    // Tip away from the nearer wall so the mess lands on screen.
+    const cx = cup.getBoundingClientRect().left + 120;
+    const dir = cx < window.innerWidth / 2 ? 1 : -1;
+
+    gsap.timeline({ onComplete: () => { pouring = false; hint.textContent = HINT; } })
+      .to(rotState, { r: dir * 68, duration: 0.5, ease: "power2.inOut", onUpdate: () => setRot(rotState.r) })
+      .to(rotState, { r: dir * 74, duration: 0.9, ease: "sine.inOut", onUpdate: () => setRot(rotState.r) })
+      .to(rotState, { r: 0, duration: 1.0, ease: "elastic.out(1, 0.45)", onUpdate: () => setRot(rotState.r) });
+  }
+
+  /* ================================================================== *
+   * 8. Controls.
+   * ================================================================== */
+
+  document.getElementById("refill").addEventListener("click", () => {
+    const fill = { v: level };
+    gsap.to(fill, {
+      v: 1, duration: 0.7, ease: "power2.out",
+      onUpdate: () => { level = fill.v; applyLevel(); },
+      onComplete: () => { hint.textContent = HINT; },
+    });
+    gsap.fromTo(cup, { y: "-=14" }, { y: "+=14", duration: 0.5, ease: "bounce.out" });
+  });
+
+  document.getElementById("wipe").addEventListener("click", () => {
+    puddles.length = 0;
+    flecks.length  = 0;
+    drawGround();
+  });
+
+  let rt;
+  window.addEventListener("resize", () => {
+    clearTimeout(rt);
+    rt = setTimeout(sizeCanvases, 150);
+  });
+
+  sizeCanvases();
+  applyLevel();
+  setRot(0);
+  setupDrag();
+  requestAnimationFrame(frame);
+
+  window.shake = { pour, refill: () => { level = 1; applyLevel(); }, get level() { return level; } };
+})();
+</script>
+
+</body>
+</html>

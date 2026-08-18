@@ -91,7 +91,12 @@ export function registerRoutes(app, game) {
         })),
         relationshipContexts: menu(data.relationshipContexts),
         tones: menu(data.tones),
-        categories: [...new Set(data.tensions.map((t) => t.category))].sort(),
+        // scenario types are the tensions' categories; prompts.json names each
+        // one explicitly (categoryLabels) so the menu says what the scene IS
+        // rather than a bare id
+        categories: [...new Set(data.tensions.map((t) => t.category))].sort().map((id) => ({
+          id, label: data.categoryLabels?.[id] || id,
+        })),
       },
     });
   });

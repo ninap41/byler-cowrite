@@ -57,7 +57,7 @@
     "universes": [
       {
         "id": "hawkins-canon",
-        "label": "Hawkins, as it happened",
+        "label": "Canon Hawkins — Upside Down and all",
         "text": "canon Hawkins, the party, the thing under the town",
         "tags": [
           "canon",
@@ -68,7 +68,7 @@
       },
       {
         "id": "no-monsters",
-        "label": "No monsters",
+        "label": "Hawkins, but no Upside Down",
         "text": "same town, same people, no upside down",
         "tags": [
           "mundane",
@@ -78,7 +78,7 @@
       },
       {
         "id": "dnd-realm",
-        "label": "The campaign, for real",
+        "label": "D&D AU — the campaign is real (cleric & paladin)",
         "text": "the campaign is real, Will a cleric, Mike a paladin",
         "tags": [
           "au",
@@ -90,7 +90,7 @@
       },
       {
         "id": "spell-school",
-        "label": "School of magic",
+        "label": "Magic school AU",
         "text": "a school of magic, a castle that rearranges itself",
         "tags": [
           "au",
@@ -102,7 +102,7 @@
       },
       {
         "id": "high-seas",
-        "label": "The high seas",
+        "label": "Pirate captain & merman AU",
         "text": "Mike captains a ship, Will came out of the sea",
         "tags": [
           "au",
@@ -114,7 +114,7 @@
       },
       {
         "id": "long-night",
-        "label": "The long night",
+        "label": "Immortal AU — one of them stopped aging",
         "text": "one of them stopped aging decades ago, still waiting",
         "tags": [
           "au",
@@ -126,7 +126,7 @@
       },
       {
         "id": "haunted",
-        "label": "A haunting",
+        "label": "Ghost AU — one of them is dead",
         "text": "one of them is dead, the other just moved in",
         "tags": [
           "au",
@@ -138,7 +138,7 @@
       },
       {
         "id": "stage-lights",
-        "label": "Stage lights and ink",
+        "label": "Rock star & tattoo artist AU",
         "text": "Mike's band got big, Will tattoos three states away",
         "tags": [
           "au",
@@ -150,7 +150,7 @@
       },
       {
         "id": "staff-room",
-        "label": "Two teachers",
+        "label": "Teachers AU — English & art",
         "text": "two teachers, English and art, the students knew first",
         "tags": [
           "au",
@@ -162,7 +162,7 @@
       },
       {
         "id": "cold-rink",
-        "label": "Shared ice",
+        "label": "Figure skater & hockey player AU",
         "text": "figure skater and hockey player, same five a.m. ice",
         "tags": [
           "au",
@@ -174,7 +174,7 @@
       },
       {
         "id": "after-the-end",
-        "label": "After the end",
+        "label": "Post-apocalypse AU",
         "text": "the world ended, a road, one rifle between them",
         "tags": [
           "au",
@@ -188,7 +188,7 @@
     "timePeriods": [
       {
         "id": "1980s-canon",
-        "label": "1980s canon",
+        "label": "1980s, mid-canon (still kids)",
         "text": "middle of the Hawkins years, basement campaigns, nobody gone yet",
         "ageGroup": "minor",
         "tags": [
@@ -205,7 +205,7 @@
       },
       {
         "id": "post-vecna",
-        "label": "Post-Vecna",
+        "label": "After Vecna (season 4 aftermath)",
         "text": "the months after Vecna, everyone pretending to be fine",
         "ageGroup": "minor",
         "tags": [
@@ -222,7 +222,7 @@
       },
       {
         "id": "california-split",
-        "label": "The California year",
+        "label": "Will in California, Mike in Hawkins",
         "text": "the Lenora year, letters and phone calls",
         "ageGroup": "minor",
         "tags": [
@@ -239,7 +239,7 @@
       },
       {
         "id": "senior-year",
-        "label": "Senior year",
+        "label": "Senior year of high school",
         "text": "senior year, graduation close, every plan feels permanent",
         "ageGroup": "minor",
         "tags": [
@@ -256,7 +256,7 @@
       },
       {
         "id": "early-1990s",
-        "label": "Early 1990s",
+        "label": "Early 1990s, just out of high school",
         "text": "first years out of high school, nothing settled",
         "ageGroup": "adult",
         "tags": [
@@ -272,7 +272,7 @@
       },
       {
         "id": "adult-post-canon",
-        "label": "Adult post-canon",
+        "label": "Adults, years after canon",
         "text": "adults now, years of unfinished history",
         "ageGroup": "adult",
         "tags": [
@@ -288,7 +288,7 @@
       },
       {
         "id": "college-au",
-        "label": "College AU",
+        "label": "College years",
         "text": "college, nobody knows who they were to each other",
         "ageGroup": "adult",
         "tags": [
@@ -308,7 +308,7 @@
       },
       {
         "id": "modern-au",
-        "label": "Modern AU",
+        "label": "Present day, adults",
         "text": "no upside down, no monsters",
         "ageGroup": "adult",
         "tags": [
@@ -330,7 +330,7 @@
       },
       {
         "id": "high-fantasy-age",
-        "label": "An age of quests",
+        "label": "Fantasy age (D&D world)",
         "text": "an age of long roads, bad kings, worse gods",
         "ageGroup": "adult",
         "compatibleUniverses": [
@@ -345,7 +345,7 @@
       },
       {
         "id": "school-years-au",
-        "label": "Their school years, elsewhere",
+        "label": "School age, in the AU",
         "text": "still students, basement age, a life without Hawkins",
         "ageGroup": "minor",
         "compatibleUniverses": [
@@ -361,7 +361,7 @@
       },
       {
         "id": "age-of-sail",
-        "label": "The age of sail",
+        "label": "Age of sail (1700s)",
         "text": "open water, charts and superstition, the map runs out",
         "ageGroup": "adult",
         "compatibleUniverses": [
@@ -376,7 +376,7 @@
       },
       {
         "id": "endless-night",
-        "label": "An endless night",
+        "label": "Present day, one of them immortal/dead",
         "text": "a present that never reaches morning",
         "ageGroup": "adult",
         "compatibleUniverses": [
@@ -391,7 +391,7 @@
       },
       {
         "id": "first-year-after",
-        "label": "The first year after",
+        "label": "First year after the apocalypse",
         "text": "the first year after it all fell over",
         "ageGroup": "adult",
         "compatibleUniverses": [
@@ -407,7 +407,7 @@
     "relationshipContexts": [
       {
         "id": "best-friends-unspoken",
-        "label": "Best friends, unspoken",
+        "label": "Best friends, feelings unexamined",
         "text": "best friends, neither looking too closely at the rest",
         "tags": [
           "unspoken",
@@ -418,7 +418,7 @@
       },
       {
         "id": "one-sided-realized",
-        "label": "One of them knows",
+        "label": "Will knows he's in love, Mike doesn't yet",
         "text": "Will has known for years, Mike won't finish the thought",
         "tags": [
           "one-sided",
@@ -429,7 +429,7 @@
       },
       {
         "id": "mutual-unspoken",
-        "label": "Mutual but unspoken",
+        "label": "Both know, neither has said it",
         "text": "both know it stopped being simple, neither says it",
         "tags": [
           "mutual-feelings",
@@ -440,7 +440,7 @@
       },
       {
         "id": "recently-confessed",
-        "label": "Recently confessed",
+        "label": "Just confessed, figuring out what's next",
         "text": "one of them said it recently, still learning the days after",
         "tags": [
           "confessed",
@@ -462,7 +462,7 @@
       },
       {
         "id": "established",
-        "label": "Established",
+        "label": "Established couple, out to friends",
         "text": "together, past the terrified part, people know",
         "tags": [
           "together",
@@ -473,7 +473,7 @@
       },
       {
         "id": "estranged-reunion",
-        "label": "Estranged and reunited",
+        "label": "Estranged for years, reunited",
         "text": "not close in years, old feelings back fast",
         "tags": [
           "reunion",
@@ -487,7 +487,7 @@
       },
       {
         "id": "almost-was",
-        "label": "The one that almost was",
+        "label": "Almost happened once, never spoken of",
         "text": "something nearly happened once, both call it nothing",
         "tags": [
           "regret",
@@ -503,7 +503,7 @@
     "tones": [
       {
         "id": "tender",
-        "label": "Tender",
+        "label": "Tender and slow",
         "text": "tender, unhurried, small gestures carry it",
         "tags": [
           "quiet",
@@ -513,7 +513,7 @@
       },
       {
         "id": "awkward",
-        "label": "Awkward",
+        "label": "Awkward and fumbling",
         "text": "awkward, half-finished sentences, nobody smooth",
         "tags": [
           "comedic",
@@ -533,7 +533,7 @@
       },
       {
         "id": "angsty",
-        "label": "Angsty",
+        "label": "Angsty — let it hurt",
         "text": "let it hurt, no easy version of anything",
         "tags": [
           "heavy",
@@ -543,7 +543,7 @@
       },
       {
         "id": "playful",
-        "label": "Playful",
+        "label": "Playful and teasing",
         "text": "light and teasing, the real thing under the joke",
         "tags": [
           "light",
@@ -553,7 +553,7 @@
       },
       {
         "id": "suspenseful",
-        "label": "Suspenseful",
+        "label": "Suspenseful — something's about to go wrong",
         "text": "taut, something about to go wrong",
         "tags": [
           "heavy",
@@ -573,7 +573,7 @@
       },
       {
         "id": "chaotic",
-        "label": "Chaotic",
+        "label": "Chaotic and loud",
         "text": "loud and messy, said at exactly the wrong moment",
         "tags": [
           "light",
@@ -593,7 +593,7 @@
       },
       {
         "id": "hopeful",
-        "label": "Hopeful",
+        "label": "Hopeful ending",
         "text": "ends more open than it began, nothing resolved",
         "tags": [
           "light",
@@ -1908,6 +1908,23 @@
         ],
         "weight": 3
       }
-    ]
+    ],
+    "categoryLabels": {
+      "abandonment": "Someone is leaving / left behind",
+      "canon-divergence": "D&D game gets too real",
+      "confession": "Confession — almost said, or said",
+      "forced-proximity": "Forced proximity (stuck together, one bed)",
+      "hurt-comfort": "Hurt/comfort — one of them is hurt",
+      "identity": "Identity — coming out, who he's become",
+      "interrupted-intimacy": "Interrupted at the wrong moment",
+      "jealousy": "Jealousy — someone else is in the picture",
+      "misunderstanding": "Mistaken for a couple / everyone already knows",
+      "protectiveness": "Protectiveness gone too far",
+      "resentment": "An old fight resurfaces",
+      "reunion": "He came back for him",
+      "secret": "A secret is found (drawing, letter)",
+      "shared-memory": "A shared memory (promise, photo, song)",
+      "supernatural": "The Upside Down comes back"
+    }
   }
 }

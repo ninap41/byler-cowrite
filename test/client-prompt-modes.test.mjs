@@ -23,7 +23,7 @@ const MENUS = {
     ],
     relationshipContexts: [{ id: "mutual-unspoken", label: "Mutual but unspoken" }],
     tones: [{ id: "nostalgic", label: "Nostalgic" }],
-    categories: ["confession", "forced-proximity"],
+    categories: [{ id: "confession", label: "Confession" }, "forced-proximity"],
   },
 };
 const fire = (el, type = "click") => el.dispatchEvent(new window.Event(type, { bubbles: true }));

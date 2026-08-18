@@ -114,6 +114,8 @@ test("the menu endpoint ships ids and labels, never the clause text", async () =
   assert.deepEqual(r.data.modes, ["simple", "intermediate"]);
   const d = r.data.intermediate;
   assert.ok(d.timePeriods.length >= 8 && d.tones.length >= 8 && d.categories.length);
+  // scenario types come labelled, not as bare ids
+  assert.ok(d.categories.every((c) => c.id && c.label && c.label !== c.id));
   assert.ok(d.timePeriods.every((p) => p.id && p.label && p.ageGroup && !p.text));
   // the universes ride along, and each period says which of them admit it
   assert.ok(d.universes.length >= 5 && d.universes.every((u) => u.id && u.label && !u.text));
