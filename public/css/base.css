@@ -4416,105 +4416,19 @@ button.danger,
 	--font-mono: "Inconsolata", ui-monospace, monospace;
 }
 [data-theme="cleradin"] .bg-set.cleradin { opacity: 1; }
-/* The moon (public/js/components/cleradin-moon.js). It hangs on the right,
-   opposite the tower, and it does NOT parallax — it is the one thing far
-   enough away to stay put while everything else moves. */
+/* The moon: a soft gradient disc, hanging opposite the tower. It does not
+   parallax — it is the one thing far enough away to stay put. */
 .bg-set.cleradin .moon {
 	position: absolute;
-	right: 8%;
-	top: 7%;
-	width: clamp(150px, 17vw, 280px);
-	--cm-hi: #f6f1ff;
-	--cm-mid: #d9d0e8;
-	--cm-low: #a99cc0;
-	--cm-dark: #4a3d63;
-	--cm-ray: #fdfaff;
-	filter: drop-shadow(0 0 46px rgba(210, 190, 250, 0.32));
+	left: 68%;
+	top: 12%;
+	width: 190px;
+	height: 190px;
+	border-radius: 50%;
+	background: radial-gradient(circle at 40% 38%, rgba(238, 230, 250, 0.9), rgba(180, 160, 210, 0.35) 58%, transparent 70%);
+	filter: blur(1px);
 }
-.bg-set.cleradin .cm-moon-svg {
-	width: 100%;
-	height: auto;
-	display: block;
-}
-/* the halo, painted just outside the disc */
-.bg-set.cleradin .cm-glowring circle {
-	fill: none;
-	stroke: rgba(226, 214, 250, 0.3);
-	stroke-width: 6;
-	filter: blur(14px);
-}
-.bg-set.cleradin .cm-maria path {
-	fill: var(--cm-dark);
-	opacity: 0.5;
-	filter: blur(1.5px);
-}
-.bg-set.cleradin .cm-rays path {
-	fill: var(--cm-ray);
-	opacity: 0.16;
-}
-/* crater parts: a dark floor, a hairline wall, one lit arc facing the light */
-.bg-set.cleradin .cm-floor {
-	fill: var(--cm-dark);
-	opacity: 0.16;
-}
-.bg-set.cleradin .cm-bowl {
-	fill: var(--cm-dark);
-	opacity: 0.2;
-}
-.bg-set.cleradin .cm-rim {
-	fill: none;
-	stroke: var(--cm-dark);
-	stroke-width: 0.8;
-	opacity: 0.45;
-}
-.bg-set.cleradin .cm-lit {
-	fill: none;
-	stroke: var(--cm-ray);
-	stroke-width: 1.1;
-	stroke-linecap: round;
-	opacity: 0.75;
-}
-.bg-set.cleradin .cm-speckle circle {
-	fill: var(--cm-dark);
-	opacity: 0.18;
-}
-.bg-set.cleradin .cm-shade {
-	fill: var(--cm-dark);
-	opacity: 0.2;
-	filter: blur(12px);
-}
-.bg-set.cleradin .cm-edge {
-	fill: none;
-	stroke: rgba(70, 54, 96, 0.28);
-	stroke-width: 0.8;
-}
-.bg-set.cleradin .mist {
-	position: absolute;
-	inset: auto 0 0;
-	height: 60%;
-	background: linear-gradient(to top, rgba(109, 75, 150, 0.22), rgba(139, 58, 78, 0.08) 45%, transparent 80%);
-}
-/* Three keeps at three distances. Each is towers (linear gradients) under a
-   roofline (conic wedges), and each sits lower and darker than the one behind
-   it, so the vertical parallax reads as depth rather than as sliding wallpaper. */
-.bg-set.cleradin .castle {
-	position: absolute;
-	inset: auto 0 -6%;
-	will-change: transform;
-	background-repeat: no-repeat;
-}
-.bg-set.cleradin .c-far {
-	height: 46vh;
-	opacity: 0.28;
-	filter: blur(2px);
-	background-image:
-		conic-gradient(from 45deg at 18% 34%, rgba(60, 42, 82, 0.9) 0 90deg, transparent 90deg),
-		conic-gradient(from 45deg at 46% 26%, rgba(60, 42, 82, 0.9) 0 90deg, transparent 90deg),
-		conic-gradient(from 45deg at 74% 38%, rgba(60, 42, 82, 0.9) 0 90deg, transparent 90deg),
-		linear-gradient(rgba(60, 42, 82, 0.9), rgba(60, 42, 82, 0.9));
-	background-size: 100% 100%, 100% 100%, 100% 100%, 100% 62%;
-	background-position: 0 0, 0 0, 0 0, 0 100%;
-}
+
 /* ---- the tower itself (public/js/components/cleradin-tower.js) ----------
    The drawing is the centrepiece, so it is centred in a flex strip rather than
    positioned by a transform — the scroll parallax owns `transform` on this
@@ -4533,27 +4447,30 @@ button.danger,
 	display: flex;
 	justify-content: flex-start;
 	will-change: transform;
-	--cl-stone: #cfc6d8;
-	--cl-stone-lit: #eae4f2;
-	--cl-stone-dark: #9b90ad;
-	--cl-shade: #3a2b4e;
-	--cl-lit: #f4eefa;
-	--cl-line: rgba(46, 32, 62, 0.55);
-	--cl-roof: #2f8f96;
-	--cl-roof-lit: #66c6c4;
-	--cl-roof-dark: #1c5f70;
-	--cl-roof-line: rgba(12, 40, 52, 0.6);
-	--cl-wood: #7a4b32;
-	--cl-glass: #2a1c3a;
-	--cl-glow: #f0c878;
-	--cl-moss: #6f8f63;
-	opacity: 0.92;
+	/* Night values. The tower is scenery, not an illustration pinned to the
+	   page: the stone sits only a few steps above the background so it reads
+	   as a shape in the dark, and the moonlit edge does the drawing. */
+	--cl-stone: #453a58;
+	--cl-stone-lit: #6b5c86;
+	--cl-stone-dark: #2b2340;
+	--cl-shade: #120c1d;
+	--cl-lit: #8b7aa8;
+	--cl-line: rgba(10, 6, 18, 0.6);
+	--cl-roof: #1d5a63;
+	--cl-roof-lit: #2f8189;
+	--cl-roof-dark: #123c48;
+	--cl-roof-line: rgba(6, 22, 30, 0.65);
+	--cl-wood: #4a2f20;
+	--cl-glass: #150e22;
+	--cl-glow: #d8a95e;
+	--cl-moss: #46603f;
+	opacity: 0.86;
 }
 .bg-set.cleradin .cl-tower-svg {
 	height: 100%;
 	width: auto;
 	max-width: none;
-	filter: drop-shadow(0 18px 40px rgba(4, 2, 8, 0.55));
+	filter: drop-shadow(0 18px 46px rgba(3, 1, 7, 0.7));
 }
 /* masonry: hairlines, not outlines — enough to read as blocks up close and to
    vanish into stone at page size */

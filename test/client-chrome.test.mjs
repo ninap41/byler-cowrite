@@ -221,7 +221,7 @@ test("the two rebuilt backgrounds ship the layers their themes animate", () => {
   assert.ok(chrome.includes('class="castle c-far" data-par="0.08"'), "the distant keep creeps");
   // the tower's rate is not a number in the markup: it is derived from the page
   assert.ok(chrome.includes('class="tower" data-par="auto"'), "the tower measures itself");
-  assert.ok(chrome.includes('class="bg-set cleradin"') && chrome.includes("towerSvg()") && chrome.includes("moonSvg()"));
+  assert.ok(chrome.includes('class="bg-set cleradin"') && chrome.includes("towerSvg()"));
   // Crazy Together: four cloud bands, back (palest) to front
   const depths = [...chrome.matchAll(/class="cloud-band" data-depth="(\d)"/g)].map((m) => Number(m[1]));
   assert.deepEqual(depths, [0, 1, 2, 3], "four bands, in depth order");
@@ -250,16 +250,3 @@ test("the Cleradin tower is drawn from its own numbers, part by part", async () 
   assert.ok(!/\sid="(?!cl-)/.test(svg), "every id is namespaced cl-");
 });
 
-test("the moon is one lit sphere: every crater catches the light from one side", async () => {
-  const { moonSvg } = await import("../public/js/components/cleradin-moon.js");
-  const svg = moonSvg();
-  assert.ok(svg.includes('clip-path="url(#cm-disc)"'), "the surface is clipped to the disc");
-  // craters, seas, rays, speckle — the four passes
-  for (const cls of ["cm-maria", "cm-rays", "cm-craters", "cm-speckle"]) assert.ok(svg.includes(cls), cls);
-  // one light direction: every lit arc is rotated by the same angle
-  const spins = [...svg.matchAll(/rotate\((-?[\d.]+) /g)].map((m) => m[1]);
-  assert.ok(spins.length > 4, "the big craters carry a lit arc");
-  assert.equal(new Set(spins).size, 1, "and they all face the same way");
-  // it scales without redrawing: the geometry follows the size argument
-  assert.ok(moonSvg({ size: 400 }).includes('viewBox="0 0 400 400"'));
-});

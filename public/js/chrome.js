@@ -2,7 +2,6 @@
 // top bar (user chip + theme switch), and the hamburger nav drawer. Injected
 // by every page so the markup lives in exactly one place.
 import { towerSvg } from "./components/cleradin-tower.js"
-import { moonSvg } from "./components/cleradin-moon.js"
 import { initTheme, THEMES, THEME_LABELS } from "./theme.js"
 import { logoHtml, quillHtml } from "./logo.js"
 import { initNav } from "./nav.js"
@@ -81,7 +80,7 @@ const BG = `
 			<div class="specks p1"></div><div class="specks p2"></div><div class="sweep"></div>
 		</div>
 		<div class="bg-set cleradin">
-			<div class="moon">${moonSvg()}</div><div class="mist"></div>
+			<div class="moon"></div><div class="mist"></div>
 			<div class="castle c-far" data-par="0.08"></div>
 			<div class="tower" data-par="auto">${towerSvg()}</div>
 		</div>

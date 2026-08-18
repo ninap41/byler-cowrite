@@ -64,13 +64,15 @@ export function initTheme() {
 	// scrolling reads as walking towards the castle. No GSAP needed (it is a
 	// transform per frame either way), but reduced motion leaves them still.
 	let stopScroll = null
+	// How much of the tower a full page-scroll is allowed to cover. Under 1 so
+	// the foot of the tower is never quite reached.
+	const REACH = 0.82
 	function startParallax(theme) {
 		if (stopScroll) stopScroll()
 		stopScroll = null
 		if (theme !== "cleradin" || reduce) return
 		const layers = [...document.querySelectorAll(".bg-set.cleradin [data-par]")]
 		if (!layers.length) return
-		let frame = 0
 		// data-par="auto" is the tower: it is taller than the window on purpose,
 		// and its rate is DERIVED from the page rather than picked — the whole
 		// drawing travels exactly once over the whole scrollable height, so the
@@ -81,35 +83,58 @@ export function initTheme() {
 			if (l.dataset.par !== "auto") return parseFloat(l.dataset.par) || 0
 			const page = Math.max(1, document.documentElement.scrollHeight - window.innerHeight)
 			const travel = Math.max(0, l.offsetHeight - window.innerHeight)
-			return travel / page
+			// REACH keeps the last stretch of the tower out of frame: arriving at
+			// the ground would end the illusion — there is always more tower.
+			return (travel / page) * REACH
 		}
 		let rates = layers.map(rateOf)
-		const paint = () => {
-			frame = 0
-			const y = window.scrollY || window.pageYOffset || 0
+		const at = layers.map(() => 0) // where each layer currently is
+		let target = 0
+		let raf = 0
+		// The scroll wheel is steppy and a trackpad is not; either way, snapping
+		// the tower to the exact scroll offset reads as jitter at this scale. So
+		// the layers CHASE the scroll instead of tracking it: each frame closes
+		// a fraction of the remaining distance, which is a spring with no
+		// overshoot. The loop stops itself once everything has arrived.
+		const EASE = 0.12
+		const tick = () => {
+			let moving = false
 			layers.forEach((l, i) => {
-				l.style.transform = `translate3d(0, ${-y * rates[i]}px, 0)`
+				const want = -target * rates[i]
+				const d = want - at[i]
+				if (Math.abs(d) > 0.05) {
+					at[i] += d * EASE
+					moving = true
+				} else at[i] = want
+				l.style.transform = `translate3d(0, ${at[i].toFixed(2)}px, 0)`
 			})
+			raf = moving ? requestAnimationFrame(tick) : 0
+		}
+		const kick = () => {
+			target = window.scrollY || window.pageYOffset || 0
+			if (!raf) raf = requestAnimationFrame(tick)
 		}
 		const remeasure = () => {
 			rates = layers.map(rateOf)
-			paint()
+			kick()
 		}
-		const onScroll = () => {
-			if (!frame) frame = requestAnimationFrame(paint)
-		}
-		window.addEventListener("scroll", onScroll, { passive: true })
+		window.addEventListener("scroll", kick, { passive: true })
 		window.addEventListener("resize", remeasure)
 		// a page that grows after load (a list that finished loading, a drawer
 		// that opened) changes the rate, so watch the document, not just resize
 		const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(remeasure) : null
 		ro?.observe(document.body)
-		paint()
+		// land on the right frame straight away rather than easing in from zero
+		target = window.scrollY || window.pageYOffset || 0
+		layers.forEach((l, i) => {
+			at[i] = -target * rates[i]
+			l.style.transform = `translate3d(0, ${at[i].toFixed(2)}px, 0)`
+		})
 		stopScroll = () => {
-			window.removeEventListener("scroll", onScroll)
+			window.removeEventListener("scroll", kick)
 			window.removeEventListener("resize", remeasure)
 			ro?.disconnect()
-			if (frame) cancelAnimationFrame(frame)
+			if (raf) cancelAnimationFrame(raf)
 			for (const l of layers) l.style.transform = ""
 		}
 	}
