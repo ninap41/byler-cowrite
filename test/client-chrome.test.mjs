@@ -217,13 +217,35 @@ test("an admin's gate unlocks everything, including what it lists", () => {
 
 test("the two rebuilt backgrounds ship the layers their themes animate", () => {
   const chrome = readFileSync(new URL("../public/js/chrome.js", import.meta.url), "utf-8");
-  // Cleradin: three keeps, each declaring how far it parallaxes
+  // Cleradin: the distant keep and the tower, each declaring how far it parallaxes
   const pars = [...chrome.matchAll(/data-par="([\d.]+)"/g)].map((m) => Number(m[1]));
-  assert.equal(pars.length, 3, "three castle layers");
-  assert.deepEqual(pars, [...pars].sort((a, b) => a - b), "the nearest keep travels furthest");
-  assert.ok(chrome.includes('class="bg-set cleradin"'));
+  assert.equal(pars.length, 2, "two parallax depths");
+  assert.deepEqual(pars, [...pars].sort((a, b) => a - b), "the near tower travels furthest");
+  assert.ok(chrome.includes('class="bg-set cleradin"') && chrome.includes("towerSvg()"));
   // Crazy Together: four cloud bands, back (palest) to front
   const depths = [...chrome.matchAll(/class="cloud-band" data-depth="(\d)"/g)].map((m) => Number(m[1]));
   assert.deepEqual(depths, [0, 1, 2, 3], "four bands, in depth order");
   assert.ok(!chrome.includes("pollywog") && !chrome.includes('bg-set camp'), "the old sets are gone");
+});
+
+test("the Cleradin tower is drawn from its own numbers, part by part", async () => {
+  const { towerSvg, TOWER, radiusAt, bow, lancet } = await import("../public/js/components/cleradin-tower.js");
+  const svg = towerSvg();
+  // every named part is present and separately editable
+  for (const id of ["shaft", "spiral", "openings", "door", "moss", "balcony", "roof", "dormer", "spire"])
+    assert.ok(svg.includes(`id="cl-${id}"`), id + " group");
+  // back to front: the roof is drawn after the shaft it sits on, the flag last
+  assert.ok(svg.indexOf('id="cl-shaft"') < svg.indexOf('id="cl-roof"'));
+  assert.ok(svg.indexOf('id="cl-roof"') < svg.indexOf('id="cl-spire"'));
+  // the shaft tapers: narrower at the top than at the foot, and monotonically
+  assert.ok(radiusAt(TOWER.shaftTopY) < radiusAt(TOWER.shaftBottomY));
+  assert.ok(radiusAt(500) < radiusAt(700) && radiusAt(700) < radiusAt(TOWER.shaftBottomY));
+  // the spiral really climbs: one band per turn, none of them flat rings
+  const bands = svg.slice(svg.indexOf('id="cl-spiral"'), svg.indexOf('id="cl-openings"'));
+  assert.equal(bands.match(/url\(#cl-ledge\)/g).length, TOWER.turns);
+  // shared shapes, not copy-paste: the bow and the lancet are functions
+  assert.match(bow(100, 40, 120), /^M 80 100 Q 120 116 160 100$/);
+  assert.ok(lancet(50, 100, 20, 30, "x").includes('class="x"'));
+  // it is a drawing, not a document: no ids that could collide with the page
+  assert.ok(!/\sid="(?!cl-)/.test(svg), "every id is namespaced cl-");
 });

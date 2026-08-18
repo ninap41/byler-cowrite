@@ -1,6 +1,7 @@
 // Shared page chrome for the multi-page app: decorative background layers,
 // top bar (user chip + theme switch), and the hamburger nav drawer. Injected
 // by every page so the markup lives in exactly one place.
+import { towerSvg } from "./components/cleradin-tower.js"
 import { initTheme, THEMES, THEME_LABELS } from "./theme.js"
 import { logoHtml, quillHtml } from "./logo.js"
 import { initNav } from "./nav.js"
@@ -80,9 +81,8 @@ const BG = `
 		</div>
 		<div class="bg-set cleradin">
 			<div class="moon"></div><div class="mist"></div>
-			<div class="castle c-far" data-par="0.10"></div>
-			<div class="castle c-mid" data-par="0.24"></div>
-			<div class="castle c-near" data-par="0.44"></div>
+			<div class="castle c-far" data-par="0.08"></div>
+			<div class="tower" data-par="0.30">${towerSvg()}</div>
 		</div>
 		<div class="bg-set bunker">
 			<div class="concrete"></div><div class="alarm"></div><div class="stencil"></div>
