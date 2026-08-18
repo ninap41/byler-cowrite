@@ -609,6 +609,120 @@ a.rg-row {
 	vertical-align: -0.15em;
 	margin-left: 2px;
 }
-.dash-rail .divider {
-	margin: 16px 0 12px;
+
+/* ---- rail navigation ----
+   Where you go from here, as one column of equal-weight rows rather than a
+   stack of cards each with its own heading and paragraph. A row is a target:
+   icon, label, and an affordance on the right (a count, an arrow, a chevron).
+   Links and buttons look identical here on purpose — from the reader's side
+   they all just go somewhere. */
+.dash-nav {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	padding: 8px;
+}
+.dnav {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	width: 100%;
+	min-width: 0;
+	flex: 0 0 auto;
+	margin: 0;
+	padding: 10px 12px;
+	border: 0;
+	border-radius: 12px;
+	background: none;
+	box-shadow: none;
+	color: var(--ink);
+	font: 600 0.92rem/1.2 var(--font-body);
+	text-align: left;
+	text-decoration: none;
+	cursor: pointer;
+	transition: background 0.15s ease, color 0.15s ease;
+}
+.dnav:hover,
+.dnav:focus-visible {
+	background: var(--chip);
+}
+.dnav.on {
+	background: var(--chip);
+}
+.dnav-ico {
+	flex: 0 0 auto;
+	width: 22px;
+	font-size: 1rem;
+	text-align: center;
+}
+.dnav-label {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+/* The arrow is a hint, not a control — it stays quiet until the row is live. */
+.dnav-go {
+	flex: 0 0 auto;
+	color: var(--muted);
+	font-size: 0.85rem;
+	opacity: 0;
+	transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.dnav:hover .dnav-go,
+.dnav:focus-visible .dnav-go {
+	opacity: 1;
+}
+.dnav-go.chev {
+	opacity: 1; /* a fold says so whether or not you're pointing at it */
+}
+.dnav.on .dnav-go.chev {
+	transform: rotate(180deg);
+}
+/* The unread count: the one thing in this column that competes for attention,
+   so it's the only thing wearing the accent. */
+.dnav-badge {
+	flex: 0 0 auto;
+	min-width: 20px;
+	padding: 2px 7px;
+	border-radius: 999px;
+	background: var(--accent);
+	color: var(--btn-ink);
+	font: 700 0.7rem/1.4 var(--font-mono);
+	text-align: center;
+}
+.dnav-badge.hidden {
+	display: none;
+}
+/* the code field, folded into the Join row */
+.dnav-fold {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	padding: 4px 12px 10px;
+}
+.dnav-fold.hidden {
+	display: none;
+}
+.dnav-fold .code {
+	flex: 1 1 90px;
+	min-width: 0;
+	margin: 0;
+}
+.dnav-fold .primary {
+	flex: 0 0 auto;
+	min-width: 0;
+	padding: 9px 16px;
+}
+.dnav-hint {
+	flex: 1 1 100%;
+	margin: 0;
+	text-align: left;
+	font-size: 0.74rem;
+}
+.dash-nav .err {
+	margin: 0;
+	padding: 0 12px;
+}
+.dash-nav .err:empty {
+	display: none;
 }

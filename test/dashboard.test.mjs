@@ -71,3 +71,28 @@ test("recentGames: finished games only, mine only", async () => {
   assert.ok(mine.lines >= 1);
   assert.equal(d.myGames.find((g) => g.code === code), undefined, "finished game not in progress");
 });
+
+test("the dashboard rail is navigation: inbox count, start, join, solo write", async () => {
+  const body = await fetch(ctx.url + "/dashboard").then((r) => r.text());
+  const rail = body.slice(body.indexOf("RIGHT RAIL"));
+
+  // every destination is a row in one nav, not a card of its own
+  assert.ok(rail.includes('<nav class="card dash-nav"'), "one nav column");
+  for (const id of ["navInbox", "createBtn", "joinToggle", "soloBtn", "inviteBtn"])
+    assert.ok(rail.includes(`id="${id}"`), id + " is in the rail");
+  assert.ok(rail.includes('href="/inbox"') && rail.includes('href="/writes"'), "the plain links are links");
+  assert.ok(!body.includes('id="quickStart"'), "the old create/join card is gone, not duplicated");
+
+  // the unread count rides the Inbox row
+  assert.ok(rail.includes('class="dnav-badge hidden" id="navInbox"'), "hidden until there is something to say");
+  assert.ok(body.includes("onLoad: ({ unread })"), "fed by the same inbox load as the card");
+
+  // joining needs a code, so the row unfolds one
+  assert.ok(rail.includes('id="joinFold"') && rail.includes('id="code"'), "the code field folds into the row");
+  assert.ok(rail.includes('aria-expanded="false"') && rail.includes('aria-controls="joinFold"'), "and says so");
+  assert.ok(body.includes('$("code").focus()'), "opening it puts the caret where you'd type");
+
+  // the quote and the friends list live here too
+  assert.ok(rail.includes('class="card quote-card"') && rail.includes('id="friendsBox"'), "quote + friends are in the rail");
+  assert.ok(rail.indexOf("dash-nav") < rail.indexOf("friendsBox"), "navigation comes first");
+});

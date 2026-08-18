@@ -125,50 +125,56 @@
 				</div>
 
 				<!-- ============ RIGHT RAIL ============ -->
+				<!-- The rail is navigation first: where you go from here, as one column
+				     of equal-weight rows, with the inbox wearing its own unread count so
+				     a waiting message is visible without opening anything. Joining needs
+				     a code, so it unfolds one inline rather than living in its own card. -->
 				<div class="dash-rail">
+					<nav class="card dash-nav" aria-label="Go somewhere">
+						<a class="dnav" href="/inbox">
+							<span class="dnav-ico" aria-hidden="true">📬</span><span class="dnav-label">Inbox</span>
+							<span class="dnav-badge hidden" id="navInbox"></span>
+						</a>
+						<button type="button" class="dnav" id="createBtn">
+							<span class="dnav-ico" aria-hidden="true">✨</span><span class="dnav-label">Start a game</span><span class="dnav-go">&#8594;</span>
+						</button>
+						<button type="button" class="dnav" id="joinToggle" aria-expanded="false" aria-controls="joinFold">
+							<span class="dnav-ico" aria-hidden="true">🔑</span><span class="dnav-label">Join a game</span><span class="dnav-go chev">&#9662;</span>
+						</button>
+						<!-- a 4-letter code is the whole form, so it folds into the row -->
+						<div class="dnav-fold hidden" id="joinFold">
+							<input id="code" class="code" placeholder="XXXX" maxlength="4" aria-label="Game code" />
+							<button class="primary" id="joinBtn" type="button">Join</button>
+							<p class="subtle dnav-hint">Ask a friend for their 4-letter code.</p>
+						</div>
+						<button type="button" class="dnav" id="soloBtn">
+							<span class="dnav-ico" aria-hidden="true">✒️</span><span class="dnav-label">New solo write</span><span class="dnav-go">&#8594;</span>
+						</button>
+						<a class="dnav" href="/writes">
+							<span class="dnav-ico" aria-hidden="true">📚</span><span class="dnav-label">My solo writes</span>
+						</a>
+						<button type="button" class="dnav" id="inviteBtn">
+							<span class="dnav-ico" aria-hidden="true">➕</span><span class="dnav-label" id="inviteLabel">Invite a friend</span>
+						</button>
+						<div class="err" id="lobbyErr"></div>
+					</nav>
+
 					<div class="card">
 						<h3 class="dash-h" style="margin-top: 0">Friends</h3>
-						<p class="subtle" style="text-align: left; margin: 4px 0 0">Your friends — online ones first.</p>
+						<p class="subtle" style="text-align: left; margin: 4px 0 0">Your friends &mdash; online ones first.</p>
 						<div id="friendsBox"></div>
+					</div>
+
+					<div class="card quote-card">
+						<span class="qmark">&ldquo;</span>
+						<span id="quoteText">Every story is better together. One turn at a time.</span>
+						<span class="qmark qmark-end">&rdquo;</span>
 					</div>
 
 					<div class="card">
 						<h3 class="dash-h" style="margin-top: 0">Recent achievements</h3>
 						<div class="ach-strip" id="achStrip"></div>
 						<div class="streak-box" id="streakBox"></div>
-					</div>
-
-					<div class="card quote-card">
-						<span class="qmark">“</span>
-						<span id="quoteText">Every story is better together. One turn at a time. ✒</span>
-						<span class="qmark qmark-end">”</span>
-					</div>
-
-					<div class="card" id="quickStart">
-						<h3 class="dash-h" style="margin-top: 0">✨ Quick start</h3>
-						<p class="subtle" style="text-align: left; margin: 4px 0 10px">Start a new story or jump into an existing one.</p>
-						<div class="row"><button class="primary" id="createBtn">Start a game ✒</button></div>
-						<div class="divider">— or join one —</div>
-						<label for="code">Game code</label>
-						<input id="code" class="code" placeholder="XXXX" maxlength="4" />
-						<p class="subtle" style="text-align: left; margin: 6px 0 0; font-size: 0.78rem">
-							Ask a friend for their 4-letter code.
-						</p>
-						<div class="row"><button class="ghost" id="joinBtn">Join game</button></div>
-						<div class="err" id="lobbyErr"></div>
-						<div class="divider">— or write alone —</div>
-						<p class="subtle" style="text-align: left; margin: 0 0 8px; font-size: 0.78rem">
-							No timer, no turns — just the page. Invite friends as beta readers when you want notes.
-						</p>
-						<div class="row"><button class="ghost" id="soloBtn">✒️ Solo write</button></div>
-					</div>
-
-					<div class="card">
-						<h3 class="dash-h" style="margin-top: 0">Invite a friend</h3>
-						<p class="subtle" style="text-align: left; margin: 4px 0 10px">
-							Copies the site link — send it to your next co-writer.
-						</p>
-						<div class="row"><button class="ghost" id="inviteBtn">➕ Invite a friend</button></div>
 					</div>
 				</div>
 			</div>
@@ -315,8 +321,9 @@
 			$("inviteBtn").onclick = async () => {
 				try {
 					await navigator.clipboard.writeText(location.origin)
-					$("inviteBtn").textContent = "Link copied ✓"
-					setTimeout(() => ($("inviteBtn").textContent = "➕ Invite a friend"), 1500)
+					// only the label changes — the row keeps its icon and its shape
+					$("inviteLabel").textContent = "Link copied ✓"
+					setTimeout(() => ($("inviteLabel").textContent = "Invite a friend"), 1500)
 				} catch (e) {}
 			}
 
@@ -331,6 +338,16 @@
 				} catch (e) {
 					$("lobbyErr").textContent = e.message
 				}
+			}
+			// Joining is two steps only because it needs a code: the row unfolds
+			// one, and focus lands in it so you can just type.
+			$("joinToggle").onclick = () => {
+				const fold = $("joinFold")
+				const open = fold.classList.toggle("hidden") === false
+				$("joinToggle").setAttribute("aria-expanded", String(open))
+				$("joinToggle").classList.toggle("on", open)
+				if (open) $("code").focus()
+				else $("lobbyErr").textContent = ""
 			}
 			$("joinBtn").onclick = () => {
 				const code = $("code").value.trim().toUpperCase()
@@ -445,6 +462,14 @@
 				readAllBtn: $("inboxReadAll"),
 				moreLink: $("inboxMore"),
 				limit: 5,
+				// the rail's Inbox row carries the same count, so an unread message
+				// is visible from the top of the page without opening the card
+				onLoad: ({ unread }) => {
+					const b = $("navInbox")
+					b.classList.toggle("hidden", !unread)
+					b.textContent = unread > 99 ? "99+" : String(unread || "")
+					b.setAttribute("aria-label", `${unread} unread message${unread === 1 ? "" : "s"}`)
+				},
 			})
 			async function loadInbox() {
 				inboxPanel.reload()
