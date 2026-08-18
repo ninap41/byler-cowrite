@@ -254,7 +254,9 @@ test("the Cleradin tower is drawn from its own numbers, part by part", async () 
 test("Vecna's clock is a grandfather clock, and its pendulum still swings", async () => {
   const { clockSvg, CLOCK } = await import("../public/js/components/vecna-clock.js");
   const svg = clockSvg();
-  for (const id of ["case", "glass", "dial", "vines"]) assert.ok(svg.includes(`id="vc-${id}"`), id + " group");
+  for (const id of ["case", "glass", "dial"]) assert.ok(svg.includes(`id="vc-${id}"`), id + " group");
+  // the case reads as one object: nothing hangs off it, nothing perches on top
+  assert.ok(!/vc-vine|vc-pediment|vc-finial/.test(svg), "no vines and no cornice ornament");
   // a long case is stacked boxes, each narrower than the one under it
   assert.ok(CLOCK.waistHalf < CLOCK.hoodHalf && CLOCK.waistHalf < CLOCK.baseHalf, "the waist is the narrow part");
   // twelve numerals, the clockmaker's IIII among them
@@ -272,4 +274,12 @@ test("Vecna's clock is a grandfather clock, and its pendulum still swings", asyn
   const chrome = readFileSync(new URL("../public/js/chrome.js", import.meta.url), "utf-8");
   assert.ok(chrome.includes('class="grandfather"') && chrome.includes("clockSvg()"));
   assert.ok(chrome.includes('class="clockface"'), "the turning dial is still the sky");
+});
+
+test("Castle Byers stands on ground, and the ground is under the fort", () => {
+  const chrome = readFileSync(new URL("../public/js/chrome.js", import.meta.url), "utf-8");
+  const set = chrome.slice(chrome.indexOf('class="bg-set castlebyers"'), chrome.indexOf('class="bg-set vecna"'));
+  assert.ok(set.includes('class="cbground"'), "there is a forest floor");
+  assert.ok(set.indexOf("cbground") < set.indexOf("fortpic"), "the fort is planted in it, not floating over it");
+  assert.ok(set.indexOf("trees") < set.indexOf("cbground"), "and the treeline is behind both");
 });

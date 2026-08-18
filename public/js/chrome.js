@@ -56,7 +56,7 @@ const BG = `
 			<div class="hazmat h1 drift"></div><div class="hazmat h2 drift"></div><div class="rift"></div>
 		</div>
 		<div class="bg-set castlebyers">
-			<div class="trees"></div><div class="fortpic"></div><div class="beam drift"></div>
+			<div class="trees"></div><div class="cbground"></div><div class="fortpic"></div><div class="beam drift"></div>
 		</div>
 		<div class="bg-set vecna">
 			<div class="clockface"></div><div class="cvines"></div>

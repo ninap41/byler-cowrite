@@ -3936,6 +3936,23 @@ button.danger,
 	transform: translateY(clamp(-18vh, calc(var(--cb-scroll, 0) * -0.08px), 0px));
 	will-change: transform;
 }
+/* The forest floor. Without it the trees and the fort ended on nothing and the
+   page's own background ran up under them; this is the brown-black leaf litter
+   they stand in — the theme's own greens dragged down to almost-black earth,
+   with a warmer scuff of needles across the front and one soft shadow where the
+   fort meets the ground. It sits BETWEEN the trees and the fort, so the fort is
+   planted in it rather than floating over it. */
+.bg-set.castlebyers .cbground {
+	position: absolute;
+	inset: auto 0 0;
+	height: 26%;
+	background:
+		radial-gradient(52% 80% at 50% 118%, rgba(0, 0, 0, 0.55), transparent 70%),
+		radial-gradient(80% 60% at 22% 8%, rgba(90, 66, 38, 0.22), transparent 72%),
+		radial-gradient(70% 55% at 78% 14%, rgba(70, 52, 30, 0.2), transparent 74%),
+		linear-gradient(to top, #120c07 0%, #1a1209 42%, rgba(22, 16, 10, 0.82) 72%, transparent 100%);
+}
+
 /* Castle Byers itself: the fort vector, front and center at the bottom.
    The fort is PLANTED in the treeline, so its drift is bounded three ways —
    it never travels more than 100px, never outruns the trees it stands in
@@ -4011,7 +4028,6 @@ button.danger,
 	--vc-face: #23161a;
 	--vc-face-lit: #3a2228;
 	--vc-hand: #e02f2f;
-	--vc-vine: #4a0c12;
 }
 .bg-set.vecna .vc-clock-svg {
 	height: 100%;
@@ -4031,16 +4047,6 @@ button.danger,
 .bg-set.vecna .vc-edge {
 	fill: var(--vc-wood-lit);
 	opacity: 0.5;
-}
-.bg-set.vecna .vc-pediment {
-	fill: none;
-	stroke: var(--vc-wood-lit);
-	stroke-width: 12;
-	stroke-linecap: round;
-}
-.bg-set.vecna .vc-finial {
-	fill: var(--vc-brass);
-	opacity: 0.75;
 }
 /* the waist door: dark glass, brass frame */
 .bg-set.vecna .vc-pane {
@@ -4117,18 +4123,6 @@ button.danger,
 }
 .bg-set.vecna .vc-cap {
 	fill: var(--vc-hand);
-}
-/* the other side, getting in at the joints */
-.bg-set.vecna .vc-vine {
-	fill: none;
-	stroke: var(--vc-vine);
-	stroke-width: 5;
-	stroke-linecap: round;
-	opacity: 0.75;
-}
-.bg-set.vecna .vc-vine-thin {
-	stroke-width: 3;
-	opacity: 0.5;
 }
 
 .bg-set.vecna .clockface {

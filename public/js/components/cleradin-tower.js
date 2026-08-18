@@ -101,10 +101,14 @@ function shaft(t) {
 
 // ---- #cl-spiral -------------------------------------------------------------
 // The stair band, and the point of the whole drawing. Each turn is ONE pass
-// around the tower: the front half is a solid ledge (bowed down, lit on top),
-// the back half only shows as a faint line rising behind the body. Successive
-// turns start where the last one ended, so the eye follows a real helix
-// upwards rather than a stack of rings.
+// around the tower — a solid ledge, bowed down and lit on top — and successive
+// turns start where the last one ended, so the eye follows a real helix upwards
+// rather than a stack of rings.
+//
+// Only the FRONT of each turn is drawn, and it is clamped to the shaft's own
+// width at every point. The far half used to show as a dashed line and the ends
+// used to overhang the taper; both put marks outside the silhouette, and a
+// stair that leaves the tower is not a stair.
 function spiral(t) {
 	const parts = []
 	const top = t.shaftTopY + 26
@@ -113,8 +117,9 @@ function spiral(t) {
 	for (let i = 0; i < t.turns; i++) {
 		const yStart = bottom - i * rise // left side of this turn
 		const yEnd = yStart - rise / 2 // right side, half a turn higher
-		const rL = radiusAt(yStart, t)
-		const rR = radiusAt(yEnd, t)
+		// each end sits ON the stone at its own height, never past it
+		const rL = radiusAt(yStart, t) - 1
+		const rR = radiusAt(yEnd, t) - 1
 		const th = 13 - i * 0.6 // the band narrows with the taper
 		// the visible front face
 		parts.push(
@@ -132,13 +137,6 @@ function spiral(t) {
 			const y = yStart - (yStart - yEnd) * f + (t.curve + 8) * 2 * f * (1 - f)
 			parts.push(`<path d="M ${x.toFixed(1)} ${y.toFixed(1)} v ${th.toFixed(1)}" class="cl-tread" />`)
 		}
-		// the far half, seen through the tower as a hint rather than a line
-		const yBack = yEnd - rise / 2
-		parts.push(
-			`<path d="M ${(t.cx + rR).toFixed(1)} ${yEnd.toFixed(1)}
-				Q ${t.cx} ${(yEnd - t.curve - 6).toFixed(1)} ${(t.cx - radiusAt(yBack, t)).toFixed(1)} ${yBack.toFixed(1)}"
-				fill="none" stroke="var(--cl-line)" stroke-width="1" opacity="0.28" stroke-dasharray="5 6" />`,
-		)
 	}
 	return `<g id="cl-spiral">\n\t\t${parts.join("\n\t\t")}\n\t</g>`
 }

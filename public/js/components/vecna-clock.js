@@ -4,10 +4,14 @@
 // Built the same way as the Cleradin tower — from numbers, in labelled groups,
 // pure (a string, no DOM) — so the case can be re-proportioned without anyone
 // re-plotting a path:
-//   #vc-case     the long case: plinth, waist, hood, cornice
+//   #vc-case     the long case: plinth, waist, hood
 //   #vc-glass    the waist door, and the pendulum swinging behind it
 //   #vc-dial     the face: chapter ring, roman numerals, hands
-//   #vc-vines    the Upside Down getting in at the joints
+//
+// The case reads as ONE object: nothing hangs off it and nothing is perched on
+// top of it. An earlier pass had creeping vines and a pediment with finials;
+// both broke the silhouette into loose marks, and a clock standing plainly in a
+// room it doesn't belong in is the more frightening object.
 //
 // The pendulum is the only moving part and it is deliberately a CSS animation
 // on one group (`#vc-pend`), hinged at its pivot: a clock that has stopped is
@@ -42,15 +46,6 @@ function caseHtml(c) {
 	const moulding = (y, half, h = 14) =>
 		`<rect x="${r1(c.cx - half - 8)}" y="${y}" width="${r1((half + 8) * 2)}" height="${h}" rx="3" class="vc-mould" />`
 	return `<g id="vc-case">
-		<!-- cornice: a broken pediment with three finials, which is what makes a
-		     clock look like a small cathedral rather than a cupboard -->
-		<path d="M ${c.cx - c.hoodHalf - 10} ${c.hoodTopY + 26}
-			q ${c.hoodHalf * 0.55} -34 ${c.hoodHalf - 8} -6
-			M ${c.cx + c.hoodHalf + 10} ${c.hoodTopY + 26}
-			q ${-c.hoodHalf * 0.55} -34 ${-(c.hoodHalf - 8)} -6" class="vc-pediment" />
-		<circle cx="${c.cx}" cy="${c.hoodTopY - 6}" r="9" class="vc-finial" />
-		<circle cx="${c.cx - c.hoodHalf - 10}" cy="${c.hoodTopY + 22}" r="6" class="vc-finial" />
-		<circle cx="${c.cx + c.hoodHalf + 10}" cy="${c.hoodTopY + 22}" r="6" class="vc-finial" />
 		${box(c.hoodTopY + 26, c.hoodBottomY, c.hoodHalf, "vc-wood")}
 		${moulding(c.hoodBottomY - 12, c.hoodHalf)}
 		${box(c.hoodBottomY, c.waistBottomY, c.waistHalf, "vc-wood")}
@@ -123,20 +118,6 @@ function dialHtml(c) {
 	</g>`
 }
 
-// ---- #vc-vines --------------------------------------------------------------
-// The other side getting in: tendrils along the mouldings and up one flank.
-// Sparse on purpose — the horror is that the clock is otherwise ordinary.
-function vinesHtml(c) {
-	return `<g id="vc-vines">
-		<path d="M ${c.cx - c.hoodHalf - 6} ${c.hoodBottomY - 4}
-			q -26 30 -8 62 q 18 30 -6 58 q -20 24 2 52" class="vc-vine" />
-		<path d="M ${c.cx + c.waistHalf} ${c.waistBottomY - 40}
-			q 30 -34 12 -74 q -16 -36 10 -66" class="vc-vine" />
-		<path d="M ${c.cx + c.hoodHalf - 10} ${c.hoodTopY + 40} q 22 26 6 54" class="vc-vine" />
-		<path d="M ${c.cx - c.baseHalf} ${c.baseBottomY - 26} q 40 -18 84 -4" class="vc-vine vc-vine-thin" />
-	</g>`
-}
-
 export function clockSvg(c = CLOCK) {
 	return `<svg class="vc-clock-svg" viewBox="0 0 ${c.w} ${c.h}" fill="none"
 	xmlns="http://www.w3.org/2000/svg" aria-hidden="true" preserveAspectRatio="xMidYMax meet">
@@ -154,6 +135,5 @@ export function clockSvg(c = CLOCK) {
 	${caseHtml(c)}
 	${glassHtml(c)}
 	${dialHtml(c)}
-	${vinesHtml(c)}
 </svg>`
 }
