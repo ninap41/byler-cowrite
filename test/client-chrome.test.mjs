@@ -78,6 +78,66 @@ test("chrome menu lists every theme and switching updates data-theme + storage",
   assert.equal(document.getElementById("themeCurLabel").textContent, "Snow Ball");
 });
 
+test("the theme menu's Font row overrides the site font: data-font + storage, survives a theme change", async () => {
+  const { SITE_FONTS } = await import("../public/js/fonts.js");
+  document.body.innerHTML = "";
+  document.documentElement.removeAttribute("data-font");
+  localStorage.removeItem("cowriteTheme");
+  localStorage.removeItem("cowriteFont");
+  const theme = mountChrome({ page: "dashboard" });
+  const sel = document.getElementById("themeFont");
+  assert.ok(sel && document.getElementById("themeMenu").contains(sel), "the select lives inside the theme menu");
+  assert.ok(!sel.closest("[data-theme-btn]"), "and is not a theme row (setGate never rewrites it)");
+  const opts = [...sel.options];
+  assert.equal(opts[0].value, "theme");
+  assert.equal(opts[0].textContent, "Theme default");
+  assert.deepEqual(opts.slice(1).map((o) => o.value), SITE_FONTS.map((f) => f.key), "one option per site font, registry order");
+  for (const f of SITE_FONTS) {
+    const o = opts.find((x) => x.value === f.key);
+    assert.equal(o.textContent, f.label);
+    assert.ok(o.getAttribute("style").includes("font-family:"), f.key + " previews itself in its own face");
+  }
+  // fresh browser: no override
+  assert.equal(theme.font, "theme");
+  assert.equal(document.documentElement.getAttribute("data-font"), null);
+  // pick one from the menu itself
+  document.getElementById("themeToggle").click();
+  sel.value = "georgia";
+  sel.dispatchEvent(new window.Event("change", { bubbles: true }));
+  assert.equal(document.documentElement.getAttribute("data-font"), "georgia");
+  assert.equal(localStorage.getItem("cowriteFont"), "georgia");
+  assert.equal(theme.font, "georgia");
+  assert.ok(sel.style.fontFamily.includes("Georgia"), "the closed select wears the choice");
+  assert.ok(document.getElementById("themeSwitch").classList.contains("open"), "picking a font keeps the menu open");
+  // a theme change leaves the font alone, and vice versa
+  theme.applyTheme("snowball");
+  assert.equal(document.documentElement.getAttribute("data-font"), "georgia");
+  assert.equal(document.documentElement.getAttribute("data-theme"), "snowball");
+  // back to the theme's own face
+  theme.applyFont("theme");
+  assert.equal(document.documentElement.getAttribute("data-font"), null);
+  assert.equal(localStorage.getItem("cowriteFont"), null);
+  assert.equal(sel.value, "theme");
+  assert.equal(sel.style.fontFamily, "");
+});
+
+test("a saved site font is applied on mount; junk in storage is dropped, not worn", () => {
+  document.body.innerHTML = "";
+  localStorage.setItem("cowriteFont", "verdana");
+  let theme = mountChrome({ page: "dashboard" });
+  assert.equal(theme.font, "verdana");
+  assert.equal(document.documentElement.getAttribute("data-font"), "verdana");
+  assert.equal(document.getElementById("themeFont").value, "verdana");
+  document.body.innerHTML = "";
+  localStorage.setItem("cowriteFont", "comic-sans-forever");
+  document.documentElement.setAttribute("data-font", "comic-sans-forever"); // what the head script would have done
+  theme = mountChrome({ page: "dashboard" });
+  assert.equal(theme.font, "theme");
+  assert.equal(document.documentElement.getAttribute("data-font"), null, "initTheme validates what the head script trusted");
+  assert.equal(localStorage.getItem("cowriteFont"), null);
+  localStorage.removeItem("cowriteFont");
+});
+
 test("mountChrome injects shared chrome + the foot bar", () => {
   document.body.innerHTML = "";
   mountChrome({ page: "dashboard" });

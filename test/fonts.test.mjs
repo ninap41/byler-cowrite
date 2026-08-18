@@ -73,18 +73,58 @@ test("each theme's label is the one the switcher shows", () => {
 // Loaded, but not by a theme: `extraFamilies` is the editor menu's own shelf.
 const extras = () => Object.fromEntries(Object.entries(fonts.extraFamilies || {}).filter(([k]) => k !== "_comment"));
 
-test("the solo editor's typeface menu offers exactly the families this site loads", async () => {
-  // fonts.json is the map of what's loaded; doc-prefs.js is what a writer can
-  // pick. A face in the menu that nothing downloads would silently fall back.
-  const { DOC_FONTS } = await import("../public/js/doc-prefs.js");
-  const offered = DOC_FONTS.filter((f) => f.key !== "theme");
+test("the registry's LOADED_FONTS are exactly the families this site loads", async () => {
+  // fonts.json is the map of what's loaded; fonts.js is what a menu can offer.
+  // A downloaded face in the menu that nothing downloads would silently fall back.
+  const { LOADED_FONTS } = await import("../public/js/fonts.js");
   const loaded = { ...fonts.families, ...extras() };
   assert.deepEqual(
-    offered.map((f) => f.label).sort(),
+    LOADED_FONTS.map((f) => f.label).sort(),
     Object.keys(loaded).sort(),
     "every family, and nothing that isn't loaded",
   );
-  for (const f of offered) assert.equal(f.stack, loaded[f.label].stack, f.label + "'s stack drifted from fonts.json");
+  for (const f of LOADED_FONTS) assert.equal(f.stack, loaded[f.label].stack, f.label + "'s stack drifted from fonts.json");
+});
+
+const systemFonts = () => Object.fromEntries(Object.entries(fonts.systemFonts || {}).filter(([k]) => k !== "_comment"));
+
+test("SYSTEM_FONTS mirror fonts.json's systemFonts, and none of them is a downloaded face", async () => {
+  const { SYSTEM_FONTS } = await import("../public/js/fonts.js");
+  const sys = systemFonts();
+  assert.deepEqual(SYSTEM_FONTS.map((f) => f.label).sort(), Object.keys(sys).sort());
+  for (const f of SYSTEM_FONTS) {
+    assert.equal(f.stack, sys[f.label], f.label + "'s stack drifted from fonts.json");
+    assert.ok(f.stack.includes(","), f.label + " needs a fallback in its stack");
+    const first = f.stack.split(",")[0].replaceAll('"', "").trim();
+    assert.ok(!(first in fonts.families) && !(first in extras()), first + " is a local face, not a CDN one");
+  }
+});
+
+test("the solo editor's typeface menu is 'theme' plus the whole registry, in registry order", async () => {
+  const { DOC_FONTS } = await import("../public/js/doc-prefs.js");
+  const { LOADED_FONTS, SYSTEM_FONTS } = await import("../public/js/fonts.js");
+  assert.equal(DOC_FONTS[0].key, "theme");
+  assert.deepEqual(DOC_FONTS.slice(1), [...LOADED_FONTS, ...SYSTEM_FONTS]);
+});
+
+test("every site font has its html[data-font] rule, overriding body + story and nothing else", async () => {
+  const { SITE_FONTS } = await import("../public/js/fonts.js");
+  const rules = {};
+  for (const [, key, body] of css.matchAll(/html\[data-font="([a-z0-9]+)"\]\s*\{([\s\S]*?)\n\}/g)) rules[key] = body;
+  assert.deepEqual(Object.keys(rules).sort(), SITE_FONTS.map((f) => f.key).sort(), "one rule per font, no strays");
+  for (const f of SITE_FONTS) {
+    const vars = Object.fromEntries([...rules[f.key].matchAll(/--font-(\w+):([^;]+);/g)].map((m) => [m[1], m[2].trim()]));
+    assert.deepEqual(vars, { body: f.stack, story: f.stack }, f.key + " overrides exactly body + story with its own stack");
+  }
+});
+
+test("every page applies the saved site font before first paint, like the theme", () => {
+  const pages = ["index", "dashboard", "game", "archive", "stories", "profile", "settings", "write", "writes", "admin", "reset"];
+  for (const p of pages) {
+    const html = read(`public/${p}.html`);
+    assert.ok(html.includes('localStorage.getItem("cowriteFont")'), `${p}.html reads cowriteFont in its head`);
+    assert.ok(html.includes('setAttribute("data-font", _f)'), `${p}.html sets data-font before paint`);
+  }
 });
 
 test("an extra family is downloaded like any other, and belongs to no theme", () => {

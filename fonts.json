@@ -44,6 +44,19 @@
    "googleAxes": ""
   }
  },
+ "systemFonts": {
+  "_comment": "Local faces offered as a site-wide override (the theme menu's Font row) and in the solo editor's typeface menu — SYSTEM_FONTS in public/js/fonts.js. Nothing is downloaded: a face the machine lacks falls through its stack. The override sets html[data-font=…] and replaces ONLY --font-body and --font-story; display and mono stay the theme's.",
+  "Georgia": "Georgia, serif",
+  "Palatino": "\"Palatino Linotype\", Palatino, \"Book Antiqua\", serif",
+  "Times New Roman": "\"Times New Roman\", Times, serif",
+  "Garamond": "Garamond, \"EB Garamond\", serif",
+  "Verdana": "Verdana, Geneva, sans-serif",
+  "Helvetica / Arial": "Helvetica, Arial, sans-serif",
+  "Trebuchet MS": "\"Trebuchet MS\", sans-serif",
+  "Gill Sans": "\"Gill Sans\", \"Gill Sans MT\", Calibri, sans-serif",
+  "Courier New": "\"Courier New\", Courier, monospace",
+  "System UI": "system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"
+ },
  "themes": {
   "neon": {
    "label": "Neon Dusk",

@@ -1,6 +1,8 @@
 // Theme switching (Neon Dusk / Aurora / Inkwell) + animated backgrounds.
 // GSAP is optional: without it (or with prefers-reduced-motion) everything
 // falls back to static CSS.
+import { SITE_FONTS, fontByKey } from "./fonts.js"
+export { SITE_FONTS }
 export const THEMES = [
 	"neon", "aurora", "ink", "wall", "snowball", "upside", "starcourt", "arcade", "cerebro",
 	"hawkinslab", "castlebyers", "vecna", "void", "video", "hellfire", "rink", "cleradin", "bunker", "clouds",
@@ -36,6 +38,9 @@ const LABELS = THEME_LABELS
 // click. It is a REWARD, not a permission — a theme is a css attribute on your
 // own document, so there is nothing here to protect, only something to earn.
 export const DEFAULT_THEME = "neon"
+// The site font override (see initTheme's Font row): "theme" = no override.
+export const DEFAULT_FONT = "theme"
+export const cleanSiteFont = (key) => (fontByKey(key) ? key : DEFAULT_FONT)
 export const themeAllowed = (id, { locks = {}, unlocked = [] } = {}) => !locks[id] || unlocked.includes(id)
 // "🧙 Sorcerer · 20,000 words" — what a locked row tells you.
 export function lockTip(id, locks = {}) {
@@ -363,13 +368,46 @@ export function initTheme() {
 		if (!themeAllowed(current, gate)) applyTheme(DEFAULT_THEME)
 	}
 
+	// ---- Site font: the theme menu's Font row ----
+	// A per-browser override of the theme's body + story faces (display and
+	// mono stay the theme's). It rides as `data-font` on <html> — the head
+	// script sets it from localStorage before first paint, exactly like the
+	// theme — and html[data-font=…] rules in base.css do the overriding, so
+	// applyTheme() never has to know about it and never clears it.
+	let font = DEFAULT_FONT
+	try {
+		font = cleanSiteFont(localStorage.getItem("cowriteFont"))
+	} catch (e) {}
+	const fontSel = document.getElementById("themeFont")
+	function applyFont(key) {
+		font = cleanSiteFont(key)
+		const f = fontByKey(font)
+		if (f) root.setAttribute("data-font", font)
+		else root.removeAttribute("data-font")
+		try {
+			if (f) localStorage.setItem("cowriteFont", font)
+			else localStorage.removeItem("cowriteFont")
+		} catch (e) {}
+		if (fontSel) {
+			fontSel.value = font
+			// the closed select previews the choice in its own face
+			fontSel.style.fontFamily = f ? f.stack : ""
+		}
+	}
+	if (fontSel) fontSel.addEventListener("change", () => applyFont(fontSel.value))
+
 	applyTheme(current)
+	applyFont(font)
 
 	return {
 		applyTheme,
+		applyFont,
 		setGate,
 		get current() {
 			return current
+		},
+		get font() {
+			return font
 		},
 	}
 }

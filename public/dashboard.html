@@ -8,6 +8,8 @@
 			try {
 				var _t = localStorage.getItem("cowriteTheme")
 				if (_t) document.documentElement.setAttribute("data-theme", _t)
+				var _f = localStorage.getItem("cowriteFont")
+				if (_f) document.documentElement.setAttribute("data-font", _f)
 			} catch (e) {}
 		</script>
 		<script>

@@ -147,6 +147,9 @@ test("the typeface menu previews each face in that face", () => {
   assert.match(html, /value="newsreader"[^>]*selected/);
   assert.equal(html.match(/selected/g).length, 1);
   assert.equal(fontMenuHtml().match(/selected/g), null); // no selection is legal
+  // the shared registry's system faces are offered here too
+  assert.equal(fontOf("georgia").label, "Georgia");
+  assert.equal(fontOf("no-such-face"), DOC_FONTS[0]);
 });
 
 test("all three view preferences live together and survive each other", () => {

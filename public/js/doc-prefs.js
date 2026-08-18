@@ -7,6 +7,7 @@
 // reaches the html, the server, or anyone else's screen.
 //
 // `storage` is injectable so tests don't need a real localStorage.
+import { LOADED_FONTS, SYSTEM_FONTS } from "./fonts.js"
 const KEY = "cowriteEditorPrefs"
 
 // Named steps rather than a free number: the control is a stepper, and these
@@ -26,22 +27,11 @@ const cleanPaper = (v) => (PAPERS.includes(v) ? v : DEFAULT_PAPER)
 
 // The typeface the drafting surface is set in — the third view preference,
 // alongside line spacing and paper. "theme" means whatever the current theme
-// picked (--font-story); the rest are the families this site already loads,
-// mirroring fonts.json (test/fonts.test.mjs fails if the two drift apart), so
-// choosing one costs no extra download.
-export const DOC_FONTS = [
-	{ key: "theme", label: "Theme font", stack: "" },
-	{ key: "fraunces", label: "Fraunces", stack: '"Fraunces", serif' },
-	{ key: "newsreader", label: "Newsreader", stack: '"Newsreader", serif' },
-	{ key: "jakarta", label: "Plus Jakarta Sans", stack: '"Plus Jakarta Sans", sans-serif' },
-	{ key: "grotesk", label: "Space Grotesk", stack: '"Space Grotesk", sans-serif' },
-	{ key: "orbitron", label: "Orbitron", stack: '"Orbitron", sans-serif' },
-	{ key: "inconsolata", label: "Inconsolata", stack: '"Inconsolata", ui-monospace, monospace' },
-	// The one face here that no theme uses — loaded for this menu alone
-	// (fonts.json's `extraFamilies`), because a pixel font is a drafting mood,
-	// not a site-wide voice.
-	{ key: "tiny5", label: "Tiny5", stack: '"Tiny5", system-ui, sans-serif' },
-]
+// picked (--font-story, as overridden site-wide by the theme menu's Font row);
+// the rest is the shared registry in fonts.js — the families this site
+// already loads plus common system faces — so this menu and the theme menu
+// can never offer different lists.
+export const DOC_FONTS = [{ key: "theme", label: "Theme font", stack: "" }, ...LOADED_FONTS, ...SYSTEM_FONTS]
 export const DEFAULT_FONT = "theme"
 export const fontOf = (key) => DOC_FONTS.find((f) => f.key === key) || DOC_FONTS[0]
 

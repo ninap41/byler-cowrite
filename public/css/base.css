@@ -725,6 +725,39 @@ body {
 	color: var(--ink);
 	background: var(--chip);
 }
+/* the Font row at the foot of the theme menu (see chrome.js TOPBAR) */
+.theme-menu .theme-sep {
+	flex: 0 0 auto;
+	width: 100%;
+	margin: 3px 0;
+	border: 0;
+	border-top: 1px solid var(--panel-brd);
+}
+.theme-menu .theme-font-row {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 4px 8px 4px 10px;
+}
+.theme-menu .theme-font-row label {
+	margin: 0;
+	font-family: var(--font-body);
+	font-size: 12px;
+	color: var(--muted);
+	white-space: nowrap;
+}
+.theme-menu .theme-font-row select {
+	flex: 1 1 auto;
+	min-width: 0;
+	padding: 5px 8px;
+	border-radius: 8px;
+	background: var(--chip);
+	border: 1px solid var(--chip-brd);
+	color: var(--ink);
+	font-size: 12px;
+	font-family: var(--font-body);
+}
 @media (max-width: 760px) {
 	.topbar {
 		top: 12px;
@@ -5114,6 +5147,81 @@ button.danger,
 	--font-mono: "Inconsolata", ui-monospace, monospace;
 }
 [data-theme="clouds"] .bg-set.clouds { opacity: 1; }
+
+/* ---- Site font: the theme menu's Font row (public/js/fonts.js SITE_FONTS) ----
+   A per-browser override of the theme's body + story faces; display and mono
+   stay the theme's so a theme keeps its voice. `data-font` on <html> is set by
+   each page's head script before first paint (like data-theme) and validated
+   by initTheme(). html[attr] outranks every [data-theme] token block, so these
+   win wherever they sit. test/fonts.test.mjs pins each block to the registry. */
+html[data-font="fraunces"] {
+	--font-body: "Fraunces", serif;
+	--font-story: "Fraunces", serif;
+}
+html[data-font="newsreader"] {
+	--font-body: "Newsreader", serif;
+	--font-story: "Newsreader", serif;
+}
+html[data-font="jakarta"] {
+	--font-body: "Plus Jakarta Sans", sans-serif;
+	--font-story: "Plus Jakarta Sans", sans-serif;
+}
+html[data-font="grotesk"] {
+	--font-body: "Space Grotesk", sans-serif;
+	--font-story: "Space Grotesk", sans-serif;
+}
+html[data-font="orbitron"] {
+	--font-body: "Orbitron", sans-serif;
+	--font-story: "Orbitron", sans-serif;
+}
+html[data-font="inconsolata"] {
+	--font-body: "Inconsolata", ui-monospace, monospace;
+	--font-story: "Inconsolata", ui-monospace, monospace;
+}
+html[data-font="tiny5"] {
+	--font-body: "Tiny5", system-ui, sans-serif;
+	--font-story: "Tiny5", system-ui, sans-serif;
+}
+html[data-font="georgia"] {
+	--font-body: Georgia, serif;
+	--font-story: Georgia, serif;
+}
+html[data-font="palatino"] {
+	--font-body: "Palatino Linotype", Palatino, "Book Antiqua", serif;
+	--font-story: "Palatino Linotype", Palatino, "Book Antiqua", serif;
+}
+html[data-font="times"] {
+	--font-body: "Times New Roman", Times, serif;
+	--font-story: "Times New Roman", Times, serif;
+}
+html[data-font="garamond"] {
+	--font-body: Garamond, "EB Garamond", serif;
+	--font-story: Garamond, "EB Garamond", serif;
+}
+html[data-font="verdana"] {
+	--font-body: Verdana, Geneva, sans-serif;
+	--font-story: Verdana, Geneva, sans-serif;
+}
+html[data-font="helvetica"] {
+	--font-body: Helvetica, Arial, sans-serif;
+	--font-story: Helvetica, Arial, sans-serif;
+}
+html[data-font="trebuchet"] {
+	--font-body: "Trebuchet MS", sans-serif;
+	--font-story: "Trebuchet MS", sans-serif;
+}
+html[data-font="gillsans"] {
+	--font-body: "Gill Sans", "Gill Sans MT", Calibri, sans-serif;
+	--font-story: "Gill Sans", "Gill Sans MT", Calibri, sans-serif;
+}
+html[data-font="courier"] {
+	--font-body: "Courier New", Courier, monospace;
+	--font-story: "Courier New", Courier, monospace;
+}
+html[data-font="system"] {
+	--font-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+	--font-story: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
 .bg-set.clouds .skyglow {
 	position: absolute;
 	inset: 0;

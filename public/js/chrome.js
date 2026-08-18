@@ -3,7 +3,7 @@
 // by every page so the markup lives in exactly one place.
 import { towerSvg } from "./components/cleradin-tower.js"
 import { clockSvg } from "./components/vecna-clock.js"
-import { initTheme, THEMES, THEME_LABELS } from "./theme.js"
+import { initTheme, THEMES, THEME_LABELS, SITE_FONTS } from "./theme.js"
 import { logoHtml, quillHtml } from "./logo.js"
 import { initNav } from "./nav.js"
 import { initBadgeTips } from "./badge-tips.js"
@@ -136,6 +136,21 @@ const TOPBAR = `
 					(id, i) =>
 						`<button type="button" data-theme-btn="${id}"${i === 0 ? ' class="active"' : ""} role="option"><i class="sw sw-${id}"></i><span>${THEME_LABELS[id]}</span></button>`,
 				).join("\n\t\t\t\t")}
+				<!-- The Font row: a per-browser override of the theme's body +
+				     story faces (display and mono stay the theme's). A native
+				     select, not a flip menu — its popup escapes the menu's
+				     overflow, and it lives inside #themeSwitch so picking one
+				     doesn't count as an outside click and close the menu. -->
+				<hr class="theme-sep" />
+				<div class="theme-font-row" role="none">
+					<label for="themeFont">Font</label>
+					<select id="themeFont" aria-label="Site font">
+						<option value="theme">Theme default</option>
+						${SITE_FONTS.map(
+							(f) => `<option value="${f.key}" style="font-family:${f.stack.replace(/"/g, "&quot;")}">${f.label}</option>`,
+						).join("\n\t\t\t\t\t\t")}
+					</select>
+				</div>
 			</div>
 		</div>
 	</div>`
