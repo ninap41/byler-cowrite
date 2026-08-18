@@ -58,7 +58,7 @@
       {
         "id": "hawkins-canon",
         "label": "Hawkins, as it happened",
-        "text": "This is the world of the show: Hawkins, the party, and the thing under the town that nobody outside it believes in.",
+        "text": "canon Hawkins, the party, the thing under the town",
         "tags": [
           "canon",
           "hawkins",
@@ -69,7 +69,7 @@
       {
         "id": "no-monsters",
         "label": "No monsters",
-        "text": "Same town, same people, no Upside Down — nothing has ever come for either of them, so the only thing left to be afraid of is each other.",
+        "text": "same town, same people, no upside down",
         "tags": [
           "mundane",
           "hawkins"
@@ -79,7 +79,7 @@
       {
         "id": "dnd-realm",
         "label": "The campaign, for real",
-        "text": "The campaign is the world: Will is a cleric, Mike is a paladin sworn to the party, and the dice were always going to land here.",
+        "text": "the campaign is real, Will a cleric, Mike a paladin",
         "tags": [
           "au",
           "fantasy",
@@ -91,7 +91,7 @@
       {
         "id": "spell-school",
         "label": "School of magic",
-        "text": "They are students at a school of magic, in a castle that keeps rearranging itself around the two of them.",
+        "text": "a school of magic, a castle that rearranges itself",
         "tags": [
           "au",
           "fantasy",
@@ -103,7 +103,7 @@
       {
         "id": "high-seas",
         "label": "The high seas",
-        "text": "Mike captains a ship with a bad reputation, and the sea gave him Will — who is not entirely a man, and not letting go of his wrist.",
+        "text": "Mike captains a ship, Will came out of the sea",
         "tags": [
           "au",
           "fantasy",
@@ -115,7 +115,7 @@
       {
         "id": "long-night",
         "label": "The long night",
-        "text": "One of them stopped aging decades ago. Immortality is mostly waiting, and he has been waiting for this face to come back around.",
+        "text": "one of them stopped aging decades ago, still waiting",
         "tags": [
           "au",
           "supernatural",
@@ -127,7 +127,7 @@
       {
         "id": "haunted",
         "label": "A haunting",
-        "text": "One of them is dead and has not left, and the other has just moved into the house he never stopped living in.",
+        "text": "one of them is dead, the other just moved in",
         "tags": [
           "au",
           "supernatural",
@@ -139,7 +139,7 @@
       {
         "id": "stage-lights",
         "label": "Stage lights and ink",
-        "text": "Mike's band is bigger than anyone planned and Will tattoos out of a shop three states away, which has never once stopped either of them from getting on a plane.",
+        "text": "Mike's band got big, Will tattoos three states away",
         "tags": [
           "au",
           "music",
@@ -151,7 +151,7 @@
       {
         "id": "staff-room",
         "label": "Two teachers",
-        "text": "They teach at the same high school — English and art, adjoining hallways — and their students worked it out roughly a year before they did.",
+        "text": "two teachers, English and art, the students knew first",
         "tags": [
           "au",
           "work",
@@ -163,7 +163,7 @@
       {
         "id": "cold-rink",
         "label": "Shared ice",
-        "text": "Will skates figures and Mike plays hockey and the rink gave them the same terrible five in the morning. It started as a turf war.",
+        "text": "figure skater and hockey player, same five a.m. ice",
         "tags": [
           "au",
           "sport",
@@ -175,7 +175,7 @@
       {
         "id": "after-the-end",
         "label": "After the end",
-        "text": "The world ended some months ago. What is left is a road, a rifle between them, and the fact that neither will go on without the other.",
+        "text": "the world ended, a road, one rifle between them",
         "tags": [
           "au",
           "apocalypse",
@@ -189,7 +189,7 @@
       {
         "id": "1980s-canon",
         "label": "1980s canon",
-        "text": "Set this in the middle of their Hawkins years, when the party still meets in the basement and nobody has left yet.",
+        "text": "middle of the Hawkins years, basement campaigns, nobody gone yet",
         "ageGroup": "minor",
         "tags": [
           "canon",
@@ -206,7 +206,7 @@
       {
         "id": "post-vecna",
         "label": "Post-Vecna",
-        "text": "Set this in the uneasy months after the fight with Vecna, when everyone is pretending to be fine.",
+        "text": "the months after Vecna, everyone pretending to be fine",
         "ageGroup": "minor",
         "tags": [
           "canon",
@@ -223,7 +223,7 @@
       {
         "id": "california-split",
         "label": "The California year",
-        "text": "Set this during the year Will is in Lenora and Mike is in Hawkins, with letters and phone calls doing all the work.",
+        "text": "the Lenora year, letters and phone calls",
         "ageGroup": "minor",
         "tags": [
           "canon",
@@ -240,7 +240,7 @@
       {
         "id": "senior-year",
         "label": "Senior year",
-        "text": "Set this in their last year of high school, with graduation close enough to make every plan feel permanent.",
+        "text": "senior year, graduation close, every plan feels permanent",
         "ageGroup": "minor",
         "tags": [
           "canon",
@@ -257,7 +257,7 @@
       {
         "id": "early-1990s",
         "label": "Early 1990s",
-        "text": "Set this in the first years after high school, when they are technically grown and nothing feels settled yet.",
+        "text": "first years out of high school, nothing settled",
         "ageGroup": "adult",
         "tags": [
           "adult",
@@ -273,7 +273,7 @@
       {
         "id": "adult-post-canon",
         "label": "Adult post-canon",
-        "text": "Mike and Will are adults now, carrying years of unfinished history with them.",
+        "text": "adults now, years of unfinished history",
         "ageGroup": "adult",
         "tags": [
           "adult",
@@ -289,7 +289,7 @@
       {
         "id": "college-au",
         "label": "College AU",
-        "text": "Set this at college, where nobody knows who they used to be to each other.",
+        "text": "college, nobody knows who they were to each other",
         "ageGroup": "adult",
         "tags": [
           "adult",
@@ -309,7 +309,7 @@
       {
         "id": "modern-au",
         "label": "Modern AU",
-        "text": "Set this now, with no Upside Down and no monsters — just the two of them and everything they have never said.",
+        "text": "no upside down, no monsters",
         "ageGroup": "adult",
         "tags": [
           "adult",
@@ -331,7 +331,7 @@
       {
         "id": "high-fantasy-age",
         "label": "An age of quests",
-        "text": "Set this in an age of long roads, bad kings and worse gods, where a party of six is the only thing standing between a village and the dark.",
+        "text": "an age of long roads, bad kings, worse gods",
         "ageGroup": "adult",
         "compatibleUniverses": [
           "dnd-realm"
@@ -346,7 +346,7 @@
       {
         "id": "school-years-au",
         "label": "Their school years, elsewhere",
-        "text": "Set this while they are still students — the same age they were in the basement, in a life that never included Hawkins.",
+        "text": "still students, basement age, a life without Hawkins",
         "ageGroup": "minor",
         "compatibleUniverses": [
           "spell-school",
@@ -362,7 +362,7 @@
       {
         "id": "age-of-sail",
         "label": "The age of sail",
-        "text": "Set this on open water in a century of charts and superstition, where the map runs out a week west of here.",
+        "text": "open water, charts and superstition, the map runs out",
         "ageGroup": "adult",
         "compatibleUniverses": [
           "high-seas"
@@ -377,7 +377,7 @@
       {
         "id": "endless-night",
         "label": "An endless night",
-        "text": "Set this in a present that never quite gets to morning, where one of them has had far too much time to think about it.",
+        "text": "a present that never reaches morning",
         "ageGroup": "adult",
         "compatibleUniverses": [
           "long-night",
@@ -392,7 +392,7 @@
       {
         "id": "first-year-after",
         "label": "The first year after",
-        "text": "Set this in the first year after everything fell over, close enough to remember what bread tasted like.",
+        "text": "the first year after it all fell over",
         "ageGroup": "adult",
         "compatibleUniverses": [
           "after-the-end"
@@ -408,7 +408,7 @@
       {
         "id": "best-friends-unspoken",
         "label": "Best friends, unspoken",
-        "text": "They are still best friends in every way that anyone can see, and neither has looked too closely at the rest of it.",
+        "text": "best friends, neither looking too closely at the rest",
         "tags": [
           "unspoken",
           "friends"
@@ -419,7 +419,7 @@
       {
         "id": "one-sided-realized",
         "label": "One of them knows",
-        "text": "Will has known what this is for a long time; Mike has not let himself finish the thought.",
+        "text": "Will has known for years, Mike won't finish the thought",
         "tags": [
           "one-sided",
           "unspoken"
@@ -430,7 +430,7 @@
       {
         "id": "mutual-unspoken",
         "label": "Mutual but unspoken",
-        "text": "Both of them know their friendship stopped being simple, but neither has said it out loud.",
+        "text": "both know it stopped being simple, neither says it",
         "tags": [
           "mutual-feelings",
           "unspoken"
@@ -441,7 +441,7 @@
       {
         "id": "recently-confessed",
         "label": "Recently confessed",
-        "text": "One of them said it out loud recently, and they are both still learning what the days after that look like.",
+        "text": "one of them said it recently, still learning the days after",
         "tags": [
           "confessed",
           "new"
@@ -452,7 +452,7 @@
       {
         "id": "secretly-dating",
         "label": "Secretly dating",
-        "text": "They have been together for a while now, and nobody else knows.",
+        "text": "together a while, nobody knows",
         "tags": [
           "together",
           "secret"
@@ -463,7 +463,7 @@
       {
         "id": "established",
         "label": "Established",
-        "text": "They are together, past the terrified part, and the people who matter know.",
+        "text": "together, past the terrified part, people know",
         "tags": [
           "together",
           "domestic"
@@ -474,7 +474,7 @@
       {
         "id": "estranged-reunion",
         "label": "Estranged and reunited",
-        "text": "They have not been close in years, and every old feeling comes back faster than either expected.",
+        "text": "not close in years, old feelings back fast",
         "tags": [
           "reunion",
           "estranged",
@@ -488,7 +488,7 @@
       {
         "id": "almost-was",
         "label": "The one that almost was",
-        "text": "Something nearly happened between them once, and they have both spent a long time calling it nothing.",
+        "text": "something nearly happened once, both call it nothing",
         "tags": [
           "regret",
           "adult",
@@ -504,7 +504,7 @@
       {
         "id": "tender",
         "label": "Tender",
-        "text": "Keep the scene tender and unhurried; let the smallest gestures carry the weight.",
+        "text": "tender, unhurried, small gestures carry it",
         "tags": [
           "quiet",
           "emotional"
@@ -514,7 +514,7 @@
       {
         "id": "awkward",
         "label": "Awkward",
-        "text": "Let the scene be awkward — half-finished sentences, badly timed honesty, nobody smooth.",
+        "text": "awkward, half-finished sentences, nobody smooth",
         "tags": [
           "comedic",
           "honest"
@@ -524,7 +524,7 @@
       {
         "id": "nostalgic",
         "label": "Nostalgic",
-        "text": "Keep the scene nostalgic and intimate, aware of how much history is in the room with them.",
+        "text": "nostalgic, all that history in the room",
         "tags": [
           "quiet",
           "emotional"
@@ -534,7 +534,7 @@
       {
         "id": "angsty",
         "label": "Angsty",
-        "text": "Let it hurt. Neither of them gets to say the easy version of what they mean.",
+        "text": "let it hurt, no easy version of anything",
         "tags": [
           "heavy",
           "emotional"
@@ -544,7 +544,7 @@
       {
         "id": "playful",
         "label": "Playful",
-        "text": "Keep it light and teasing, with the real thing sitting just underneath the joke.",
+        "text": "light and teasing, the real thing under the joke",
         "tags": [
           "light",
           "comedic"
@@ -554,7 +554,7 @@
       {
         "id": "suspenseful",
         "label": "Suspenseful",
-        "text": "Hold the tension taut; something is about to go wrong and both of them can feel it.",
+        "text": "taut, something about to go wrong",
         "tags": [
           "heavy",
           "danger"
@@ -564,7 +564,7 @@
       {
         "id": "bittersweet",
         "label": "Bittersweet",
-        "text": "Keep it bittersweet — whatever they get here, they do not get to keep all of it.",
+        "text": "bittersweet, they don't get to keep all of it",
         "tags": [
           "quiet",
           "emotional"
@@ -574,7 +574,7 @@
       {
         "id": "chaotic",
         "label": "Chaotic",
-        "text": "Let it be loud and messy, with the important thing said at exactly the wrong moment.",
+        "text": "loud and messy, said at exactly the wrong moment",
         "tags": [
           "light",
           "comedic"
@@ -584,7 +584,7 @@
       {
         "id": "quiet-domestic",
         "label": "Quiet and domestic",
-        "text": "Keep it small and domestic; the drama is entirely in what goes unsaid over an ordinary task.",
+        "text": "small and domestic, the drama in what goes unsaid",
         "tags": [
           "quiet",
           "domestic"
@@ -594,7 +594,7 @@
       {
         "id": "hopeful",
         "label": "Hopeful",
-        "text": "Let the scene end more open than it began, even if nothing is resolved.",
+        "text": "ends more open than it began, nothing resolved",
         "tags": [
           "light",
           "emotional"
@@ -606,7 +606,7 @@
       {
         "id": "wheeler-basement",
         "label": "Wheeler basement",
-        "text": "Mike and Will are alone in the Wheeler basement after everyone else leaves an unfinished campaign behind.",
+        "text": "wheeler basement, alone, campaign left unfinished",
         "category": "home",
         "privacy": "semi-private",
         "tags": [
@@ -631,7 +631,7 @@
       {
         "id": "castle-byers-rain",
         "label": "Castle Byers in the rain",
-        "text": "They end up in Castle Byers with the rain coming through the roof, too close together because there is nowhere else to sit.",
+        "text": "castle byers, rain through the roof, too close",
         "category": "outdoors",
         "privacy": "isolated",
         "tags": [
@@ -655,7 +655,7 @@
       {
         "id": "byers-kitchen-3am",
         "label": "The Byers kitchen at 3 a.m.",
-        "text": "It is three in the morning in the Byers kitchen and neither of them can sleep.",
+        "text": "byers kitchen, 3am, neither can sleep",
         "category": "home",
         "privacy": "private",
         "tags": [
@@ -673,7 +673,7 @@
       {
         "id": "mikes-bedroom",
         "label": "Mike's bedroom",
-        "text": "They are shut in Mike's bedroom during a sleepover, talking in the dark about nothing in particular.",
+        "text": "Mike's room, sleepover, talking in the dark",
         "category": "home",
         "privacy": "private",
         "tags": [
@@ -697,7 +697,7 @@
       {
         "id": "empty-gym",
         "label": "The empty school gym",
-        "text": "The dance is over and they are the only two left in the gym while somebody stacks chairs down the hall.",
+        "text": "empty gym after the dance, chairs being stacked",
         "category": "school",
         "privacy": "semi-private",
         "tags": [
@@ -721,7 +721,7 @@
       {
         "id": "record-store",
         "label": "The back of a record store",
-        "text": "They are hiding out in the back of a record store, going through the same crate for the third time.",
+        "text": "back of a record store, same crate, third time through",
         "category": "public",
         "privacy": "semi-private",
         "tags": [
@@ -738,7 +738,7 @@
       {
         "id": "stalled-car",
         "label": "A stalled car",
-        "text": "The car has died on a road with no houses on it, and the walk back would take hours.",
+        "text": "dead car, empty road, hours from anywhere",
         "category": "travel",
         "privacy": "isolated",
         "tags": [
@@ -756,7 +756,7 @@
       {
         "id": "motel-room",
         "label": "A motel room",
-        "text": "A trip has stranded them in a motel room with one working lamp and far too much quiet.",
+        "text": "motel room, one working lamp, too much quiet",
         "category": "travel",
         "privacy": "private",
         "tags": [
@@ -773,7 +773,7 @@
       {
         "id": "dorm-hallway",
         "label": "A dorm hallway",
-        "text": "It is two in the morning in a dorm hallway, and neither of them is going back inside yet.",
+        "text": "dorm hallway, 2am, neither going back inside",
         "category": "school",
         "privacy": "semi-private",
         "tags": [
@@ -795,7 +795,7 @@
       {
         "id": "shared-apartment",
         "label": "A tiny shared apartment",
-        "text": "They are in the small apartment they share, in the middle of an evening that started out ordinary.",
+        "text": "their small shared apartment, an ordinary evening",
         "category": "home",
         "privacy": "private",
         "tags": [
@@ -818,7 +818,7 @@
       {
         "id": "reunion-porch",
         "label": "A reunion porch",
-        "text": "They find themselves alone on a back porch during a reunion, years after they last really talked.",
+        "text": "back porch at a reunion, years since they talked",
         "category": "reunion",
         "privacy": "semi-private",
         "tags": [
@@ -842,7 +842,7 @@
       {
         "id": "hospital-waiting",
         "label": "A hospital waiting room",
-        "text": "They are the only two left in a hospital waiting room, running out of things to say and refusing to leave.",
+        "text": "hospital waiting room, last two left, refusing to leave",
         "category": "public",
         "privacy": "public",
         "tags": [
@@ -859,7 +859,7 @@
       {
         "id": "graduation-party",
         "label": "Outside a graduation party",
-        "text": "The graduation party is loud behind them; they have both drifted out to the same dark patch of yard.",
+        "text": "graduation party behind them, same dark patch of yard",
         "category": "party",
         "privacy": "semi-private",
         "tags": [
@@ -881,7 +881,7 @@
       {
         "id": "long-drive-van",
         "label": "The van on a long drive",
-        "text": "Everyone else is asleep in the back of the van and the two of them are awake in the front for hours.",
+        "text": "front of the van, everyone else asleep, hours to go",
         "category": "travel",
         "privacy": "semi-private",
         "tags": [
@@ -899,7 +899,7 @@
       {
         "id": "cabin-storm",
         "label": "A cabin in a storm",
-        "text": "The storm has them shut inside a borrowed cabin with one blanket and no way to leave.",
+        "text": "borrowed cabin, storm, one blanket",
         "category": "outdoors",
         "privacy": "isolated",
         "tags": [
@@ -917,7 +917,7 @@
       {
         "id": "upside-down-echo",
         "label": "A wrong version of somewhere familiar",
-        "text": "They are standing in a place they know by heart, except everything in it is subtly, horribly wrong.",
+        "text": "a place they know by heart, everything subtly wrong",
         "category": "supernatural",
         "privacy": "isolated",
         "tags": [
@@ -941,7 +941,7 @@
       {
         "id": "arcade-closing",
         "label": "The arcade at closing",
-        "text": "The arcade is closing around them and neither has made a move toward the door.",
+        "text": "arcade closing around them, nobody moving to leave",
         "category": "public",
         "privacy": "public",
         "tags": [
@@ -965,7 +965,7 @@
       {
         "id": "phone-line",
         "label": "Opposite ends of a phone line",
-        "text": "They are on opposite ends of a phone call that has already run far past the point either can afford.",
+        "text": "a phone call run far past what either can afford",
         "category": "distance",
         "privacy": "private",
         "tags": [
@@ -989,7 +989,7 @@
       {
         "id": "byers-attic-boxes",
         "label": "Packing up a house",
-        "text": "They are packing a house into boxes, and every third thing either of them picks up is a memory neither wants to explain.",
+        "text": "packing the house into boxes, every third thing a memory",
         "category": "home",
         "privacy": "private",
         "tags": [
@@ -1006,7 +1006,7 @@
       {
         "id": "diner-booth",
         "label": "A late-night diner booth",
-        "text": "They are in the back booth of a diner that is about to close, splitting the last of the coffee.",
+        "text": "back booth, diner closing, last of the coffee",
         "category": "public",
         "privacy": "semi-private",
         "tags": [
@@ -1024,7 +1024,7 @@
       {
         "id": "temple-ruin-camp",
         "label": "Camp in a ruined temple",
-        "text": "The party sleeps in a ruined temple and the two of them take the same watch, again, the way they always somehow do.",
+        "text": "ruined temple, the same watch again, party asleep",
         "category": "quiet",
         "privacy": "semi-private",
         "compatibleUniverses": [
@@ -1041,7 +1041,7 @@
       {
         "id": "after-the-healing",
         "label": "After the healing spell",
-        "text": "The fight is over, Will's hands are still shaking from what he had to pour into Mike, and nobody else has come back yet.",
+        "text": "after the fight, Will's hands still shaking, nobody back yet",
         "category": "hurt-comfort",
         "privacy": "private",
         "compatibleUniverses": [
@@ -1058,7 +1058,7 @@
       {
         "id": "astronomy-tower",
         "label": "The top of the tower",
-        "text": "The highest window in the castle, well after curfew, with the whole grounds asleep underneath them.",
+        "text": "highest window in the castle, long after curfew",
         "category": "quiet",
         "privacy": "private",
         "compatibleUniverses": [
@@ -1075,7 +1075,7 @@
       {
         "id": "detention-together",
         "label": "Detention, together",
-        "text": "They are being punished for the same thing in the same empty classroom, and there are two hours left of it.",
+        "text": "detention, same empty classroom, two hours left",
         "category": "forced-proximity",
         "privacy": "semi-private",
         "compatibleUniverses": [
@@ -1093,7 +1093,7 @@
       {
         "id": "crows-nest",
         "label": "The crow's nest",
-        "text": "Up in the rigging with the crew asleep below, the only two awake on the whole ship.",
+        "text": "crow's nest, crew asleep below, only two awake",
         "category": "quiet",
         "privacy": "private",
         "compatibleUniverses": [
@@ -1109,7 +1109,7 @@
       {
         "id": "tidepool-cove",
         "label": "A cove nobody charted",
-        "text": "A cove that is on no map, warm water, and the understanding that one of them cannot follow the other home.",
+        "text": "a cove on no map, one of them can't follow home",
         "category": "longing",
         "privacy": "private",
         "compatibleUniverses": [
@@ -1126,7 +1126,7 @@
       {
         "id": "bar-that-doesnt-close",
         "label": "The bar that never closes",
-        "text": "A bar at the hour when everyone sober has gone, where one of them has been sitting in the same seat for rather more years than he looks.",
+        "text": "a bar at the sober-people-gone hour, same seat for years",
         "category": "reunion",
         "privacy": "public",
         "compatibleUniverses": [
@@ -1142,7 +1142,7 @@
       {
         "id": "rooftop-before-dawn",
         "label": "A rooftop, before dawn",
-        "text": "A rooftop with maybe forty minutes of dark left in it, which is the whole problem.",
+        "text": "rooftop, forty minutes of dark left",
         "category": "longing",
         "privacy": "private",
         "compatibleUniverses": [
@@ -1160,7 +1160,7 @@
       {
         "id": "house-that-remembers",
         "label": "The house that remembers him",
-        "text": "The front room of a house that has been empty for forty years and is very obviously not empty now.",
+        "text": "front room, empty forty years, obviously not empty",
         "category": "supernatural",
         "privacy": "private",
         "compatibleUniverses": [
@@ -1177,7 +1177,7 @@
       {
         "id": "boxes-of-a-dead-boy",
         "label": "Boxes in the attic",
-        "text": "An attic full of somebody's whole unfinished life, being sorted by the one person who can see him standing there watching.",
+        "text": "an attic of his unfinished life, him watching it sorted",
         "category": "shared-memory",
         "privacy": "private",
         "compatibleUniverses": [
@@ -1193,7 +1193,7 @@
       {
         "id": "dressing-room-after",
         "label": "The dressing room, after",
-        "text": "Twenty minutes after the encore, ears still ringing, the only person he actually wanted out there sitting on the counter.",
+        "text": "dressing room after the encore, ears ringing",
         "category": "reunion",
         "privacy": "private",
         "compatibleUniverses": [
@@ -1210,7 +1210,7 @@
       {
         "id": "tattoo-chair",
         "label": "The chair at closing",
-        "text": "The shop is shut, the needle is off, and one of them has an hour of being held perfectly still to get through.",
+        "text": "shop shut, needle off, an hour of holding still",
         "category": "tension",
         "privacy": "private",
         "compatibleUniverses": [
@@ -1226,7 +1226,7 @@
       {
         "id": "staff-room-late",
         "label": "The staff room at six",
-        "text": "The staff room long after the buses have gone, two piles of marking and one working coffee machine.",
+        "text": "staff room after the buses, two piles of marking",
         "category": "quiet",
         "privacy": "semi-private",
         "compatibleUniverses": [
@@ -1242,7 +1242,7 @@
       {
         "id": "art-room-after-bell",
         "label": "The art room after the bell",
-        "text": "The art room with the chairs still down, paint drying, and someone from the English department who has run out of reasons to be in here.",
+        "text": "art room after the bell, paint drying, no reason to be here",
         "category": "quiet",
         "privacy": "private",
         "compatibleUniverses": [
@@ -1258,7 +1258,7 @@
       {
         "id": "five-am-ice",
         "label": "Five in the morning, shared ice",
-        "text": "An empty rink at five in the morning, one half of it marked out for figures and the other for a net nobody has moved yet.",
+        "text": "empty rink, five a.m., figures on one half, a net on the other",
         "category": "tension",
         "privacy": "semi-private",
         "compatibleUniverses": [
@@ -1275,7 +1275,7 @@
       {
         "id": "locker-room-tape",
         "label": "The locker room, taping up",
-        "text": "An empty locker room, one of them taping the other's wrist because there is nobody else left in the building to do it.",
+        "text": "empty locker room, taping the other's wrist",
         "category": "hurt-comfort",
         "privacy": "private",
         "compatibleUniverses": [
@@ -1292,7 +1292,7 @@
       {
         "id": "barricaded-station",
         "label": "A gas station, barricaded",
-        "text": "A gas station with the doors wedged shut, one night to get through, and something outside that has not gone away.",
+        "text": "barricaded gas station, one night, something outside",
         "category": "forced-proximity",
         "privacy": "private",
         "compatibleUniverses": [
@@ -1309,7 +1309,7 @@
       {
         "id": "quiet-mile",
         "label": "A quiet mile of road",
-        "text": "A mile of empty highway with nothing on it, which is the closest thing to safe either of them has had in months.",
+        "text": "a quiet mile of highway, the closest thing to safe",
         "category": "quiet",
         "privacy": "private",
         "compatibleUniverses": [
@@ -1325,7 +1325,7 @@
       {
         "id": "lunch-table-under",
         "label": "Under the lunch table",
-        "text": "A crowded cafeteria, a table they have sat at for four years, and a hand that nobody above the table can see.",
+        "text": "crowded cafeteria, four-year table, a hand under it",
         "category": "secret",
         "privacy": "public",
         "compatibleUniverses": [
@@ -1348,9 +1348,9 @@
         "label": "A hidden drawing is discovered",
         "category": "secret",
         "variants": {
-          "low": "Mike notices Will has been sketching him and tries not to make a thing out of it.",
-          "medium": "Mike finds a drawing Will never meant him to see, and Will knows immediately what he is holding.",
-          "high": "Mike finds a whole sketchbook of himself, including the pages that make Will's feelings impossible to explain away."
+          "low": "Mike notices Will sketching him, tries not to make a thing of it",
+          "medium": "Mike finds a drawing he was never meant to see",
+          "high": "Mike finds a whole sketchbook of himself, the pages that can't be explained away"
         },
         "tags": [
           "canon-friendly",
@@ -1365,9 +1365,9 @@
         "label": "One of them may leave",
         "category": "abandonment",
         "variants": {
-          "low": "A casual conversation about next year reveals they have been imagining very different lives.",
-          "medium": "Mike learns Will is considering leaving without telling him.",
-          "high": "Will has already accepted something far away, and Mike finds out that everyone else knew first."
+          "low": "next-year talk, very different lives imagined",
+          "medium": "Mike learns Will might leave without telling him",
+          "high": "Will already said yes to somewhere far, everyone else knew first"
         },
         "tags": [
           "future",
@@ -1381,9 +1381,9 @@
         "label": "Someone else is in the picture",
         "category": "jealousy",
         "variants": {
-          "low": "Someone flirts with one of them and the other is unpleasantly surprised by how much he hates it.",
-          "medium": "One of them has started seeing someone, and the other keeps being aggressively supportive about it.",
-          "high": "One of them brings a date, and the whole night becomes an exercise in pretending that is fine."
+          "low": "someone flirts, the other hates it more than expected",
+          "medium": "one is seeing someone, the other is aggressively supportive",
+          "high": "one brings a date, a whole night of pretending that's fine"
         },
         "tags": [
           "jealousy",
@@ -1396,9 +1396,9 @@
         "label": "A fight nobody finished",
         "category": "resentment",
         "variants": {
-          "low": "An old argument surfaces sideways in a joke that lands wrong.",
-          "medium": "They restart the fight they never finished, and it is immediately about something else.",
-          "high": "Everything they have swallowed for years comes out at once, in the worst possible order."
+          "low": "an old argument surfaces in a joke that lands wrong",
+          "medium": "the fight they never finished, immediately about something else",
+          "high": "years of swallowed things, all at once, worst possible order"
         },
         "tags": [
           "conflict",
@@ -1411,9 +1411,9 @@
         "label": "Someone assumes they're together",
         "category": "misunderstanding",
         "variants": {
-          "low": "A stranger assumes they are together and neither corrects it fast enough.",
-          "medium": "Someone they know assumes it, out loud, in front of people, and the silence goes on too long.",
-          "high": "The assumption gets back to someone whose opinion matters, and now it has to be answered."
+          "low": "a stranger assumes they're together, nobody corrects it fast enough",
+          "medium": "someone they know says it, in front of people, silence too long",
+          "high": "the assumption reaches someone who matters, it has to be answered"
         },
         "tags": [
           "misunderstanding",
@@ -1427,9 +1427,9 @@
         "label": "One of them nearly says it",
         "category": "confession",
         "variants": {
-          "low": "One of them starts a sentence he cannot finish and pretends he was going to say something else.",
-          "medium": "One of them says something that cannot be passed off as a joke, and does not take it back.",
-          "high": "One of them says it outright, and the other does not answer for a very long moment."
+          "low": "a sentence he can't finish, pretends it was something else",
+          "medium": "something that can't pass as a joke, not taken back",
+          "high": "he says it outright, the other doesn't answer for a long moment"
         },
         "tags": [
           "confession",
@@ -1442,9 +1442,9 @@
         "label": "They cannot leave",
         "category": "forced-proximity",
         "variants": {
-          "low": "Whatever they were avoiding, they now have to sit in the same small space with it for a while.",
-          "medium": "They are stuck here for the night, and there is no version of this where they do not talk.",
-          "high": "They are stuck, one of them is hurt or shaking, and neither can pretend the other does not matter this much."
+          "low": "stuck in a small space with the thing they were avoiding",
+          "medium": "stuck for the night, no version where they don't talk",
+          "high": "stuck, one of them hurt or shaking, neither can pretend"
         },
         "tags": [
           "forced-proximity",
@@ -1457,9 +1457,9 @@
         "label": "An old promise resurfaces",
         "category": "shared-memory",
         "variants": {
-          "low": "One of them remembers a promise the other assumed was forgotten.",
-          "medium": "A promise they made as kids turns out to have meant very different things to each of them.",
-          "high": "One of them realizes the other has been keeping that promise this entire time, at real cost."
+          "low": "one remembers a promise the other thought forgotten",
+          "medium": "a kids' promise that meant different things to each of them",
+          "high": "the other has kept that promise all along, at real cost"
         },
         "tags": [
           "shared-memory",
@@ -1473,9 +1473,9 @@
         "label": "Something followed them home",
         "category": "supernatural",
         "variants": {
-          "low": "One of them wakes the other from a nightmare neither wants to describe.",
-          "medium": "The old feeling is back — the cold on the neck — and only one of them will admit he felt it.",
-          "high": "It is happening again, it is happening to one of them specifically, and the other cannot fix it."
+          "low": "waking the other from a nightmare neither will describe",
+          "medium": "the cold on the neck is back, only one admits feeling it",
+          "high": "it's happening again, to one of them, the other can't fix it"
         },
         "tags": [
           "supernatural",
@@ -1498,9 +1498,9 @@
         "label": "One of them is hurt and hiding it",
         "category": "hurt-comfort",
         "variants": {
-          "low": "One of them is clearly not okay and is doing a bad job of hiding it.",
-          "medium": "One of them is hurt and has been hiding it for days; the other finds out by accident.",
-          "high": "The hiding stops working in the worst way, and the other has to take care of him with nothing but his hands and whatever is in the room."
+          "low": "one of them not okay, hiding it badly",
+          "medium": "hurt for days, hiding it, found out by accident",
+          "high": "the hiding stops working, nothing to fix it but his hands"
         },
         "tags": [
           "hurt-comfort",
@@ -1513,9 +1513,9 @@
         "label": "The moment gets interrupted",
         "category": "interrupted-intimacy",
         "variants": {
-          "low": "Something almost happens and then somebody walks in with a question about dinner.",
-          "medium": "They are interrupted at exactly the wrong second, and neither can find the way back to it.",
-          "high": "They are interrupted by someone who saw enough, and now there is a second problem."
+          "low": "something almost happens, then a question about dinner",
+          "medium": "interrupted at the wrong second, no way back to it",
+          "high": "interrupted by someone who saw enough, now a second problem"
         },
         "tags": [
           "interrupted-intimacy",
@@ -1528,9 +1528,9 @@
         "label": "A letter that was never sent",
         "category": "secret",
         "variants": {
-          "low": "One of them finds a letter that was started and abandoned.",
-          "medium": "One of them finds a letter the other wrote and never sent, and reads far enough to regret starting.",
-          "high": "The unsent letter says all of it, and the person it was addressed to is holding it while its author watches."
+          "low": "a letter started and abandoned",
+          "medium": "an unsent letter, read far enough to regret starting",
+          "high": "the unsent letter says all of it, held while its author watches"
         },
         "tags": [
           "secret",
@@ -1544,9 +1544,9 @@
         "label": "Everybody else already knew",
         "category": "misunderstanding",
         "variants": {
-          "low": "A friend says something offhand that suggests this has been obvious to everyone for years.",
-          "medium": "It turns out the party has been quietly waiting for them to catch up.",
-          "high": "One of them learns everyone knew, told the other, and left him to figure it out alone."
+          "low": "a friend hints it's been obvious for years",
+          "medium": "the party has been quietly waiting for them to catch up",
+          "high": "everyone knew, told the other, left him to figure it out alone"
         },
         "tags": [
           "misunderstanding",
@@ -1563,9 +1563,9 @@
         "label": "One of them goes too far protecting the other",
         "category": "protectiveness",
         "variants": {
-          "low": "One of them steps in on the other's behalf, and it is not entirely welcome.",
-          "medium": "One of them makes a decision for the other, for his own good, and is caught at it.",
-          "high": "One of them does something dangerous to keep the other safe and refuses to apologize for it."
+          "low": "one steps in for the other, not entirely welcome",
+          "medium": "one decides for the other, for his own good, and is caught",
+          "high": "something dangerous to keep the other safe, no apology"
         },
         "tags": [
           "protectiveness",
@@ -1579,9 +1579,9 @@
         "label": "They are not who they were",
         "category": "identity",
         "variants": {
-          "low": "One of them has changed in some small way the other keeps noticing and not mentioning.",
-          "medium": "One of them has become a person the other does not entirely recognize, and misses the old version out loud.",
-          "high": "One of them finally says he has been performing a whole life he does not want, and cannot take that back."
+          "low": "small changes the other keeps noticing, not mentioning",
+          "medium": "a person the other doesn't recognize, missing the old one out loud",
+          "high": "he's been performing a life he doesn't want, and says so"
         },
         "tags": [
           "identity",
@@ -1594,9 +1594,9 @@
         "label": "A goodbye done wrong",
         "category": "abandonment",
         "variants": {
-          "low": "A goodbye comes out clipped and wrong and neither can fix it in the time left.",
-          "medium": "One of them leaves without saying it properly, and comes back to a version of the other he did not expect.",
-          "high": "This is the last chance to say it before something ends for good, and one of them keeps not saying it."
+          "low": "a goodbye comes out clipped and wrong",
+          "medium": "leaves without saying it, comes back to someone he didn't expect",
+          "high": "last chance to say it before it ends, still not saying it"
         },
         "tags": [
           "separation",
@@ -1609,9 +1609,9 @@
         "label": "One bed, no discussion",
         "category": "forced-proximity",
         "variants": {
-          "low": "There is one place to sleep, and they both make a great show of not caring.",
-          "medium": "There is one bed, and the careful arrangement of limbs becomes its own conversation.",
-          "high": "There is one bed, one of them is already asleep against the other, and the awake one has all night to think about it."
+          "low": "one place to sleep, both pretending not to care",
+          "medium": "one bed, the arrangement of limbs is its own conversation",
+          "high": "one bed, one already asleep against the other, all night to think"
         },
         "tags": [
           "forced-proximity",
@@ -1624,9 +1624,9 @@
         "label": "An old photograph",
         "category": "shared-memory",
         "variants": {
-          "low": "A photo turns up that one of them has clearly kept for a long time.",
-          "medium": "A photo turns up that neither can explain casually, and someone else asks about it.",
-          "high": "The photo makes it obvious how long this has been going on, and both of them are looking at it."
+          "low": "a photo one of them has clearly kept a long time",
+          "medium": "a photo neither can explain casually, someone asks",
+          "high": "the photo shows how long this has been going on, both looking"
         },
         "tags": [
           "shared-memory",
@@ -1639,9 +1639,9 @@
         "label": "Honesty at the wrong hour",
         "category": "confession",
         "variants": {
-          "low": "It is far too late at night and one of them is being more honest than he means to be.",
-          "medium": "One of them says the true thing at three in the morning and is not sure the other will remember it.",
-          "high": "Everything gets said in one exhausted rush, and in the morning neither of them can pretend it did not happen."
+          "low": "far too late, one of them more honest than he means",
+          "medium": "the true thing at 3am, not sure the other will remember",
+          "high": "everything said in one exhausted rush, no pretending in the morning"
         },
         "tags": [
           "confession",
@@ -1655,9 +1655,9 @@
         "label": "Plans made without him",
         "category": "abandonment",
         "variants": {
-          "low": "One of them made a small plan for the weekend that quietly did not include the other.",
-          "medium": "One of them has been building a future the other is not in, and says so without meaning to.",
-          "high": "One of them realizes he has been the backup plan in every version of the other's life."
+          "low": "a small weekend plan that quietly left the other out",
+          "medium": "a future the other isn't in, said without meaning to",
+          "high": "he's been the backup plan in every version of the other's life"
         },
         "tags": [
           "future",
@@ -1670,9 +1670,9 @@
         "label": "A touch that goes on too long",
         "category": "confession",
         "variants": {
-          "low": "A hand stays somewhere a second longer than a friend's would.",
-          "medium": "One of them does not let go, and the not-letting-go becomes the whole conversation.",
-          "high": "Neither of them moves away, and the excuse they have been using for years stops working."
+          "low": "a hand stays a second longer than a friend's would",
+          "medium": "one doesn't let go, and that becomes the conversation",
+          "high": "neither moves away, the years-old excuse stops working"
         },
         "tags": [
           "quiet",
@@ -1685,9 +1685,9 @@
         "label": "A song that means something",
         "category": "shared-memory",
         "variants": {
-          "low": "A song comes on that one of them clearly has feelings about.",
-          "medium": "A song comes on that belongs to a night neither of them has ever discussed.",
-          "high": "One of them admits he taped that song for the other years ago and never handed it over."
+          "low": "a song one of them clearly has feelings about",
+          "medium": "a song from a night they've never discussed",
+          "high": "he taped that song for the other years ago, never handed it over"
         },
         "tags": [
           "music",
@@ -1701,9 +1701,9 @@
         "label": "The campaign says it for them",
         "category": "canon-divergence",
         "variants": {
-          "low": "The campaign takes a turn that is a little too close to home and Mike keeps narrating anyway.",
-          "medium": "Will's character says the thing Will cannot, and Mike answers in character without thinking.",
-          "high": "The game stops being a game halfway through the sentence and neither of them picks the dice back up."
+          "low": "the campaign gets too close to home, Mike keeps narrating",
+          "medium": "Will's character says it, Mike answers in character without thinking",
+          "high": "the game stops being a game mid-sentence, dice left down"
         },
         "tags": [
           "campaign",
@@ -1726,9 +1726,9 @@
         "label": "One of them came back",
         "category": "reunion",
         "variants": {
-          "low": "One of them turned up unannounced and will not fully explain why.",
-          "medium": "One of them came a long way for this, and says it was for no particular reason.",
-          "high": "One of them dropped an entire life to be here, and the other works out what that means mid-sentence."
+          "low": "turned up unannounced, won't fully say why",
+          "medium": "came a long way for this, says it was for no reason",
+          "high": "dropped a whole life to be here, the other works it out mid-sentence"
         },
         "tags": [
           "reunion",
@@ -1741,9 +1741,9 @@
         "label": "Saying it to somebody else first",
         "category": "identity",
         "variants": {
-          "low": "One of them is trying to work out how to say something to his family and cannot get the words in order.",
-          "medium": "One of them came out to someone else first, and the other finds out he was not the first to know.",
-          "high": "One of them is about to say it to a room that may not take it well, and the other has to decide where he is standing."
+          "low": "trying to tell his family, can't get the words in order",
+          "medium": "came out to someone else first, the other wasn't first to know",
+          "high": "about to say it to a room that may not take it, the other must pick a side"
         },
         "tags": [
           "identity",
@@ -1757,7 +1757,7 @@
       {
         "id": "power-outage",
         "label": "The power goes out",
-        "text": "Before either can escape the conversation, the power goes out.",
+        "text": "the power goes out",
         "tags": [
           "storm",
           "forced-proximity",
@@ -1768,7 +1768,7 @@
       {
         "id": "song-starts",
         "label": "A song starts",
-        "text": "A song starts playing that neither of them can talk over.",
+        "text": "a song starts they can't talk over",
         "tags": [
           "music"
         ],
@@ -1777,7 +1777,7 @@
       {
         "id": "door-locks",
         "label": "The door locks",
-        "text": "The door shuts behind them and does not open again.",
+        "text": "the door shuts and won't open",
         "tags": [
           "forced-proximity",
           "comedic"
@@ -1787,7 +1787,7 @@
       {
         "id": "walkie-crackles",
         "label": "The walkie crackles",
-        "text": "The walkie-talkie crackles to life with a voice neither of them expected.",
+        "text": "the walkie crackles, a voice neither expected",
         "tags": [
           "canon-friendly",
           "supernatural"
@@ -1806,7 +1806,7 @@
       {
         "id": "someone-walks-in",
         "label": "Someone walks in",
-        "text": "Someone walks in at precisely the wrong moment and immediately understands too much.",
+        "text": "someone walks in, understands too much",
         "tags": [
           "interrupted-intimacy"
         ],
@@ -1815,7 +1815,7 @@
       {
         "id": "phone-rings",
         "label": "The phone rings",
-        "text": "The phone rings, and whoever is on the other end changes what this night is about.",
+        "text": "the phone rings and changes the night",
         "tags": [
           "news"
         ],
@@ -1824,7 +1824,7 @@
       {
         "id": "it-starts-raining",
         "label": "It starts raining",
-        "text": "The rain starts, hard, and there is nowhere to go.",
+        "text": "hard rain, nowhere to go",
         "tags": [
           "rain",
           "forced-proximity"
@@ -1834,7 +1834,7 @@
       {
         "id": "old-thing-found",
         "label": "Something old turns up",
-        "text": "One of them turns up something from years ago that neither of them has looked at since.",
+        "text": "something from years ago turns up",
         "tags": [
           "nostalgic",
           "shared-memory"
@@ -1844,7 +1844,7 @@
       {
         "id": "the-feeling-returns",
         "label": "The feeling comes back",
-        "text": "That familiar cold goes down one of their necks, and the room changes temperature.",
+        "text": "that cold on the neck, the room changes",
         "tags": [
           "supernatural",
           "danger"
@@ -1863,7 +1863,7 @@
       {
         "id": "last-call",
         "label": "They run out of time",
-        "text": "Somebody announces they have to go.",
+        "text": "somebody says they have to go",
         "tags": [
           "separation"
         ],
