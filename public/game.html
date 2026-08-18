@@ -259,7 +259,7 @@
 			import { api as authApi, getToken, setToken } from "/js/api.js"
 			import { loadRejoin, saveRejoin, clearRejoin } from "/js/socket-client.js"
 			import { createSounds, createLineChime, shouldChimeChat, shouldChime } from "/js/sounds.js"
-			import { mountChrome, setUserChip } from "/js/chrome.js"
+			import { mountChrome, setUserChip, regateThemes } from "/js/chrome.js"
 			import { requireAuth } from "/js/auth-guard.js"
 			import { statusDot, refreshStatusDots, updateLiveStatus } from "/js/status.js"
 			import { cleanHtml } from "/js/components/editor.js"
@@ -1064,7 +1064,7 @@ $("pauseBtn").onclick = () =>
 			// ---- Badge unlock: centered pop + confetti bursting from behind it,
 			// falling down the page (GSAP; without it the card alone shows) ----
 			const reduceFx = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches
-			socket.on("badge-earned", ({ badge, desc, name }) => {
+			socket.on("badge-earned", ({ badge, desc, name, unlocks, themes }) => {
 				const el = document.createElement("div")
 				el.className = "badge-pop"
 				const title = document.createElement("b")
@@ -1073,6 +1073,19 @@ $("pauseBtn").onclick = () =>
 				const sub = document.createElement("span")
 				sub.textContent = desc || ""
 				el.append(title, sub)
+				// A rank-up hands out more than a badge: name the themes and
+				// gimmicks it opened, and open them right now for the writer.
+				const rewards = [
+					...(unlocks?.themes || []).map((t) => `🎨 ${t.name}`),
+					...(unlocks?.gimmicks || []).map((g) => `✨ ${g.name}`),
+				]
+				if (rewards.length) {
+					const line = document.createElement("span")
+					line.className = "badge-unlocks"
+					line.textContent = (mine ? "You unlocked: " : "Unlocked: ") + rewards.join(" · ")
+					el.append(line)
+				}
+				if (mine && themes) regateThemes(themes)
 				document.body.appendChild(el)
 				playSound("incomingmessage")
 				const g = window.gsap

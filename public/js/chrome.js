@@ -313,5 +313,12 @@ export function setUserChip(user) {
 	if (user.admin) document.getElementById("navAdmin")?.classList.remove("hidden")
 	// /api/me already carries the themes this rank has earned, so signing in
 	// re-gates the menu without a second round trip.
-	if (user.themes && themeCtl) themeCtl.setGate({ locks: themeLocks, unlocked: user.themes })
+	if (user.themes) regateThemes(user.themes)
+}
+
+// Re-gate the theme menu with a fresh list of what this account may wear —
+// a rank-up mid-game hands the writer a theme, and the menu should open it
+// the moment the toast says so rather than after the next page load.
+export function regateThemes(unlocked) {
+	if (Array.isArray(unlocked) && themeCtl) themeCtl.setGate({ locks: themeLocks, unlocked })
 }

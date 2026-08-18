@@ -407,6 +407,8 @@ export function registerRoutes(app, game) {
     return {
       id: m.id, type: m.type, text: m.text, read: m.read === true, ts: m.ts,
       code: m.code || null, // game-invite messages carry the game code
+      // a rank-up note names what the rank handed out ({themes, gimmicks})
+      ...(m.unlocks ? { unlocks: m.unlocks } : {}),
       // A conversation: a reply carries the thread of what it answers, and a
       // message with no thread of its own IS its thread. `mine` is my own sent
       // copy — kept so a chain can show both halves of the exchange.

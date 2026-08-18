@@ -3,9 +3,9 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { startServer, signup } from "./helpers.mjs";
+import { startServer, signup, startedGame } from "./helpers.mjs";
 import {
-  WORD_TIERS, THEME_UNLOCKS, tierForTheme, canUseTheme, unlockedThemes, themeLocks, awardWordBadges,
+  WORD_TIERS, THEME_UNLOCKS, tierForTheme, canUseTheme, unlockedThemes, themeLocks, awardWordBadges, rewardsForTier, describeRewards,
 } from "../lib/achievements.js";
 
 const ADMIN_EMAIL = "admin@cowrite.test";
@@ -122,4 +122,57 @@ test("a bad token is treated as signed out, not as an error", async () => {
   const { status, data } = await ctx.api("/api/themes", undefined, "not-a-real-token");
   assert.equal(status, 200);
   assert.deepEqual(data.unlocked, []);
+});
+
+// ---- a rank-up says what it unlocked ----
+
+test("rewardsForTier / describeRewards: themes by label, gimmicks pool empty for now", () => {
+  const r = rewardsForTier("puppymike");
+  const expect = Object.entries(THEME_UNLOCKS).filter(([, t]) => t === "puppymike").map(([id]) => id);
+  assert.deepEqual(r.themes.map((x) => x.id).sort(), expect.sort());
+  assert.ok(r.themes.every((x) => x.name && x.name !== x.id), "labels come from theme.js");
+  assert.deepEqual(r.gimmicks, []);
+  assert.equal(describeRewards({ themes: [], gimmicks: [] }), "", "a rank that is just a rank says nothing");
+  assert.equal(describeRewards({ themes: [{ id: "a", name: "A" }], gimmicks: [] }), "the A theme");
+  assert.equal(
+    describeRewards({ themes: [{ id: "a", name: "A" }, { id: "b", name: "B" }, { id: "c", name: "C" }], gimmicks: [{ id: "g", name: "G" }] }),
+    "the A, B and C themes and the G gimmick",
+  );
+});
+
+test("crossing a tier toasts, announces and inboxes the themes it unlocks", async () => {
+  const { host, mike, A, B, state } = await startedGame(ctx, { turnSeconds: 60, rounds: 2 });
+  const toasts = [], chat = [];
+  A.on("badge-earned", (b) => toasts.push(b));
+  B.on("badge-earned", (b) => toasts.push(b));
+  A.on("chat", (m) => chat.push(m));
+  B.on("chat", (m) => chat.push(m));
+  const cur = state.current.currentId === A.id ? A : B;
+  const other = cur === A ? B : A;
+  const wall = Array(3000).fill("we").join(" "); // 3000 words, under the 8000-char cap
+  assert.equal((await ctx.emit(cur, "submit-line", { text: wall })).ok, true);
+  await ctx.wait(150);
+  assert.equal((await ctx.emit(other, "submit-line", { text: "short" })).ok, true);
+  await ctx.wait(150);
+  assert.equal((await ctx.emit(cur, "submit-line", { text: wall })).ok, true); // 6000 → 🐶 Puppy Mike
+  await ctx.wait(300);
+  const tier = WORD_TIERS.find((t) => t.id === "puppymike");
+  const expect = Object.entries(THEME_UNLOCKS).filter(([, t]) => t === "puppymike").map(([id]) => id);
+  const up = toasts.filter((t) => t.badge === tier.name);
+  assert.equal(up.length, 2, "both writers get the rank-up toast");
+  for (const t of up) {
+    assert.deepEqual(t.unlocks.themes.map((x) => x.id).sort(), expect.sort(), "the toast names the themes");
+    assert.deepEqual(t.unlocks.gimmicks, [], "no gimmicks yet");
+    assert.ok(expect.every((id) => t.themes.includes(id)), "and the full wearable list rides along");
+  }
+  const line = chat.find((m) => m.sys && m.text.includes(tier.name));
+  assert.ok(line && /That unlocks the .* theme/.test(line.text), "chat says what it unlocked: " + line?.text);
+  // and a durable note in the writer's inbox — the toast is gone in five seconds
+  const who = cur === A ? host : mike;
+  const inbox = await ctx.api("/api/inbox", undefined, who.token);
+  const note = inbox.data.messages.find((m) => m.type === "system" && m.text.includes(tier.name));
+  assert.ok(note, "inbox note landed");
+  assert.deepEqual(note.unlocks.themes.map((x) => x.id).sort(), expect.sort());
+  const others = await ctx.api("/api/inbox", undefined, (cur === A ? mike : host).token);
+  assert.ok(!others.data.messages.some((m) => m.text.includes(tier.name)), "only the writer who ranked up");
 });

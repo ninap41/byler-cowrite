@@ -6,7 +6,7 @@ import { randomUUID } from "crypto";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import { bumpStreak } from "../lib/streak.js";
-import { badgeName, badgeDesc, usageMatches, awardWordBadges } from "../lib/achievements.js";
+import { badgeName, badgeDesc, usageMatches, awardWordBadges, rewardsForTiers, describeRewards, unlockedThemes } from "../lib/achievements.js";
 import { PALETTE, cleanColor, sanitizeRich, stripTags, httpUrl, sanitizeDoc, CID_RE } from "./sanitize.js";
 import { store, saveStore, userByToken, makeMsg, isAdmin } from "./store.js";
 import { mirror, mirrorDelete } from "./persist.js";
@@ -251,13 +251,18 @@ export function createGame(io) {
     bumpStreak(u);
     if (!u.games.includes(s.code)) u.games.push(s.code);
     const before = u.currentBadge;
+    const tiersBefore = new Set(u.badges);
     awardWordBadges(u);
     // Unlock notification (toast) for EVERYONE in the session — writers and
-    // spectators alike — on top of the system chat announcement.
-    const notifyEarned = (id) =>
+    // spectators alike — on top of the system chat announcement. `unlocks`
+    // is what a rank hands out beyond the badge itself (themes, gimmicks) so
+    // the toast can say it; a rank-up also carries `themes`, the full list
+    // the writer may now wear, so THEIR menu re-gates without a fetch.
+    const notifyEarned = (id, unlocks = null) =>
       io.to(s.code).emit("badge-earned", {
         badge: badgeName(id), desc: badgeDesc(id),
         name: writer.name, color: writer.color,
+        unlocks, themes: unlocks ? unlockedThemes(u) : undefined,
       });
     // word-usage collectibles: awarded once, the first line that says the word
     for (const id of usageMatches(text)) {
@@ -267,12 +272,24 @@ export function createGame(io) {
         notifyEarned(id);
       }
     }
-    saveStore();
     writer.badge = badgeName(u.currentBadge);
     if (u.currentBadge !== before) {
-      announce(s, writer, `earned the ${writer.badge} badge!`);
-      notifyEarned(u.currentBadge);
+      // A rank-up: say what it unlocked — in chat, on the toast, and as an
+      // inbox note the writer can find again once the toast is gone.
+      const newTiers = u.badges.filter((id) => !tiersBefore.has(id));
+      const unlocks = rewardsForTiers(newTiers);
+      const what = describeRewards(unlocks);
+      announce(s, writer, `earned the ${writer.badge} badge!${what ? ` That unlocks ${what}.` : ""}`);
+      notifyEarned(u.currentBadge, unlocks);
+      if (what) {
+        if (!Array.isArray(u.inbox)) u.inbox = [];
+        u.inbox.unshift(makeMsg("system", null,
+          `🎉 You reached ${writer.badge} — that unlocks ${what}.` +
+          (unlocks.themes.length ? " Find your new theme in the 🎨 menu at the foot of any page." : ""),
+          { unlocks }));
+      }
     }
+    saveStore();
   }
 
   // Keep the seat but mark it reclaimable; drop it for real after GHOST_MS.
