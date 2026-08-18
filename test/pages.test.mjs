@@ -475,3 +475,25 @@ test("the write page is full-bleed and square, not a centred card", async () => 
   assert.match(css.body, /\.write-page \.doc-editor,[^{]*\{\s*border-radius: 0/s, "so nothing inside it keeps a rounded corner");
   assert.match(css.body, /\.write-page \.doc-main \{\s*padding: 0 14px/, "only the prose keeps a gutter off the bezel");
 });
+
+test("reading one story hides everything that describes the list", async () => {
+  const { body } = await page("/stories");
+  // the toolbar, the pager and the shelf's subtitle all describe the shelf
+  const hide = body.slice(body.indexOf("async function openStory"), body.indexOf("$(\"stListLink\")"));
+  for (const id of ["storiesList", "storiesTools", "stPager", "storiesSub"])
+    assert.ok(hide.includes(`"${id}"`), id + " is hidden while a story is open");
+  const show = body.slice(body.indexOf("function showList()"), body.indexOf("async function openStory"));
+  for (const id of ["storiesList", "storiesTools", "storiesSub"])
+    assert.ok(show.includes(`"${id}"`), id + " comes back with the list");
+});
+
+test("the dashboard's first card holds the whole of how you're doing", async () => {
+  const { body } = await page("/dashboard");
+  const card = body.slice(body.indexOf('class="welcome"'), body.indexOf("games in progress"));
+  // counts, then the streak that keeps them moving, then what they earned
+  assert.ok(card.indexOf('id="statWords"') < card.indexOf('id="rankFill"'), "stats then rank");
+  assert.ok(card.indexOf('id="rankFill"') < card.indexOf('id="streakBox"'), "streak under the stats");
+  assert.ok(card.indexOf('id="streakBox"') < card.indexOf('id="achStrip"'), "achievements last");
+  const rail = body.slice(body.indexOf("RIGHT RAIL"));
+  assert.ok(!rail.includes('id="achStrip"') && !rail.includes('id="streakBox"'), "and none of it is in the rail");
+});

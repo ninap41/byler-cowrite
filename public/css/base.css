@@ -7148,6 +7148,12 @@ body.resizing-side {
 	margin: 0 0 12px;
 	flex-wrap: wrap;
 }
+/* `.hidden` is declared far earlier in this file, so a later `display: grid`
+   of equal specificity was winning and the guided knobs stayed on screen in
+   Simple mode. This says it at the same specificity, after. */
+.guided-controls.hidden {
+	display: none;
+}
 .guided-controls {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));

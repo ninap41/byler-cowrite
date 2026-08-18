@@ -226,6 +226,11 @@
 		grid-template-columns: minmax(0, 1fr);
 	}
 }
+/* a second heading inside a card: quieter than the card's own title */
+.dash-sub-h {
+	margin: 18px 0 0;
+	font-size: 0.95rem;
+}
 .ach-strip {
 	display: flex;
 	flex-wrap: wrap;

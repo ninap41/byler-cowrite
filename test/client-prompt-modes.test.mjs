@@ -180,3 +180,20 @@ test("choosing a universe reshapes the period menu and drops an impossible perio
   assert.deepEqual([...per.options].map((o) => o.value), ["random", "age-of-sail"]);
   assert.equal(per.value, "random", "a period this universe has no room for falls back to Random");
 });
+
+test("Simple mode shows no guided knobs — and the stylesheet agrees", async () => {
+  const root = mount("");
+  const pm = mountPromptModes(root, { prefix: "s1" }).setMenus(MENUS);
+  const controls = root.querySelector("#s1Controls");
+  assert.ok(controls.classList.contains("hidden"), "simple is the default and hides them");
+  fire(root.querySelector("#s1Mode-intermediate"));
+  assert.ok(!controls.classList.contains("hidden"), "guided reveals them");
+  fire(root.querySelector("#s1Mode-simple"));
+  assert.ok(controls.classList.contains("hidden"), "and switching back hides them again");
+  // the class only hides if the stylesheet lets it: `.guided-controls` sets
+  // display:grid at the same specificity as `.hidden`, so it must be overridden
+  // AFTER it, or Simple mode would show the knobs anyway
+  const css = readFileSync(new URL("../public/css/base.css", import.meta.url), "utf-8");
+  assert.ok(css.includes(".guided-controls.hidden"), "the hidden state is declared for this control");
+  assert.ok(css.indexOf(".hidden {") < css.indexOf(".guided-controls.hidden"), "and it comes after the generic rule");
+});

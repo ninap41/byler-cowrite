@@ -158,7 +158,7 @@
 
 			function showList() {
 				$("storyDetail").classList.add("hidden")
-				;["storiesList", "storiesTools"].forEach((id) => $(id).classList.remove("hidden"))
+				;["storiesList", "storiesTools", "storiesSub"].forEach((id) => $(id).classList.remove("hidden"))
 				$("stPager").classList.toggle("hidden", pages <= 1)
 				history.replaceState(null, "", "/stories" + (forUser ? "?user=" + encodeURIComponent(forUser) : ""))
 			}
@@ -177,7 +177,9 @@
 					(g.tags?.length ? ` · 🏷 ${g.tags.join(", ")}` : "")
 				// story html was sanitized server-side by sanitizeRich() before being saved
 				$("stStory").innerHTML = archiveStoryHtml(g.story)
-				;["storiesList", "storiesTools", "stPager"].forEach((id) => $(id).classList.add("hidden"))
+				// reading ONE story: the toolbar, the pager and the shelf's own subtitle
+				// all describe the list, and none of them describes what you opened
+				;["storiesList", "storiesTools", "stPager", "storiesSub"].forEach((id) => $(id).classList.add("hidden"))
 				const det = $("storyDetail")
 				det.classList.remove("hidden")
 				history.replaceState(
