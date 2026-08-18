@@ -81,6 +81,7 @@ const BG = `
 		</div>
 		<div class="bg-set cleradin">
 			<div class="moon"></div><div class="mist"></div>
+			<div class="moonglow"></div>
 			<div class="castle c-far" data-par="0.08"></div>
 			<div class="tower" data-par="auto">${towerSvg()}</div>
 		</div>

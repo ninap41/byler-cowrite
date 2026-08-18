@@ -4429,6 +4429,31 @@ button.danger,
 	filter: blur(1px);
 }
 
+/* The moonlight itself, pooled BEHIND the tower — the tower is a shape cut out
+   of it, which is what makes the stone read as backlit rather than lit from the
+   front. It sits low and left, on the tower's own side of the sky, and it
+   breathes: a long, shallow pulse, nowhere near a flash. It does not parallax,
+   because light does not have a distance. */
+.bg-set.cleradin .moonglow {
+	position: absolute;
+	left: -10%;
+	top: -12%;
+	width: 78%;
+	height: 96%;
+	background:
+		radial-gradient(closest-side at 46% 32%, rgba(198, 178, 246, 0.34), rgba(150, 120, 210, 0.14) 52%, transparent 76%),
+		radial-gradient(closest-side at 40% 62%, rgba(139, 58, 78, 0.16), transparent 70%);
+	filter: blur(34px);
+	will-change: opacity, transform;
+}
+@media (prefers-reduced-motion: no-preference) {
+	.bg-set.cleradin .moonglow { animation: moon-breath 11s ease-in-out infinite; }
+}
+@keyframes moon-breath {
+	0%, 100% { opacity: 0.72; transform: scale(1); }
+	50% { opacity: 1; transform: scale(1.05); }
+}
+
 /* ---- the tower itself (public/js/components/cleradin-tower.js) ----------
    The drawing is the centrepiece, so it is centred in a flex strip rather than
    positioned by a transform — the scroll parallax owns `transform` on this
@@ -4450,21 +4475,24 @@ button.danger,
 	/* Night values. The tower is scenery, not an illustration pinned to the
 	   page: the stone sits only a few steps above the background so it reads
 	   as a shape in the dark, and the moonlit edge does the drawing. */
-	--cl-stone: #453a58;
-	--cl-stone-lit: #6b5c86;
-	--cl-stone-dark: #2b2340;
-	--cl-shade: #120c1d;
-	--cl-lit: #8b7aa8;
-	--cl-line: rgba(10, 6, 18, 0.6);
-	--cl-roof: #1d5a63;
-	--cl-roof-lit: #2f8189;
-	--cl-roof-dark: #123c48;
-	--cl-roof-line: rgba(6, 22, 30, 0.65);
-	--cl-wood: #4a2f20;
-	--cl-glass: #150e22;
-	--cl-glow: #d8a95e;
-	--cl-moss: #46603f;
-	opacity: 0.86;
+	/* Backlit night values: the tower is very nearly a silhouette. Almost all
+	   of the drawing is carried by the lit left edge, where the glow behind it
+	   catches the stone, and by the two warm windows. */
+	--cl-stone: #241d36;
+	--cl-stone-lit: #46395f;
+	--cl-stone-dark: #171128;
+	--cl-shade: #0a0612;
+	--cl-lit: #5b4b7c;
+	--cl-line: rgba(6, 3, 12, 0.7);
+	--cl-roof: #113a45;
+	--cl-roof-lit: #1c5b64;
+	--cl-roof-dark: #0a2833;
+	--cl-roof-line: rgba(3, 14, 20, 0.7);
+	--cl-wood: #33200f;
+	--cl-glass: #0d0818;
+	--cl-glow: #caa057;
+	--cl-moss: #33482f;
+	opacity: 0.95;
 }
 .bg-set.cleradin .cl-tower-svg {
 	height: 100%;
