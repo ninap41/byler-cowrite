@@ -4385,63 +4385,113 @@ button.danger,
 	to { transform: translateX(-50%) rotate(24deg); }
 }
 
-/* ---- Camp Know Where: summer-camp greens, pines, fireflies ---- */
-[data-theme="camp"] {
-	--bg: #f0ead8;
-	--bg-2: #e2dfc4;
-	--panel: rgba(255, 252, 240, 0.7);
-	--panel-2: rgba(250, 247, 232, 0.78);
-	--story-bg: rgba(253, 250, 238, 0.72);
-	--ink: #2f3a26;
-	--muted: #6f7a58;
-	--line: rgba(79, 122, 63, 0.26);
-	--accent: #4f7a3f;
-	--accent-2: #c08a2d;
-	--good: #4f7a3f;
-	--glow: rgba(79, 122, 63, 0.25);
-	--grad-1: linear-gradient(120deg, #4f7a3f, #7fa06a 55%, #c08a2d);
-	--grad-hero: radial-gradient(120% 120% at 50% 0%, rgba(79, 122, 63, 0.14), transparent 70%);
-	--panel-brd: rgba(79, 122, 63, 0.26);
-	--panel-glow: 0 14px 34px rgba(60, 70, 40, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.7);
-	--btn-ink: #f7f8ee;
-	--chip: rgba(79, 122, 63, 0.1);
-	--chip-brd: rgba(79, 122, 63, 0.3);
-	--scroll-thumb: rgba(79, 122, 63, 0.35);
+/* ---- Cleradin: a cleric and a paladin, moonlight on a castle that never
+   ends. Muted blood-red and dark violet, and three silhouette layers that
+   parallax vertically as the page scrolls (theme.js drives the transform;
+   without JS or with reduced motion they simply sit still). ---- */
+[data-theme="cleradin"] {
+	--bg: #0b0710;
+	--bg-2: #150e1d;
+	--panel: rgba(31, 20, 42, 0.62);
+	--panel-2: rgba(38, 24, 50, 0.68);
+	--story-bg: rgba(22, 14, 30, 0.72);
+	--ink: #e6dcf0;
+	--muted: #a08fb8;
+	--line: rgba(150, 110, 190, 0.24);
+	--accent: #8b3a4e;
+	--accent-2: #6d4b96;
+	--good: #7d9a72;
+	--glow: rgba(120, 80, 160, 0.28);
+	--grad-1: linear-gradient(120deg, #8b3a4e, #5c3a6e 55%, #6d4b96);
+	--grad-hero: radial-gradient(120% 130% at 50% 0%, rgba(120, 80, 160, 0.16), transparent 70%);
+	--panel-brd: rgba(150, 110, 190, 0.24);
+	--panel-glow: 0 18px 46px rgba(3, 1, 6, 0.65), 0 0 34px rgba(109, 75, 150, 0.08), inset 0 1px 0 rgba(230, 220, 240, 0.05);
+	--btn-ink: #f2ecf8;
+	--chip: rgba(139, 58, 78, 0.16);
+	--chip-brd: rgba(150, 110, 190, 0.34);
+	--scroll-thumb: rgba(150, 110, 190, 0.35);
 	--font-display: "Fraunces", serif;
 	--font-body: "Plus Jakarta Sans", sans-serif;
 	--font-story: "Newsreader", serif;
 	--font-mono: "Inconsolata", ui-monospace, monospace;
 }
-[data-theme="camp"] .bg-set.camp { opacity: 1; }
-.bg-set.camp .pines {
+[data-theme="cleradin"] .bg-set.cleradin { opacity: 1; }
+.bg-set.cleradin .moon {
+	position: absolute;
+	left: 68%;
+	top: 12%;
+	width: 190px;
+	height: 190px;
+	border-radius: 50%;
+	background: radial-gradient(circle at 40% 38%, rgba(238, 230, 250, 0.9), rgba(180, 160, 210, 0.35) 58%, transparent 70%);
+	filter: blur(1px);
+}
+.bg-set.cleradin .mist {
 	position: absolute;
 	inset: auto 0 0;
-	height: 26vh;
-	background:
-		linear-gradient(to top, rgba(63, 90, 48, 0.24), transparent 80%),
-		conic-gradient(from 60deg at 6% 100%, rgba(63, 90, 48, 0.2) 0 60deg, transparent 60deg),
-		conic-gradient(from 55deg at 22% 100%, rgba(63, 90, 48, 0.16) 0 70deg, transparent 70deg),
-		conic-gradient(from 62deg at 55% 100%, rgba(63, 90, 48, 0.14) 0 56deg, transparent 56deg),
-		conic-gradient(from 55deg at 82% 100%, rgba(63, 90, 48, 0.2) 0 70deg, transparent 70deg),
-		conic-gradient(from 62deg at 97% 100%, rgba(63, 90, 48, 0.18) 0 56deg, transparent 56deg);
+	height: 60%;
+	background: linear-gradient(to top, rgba(109, 75, 150, 0.22), rgba(139, 58, 78, 0.08) 45%, transparent 80%);
 }
-.bg-set.camp .fireflies {
+/* Three keeps at three distances. Each is towers (linear gradients) under a
+   roofline (conic wedges), and each sits lower and darker than the one behind
+   it, so the vertical parallax reads as depth rather than as sliding wallpaper. */
+.bg-set.cleradin .castle {
 	position: absolute;
-	inset: 30% 0 0;
+	inset: auto 0 -6%;
+	will-change: transform;
+	background-repeat: no-repeat;
+}
+.bg-set.cleradin .c-far {
+	height: 46vh;
+	opacity: 0.4;
+	filter: blur(2px);
 	background-image:
-		radial-gradient(circle 2.5px at 18% 60%, rgba(230, 200, 90, 0.85) 90%, transparent),
-		radial-gradient(circle 2px at 44% 40%, rgba(230, 200, 90, 0.7) 90%, transparent),
-		radial-gradient(circle 2.5px at 72% 66%, rgba(230, 200, 90, 0.8) 90%, transparent),
-		radial-gradient(circle 2px at 90% 45%, rgba(230, 200, 90, 0.65) 90%, transparent);
+		conic-gradient(from 45deg at 18% 34%, rgba(60, 42, 82, 0.9) 0 90deg, transparent 90deg),
+		conic-gradient(from 45deg at 46% 26%, rgba(60, 42, 82, 0.9) 0 90deg, transparent 90deg),
+		conic-gradient(from 45deg at 74% 38%, rgba(60, 42, 82, 0.9) 0 90deg, transparent 90deg),
+		linear-gradient(rgba(60, 42, 82, 0.9), rgba(60, 42, 82, 0.9));
+	background-size: 100% 100%, 100% 100%, 100% 100%, 100% 62%;
+	background-position: 0 0, 0 0, 0 0, 0 100%;
 }
-.bg-set.camp .fl2 { transform: translate(30px, 40px); opacity: 0.7; }
+.bg-set.cleradin .c-mid {
+	height: 38vh;
+	opacity: 0.62;
+	filter: blur(1px);
+	background-image:
+		conic-gradient(from 45deg at 30% 30%, rgba(38, 24, 54, 0.95) 0 90deg, transparent 90deg),
+		conic-gradient(from 45deg at 62% 20%, rgba(38, 24, 54, 0.95) 0 90deg, transparent 90deg),
+		linear-gradient(rgba(38, 24, 54, 0.95), rgba(38, 24, 54, 0.95));
+	background-size: 100% 100%, 100% 100%, 100% 70%;
+	background-position: 0 0, 0 0, 0 100%;
+}
+.bg-set.cleradin .c-near {
+	height: 30vh;
+	opacity: 0.9;
+	background-image:
+		conic-gradient(from 45deg at 12% 40%, rgba(16, 9, 24, 0.98) 0 90deg, transparent 90deg),
+		conic-gradient(from 45deg at 88% 34%, rgba(16, 9, 24, 0.98) 0 90deg, transparent 90deg),
+		linear-gradient(rgba(16, 9, 24, 0.98), rgba(16, 9, 24, 0.98));
+	background-size: 100% 100%, 100% 100%, 100% 72%;
+	background-position: 0 0, 0 0, 0 100%;
+}
+/* One lit window in the near keep — somebody is still awake up there. */
+.bg-set.cleradin .c-near::after {
+	content: "";
+	position: absolute;
+	left: 11.4%;
+	bottom: 42%;
+	width: 7px;
+	height: 11px;
+	border-radius: 3px 3px 0 0;
+	background: rgba(240, 200, 120, 0.75);
+	box-shadow: 0 0 14px rgba(240, 200, 120, 0.5);
+}
 @media (prefers-reduced-motion: no-preference) {
-	.bg-set.camp .fireflies { animation: firefly-pulse 3s ease-in-out infinite; }
-	.bg-set.camp .fl2 { animation-delay: -1.5s; }
+	.bg-set.cleradin .c-near::after { animation: keep-window 6s ease-in-out infinite; }
 }
-@keyframes firefly-pulse {
+@keyframes keep-window {
 	0%, 100% { opacity: 1; }
-	50% { opacity: 0.25; }
+	55% { opacity: 0.55; }
 }
 
 /* ---- Russian Bunker: cold concrete, amber alarm, Cyrillic stencils ---- */
@@ -4503,62 +4553,79 @@ button.danger,
 	50% { opacity: 1; }
 }
 
-/* ---- The Pollywog: murky tank greens, rising bubbles, a darting shadow ---- */
-[data-theme="pollywog"] {
-	--bg: #071410;
-	--bg-2: #0d241c;
-	--panel: rgba(16, 42, 34, 0.6);
-	--panel-2: rgba(20, 52, 42, 0.64);
-	--story-bg: rgba(11, 30, 24, 0.7);
-	--ink: #d9f2e6;
-	--muted: #83ab99;
-	--line: rgba(63, 174, 140, 0.24);
-	--accent: #3fae8c;
-	--accent-2: #a3c94f;
-	--good: #59d98c;
-	--glow: rgba(63, 174, 140, 0.3);
-	--grad-1: linear-gradient(120deg, #3fae8c, #2c7a68 55%, #a3c94f);
-	--grad-hero: radial-gradient(120% 130% at 50% 0%, rgba(63, 174, 140, 0.14), transparent 70%);
-	--panel-brd: rgba(63, 174, 140, 0.26);
-	--panel-glow: 0 18px 44px rgba(1, 6, 4, 0.6), 0 0 30px rgba(63, 174, 140, 0.07), inset 0 1px 0 rgba(215, 245, 230, 0.05);
-	--btn-ink: #06120d;
-	--chip: rgba(63, 174, 140, 0.12);
-	--chip-brd: rgba(63, 174, 140, 0.4);
-	--scroll-thumb: rgba(63, 174, 140, 0.35);
-	--font-display: "Space Grotesk", sans-serif;
-	--font-body: "Space Grotesk", sans-serif;
+/* ---- Crazy Together: layered clouds drifting past one another. The pale,
+   slow, blurred formations sit BEHIND the darker, faster, sharper ones, which
+   is the whole illusion — depth comes from the order, not from a z-index war.
+   theme.js builds the clouds and (with GSAP) sends each layer across on its
+   own sine path; without GSAP the same elements drift on the CSS keyframe
+   below, and under reduced motion they hang still like weather in a painting. */
+[data-theme="crazy"] {
+	--bg: #0d1020;
+	--bg-2: #191f3a;
+	--panel: rgba(30, 38, 68, 0.6);
+	--panel-2: rgba(38, 48, 82, 0.66);
+	--story-bg: rgba(22, 28, 52, 0.7);
+	--ink: #e7e9f8;
+	--muted: #9aa3c8;
+	--line: rgba(160, 175, 235, 0.24);
+	--accent: #7c8cf0;
+	--accent-2: #e0a3c8;
+	--good: #78d3b4;
+	--glow: rgba(124, 140, 240, 0.28);
+	--grad-1: linear-gradient(120deg, #7c8cf0, #a58bd8 55%, #e0a3c8);
+	--grad-hero: radial-gradient(120% 130% at 50% 0%, rgba(124, 140, 240, 0.16), transparent 70%);
+	--panel-brd: rgba(160, 175, 235, 0.26);
+	--panel-glow: 0 18px 44px rgba(4, 6, 16, 0.55), 0 0 30px rgba(124, 140, 240, 0.08), inset 0 1px 0 rgba(230, 235, 255, 0.06);
+	--btn-ink: #0b0e1c;
+	--chip: rgba(124, 140, 240, 0.14);
+	--chip-brd: rgba(160, 175, 235, 0.38);
+	--scroll-thumb: rgba(124, 140, 240, 0.35);
+	--font-display: "Fraunces", serif;
+	--font-body: "Plus Jakarta Sans", sans-serif;
 	--font-story: "Newsreader", serif;
 	--font-mono: "Inconsolata", ui-monospace, monospace;
 }
-[data-theme="pollywog"] .bg-set.pollywog { opacity: 1; }
-.bg-set.pollywog .bubbles {
+[data-theme="crazy"] .bg-set.crazy { opacity: 1; }
+.bg-set.crazy .skyglow {
 	position: absolute;
 	inset: 0;
-	background-image:
-		radial-gradient(circle 3px at 14% 88%, rgba(215, 245, 230, 0.3) 55%, transparent 60%),
-		radial-gradient(circle 2px at 38% 94%, rgba(215, 245, 230, 0.25) 55%, transparent 60%),
-		radial-gradient(circle 4px at 66% 90%, rgba(215, 245, 230, 0.22) 55%, transparent 60%),
-		radial-gradient(circle 2px at 88% 92%, rgba(215, 245, 230, 0.28) 55%, transparent 60%);
-	background-repeat: no-repeat;
+	background:
+		radial-gradient(120% 80% at 50% 108%, rgba(224, 163, 200, 0.22), transparent 60%),
+		radial-gradient(90% 70% at 20% -10%, rgba(124, 140, 240, 0.22), transparent 65%);
 }
-.bg-set.pollywog .bb2 { transform: translateX(24px); opacity: 0.7; }
-.bg-set.pollywog .dartfish {
+.bg-set.crazy .cloud-band {
 	position: absolute;
-	top: 38%;
-	left: 20%;
-	width: 70px;
-	height: 22px;
-	border-radius: 50%;
-	background: radial-gradient(ellipse, rgba(4, 14, 10, 0.75), transparent 70%);
-	filter: blur(2px);
+	inset: 0;
+	overflow: hidden;
 }
+.bg-set.crazy .cloud {
+	position: absolute;
+	left: 0;
+	top: 0;
+	width: var(--cw, 380px);
+	height: var(--ch, 120px);
+	opacity: var(--op, 0.5);
+	filter: blur(var(--bl, 6px));
+	will-change: transform;
+	/* four overlapping lobes make a formation; the blur ties them together, so
+	   the shape is a cloud rather than four circles travelling in convoy */
+	background-image:
+		radial-gradient(ellipse 30% 62% at 20% 64%, var(--cc) 0 99%, transparent 100%),
+		radial-gradient(ellipse 26% 96% at 44% 42%, var(--cc) 0 99%, transparent 100%),
+		radial-gradient(ellipse 24% 70% at 68% 58%, var(--cc) 0 99%, transparent 100%),
+		radial-gradient(ellipse 46% 44% at 48% 78%, var(--cc) 0 99%, transparent 100%);
+}
+/* the no-GSAP fallback: straight travel, no wave — theme.js adds .gsap to a
+   band it is driving itself, and this rule steps aside for it */
 @media (prefers-reduced-motion: no-preference) {
-	.bg-set.pollywog .bubbles { animation: bubble-rise 9s linear infinite; }
-	.bg-set.pollywog .bb2 { animation-duration: 13s; }
+	.bg-set.crazy .cloud-band:not(.gsap) .cloud {
+		animation: cloud-drift var(--dur, 90s) linear infinite;
+		animation-delay: var(--delay, 0s);
+	}
 }
-@keyframes bubble-rise {
-	from { transform: translateY(0); opacity: 1; }
-	to { transform: translateY(-92vh); opacity: 0; }
+@keyframes cloud-drift {
+	from { transform: translateX(-40vw); }
+	to { transform: translateX(110vw); }
 }
 
 /* ---- swatches for the new pack ---- */
@@ -4569,9 +4636,9 @@ button.danger,
 .sw-video { background: linear-gradient(120deg, #ff4fd8, #29d3c7); }
 .sw-hellfire { background: linear-gradient(120deg, #e02f2f, #b7b7c9); }
 .sw-rink { background: linear-gradient(90deg, #ff3355, #ffe040 35%, #4fe35f 60%, #2fd6ff 80%, #b45cff); }
-.sw-camp { background: linear-gradient(120deg, #4f7a3f, #c08a2d); }
+.sw-cleradin { background: linear-gradient(120deg, #8b3a4e, #6d4b96); }
 .sw-bunker { background: linear-gradient(120deg, #d33f3f, #ffb000); }
-.sw-pollywog { background: linear-gradient(120deg, #3fae8c, #a3c94f); }
+.sw-crazy { background: linear-gradient(120deg, #7c8cf0, #e0a3c8); }
 
 /* ==========================================================================
    Theme peek: the sticky 👁 button (sitting just above the ko-fi "Support me"

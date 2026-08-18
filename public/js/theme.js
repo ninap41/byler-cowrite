@@ -3,7 +3,7 @@
 // falls back to static CSS.
 export const THEMES = [
 	"neon", "aurora", "ink", "wall", "snowball", "upside", "starcourt", "arcade", "cerebro",
-	"hawkinslab", "castlebyers", "vecna", "void", "video", "hellfire", "rink", "camp", "bunker", "pollywog",
+	"hawkinslab", "castlebyers", "vecna", "void", "video", "hellfire", "rink", "cleradin", "bunker", "crazy",
 ]
 export const THEME_LABELS = {
 	neon: "Neon Dusk",
@@ -22,9 +22,9 @@ export const THEME_LABELS = {
 	video: "Family Video",
 	hellfire: "Hellfire Club",
 	rink: "Rink-O-Mania",
-	camp: "Camp Know Where",
+	cleradin: "Cleradin",
 	bunker: "Russian Bunker",
-	pollywog: "The Pollywog",
+	crazy: "Crazy Together",
 }
 const LABELS = THEME_LABELS
 
@@ -58,6 +58,104 @@ export function initTheme() {
 	// Until the account's ranks arrive every theme is treated as available:
 	// the alternative is a visible flash of locks on every page load.
 	let gate = { locks: {}, unlocked: [] }
+
+	// ---- Cleradin: the keeps parallax vertically with the scroll ----------
+	// Three silhouettes at three depths; the near one travels furthest, so
+	// scrolling reads as walking towards the castle. No GSAP needed (it is a
+	// transform per frame either way), but reduced motion leaves them still.
+	let stopScroll = null
+	function startParallax(theme) {
+		if (stopScroll) stopScroll()
+		stopScroll = null
+		if (theme !== "cleradin" || reduce) return
+		const layers = [...document.querySelectorAll(".bg-set.cleradin [data-par]")]
+		if (!layers.length) return
+		let frame = 0
+		const paint = () => {
+			frame = 0
+			const y = window.scrollY || window.pageYOffset || 0
+			for (const l of layers) l.style.transform = `translate3d(0, ${-y * (parseFloat(l.dataset.par) || 0)}px, 0)`
+		}
+		const onScroll = () => {
+			if (!frame) frame = requestAnimationFrame(paint)
+		}
+		window.addEventListener("scroll", onScroll, { passive: true })
+		paint()
+		stopScroll = () => {
+			window.removeEventListener("scroll", onScroll)
+			if (frame) cancelAnimationFrame(frame)
+			for (const l of layers) l.style.transform = ""
+		}
+	}
+
+	// ---- Crazy Together: layered clouds on sine paths ---------------------
+	// Depth is the whole effect: the palest, slowest, blurriest formations are
+	// BEHIND (first in the DOM), the darkest and fastest in front. Every layer
+	// gets its own speed, amplitude, wave length, spacing and phase, and each
+	// cloud within a layer gets a random phase of its own, so nothing ever
+	// marches in step. Horizontal travel dominates; the sine is a drift, not a
+	// bounce.
+	const CLOUD_LAYERS = [
+		{ count: 4, w: 260, h: 78, scale: 0.8, op: 0.5, blur: 12, color: "rgba(236, 234, 255, 0.75)", top: [6, 34], dur: 190, amp: 10, wave: 26 },
+		{ count: 4, w: 330, h: 96, scale: 0.9, op: 0.42, blur: 9, color: "rgba(214, 214, 250, 0.7)", top: [18, 52], dur: 140, amp: 16, wave: 21 },
+		{ count: 3, w: 430, h: 128, scale: 1, op: 0.36, blur: 6, color: "rgba(120, 128, 190, 0.75)", top: [34, 68], dur: 95, amp: 22, wave: 17 },
+		{ count: 3, w: 560, h: 168, scale: 1.1, op: 0.5, blur: 3, color: "rgba(34, 40, 78, 0.85)", top: [52, 88], dur: 62, amp: 30, wave: 13 },
+	]
+	let cloudTweens = []
+	function stopClouds() {
+		cloudTweens.forEach((t) => t && t.kill && t.kill())
+		cloudTweens = []
+	}
+	function startClouds(theme) {
+		stopClouds()
+		const bands = [...document.querySelectorAll(".bg-set.crazy .cloud-band")]
+		if (!bands.length) return
+		if (theme !== "crazy") {
+			// an unseen sky costs nothing to keep, but it costs nothing to drop
+			for (const b of bands) b.innerHTML = ""
+			return
+		}
+		bands.forEach((band, li) => {
+			const L = CLOUD_LAYERS[li] || CLOUD_LAYERS[CLOUD_LAYERS.length - 1]
+			band.classList.toggle("gsap", hasGsap)
+			band.innerHTML = ""
+			for (let i = 0; i < L.count; i++) {
+				const c = document.createElement("div")
+				c.className = "cloud"
+				const spread = (L.top[1] - L.top[0]) / Math.max(1, L.count - 1)
+				c.style.cssText =
+					`--cw:${L.w}px;--ch:${L.h}px;--op:${L.op};--bl:${L.blur}px;--cc:${L.color};` +
+					`top:${(L.top[0] + spread * i).toFixed(1)}%;` +
+					// the CSS fallback needs the timing inline; GSAP ignores both
+					`--dur:${L.dur}s;--delay:${(-(L.dur / L.count) * i).toFixed(1)}s;`
+				band.appendChild(c)
+			}
+			if (!hasGsap) return
+			const span = () => window.innerWidth + L.w * 2
+			band.querySelectorAll(".cloud").forEach((c, i) => {
+				const x = gsap.to(c, {
+					x: () => span(),
+					duration: L.dur,
+					ease: "none",
+					repeat: -1,
+					startAt: { x: -L.w * 1.5, scale: L.scale },
+				})
+				x.progress(i / L.count) // spaced by phase, not by a stagger of delays
+				// the wave moves the cloud's PATH, never its shape — a separate
+				// y tween on the same element, out of step with its neighbours
+				const y = gsap.to(c, {
+					y: L.amp,
+					duration: L.wave,
+					ease: "sine.inOut",
+					repeat: -1,
+					yoyo: true,
+					startAt: { y: -L.amp },
+				})
+				y.progress((i * 0.37 + li * 0.19) % 1)
+				cloudTweens.push(x, y)
+			})
+		})
+	}
 
 	function stopFloat() {
 		floatTweens.forEach((t) => t && t.kill && t.kill())
@@ -128,6 +226,8 @@ export function initTheme() {
 		if (curSw) curSw.className = "sw sw-" + theme
 		if (curLabel) curLabel.textContent = LABELS[theme] || theme
 		startFloat(theme)
+		startParallax(theme)
+		startClouds(theme)
 		if (hasGsap) gsap.fromTo(".bg-layers", { opacity: 0.35 }, { opacity: 1, duration: 0.6, ease: "power2.out" })
 	}
 

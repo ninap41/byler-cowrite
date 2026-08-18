@@ -78,14 +78,19 @@ const BG = `
 			<div class="rbow"></div><div class="zigzag"></div>
 			<div class="specks p1"></div><div class="specks p2"></div><div class="sweep"></div>
 		</div>
-		<div class="bg-set camp">
-			<div class="pines"></div><div class="fireflies fl1 drift"></div><div class="fireflies fl2 drift"></div>
+		<div class="bg-set cleradin">
+			<div class="moon"></div><div class="mist"></div>
+			<div class="castle c-far" data-par="0.10"></div>
+			<div class="castle c-mid" data-par="0.24"></div>
+			<div class="castle c-near" data-par="0.44"></div>
 		</div>
 		<div class="bg-set bunker">
 			<div class="concrete"></div><div class="alarm"></div><div class="stencil"></div>
 		</div>
-		<div class="bg-set pollywog">
-			<div class="bubbles bb1"></div><div class="bubbles bb2"></div><div class="dartfish drift"></div>
+		<div class="bg-set crazy">
+			<div class="skyglow"></div>
+			<div class="cloud-band" data-depth="0"></div><div class="cloud-band" data-depth="1"></div>
+			<div class="cloud-band" data-depth="2"></div><div class="cloud-band" data-depth="3"></div>
 		</div>
 		<div class="grain"></div>
 	</div>`

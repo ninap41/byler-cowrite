@@ -11,7 +11,7 @@ test("theme registry: all nineteen themes present with labels", () => {
   assert.equal(THEMES.length, 19);
   for (const id of [
     "neon", "aurora", "ink", "wall", "snowball", "upside", "starcourt", "arcade", "cerebro",
-    "hawkinslab", "castlebyers", "vecna", "void", "video", "hellfire", "rink", "camp", "bunker", "pollywog",
+    "hawkinslab", "castlebyers", "vecna", "void", "video", "hellfire", "rink", "cleradin", "bunker", "crazy",
   ])
     assert.ok(THEMES.includes(id), id + " registered");
   assert.equal(THEME_LABELS.wall, "The Wall");
@@ -27,9 +27,9 @@ test("theme registry: all nineteen themes present with labels", () => {
   assert.equal(THEME_LABELS.video, "Family Video");
   assert.equal(THEME_LABELS.hellfire, "Hellfire Club");
   assert.equal(THEME_LABELS.rink, "Rink-O-Mania");
-  assert.equal(THEME_LABELS.camp, "Camp Know Where");
+  assert.equal(THEME_LABELS.cleradin, "Cleradin");
   assert.equal(THEME_LABELS.bunker, "Russian Bunker");
-  assert.equal(THEME_LABELS.pollywog, "The Pollywog");
+  assert.equal(THEME_LABELS.crazy, "Crazy Together");
 });
 
 test("background layers sit behind the UI and never intercept clicks", () => {
@@ -213,4 +213,17 @@ test("an admin's gate unlocks everything, including what it lists", () => {
   for (const id of THEMES) assert.ok(!themeBtn(id).classList.contains("locked"), id);
   theme.applyTheme("vecna");
   assert.equal(theme.current, "vecna");
+});
+
+test("the two rebuilt backgrounds ship the layers their themes animate", () => {
+  const chrome = readFileSync(new URL("../public/js/chrome.js", import.meta.url), "utf-8");
+  // Cleradin: three keeps, each declaring how far it parallaxes
+  const pars = [...chrome.matchAll(/data-par="([\d.]+)"/g)].map((m) => Number(m[1]));
+  assert.equal(pars.length, 3, "three castle layers");
+  assert.deepEqual(pars, [...pars].sort((a, b) => a - b), "the nearest keep travels furthest");
+  assert.ok(chrome.includes('class="bg-set cleradin"'));
+  // Crazy Together: four cloud bands, back (palest) to front
+  const depths = [...chrome.matchAll(/class="cloud-band" data-depth="(\d)"/g)].map((m) => Number(m[1]));
+  assert.deepEqual(depths, [0, 1, 2, 3], "four bands, in depth order");
+  assert.ok(!chrome.includes("pollywog") && !chrome.includes('bg-set camp'), "the old sets are gone");
 });

@@ -150,8 +150,8 @@
    "story": "\"Space Grotesk\", sans-serif",
    "mono": "\"Inconsolata\", ui-monospace, monospace"
   },
-  "camp": {
-   "label": "Camp Know Where",
+  "cleradin": {
+   "label": "Cleradin",
    "display": "\"Fraunces\", serif",
    "body": "\"Plus Jakarta Sans\", sans-serif",
    "story": "\"Newsreader\", serif",
@@ -164,10 +164,10 @@
    "story": "\"Space Grotesk\", sans-serif",
    "mono": "\"Inconsolata\", ui-monospace, monospace"
   },
-  "pollywog": {
-   "label": "The Pollywog",
-   "display": "\"Space Grotesk\", sans-serif",
-   "body": "\"Space Grotesk\", sans-serif",
+  "crazy": {
+   "label": "Crazy Together",
+   "display": "\"Fraunces\", serif",
+   "body": "\"Plus Jakarta Sans\", sans-serif",
    "story": "\"Newsreader\", serif",
    "mono": "\"Inconsolata\", ui-monospace, monospace"
   }
