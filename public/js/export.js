@@ -26,7 +26,7 @@ export function exportDocument(html) {
 		`<!doctype html><html><head><meta charset="utf-8"><title>Byler Cowrite</title>` +
 		`<style>body{font-family:Georgia,'Times New Roman',serif;max-width:640px;margin:48px auto;` +
 		`padding:0 20px;line-height:1.75;font-size:18px;color:#1a1a1a}` +
-		`h3.prompt{font-style:italic;color:#666;font-weight:normal;margin-bottom:1.5em}p{margin:0 0 1em}` +
+		`h3.prompt{font-style:italic;color:#666;font-weight:normal;margin-bottom:1.5em;white-space:pre-line}p{margin:0 0 1em}` +
 		`h1{font-size:1.6em}h2{font-size:1.35em}h3:not(.prompt){font-size:1.15em}` +
 		`hr{border:0;border-top:1px solid #ccc;margin:1.4em 0}.al-c{text-align:center}.al-r{text-align:right}</style>` +
 		`</head><body>${html}</body></html>`

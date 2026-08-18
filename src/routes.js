@@ -4,7 +4,7 @@ import { readFileSync, readdirSync } from "fs";
 import { randomUUID } from "crypto";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
-import { WORD_TIERS, USAGE, USAGE_OPEN, badgeName, awardWordBadges } from "../lib/achievements.js";
+import { WORD_TIERS, USAGE, USAGE_OPEN, badgeName, awardWordBadges, themeLocks, unlockedThemes } from "../lib/achievements.js";
 import { cleanColor, stripTags, httpUrl, sanitizeAbout, sanitizeDoc } from "./sanitize.js";
 import {
   readDoc, writeDoc, createDoc, deleteDoc, listDocsFor, docSummary,
@@ -70,6 +70,25 @@ export function registerRoutes(app, game) {
   });
   // The whole bank at once — the dashboard cycles through it client-side.
   app.get("/api/quotes", (_req, res) => res.json({ quotes: readQuotes() }));
+
+  // The guided-prompt menus: ids + labels only, so the vote card can build its
+  // dropdowns without shipping every clause of the component library.
+  const PROMPT_PATH = join(dirname(fileURLToPath(import.meta.url)), "..", "prompts.json");
+  app.get("/api/prompt-options", (_req, res) => {
+    let data = null;
+    try { data = JSON.parse(readFileSync(PROMPT_PATH, "utf-8")).intermediate; } catch { }
+    if (!data) return res.json({ modes: ["simple"], intermediate: null });
+    const menu = (list) => list.map((x) => ({ id: x.id, label: x.label }));
+    res.json({
+      modes: ["simple", "intermediate"],
+      intermediate: {
+        timePeriods: data.timePeriods.map((p) => ({ id: p.id, label: p.label, ageGroup: p.ageGroup })),
+        relationshipContexts: menu(data.relationshipContexts),
+        tones: menu(data.tones),
+        categories: [...new Set(data.tensions.map((t) => t.category))].sort(),
+      },
+    });
+  });
 
   // Logged-in dashboard: who's online + games currently running.
   app.get("/api/dashboard", (req, res) => {
@@ -225,6 +244,17 @@ export function registerRoutes(app, game) {
     res.json({ user: publicUser(u) });
   });
 
+  // Which themes this account has earned. Themes are a rank reward: a theme
+  // listed in achievements.json's themeUnlocks needs that word tier, anything
+  // unlisted is free, and admins get the lot. Signed out, only the free ones —
+  // the caller sends no token and gets an empty `unlocked`. This gate is
+  // cosmetic by nature (a theme is a css attribute on the visitor's own
+  // document), so it hides rewards rather than protecting anything.
+  app.get("/api/themes", (req, res) => {
+    const u = authedUser(req); // optional: signed-out visitors get the free set
+    res.json({ locks: themeLocks(), unlocked: unlockedThemes(u), admin: isAdmin(u || {}) === true });
+  });
+
   // Public achievement metadata for the profile page. Raw trigger word lists
   // never ship — and SECRET usage badges don't even ship their descriptions
   // (those arrive per-user via badgeDescs once earned). Open usage badges are
@@ -366,6 +396,11 @@ export function registerRoutes(app, game) {
     return {
       id: m.id, type: m.type, text: m.text, read: m.read === true, ts: m.ts,
       code: m.code || null, // game-invite messages carry the game code
+      // A conversation: a reply carries the thread of what it answers, and a
+      // message with no thread of its own IS its thread. `mine` is my own sent
+      // copy — kept so a chain can show both halves of the exchange.
+      threadId: m.threadId || m.id,
+      mine: m.mine === true,
 
       from: from
         ? { username: from.username, color: from.color, badge: badgeName(from.currentBadge),
@@ -421,10 +456,15 @@ export function registerRoutes(app, game) {
     if (u.lastHelpAt && Date.now() - u.lastHelpAt < HELP_COOLDOWN_MS)
       return res.status(429).json({ error: "Give the last question a moment to land." });
     u.lastHelpAt = Date.now();
+    // One thread id across every copy — each admin's, and the asker's own —
+    // so an answer from any admin chains onto the question that prompted it.
+    const threadId = randomUUID();
     for (const a of admins) {
       a.inbox = a.inbox || [];
-      a.inbox.unshift(makeMsg("help", u.id, text));
+      a.inbox.unshift(makeMsg("help", u.id, text, { threadId }));
     }
+    u.inbox = u.inbox || [];
+    u.inbox.unshift(makeMsg("help", u.id, text, { threadId, mine: true, read: true }));
     saveStore();
     res.json({ ok: true, sentTo: admins.map((a) => a.username) });
   });
@@ -440,11 +480,17 @@ export function registerRoutes(app, game) {
     if (!to) return res.status(400).json({ error: "There's nobody to reply to." });
     const text = stripTags(String(req.body?.text || "")).trim().slice(0, HELP_MAX);
     if (text.length < 1) return res.status(400).json({ error: "Type a reply first." });
+    // The exchange is one conversation: the reply joins the thread of what it
+    // answers (a message with no thread of its own starts one), and I keep my
+    // own copy — already read — so the chain shows both halves on both sides.
+    const threadId = m.threadId || m.id;
+    m.threadId = threadId;
     to.inbox = to.inbox || [];
-    to.inbox.unshift(makeMsg("note", u.id, text));
+    to.inbox.unshift(makeMsg("note", u.id, text, { threadId }));
+    u.inbox.unshift(makeMsg("note", u.id, text, { threadId, mine: true, read: true }));
     m.read = true;
     saveStore();
-    res.json({ ok: true });
+    res.json({ ok: true, threadId });
   });
 
   // ---- Friends ----

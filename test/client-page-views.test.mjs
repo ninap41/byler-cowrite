@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   onlineUsersHtml, liveGameInfoHtml, statsText, badgeProgress, coverArt, coverStyle,
-  myGameStatus, myGameCardHtml, recentRowHtml, achievementsHtml, streakRingHtml, writerRowHtml, inboxMsgHtml, replyBoxHtml,
+  myGameStatus, myGameCardHtml, recentRowHtml, achievementsHtml, streakRingHtml, writerRowHtml, inboxMsgHtml, replyBoxHtml, chainMsgHtml, threadInbox, foldBtnHtml,
 } from "../public/js/dashboard-view.js";
 import { gameCardHtml, archiveMetaText, archiveStoryHtml } from "../public/js/archive-view.js";
 
@@ -164,21 +164,98 @@ test("inboxMsgHtml labels a help question and escapes what the asker typed", () 
   assert.ok(!note.includes("help question"), "an ordinary note wears no tag");
 });
 
-test("every message from a person carries a folded-up reply composer; system notes don't", () => {
+test("a conversation carries an open composer; system notes carry none", () => {
   const from = { username: "ninaadmin", color: "#6c8cff", badge: "", avatar: "", avatarFit: "cover" };
   const row = inboxMsgHtml({ id: "1", type: "note", text: "hello", read: true, ts: Date.now(), from });
   assert.ok(row.includes("ib-reply"), "the composer ships with the row");
-  assert.ok(row.includes("ib-reply hidden"), "folded away until Reply is pressed");
+  assert.ok(!row.includes("ib-reply hidden"), "already open — there is no Reply button to press");
   assert.ok(row.includes("<textarea"), "an inline textarea, not a browser prompt");
-  assert.ok(row.includes("ib-reply-send") && row.includes("ib-reply-cancel"), "send + cancel");
+  assert.ok(row.includes("ib-reply-send"), "send");
+  assert.ok(!row.includes("ib-reply-cancel"), "and no cancel — nothing to close");
   assert.ok(row.includes('maxlength="1000"'), "matched to the server's limit");
+  // it sits after the conversation, addressed to whoever spoke last
+  const other = { username: "mikewheeler", color: "#e63946" };
+  const threaded = inboxMsgHtml(
+    { id: "1", type: "help", text: "q", read: true, ts: 1, from },
+    { chain: [{ id: "2", text: "later", ts: 2, from: other }], replyTo: { id: "2", text: "later", ts: 2, from: other } },
+  );
+  assert.ok(threaded.indexOf("ib-chain") < threaded.indexOf("ib-reply"), "composer at the foot");
+  assert.match(threaded, /placeholder="Reply to mikewheeler/);
 
   const system = inboxMsgHtml({ id: "2", type: "system", text: "welcome", read: true, ts: Date.now(), from: null });
   assert.ok(!system.includes("ib-reply"), "there is nobody to answer a system note");
+});
+
+test("a preview row carries no composer at all — replies live in the inbox", () => {
+  const from = { username: "ninaadmin", color: "#6c8cff", badge: "", avatar: "", avatarFit: "cover" };
+  const m = { id: "1", type: "note", text: "hello", read: true, ts: Date.now(), from };
+  const preview = inboxMsgHtml(m, { reply: false });
+  assert.ok(!preview.includes("ib-reply"), "no folded composer");
+  assert.ok(!preview.includes("<textarea"), "and nothing focusable to steal a click");
+  assert.ok(preview.includes("hello"), "it is still the whole message");
+  assert.ok(inboxMsgHtml(m).includes("ib-reply"), "the default is still a full row");
+});
+
+test("a chained row renders the conversation under its first message", () => {
+  const from = { username: "ninaadmin", color: "#6c8cff", badge: "", avatar: "", avatarFit: "cover" };
+  const chain = [
+    { id: "2", text: "my answer", read: true, ts: Date.now(), mine: true, from },
+    { id: "3", text: "<b>thanks</b>", read: false, ts: Date.now(), from },
+  ];
+  const html = inboxMsgHtml({ id: "1", type: "help", text: "a question", read: true, ts: Date.now(), from }, { chain });
+  assert.ok(html.includes("ib-chain"), "the follow-ups are attached to the row");
+  assert.equal(html.match(/class="ib-chain-msg/g).length, 2);
+  assert.ok(!html.includes("<b>thanks</b>"), "chained text is escaped like any other");
+  // my own half says so and is sided; theirs names them
+  assert.ok(chainMsgHtml(chain[0]).includes(">You<"));
+  assert.ok(chainMsgHtml(chain[0]).includes("ib-chain-msg mine"));
+  assert.ok(chainMsgHtml(chain[1]).includes("ninaadmin"));
+  assert.ok(chainMsgHtml(chain[1]).includes("unread"));
+  // an empty chain adds nothing
+  assert.ok(!inboxMsgHtml({ id: "1", text: "x", ts: 1, from }, { chain: [] }).includes("ib-chain"));
+});
+
+test("threadInbox groups an inbox into conversations, newest exchange first", () => {
+  const from = { username: "mike", color: "#6c8cff" };
+  const msgs = [
+    { id: "a", threadId: "a", text: "old lone note", read: true, ts: 100, from },
+    { id: "b", threadId: "b", text: "question", read: true, ts: 200, from: null, mine: true },
+    { id: "c", threadId: "b", text: "answer", read: false, ts: 300, from },
+    { id: "d", threadId: "b", text: "my thanks", read: true, ts: 400, mine: true, from },
+    { id: "e", text: "no thread field at all", read: true, ts: 50, from },
+  ];
+  const threads = threadInbox(msgs);
+  assert.equal(threads.length, 3, "two lone messages and one conversation");
+  assert.deepEqual(threads.map((t) => t.id), ["b", "a", "e"], "ordered by the newest message in each");
+  const convo = threads[0];
+  assert.deepEqual(convo.messages.map((m) => m.id), ["b", "c", "d"], "oldest first, so it reads downward");
+  assert.equal(convo.head.text, "question");
+  assert.equal(convo.unread, true, "one unread message makes the conversation unread");
+  assert.equal(convo.replyTo.id, "c", "answer the last thing THEY said, not my own last word");
+  // a message with no threadId is a conversation of one
+  assert.equal(threads[2].messages.length, 1);
+  assert.equal(threads[2].replyTo.id, "e");
+  // nothing to answer when every message is mine or from the system
+  assert.equal(threadInbox([{ id: "x", text: "sys", ts: 1, from: null }])[0].replyTo, null);
+  assert.deepEqual(threadInbox([]), []);
 });
 
 test("the composer's placeholder names the recipient, escaped", () => {
   const html = replyBoxHtml({ from: { username: '"><img src=x>', color: "#6c8cff" } });
   assert.ok(!html.includes("<img"), "a hostile username can't break out of the attribute");
   assert.ok(html.includes("placeholder=\"Reply to "));
+});
+
+test("a threaded conversation can be folded, and the button says how much it hides", () => {
+  const from = { username: "kali", color: "#f0f" };
+  const chain = [{ id: "2", text: "later", ts: 2, mine: true, read: true }];
+  const folded = inboxMsgHtml({ id: "1", text: "hi", ts: 1, read: true, from }, { chain, fold: true });
+  assert.ok(folded.includes("ib-fold"), "the fold button is offered");
+  assert.ok(folded.indexOf("ib-fold") < folded.indexOf("ib-chain"), "it sits above what it hides");
+  assert.ok(!inboxMsgHtml({ id: "1", text: "hi", ts: 1, read: true, from }, { chain }).includes("ib-fold"),
+    "no fold unless the surface asks for one");
+  assert.ok(!inboxMsgHtml({ id: "1", text: "hi", ts: 1, read: true, from }, { chain: [], fold: true }).includes("ib-fold"),
+    "a conversation of one has nothing to fold");
+  assert.match(foldBtnHtml(1), /1 reply</);
+  assert.match(foldBtnHtml(3), /3 replies</);
 });

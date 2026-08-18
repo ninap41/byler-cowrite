@@ -120,6 +120,13 @@ test("status dots resolve against the live map, unknown names stay unknown", () 
 });
 
 // ---- exports ----
+test("the exported document keeps a multi-line prompt's breaks", () => {
+  const { html, plain } = buildExports("Line one.\nLine two.", []);
+  assert.ok(html.includes("Line one.\nLine two."), "html carries the newline through");
+  assert.ok(plain.startsWith("Line one.\nLine two.\n\n"), "and so does the plain-text copy");
+  assert.match(exportDocument(html), /h3\.prompt\{[^}]*white-space:pre-line/, "the download renders them");
+});
+
 test("buildExports: names stripped, blocks stand alone, inline lines wrapped, plain text unescaped", () => {
   const story = [
     { name: "will", color: "#6c8cff", html: "just <b>inline</b>" },

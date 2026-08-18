@@ -547,6 +547,17 @@ body {
 	font-size: 0.85rem;
 	font-weight: 700;
 	white-space: nowrap;
+	/* it is a link to your own profile — but it must not read as body text */
+	text-decoration: none;
+	color: inherit;
+	cursor: pointer;
+	transition:
+		border-color 0.2s,
+		transform 0.12s;
+}
+.user-chip:hover {
+	border-color: var(--accent-2);
+	transform: translateY(-1px);
 }
 .user-chip.hidden {
 	display: none;
@@ -962,6 +973,17 @@ body {
 .archive-inner {
 	max-width: 860px;
 	margin: 0 auto;
+}
+/* A page that runs the full width of the window still needs an edge: 16px of
+   gutter so cards, headings and rules never touch the bezel. It lives on the
+   .wrap > child (the drawer's copy is padded already), it costs nothing while
+   the 860px reading column is centred, and it is exactly what the multi-column
+   shelf needs once max-width gives way to 100%. The solo write page is
+   deliberately exempt — it is full-bleed by design and .doc-main carries its
+   own gutter. */
+.wrap > .archive-inner {
+	padding-left: 16px;
+	padding-right: 16px;
 }
 .archive-head {
 	display: flex;
@@ -1812,7 +1834,11 @@ ul.roster li {
 	border-radius: 20px;
 }
 .prompt-banner {
-	padding: 18px 20px;
+	/* a guided prompt is one bulleted clause per line — keep its breaks, and
+	   hang the wrap so a long clause lines up under its own text */
+	white-space: pre-line;
+	text-indent: -1.15em;
+	padding: 18px 20px 18px calc(20px + 1.15em);
 	background: var(--chip);
 	border: 1px solid var(--chip-brd);
 	border-left: 4px solid var(--accent);
@@ -1825,13 +1851,15 @@ ul.roster li {
 .option {
 	position: relative;
 	text-align: left;
+	white-space: pre-line;
+	text-indent: -1.15em;
 	background: var(--panel-2);
 	border: 2px solid var(--line);
 	color: var(--ink);
 	font-family: var(--font-story);
 	font-size: 1.02rem;
 	line-height: 1.45;
-	padding: 16px 60px 16px 16px;
+	padding: 16px 60px 16px calc(16px + 1.15em);
 	border-radius: 14px;
 	cursor: pointer;
 	width: 100%;
@@ -4606,6 +4634,38 @@ body.ui-peek .turn-toast {
 }
 
 /* ---------- Solo writes (/writes listing + /write editor) ---------- */
+/* The shelf's two halves — what you write, and what you were asked to read.
+   The heading names the relationship; the grid under it behaves as before. */
+.doc-group + .doc-group {
+	margin-top: 28px;
+	padding-top: 22px;
+	border-top: 1px solid var(--line);
+}
+.doc-group-head {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin: 0;
+	font-family: var(--font-display);
+	font-size: 1.05rem;
+}
+.doc-group-count {
+	font-family: var(--font-mono);
+	font-size: 0.72rem;
+	color: var(--muted);
+	background: var(--chip);
+	border: 1px solid var(--chip-brd);
+	border-radius: 20px;
+	padding: 2px 9px;
+}
+.doc-group-blurb {
+	margin: 4px 0 0;
+	text-align: left;
+	font-size: 0.84rem;
+}
+.doc-group .doc-grid {
+	margin-top: 12px;
+}
 .doc-grid {
 	display: grid;
 	grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -4827,6 +4887,23 @@ body.doc-page .topbar {
 	gap: 8px;
 	flex-wrap: wrap;
 	padding: 7px 12px;
+}
+/* The view preferences are their own strip beside the formatting toolbar, so
+   hiding the toolbar (a beta reader has nothing to format) leaves them. */
+.doc-view-prefs {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	background: none;
+	border: 0;
+	box-shadow: none;
+	padding: 0;
+}
+/* On a reader's page it is the only strip left — let it start the row rather
+   than sit where the toolbar's tail used to be. */
+#docToolbar.hidden + .doc-view-prefs {
+	margin-right: auto;
 }
 .doc-toolbar-row .toolbar {
 	flex: 1 1 auto;
@@ -5981,14 +6058,30 @@ body.resizing-side {
 }
 
 /* ---------- Typeface (this writer's preference only) ---------- */
-/* --doc-font is set on the writing surfaces by doc-prefs.js; unset, the
-   theme's own story face shows through. Like paper and line spacing it is a
-   VIEW preference and never reaches the html. */
+/* --doc-font is set by doc-prefs.js on the write page's ROOT, so the choice
+   dresses the WHOLE page — title, toolbar, cards, comments — not just the
+   prose. Unset, the theme's own faces show through untouched. Like paper and
+   line spacing it is a VIEW preference and never reaches the html. */
 .doc-editor,
 .doc-source {
 	font-family: var(--doc-font, var(--font-story));
 }
 .doc-source {
+	font-family: var(--doc-font, var(--font-mono));
+}
+/* The page follows the choice too. Most of this page hard-codes a family
+   (display for headings, mono for meta), so those are told to inherit —
+   scoped to .write-inner, which keeps the nav drawer and the toasts outside
+   it on the site's own faces. */
+.write-page .write-inner {
+	font-family: var(--doc-font, var(--font-body));
+}
+.write-page .write-inner :is(h1, h2, h3, h4, p, span, b, i, em, strong, li, label, a, button, select, input, textarea, .doc-title-input, .doc-card-title, .doc-card-meta, .doc-comment, .subtle) {
+	font-family: inherit;
+}
+/* ...except the things whose whole job is to be a different face: the html
+   source view (code is mono), and the size stepper's numerals. */
+.write-page .write-inner :is(.doc-source, .step-input, .step-value) {
 	font-family: var(--doc-font, var(--font-mono));
 }
 
@@ -6309,16 +6402,8 @@ body.resizing-side {
 		background-image: linear-gradient(var(--panel), var(--panel));
 	}
 
-	/* ---- Page gutters ----
-	   .archive-inner is max-width + auto margins with no padding of its own,
-	   so below ~880px it runs flush against the bezel. (The write page is
-	   deliberately full-bleed — .doc-main carries its own gutter there.)
-	   The .wrap > guard keeps this off .archive-drawer, which is padded already.
-	   This also gutters /archive, /stories and /admin — same wrapper. */
-	.wrap > .archive-inner {
-		padding-left: 14px;
-		padding-right: 14px;
-	}
+	/* The 16px page gutter on .wrap > .archive-inner is unconditional now
+	   (see there) — narrow windows need nothing extra. */
 	.archive-head {
 		flex-wrap: wrap;
 		gap: 10px;
@@ -6400,4 +6485,81 @@ body.resizing-side {
 	.vis-chip:hover {
 		transform: none;
 	}
+}
+
+/* Prompt-generation mode picker on the vote card: curated vs guided, and the
+   guided knobs (host-only) that redeal the ballot. */
+.mode-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin: 0 0 12px;
+	flex-wrap: wrap;
+}
+.guided-controls {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+	gap: 10px 14px;
+	margin: 0 0 16px;
+	padding: 14px;
+	border: 1px solid var(--line);
+	border-radius: 14px;
+	background: var(--panel-2);
+}
+.guided-controls label {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	font-size: 0.82rem;
+	color: var(--muted);
+	margin: 0;
+}
+.guided-controls label.gc-check {
+	flex-direction: row;
+	align-items: center;
+	gap: 8px;
+	align-self: end;
+}
+.guided-controls select {
+	width: 100%;
+}
+.mode-hint {
+	font-size: 0.78rem;
+}
+/* Guided needs the component library; without it the chip is plainly off. */
+.mode-row .head-chip:disabled {
+	opacity: 0.4;
+	cursor: not-allowed;
+}
+/* The component chips under a guided option — the scene it was built from. */
+.opt-chips {
+	text-indent: 0; /* the option's hanging indent is for prose, not chips */
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin-top: 10px;
+}
+.opt-chip {
+	font-family: var(--font-mono);
+	font-size: 0.7rem;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	color: var(--muted);
+	background: var(--panel);
+	border: 1px solid var(--line);
+	border-radius: 20px;
+	padding: 3px 9px;
+}
+
+/* A theme you haven't earned yet: still listed (it's a reward you can see
+   coming), plainly out of reach, and inert on click. */
+.theme-menu button.locked {
+	opacity: 0.45;
+	cursor: not-allowed;
+}
+.theme-menu button.locked:hover {
+	background: none;
+}
+.theme-menu button.locked .sw {
+	filter: grayscale(1);
 }

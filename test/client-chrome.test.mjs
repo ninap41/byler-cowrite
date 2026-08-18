@@ -5,7 +5,7 @@ import { installDom } from "./dom.mjs";
 
 installDom();
 const { mountChrome, mountKofi, KOFI_ACCOUNT, KOFI_EMBED, KOFI_PAGE } = await import("../public/js/chrome.js");
-const { THEMES, THEME_LABELS, initTheme } = await import("../public/js/theme.js");
+const { THEMES, THEME_LABELS, initTheme, themeAllowed, lockTip, DEFAULT_THEME } = await import("../public/js/theme.js");
 
 test("theme registry: all nineteen themes present with labels", () => {
   assert.equal(THEMES.length, 19);
@@ -126,4 +126,91 @@ test("the ko-fi iframe is built only when someone actually asks to tip", () => {
   const out = document.querySelector(".kofi-out");
   assert.equal(out.getAttribute("href"), KOFI_PAGE);
   assert.equal(out.getAttribute("rel"), "noopener noreferrer");
+});
+
+test("the user chip is a link to your own profile", () => {
+  document.body.innerHTML = "";
+  mountChrome();
+  const chip = document.getElementById("userChip");
+  assert.equal(chip.tagName, "A");
+  assert.equal(chip.getAttribute("href"), "/profile"); // no ?user= — /profile is mine
+  assert.ok(chip.classList.contains("hidden")); // still hidden until signed in
+  // the pieces setUserChip fills in are still inside it
+  for (const id of ["ucAvatar", "ucName", "ucBadge"]) assert.ok(chip.querySelector("#" + id), id);
+});
+
+// ---- themes as rank rewards ----
+
+const GATE = {
+  locks: { vecna: { tier: "clouds", name: "☁️ I miss clouds I miss you", min: 40000 } },
+  unlocked: [],
+};
+const themeBtn = (id) => document.querySelector(`[data-theme-btn="${id}"]`);
+
+test("themeAllowed: unlisted themes are free, listed ones need earning", () => {
+  assert.equal(themeAllowed("neon", GATE), true, "not in the lock map at all");
+  assert.equal(themeAllowed("vecna", GATE), false);
+  assert.equal(themeAllowed("vecna", { ...GATE, unlocked: ["vecna"] }), true);
+  // no gate known yet (first paint, or the request failed): nothing is hidden
+  assert.equal(themeAllowed("vecna"), true);
+  assert.equal(themeAllowed("vecna", {}), true);
+});
+
+test("lockTip says which rank earns the theme and what it costs", () => {
+  assert.match(lockTip("vecna", GATE.locks), /I miss clouds I miss you/);
+  assert.match(lockTip("vecna", GATE.locks), /40,000 words/);
+  assert.equal(lockTip("neon", GATE.locks), "", "an unlocked theme has nothing to say");
+});
+
+test("setGate marks unearned themes locked and leaves earned ones alone", () => {
+  document.body.innerHTML = "";
+  localStorage.clear();
+  const theme = mountChrome();
+  theme.setGate(GATE);
+
+  const locked = themeBtn("vecna");
+  assert.ok(locked.classList.contains("locked"));
+  assert.equal(locked.getAttribute("aria-disabled"), "true");
+  assert.match(locked.dataset.tip, /I miss clouds/);
+  assert.match(locked.querySelector("span").textContent, /^🔒 /);
+
+  const free = themeBtn("neon");
+  assert.ok(!free.classList.contains("locked"));
+  assert.equal(free.dataset.tip, undefined);
+  assert.equal(free.querySelector("span").textContent, THEME_LABELS.neon);
+
+  // earning it repaints the same row back to normal
+  theme.setGate({ ...GATE, unlocked: ["vecna"] });
+  assert.ok(!themeBtn("vecna").classList.contains("locked"));
+  assert.equal(themeBtn("vecna").querySelector("span").textContent, THEME_LABELS.vecna);
+});
+
+test("a locked theme can't be worn — by click, by call, or by stale localStorage", () => {
+  document.body.innerHTML = "";
+  localStorage.clear();
+  const theme = mountChrome();
+  theme.setGate(GATE);
+
+  themeBtn("vecna").dispatchEvent(new window.Event("click", { bubbles: true }));
+  assert.notEqual(theme.current, "vecna", "the click does nothing");
+  theme.applyTheme("vecna");
+  assert.equal(theme.current, DEFAULT_THEME, "and neither does asking directly");
+
+  // an unearned theme left in storage by another account falls back on load
+  localStorage.setItem("cowriteTheme", "vecna");
+  document.body.innerHTML = "";
+  const next = mountChrome();
+  next.setGate(GATE);
+  assert.equal(next.current, DEFAULT_THEME);
+  assert.equal(document.documentElement.getAttribute("data-theme"), DEFAULT_THEME);
+});
+
+test("an admin's gate unlocks everything, including what it lists", () => {
+  document.body.innerHTML = "";
+  localStorage.clear();
+  const theme = mountChrome();
+  theme.setGate({ locks: GATE.locks, unlocked: Object.keys(GATE.locks) });
+  for (const id of THEMES) assert.ok(!themeBtn(id).classList.contains("locked"), id);
+  theme.applyTheme("vecna");
+  assert.equal(theme.current, "vecna");
 });

@@ -75,7 +75,7 @@
 			import { requireAuth } from "/js/auth-guard.js"
 			import { gameCardHtml, archiveStoryHtml, fmtWhen } from "/js/archive-view.js"
 			import { mountViewPicker, applyGrid } from "/js/components/view-picker.js"
-			import { safeColor } from "/js/util.js"
+			import { safeColor, oneLinePrompt } from "/js/util.js"
 			import { buildExports, exportDocument } from "/js/export.js"
 			import { mountTagEditor } from "/js/components/tag-chips.js"
 
@@ -161,7 +161,7 @@
 					return
 				}
 				curG = g
-				$("archTitle").textContent = g.name || g.prompt || g.code
+				$("archTitle").textContent = g.name || oneLinePrompt(g.prompt) || g.code
 				// every writer, linked to their profile (host first, crown kept)
 				const authors = $("archAuthors")
 				authors.textContent = ""
@@ -208,7 +208,7 @@
 			// ---- delete flow: confirm modal with a last-chance export ----
 			const exportDoc = () => exportDocument(buildExports(curG.prompt || "", curG.story || []).html)
 			$("archDelete").onclick = () => {
-				$("delName").textContent = curG.name || curG.prompt || curG.code
+				$("delName").textContent = curG.name || oneLinePrompt(curG.prompt) || curG.code
 				$("delErr").textContent = ""
 				$("delModal").classList.remove("hidden")
 			}
@@ -303,7 +303,7 @@
 			}
 			$("delConfirm").onclick = async () => {
 				try {
-					const title = curG.name || curG.prompt || curG.code
+					const title = curG.name || oneLinePrompt(curG.prompt) || curG.code
 					await api("/api/games/" + encodeURIComponent(curG.code), null, "DELETE")
 					$("delModal").classList.add("hidden")
 					showList()

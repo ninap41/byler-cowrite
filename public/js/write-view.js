@@ -134,6 +134,32 @@ export const docListHtml = (docs) =>
 		? `<p class="empty">Nothing written yet. Start something — no timer, no turns, just the page.</p>`
 		: docs.map(docCardHtml).join("")
 
+// The shelf holds two different relationships to a document — the ones you
+// WRITE and the ones you were invited to READ — and they want different things
+// from you, so they get their own sections rather than one mixed pile sorted
+// by date. Each section keeps its own grid; an empty one simply isn't drawn
+// (a "no beta reads" box is noise on a shelf that is mostly your own work).
+export const DOC_GROUPS = [
+	{ key: "mine", title: "✒️ My solo writes", blurb: "Yours to edit. No timer, no turns." },
+	{ key: "reading", title: "📖 Beta reading", blurb: "Invited by someone else — you can comment, not edit." },
+]
+
+export function docShelfHtml(docs) {
+	const all = docs || []
+	if (!all.length) return docListHtml(all) // one empty state, not two
+	const groups = { mine: all.filter((d) => d.mine), reading: all.filter((d) => !d.mine) }
+	return DOC_GROUPS.filter((g) => groups[g.key].length)
+		.map(
+			(g) =>
+				`<section class="doc-group" data-group="${g.key}">` +
+				`<h3 class="doc-group-head">${g.title}<span class="doc-group-count">${groups[g.key].length}</span></h3>` +
+				`<p class="doc-group-blurb subtle">${esc(g.blurb)}</p>` +
+				`<div class="doc-grid">${groups[g.key].map(docCardHtml).join("")}</div>` +
+				`</section>`,
+		)
+		.join("")
+}
+
 // ---- presence ----
 // Beta readers currently viewing. Tooltips come from the shared data-tip system.
 export const presenceHtml = (viewers) =>

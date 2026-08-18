@@ -1,5 +1,5 @@
 // Dashboard render helpers (pure string builders — testable without a page).
-import { esc, safeColor, PALETTE, miniAvatar } from "./util.js"
+import { esc, safeColor, PALETTE, miniAvatar, oneLinePrompt } from "./util.js"
 
 export function onlineUsersHtml(users) {
 	return (
@@ -74,7 +74,11 @@ export function friendRowHtml(u) {
 }
 
 // An inbox message row (action buttons are appended by the page).
-export function inboxMsgHtml(m) {
+// The head of an inbox row. `reply` says whether this surface can answer at
+// all: the dashboard preview is a NOTICE BOARD (read it, delete it, go to the
+// inbox to talk), so it never carries a composer — /inbox is where a
+// conversation happens.
+export function inboxMsgHtml(m, { reply = true, chain = [], replyTo = m, fold = false } = {}) {
 	const from = m.from
 		? miniAvatar(m.from) + `<b style="color:${safeColor(m.from.color)}">${esc(m.from.username)}</b>`
 		: `<b>Byler Cowrite</b>`
@@ -87,23 +91,81 @@ export function inboxMsgHtml(m) {
 		`${m.type === "help" ? '<span class="badge-chip">help question</span>' : ""}` +
 		`<span class="ib-when">${esc(when)}</span></span>` +
 		`<span class="ib-text">${esc(m.text)}</span>` +
-		(m.from ? replyBoxHtml(m) : "") +
+		(fold && chain.length ? foldBtnHtml(chain.length) : "") +
+		(chain.length ? `<span class="ib-chain">${chain.map(chainMsgHtml).join("")}</span>` : "") +
+		(reply && replyTo?.from ? replyBoxHtml(replyTo) : "") +
 		`</span>`
 	)
 }
 
-// The inline reply composer, folded into the message row itself and hidden
-// until Reply is pressed. Only messages from a real person get one — there's
-// nobody to answer a system note. The page finds its parts by class within
-// the row, so nothing here needs an id (ids would collide across rows).
+// The fold. A long exchange is a conversation, not a wall: /inbox collapses
+// one to its opening message and this button, which says how much is folded
+// away rather than making you guess. The dashboard preview never folds —
+// it never chains in the first place. The row's `ib-collapsed` class does the
+// hiding, so the markup is the same either way and only a class changes.
+export function foldBtnHtml(n) {
+	return (
+		`<button type="button" class="ib-fold" aria-expanded="true">` +
+		`<span class="ib-fold-label">Hide ${n} ${n === 1 ? "reply" : "replies"}</span>` +
+		`<span class="ib-fold-caret" aria-hidden="true">▾</span></button>`
+	)
+}
+
+// A follow-up in an ongoing conversation: same row, quieter, and sided — my
+// own replies say "You" and sit to the right, so a chain reads as an exchange
+// rather than a list of notes that happen to share a subject.
+export function chainMsgHtml(m) {
+	const who = m.mine
+		? `<b>You</b>`
+		: m.from
+			? miniAvatar(m.from) + `<b style="color:${safeColor(m.from.color)}">${esc(m.from.username)}</b>`
+			: `<b>Byler Cowrite</b>`
+	const when = m.ts ? new Date(m.ts).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : ""
+	return (
+		`<span class="ib-chain-msg${m.mine ? " mine" : ""}${m.read ? "" : " unread"}">` +
+		`<span class="ib-from">${who}<span class="ib-when">${esc(when)}</span></span>` +
+		`<span class="ib-text">${esc(m.text)}</span></span>`
+	)
+}
+
+// Group a flat inbox into conversations: one entry per threadId, its messages
+// oldest-first, ordered by the newest message in each. A message with no
+// thread of its own is a conversation of one, which is most of the inbox.
+export function threadInbox(messages = []) {
+	const byThread = new Map()
+	for (const m of [...messages].sort((a, b) => a.ts - b.ts)) {
+		const key = m.threadId || m.id
+		if (!byThread.has(key)) byThread.set(key, [])
+		byThread.get(key).push(m)
+	}
+	return [...byThread.values()]
+		.map((msgs) => ({
+			id: msgs[0].id,
+			messages: msgs,
+			head: msgs[0],
+			// the newest message decides where the conversation sits, and any
+			// unread message anywhere in it makes the whole thread unread
+			ts: msgs[msgs.length - 1].ts,
+			unread: msgs.some((m) => !m.read),
+			// who to answer: the most recent message that came from someone else
+			replyTo: [...msgs].reverse().find((m) => m.from && !m.mine) || null,
+		}))
+		.sort((a, b) => b.ts - a.ts)
+}
+
+// The reply composer, at the foot of the conversation it belongs to. It is
+// simply THERE — a thread you can answer shows the box, the way a chat does;
+// there is no Reply button to press first. Only messages from a real person
+// get one (there's nobody to answer a system note), and only /inbox builds
+// them at all. The page finds its parts by class within the row, so nothing
+// here needs an id (ids would collide across rows).
 export function replyBoxHtml(m) {
 	return (
-		`<span class="ib-reply hidden">` +
+		`<span class="ib-reply">` +
 		`<textarea class="ib-reply-text" rows="2" maxlength="1000" ` +
 		`placeholder="Reply to ${esc(m.from.username)}…"></textarea>` +
 		`<span class="ib-reply-row">` +
 		`<span class="ib-reply-msg"></span>` +
-		`<button type="button" class="ghost ib-reply-cancel">Cancel</button>` +
 		`<button type="button" class="primary ib-reply-send">Send</button>` +
 		`</span></span>`
 	)
@@ -165,7 +227,7 @@ export function myGameCardHtml(g) {
 export function recentRowHtml(g) {
 	return (
 		`<span class="rg-cover" style="${coverStyle(g)}"></span>` +
-		`<span class="rg-info"><b>${esc(g.name || g.prompt || g.code)}</b>` +
+		`<span class="rg-info"><b>${esc(g.name || oneLinePrompt(g.prompt) || g.code)}</b>` +
 		`<span class="rg-sub">${esc(g.code)} · ${g.writers.length} writer${g.writers.length === 1 ? "" : "s"}</span></span>` +
 		`<span class="rg-lines">${g.lines} line${g.lines === 1 ? "" : "s"}</span>`
 	)

@@ -24,13 +24,13 @@
 					<h2>Solo Writes</h2>
 				</div>
 				<p class="subtle" style="text-align: left; margin: 0 0 14px">
-					Your own drafts — no timer, no turns. Invite friends as beta readers when you want notes.
+					Your own drafts, and anything you were invited to beta read. Invite friends when you want notes on yours.
 				</p>
 				<div class="row" style="margin-top: 0">
 					<button class="primary" id="newDocBtn" style="flex: 0 0 auto">✒️ New solo write</button>
 				</div>
 				<div class="err" id="writesErr"></div>
-				<div id="docList" class="doc-grid"></div>
+				<div id="docList"></div>
 			</div>
 		</div>
 
@@ -53,7 +53,7 @@
 			import { api } from "/js/api.js"
 			import { mountChrome, setUserChip } from "/js/chrome.js"
 			import { requireAuth } from "/js/auth-guard.js"
-			import { docListHtml } from "/js/write-view.js"
+			import { docShelfHtml } from "/js/write-view.js"
 
 			mountChrome({ page: "writes" })
 			const me = await requireAuth("/")
@@ -66,7 +66,7 @@
 			async function load() {
 				try {
 					docs = (await api("/api/docs", null, "GET")).docs || []
-					$("docList").innerHTML = docListHtml(docs)
+					$("docList").innerHTML = docShelfHtml(docs)
 				} catch (e) {
 					$("writesErr").textContent = e.message
 				}

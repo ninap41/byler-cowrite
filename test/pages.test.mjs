@@ -25,6 +25,9 @@ test("the solo-write pages serve at their clean URLs", async () => {
   assert.equal(list.status, 200);
   assert.ok(list.body.includes('id="docList"'));
   assert.ok(list.body.includes('id="newDocBtn"'));
+  // the shelf builds its own grids, one per group — the container holds none
+  assert.ok(list.body.includes("docShelfHtml(docs)"), "grouped into mine / beta reading");
+  assert.ok(!/id="docList" class="doc-grid"/.test(list.body), "the grid moved into each group");
 
   const editor = await page("/write");
   assert.equal(editor.status, 200);
@@ -280,10 +283,60 @@ test("the typeface dropdown offers the site's own families and never touches the
   const { body } = await page("/write");
   assert.ok(body.includes('id="fontSelect"'), "the control is on the toolbar");
   assert.ok(body.indexOf('id="fontSelect"') < body.indexOf('id="paperSelect"'), "beside the other view preferences");
-  assert.ok(body.includes("DOC_FONTS.map"), "built from the shared list, not hand-written options");
-  assert.ok(body.includes('setProperty("--doc-font"'), "applied as a css variable on the surfaces");
+  assert.ok(body.includes("fontMenuHtml()"), "built from the shared list, not hand-written options");
+  assert.ok(body.includes('setProperty("--doc-font"'), "applied as a css variable");
+  // the choice dresses the WHOLE page, so it is set on the page root and the
+  // page's hard-coded faces are told to inherit
+  assert.match(body, /const root = document\.body/, "set on the page root, not the two surfaces");
   const css = await page("/css/base.css");
+  const pageFont = css.body.slice(css.body.indexOf("\n.write-page .write-inner {"), css.body.indexOf("\n.write-page .write-inner :is(.doc-source"));
+  assert.match(pageFont, /font-family: var\(--doc-font, var\(--font-body\)\)/, "the page follows the choice");
+  assert.match(pageFont, /font-family: inherit/, "and the headings/meta that hard-code a face follow it too");
+  // ...except what is deliberately mono: the html source view and the stepper
+  assert.match(css.body, /\.write-page \.write-inner :is\(\.doc-source, \.step-input, \.step-value\) \{\s*font-family: var\(--doc-font, var\(--font-mono\)\)/);
   assert.match(css.body, /\.doc-editor,\n\.doc-source \{\s*font-family: var\(--doc-font, var\(--font-story\)\)/);
+});
+
+test("a beta reader keeps the view preferences when the formatting toolbar goes", async () => {
+  const { body } = await page("/write");
+  // the prefs are their own strip OUTSIDE #docToolbar, which is what gets hidden
+  const prefs = body.indexOf('id="docViewPrefs"');
+  const toolbarEnd = body.indexOf('id="docViewPrefs"');
+  assert.ok(prefs > 0, "the view preferences have their own container");
+  assert.ok(body.indexOf('id="docToolbar"') < prefs, "the formatting toolbar closes before it");
+  for (const id of ["fontSelect", "paperSelect", "lineStepper"])
+    assert.ok(body.indexOf(`id="${id}"`) > prefs, id + " is inside the prefs strip");
+  // reading someone else's story loses the editing controls, never the comfort ones
+  assert.match(body, /\$\("docToolbar"\)\.classList\.add\("hidden"\)/);
+  assert.ok(!/\$\("docViewPrefs"\)\.classList\.add\("hidden"\)/.test(body), "the prefs are never hidden");
+  const css = await page("/css/base.css");
+  assert.match(css.body, /#docToolbar\.hidden \+ \.doc-view-prefs/, "and they lead the row once alone on it");
+});
+
+test("prompt surfaces keep a guided prompt's bulleted lines", async () => {
+  const css = await page("/css/base.css");
+  const banner = css.body.slice(css.body.indexOf("\n.prompt-banner {"), css.body.indexOf("\n.prompt-banner {") + 400);
+  const option = css.body.slice(css.body.indexOf("\n.option {"), css.body.indexOf("\n.option:hover"));
+  for (const [name, block] of [["the prompt banner", banner], ["the vote options", option]]) {
+    assert.match(block, /white-space: pre-line/, name + " keeps the line breaks");
+    // a wrapped clause hangs under its own text rather than under the bullet
+    assert.match(block, /text-indent: -1\.15em/, name + " hangs the wrap");
+    assert.match(block, /padding:[^;]*1\.15em/, name + " leaves room for the bullet");
+  }
+  const chips = css.body.slice(css.body.indexOf("\n.opt-chips {"), css.body.indexOf("\n.opt-chip {"));
+  assert.match(chips, /text-indent: 0/, "the chips row opts out of the prose indent");
+});
+
+test("a full-width page keeps a 16px edge, and the write page stays full-bleed", async () => {
+  const css = await page("/css/base.css");
+  const gutter = css.body.slice(css.body.indexOf("\n.wrap > .archive-inner {"), css.body.indexOf("\n.wrap > .archive-inner {") + 120);
+  assert.match(gutter, /padding-left: 16px/);
+  assert.match(gutter, /padding-right: 16px/);
+  // the multi-column shelf is the case that actually reaches the bezel
+  assert.match(css.body, /\.archive-inner\.wide \{\s*max-width: min\(1560px, 100%\)/);
+  // ...and the write page is deliberately exempt: only .doc-main is guttered
+  const write = css.body.slice(css.body.indexOf("\n.write-inner {"), css.body.indexOf("\n.write-inner {") + 200);
+  assert.ok(!/padding-left: 16px/.test(write), "the write page is full-bleed by design");
 });
 
 test("the theme menu scrolls and sits above the write page's toolbar", async () => {

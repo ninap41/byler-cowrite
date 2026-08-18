@@ -1,5 +1,5 @@
 // Previous-games archive render helpers (pure string builders).
-import { esc, safeColor, whoMarks } from "./util.js"
+import { esc, safeColor, whoMarks, oneLinePrompt } from "./util.js"
 import { coverStyle } from "./dashboard-view.js"
 
 export const fmtWhen = (ts) =>
@@ -9,7 +9,7 @@ export function gameCardHtml(g) {
 	// Title line: the game's name when the host set one, otherwise the prompt.
 	return (
 		`<span class="gc-cover" style="${coverStyle(g)}"></span>` +
-		`<p class="gc-prompt"${g.name ? ' style="font-weight:700"' : ""}>${esc(g.name) || esc(g.prompt) || "<em>No prompt yet</em>"}</p>` +
+		`<p class="gc-prompt"${g.name ? ' style="font-weight:700"' : ""}>${esc(g.name) || esc(oneLinePrompt(g.prompt)) || "<em>No prompt yet</em>"}</p>` +
 		`<span class="gc-meta">` +
 		`<span>${esc(g.code)}</span>` +
 		(g.hostName ? `<span>${esc(g.hostName)} <span class="host-tag">(host)</span></span>` : "") +

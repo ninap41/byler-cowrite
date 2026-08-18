@@ -40,6 +40,18 @@ export const DOC_FONTS = [
 ]
 export const DEFAULT_FONT = "theme"
 export const fontOf = (key) => DOC_FONTS.find((f) => f.key === key) || DOC_FONTS[0]
+
+// The typeface menu shows each face IN that face — a name is a poor preview of
+// a letterform. "Theme font" has no stack of its own and inherits, so it
+// previews as whatever the theme is already using.
+export function fontMenuHtml(selected) {
+	return DOC_FONTS.map(
+		(f) =>
+			`<option value="${f.key}" style="font-family:${f.stack || "inherit"};font-size:1.05em"${
+				f.key === selected ? " selected" : ""
+			}>${f.label}</option>`,
+	).join("")
+}
 const cleanFont = (v) => (DOC_FONTS.some((f) => f.key === v) ? v : DEFAULT_FONT)
 
 // The comments drawer: whether it's open, and how wide you dragged it. Same

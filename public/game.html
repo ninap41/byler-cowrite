@@ -63,6 +63,7 @@
 							<button class="ghost" id="coverBtn" style="flex: 0 0 auto; min-width: auto">Set</button>
 						</div>
 						<img id="coverPreview" class="cover-preview hidden" alt="Cover preview" loading="lazy" />
+						<div id="lobbyPrompt" style="margin-top: 14px"></div>
 						<div class="row"><button class="primary" id="startBtn">Begin →</button></div>
 					</div>
 					<p id="waitingNote" class="subtle" style="margin-top: 16px">Waiting for the host to begin…</p>
@@ -81,6 +82,7 @@
 						</button>
 					</div>
 					<h3>Vote for your scenario</h3>
+					<div id="votePrompt" class="hidden"></div>
 					<div id="optionsBox"></div>
 					<label for="customPrompt" style="margin-top: 4px">Add your own scenario</label>
 					<div class="chat-row">
@@ -198,7 +200,8 @@
 		</div>
 
 		<!-- CHAT (docked panel, bottom right) -->
-		<div id="chatCard" class="chat-dock hidden">
+		<!-- starts collapsed: the story is the page, chat is the drawer you open -->
+		<div id="chatCard" class="chat-dock hidden collapsed">
 			<button type="button" class="chat-dock-head" id="chatDockToggle">
 				💬 Chat <span class="chat-unread" id="chatUnread"></span><i class="chev">&#9662;</i>
 			</button>
@@ -228,6 +231,7 @@
 			import { cleanHtml } from "/js/components/editor.js"
 			import { toolbarHtml, mountRichToolbar } from "/js/components/rich-toolbar.js"
 			import { storyHtml, livePreviewHtml } from "/js/components/story-feed.js"
+			import { mountPromptModes, optionChipsHtml } from "/js/components/prompt-modes.js"
 			import { chatMessageHtml } from "/js/components/chat-view.js"
 			import { getSpectatorName } from "/js/spectator-names.js"
 			import { countdownView } from "/js/components/countdown.js"
@@ -570,7 +574,7 @@
 
 			// ---- Waiting room ----
 			$("startBtn").onclick = () =>
-				socket.emit("start-game", lobbyRules.values(), (res) => {
+				socket.emit("start-game", { ...lobbyRules.values(), ...lobbyPrompt.values() }, (res) => {
 					if (!res?.ok) alert(res?.error || "Could not start.")
 				})
 
@@ -630,7 +634,9 @@
 				st.options.forEach((p, i) => {
 					const b = document.createElement("button")
 					b.className = "option" + (myVote === p ? " mine" : "")
-					b.innerHTML = `${esc(p)}<span class="votecount">${st.tally?.[i] || 0} ▲</span>`
+					b.innerHTML = `${esc(p)}${optionChipsHtml(st.optionMeta?.[i])}<span class="votecount">${
+						st.tally?.[i] || 0
+					} ▲</span>`
 					b.onclick = () => {
 						myVote = p
 						socket.emit("vote", { prompt: p })
@@ -639,7 +645,38 @@
 				})
 				$("voteProgress").textContent = `${st.voted} of ${st.total} voted — most votes wins`
 				$("hostVoteBtns").classList.toggle("hidden", myId !== hostId)
+				renderPromptControls(st)
 			}
+
+			// ---- Prompt generation modes ----
+			// One component, two mounts: the lobby picks the mode before Begin
+			// (it rides along in start-game), the vote card retunes it live.
+			let promptMenus = null
+			const lobbyPrompt = mountPromptModes($("lobbyPrompt"), { prefix: "lobbyPm" })
+			const votePrompt = mountPromptModes($("votePrompt"), {
+				prefix: "votePm",
+				onChange: ({ mode, controls }) => {
+					myVote = null
+					socket.emit("set-prompt-mode", { mode, controls })
+				},
+			})
+			// The menus (ids + labels) are static data — fetched once per page.
+			;(async () => {
+				try {
+					promptMenus = await (await fetch("/api/prompt-options")).json()
+				} catch {
+					promptMenus = { modes: ["simple"], intermediate: null }
+				}
+				lobbyPrompt.setMenus(promptMenus)
+				votePrompt.setMenus(promptMenus)
+			})()
+
+			function renderPromptControls(st) {
+				// Non-hosts see the ballot, not the dials that deal it.
+				votePrompt.show(myId === hostId)
+				votePrompt.setState(st.promptMode, st.promptControls)
+			}
+
 			$("reshuffleBtn").onclick = () => {
 				myVote = null
 				socket.emit("shuffle-options")

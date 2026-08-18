@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { PALETTE, esc, safeColor, whoMarks, miniAvatar } from "../public/js/util.js";
+import { PALETTE, esc, safeColor, whoMarks, miniAvatar, oneLinePrompt } from "../public/js/util.js";
 
 test("miniAvatar: img with fit class when set, empty otherwise, url escaped", () => {
   const cover = miniAvatar({ avatar: "https://img.com/a.png" });
@@ -38,4 +38,16 @@ test("whoMarks: (host) tag for hosts (either flag), nothing otherwise", () => {
   assert.match(whoMarks({ isHost: true }), /\(host\)/);
   assert.equal(whoMarks({ host: false }), "");
   assert.equal(whoMarks(null), "");
+});
+
+// ---- prompts used as titles ----
+test("oneLinePrompt collapses a bulleted guided prompt for card titles", () => {
+  const guided = "\u2022 Set this after Vecna.\n\u2022 They are alone in the basement.\n\u2022 Keep it tender.";
+  assert.equal(oneLinePrompt(guided), "Set this after Vecna. They are alone in the basement. Keep it tender.");
+  // a curated prompt passes through untouched, and blanks stay blank
+  assert.equal(oneLinePrompt("Mike finds the drawing."), "Mike finds the drawing.");
+  for (const blank of ["", null, undefined]) assert.equal(oneLinePrompt(blank), "");
+  // a bullet inside a clause is not a line start and survives
+  assert.equal(oneLinePrompt("\u2022 a \u2022 b\n\u2022 c"), "a \u2022 b c");
+  assert.equal(oneLinePrompt("\n\n\u2022 only\n\n"), "only");
 });

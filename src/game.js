@@ -10,14 +10,36 @@ import { badgeName, badgeDesc, usageMatches, awardWordBadges } from "../lib/achi
 import { PALETTE, cleanColor, sanitizeRich, stripTags, httpUrl, sanitizeDoc, CID_RE } from "./sanitize.js";
 import { store, saveStore, userByToken, makeMsg, isAdmin } from "./store.js";
 import { mirror, mirrorDelete } from "./persist.js";
+import { generateSimplePrompt, generateIntermediatePrompt, INTENSITIES, MODES } from "../lib/prompt-gen.js";
 import { readDoc, writeDoc, canView, canEdit, canComment, anchorCids, anchorText, stripAnchor, applySuggestion } from "./docs.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-// Curated Byler scenario prompts (edit prompts.json freely — no code changes).
-const { prompts: PROMPT_BANK } = JSON.parse(
+// Curated Byler scenario prompts + the guided-mode component pools (edit
+// prompts.json freely — no code changes). See docs/PROMPT_GENERATION.md.
+const PROMPT_DATA = JSON.parse(
   readFileSync(join(__dirname, "..", "prompts.json"), "utf-8")
 );
+const PROMPT_BANK = PROMPT_DATA.prompts;
+const INTERMEDIATE = PROMPT_DATA.intermediate || null;
+
+// The host-facing knobs of guided mode, normalized so nothing off the wire
+// reaches the generator raw.
+function cleanPromptControls(c = {}) {
+  const id = (v) => {
+    const x = String(v ?? "random").slice(0, 60);
+    return /^[a-z0-9-]+$/.test(x) ? x : "random";
+  };
+  return {
+    timePeriodId: id(c.timePeriodId),
+    relationshipContextId: id(c.relationshipContextId),
+    toneId: id(c.toneId),
+    scenarioCategory: id(c.scenarioCategory),
+    tensionIntensity: INTENSITIES.includes(c.tensionIntensity) ? c.tensionIntensity : "medium",
+    includeCatalyst: !!c.includeCatalyst,
+  };
+}
+const cleanPromptMode = (m) => (MODES.includes(m) && (m !== "intermediate" || INTERMEDIATE) ? m : "simple");
 
 // At the deadline the server advances immediately, using the writer's last
 // live-typing content (s.lastTyping) as their line so partial work is kept.
@@ -96,6 +118,7 @@ export function createGame(io) {
       const doc = JSON.stringify({
         code: s.code, name: s.name || "", cover: s.cover || "", phase: s.phase, prompt: s.prompt, story: s.story, chat: s.chat,
         friendly: s.friendly !== false,
+        promptMode: s.promptMode || "simple", promptControls: s.promptControls || cleanPromptControls(),
         createdAt: s.createdAt ?? null, tags: s.tags || [],
         turnSeconds: s.turnSeconds, maxTurns: s.maxTurns, turnCount: s.turnCount,
         remaining: s.remaining, currentIdx: s.currentIdx,
@@ -149,7 +172,8 @@ export function createGame(io) {
         phase === "writing" ? d.turnOrderTokens.map((t) => "ghost:" + t).filter((id) => writers.has(id)) : [],
       currentIdx: Math.min(d.currentIdx || 0, Math.max(0, d.turnOrderTokens.length - 1)),
       turnCount: d.turnCount || 0, maxTurns: d.maxTurns ?? null,
-      story: d.story || [], prompt: d.prompt || "", options: [], votes: new Map(),
+      story: d.story || [], prompt: d.prompt || "", options: [], optionMeta: [], votes: new Map(),
+      promptMode: cleanPromptMode(d.promptMode), promptControls: cleanPromptControls(d.promptControls || {}),
       turnSeconds: d.turnSeconds === 0 ? 0 : d.turnSeconds || 60, deadline: 0,
       paused: phase === "writing", remaining: d.remaining || (d.turnSeconds || 60) * 1000,
       timer: null, chat: d.chat || [], lastTyping: "",
@@ -296,13 +320,39 @@ export function createGame(io) {
     return code;
   }
 
-  function promptOptions(n = 4) {
-    const pool = [...PROMPT_BANK];
-    const out = [];
-    for (let i = 0; i < n && pool.length; i++) {
-      out.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+  // Fill a session's ballot. Simple mode deals curated prompts; guided
+  // (intermediate) mode assembles them from compatible clauses and keeps the
+  // component ids in s.optionMeta so the vote card can show chips.
+  function fillOptions(s, n = 4) {
+    s.optionMeta = [];
+    if (s.promptMode === "intermediate" && INTERMEDIATE) {
+      const out = [];
+      const recent = [];
+      // Two tries per slot: a repeated location+tension combo gets one reroll.
+      for (let i = 0; i < n; i++) {
+        let r = null;
+        for (let attempt = 0; attempt < 2; attempt++) {
+          r = generateIntermediatePrompt(INTERMEDIATE, { ...s.promptControls, recentIds: recent });
+          const combo = r.selections.locationId + "|" + r.selections.tensionId;
+          if (!out.some((x) => x.combo === combo)) { r.combo = combo; break; }
+        }
+        if (out.some((x) => x.prompt === r.prompt)) continue;
+        recent.push(...Object.values(r.selections));
+        out.push(r);
+      }
+      s.options = out.map((r) => r.prompt);
+      s.optionMeta = out.map((r) => ({ seed: r.seed, selections: r.selections, labels: r.labels }));
+      if (s.options.length) return s.options;
     }
-    return out;
+    const recent = [];
+    s.options = [];
+    for (let i = 0; i < n && i < PROMPT_BANK.length; i++) {
+      const { prompt } = generateSimplePrompt(PROMPT_BANK, { recent });
+      recent.push(prompt);
+      s.options.push(prompt);
+    }
+    s.optionMeta = s.options.map(() => null);
+    return s.options;
   }
 
   const currentId = (s) => s.turnOrder[s.currentIdx] ?? null;
@@ -346,6 +396,9 @@ export function createGame(io) {
       cover: s.cover || "",
       phase: s.phase,
       options: s.phase === "choosing" ? s.options : [],
+      optionMeta: s.phase === "choosing" ? s.optionMeta || [] : [],
+      promptMode: s.promptMode || "simple",
+      promptControls: s.promptControls || cleanPromptControls(),
       tally: s.phase === "choosing" ? tally(s) : [],
       voted: s.votes.size,
       total: connectedCount(s),
@@ -601,7 +654,8 @@ export function createGame(io) {
         phase: "waiting",
         writers: new Map([[socket.id, host]]),
         turnOrder: [], currentIdx: 0, turnCount: 0, maxTurns: null,
-        story: [], prompt: "", options: [], votes: new Map(),
+        story: [], prompt: "", options: [], optionMeta: [], votes: new Map(),
+        promptMode: "simple", promptControls: cleanPromptControls(),
         turnSeconds: 60, deadline: 0, paused: false, remaining: 0, timer: null, chat: [], lastTyping: "",
         pending: new Map(), // join requests awaiting host approval
         denied: new Map(), // denyKey -> retry-after timestamp (5-min cooldown)
@@ -724,7 +778,7 @@ export function createGame(io) {
       gateOrSeat(socket, s, entry[0], entry[1], ack);
     });
 
-    socket.on("start-game", ({ turnSeconds, rounds, friendly }, ack) => {
+    socket.on("start-game", ({ turnSeconds, rounds, friendly, promptMode, promptControls }, ack) => {
       const s = mySession();
       if (!s || s.hostId !== socket.id) return ack?.({ ok: false, error: "Only the host can start." });
       if (s.writers.size < 1) return ack?.({ ok: false, error: "Need at least one writer." });
@@ -738,7 +792,9 @@ export function createGame(io) {
       s.turnSeconds = cleanSeconds(turnSeconds, 60);
       const r = Number(rounds);
       s.maxTurns = r > 0 ? r * s.turnOrder.length : null;
-      s.options = promptOptions();
+      if (promptMode != null) s.promptMode = cleanPromptMode(promptMode);
+      if (promptControls != null) s.promptControls = cleanPromptControls(promptControls);
+      fillOptions(s);
       ack?.({ ok: true });
       announce(s, s.writers.get(socket.id), "started the game");
       broadcastGame(s);
@@ -757,10 +813,23 @@ export function createGame(io) {
     socket.on("shuffle-options", (_, ack) => {
       const s = mySession();
       if (!s || s.hostId !== socket.id || s.phase !== "choosing") return ack?.({ ok: false });
-      s.options = promptOptions();
+      fillOptions(s);
       s.votes.clear();
       broadcastGame(s);
       ack?.({ ok: true });
+    });
+
+    // Host-only: switch the generator mode (simple ↔ guided) or retune the
+    // guided controls. Either way the ballot is redealt and votes reset.
+    socket.on("set-prompt-mode", ({ mode, controls }, ack) => {
+      const s = mySession();
+      if (!s || s.hostId !== socket.id || s.phase !== "choosing") return ack?.({ ok: false });
+      if (mode != null) s.promptMode = cleanPromptMode(mode);
+      if (controls != null) s.promptControls = cleanPromptControls({ ...s.promptControls, ...controls });
+      fillOptions(s);
+      s.votes.clear();
+      broadcastGame(s);
+      ack?.({ ok: true, mode: s.promptMode, controls: s.promptControls });
     });
 
     // Anyone can add a custom scenario to the vote options.
@@ -772,6 +841,7 @@ export function createGame(io) {
       if (s.options.includes(p)) return ack?.({ ok: false, error: "That's already an option." });
       if (s.options.length >= MAX_OPTIONS) return ack?.({ ok: false, error: "Too many options already." });
       s.options.push(p);
+      (s.optionMeta ||= []).push(null); // a hand-written scenario has no components
       broadcastGame(s);
       ack?.({ ok: true });
     });

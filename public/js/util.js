@@ -23,3 +23,13 @@ export const miniAvatar = (o) => {
 	if (!name) return ""
 	return `<span class="mini-avatar mini-initial" style="background:${safeColor(o.color)}">${esc(String(name).charAt(0).toUpperCase())}</span>`
 }
+
+// A prompt is a stack of bulleted clauses when it was assembled by guided mode
+// (lib/prompt-gen.js). Anywhere it stands in for a TITLE — a card, a listing,
+// a delete confirmation — it has to collapse back to one line first.
+export const oneLinePrompt = (prompt) =>
+	String(prompt || "")
+		.split("\n")
+		.map((l) => l.replace(/^\u2022 /, "").trim())
+		.filter(Boolean)
+		.join(" ")

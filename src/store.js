@@ -5,7 +5,7 @@ import { readFileSync, writeFileSync, mkdirSync } from "fs";
 import { randomUUID } from "crypto";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
-import { badgeName, badgeDesc, isUsageId, isOpenUsageId, nextTierFor, migrateBadges } from "../lib/achievements.js";
+import { badgeName, badgeDesc, isUsageId, isOpenUsageId, nextTierFor, migrateBadges, unlockedThemes } from "../lib/achievements.js";
 import { mirror } from "./persist.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -55,8 +55,11 @@ export const ADMIN_EMAILS = new Set(["admin2@cowrite.test", "admin@cowrite.test"
 //   { id, type: 'system'|'note'|'friend-request'|'friend-accept',
 //     fromId: account id or null (system), text, read: bool, ts }
 // Friend requests ARE inbox messages — accepting/declining consumes them.
-export const makeMsg = (type, fromId, text) =>
-  ({ id: randomUUID(), type, fromId: fromId || null, text: String(text || ""), read: false, ts: Date.now() });
+// `extra` carries the optional fields: `threadId` (the conversation this
+// message belongs to — see /api/inbox/reply), `mine` (my own sent copy, kept
+// so a reply chain shows both halves), `code` (a game invite's code).
+export const makeMsg = (type, fromId, text, extra = {}) =>
+  ({ id: randomUUID(), type, fromId: fromId || null, text: String(text || ""), read: false, ts: Date.now(), ...extra });
 
 export const welcomeMsg = () =>
   makeMsg("system", null, "Welcome to Byler Cowrite! This is your inbox — friend requests and notes land here. 📬");
@@ -119,6 +122,9 @@ export const authedUser = (req) => userByToken((req.headers.authorization || "")
 export const publicUser = (u) => ({
   id: u.id, email: u.email, username: u.username, color: u.color, admin: u.admin === true,
   games: u.games, wordCount: u.wordCount,
+  // the gated themes this rank has earned (admins: all of them) — the theme
+  // menu reads it straight off /api/me, no second request on page load
+  themes: unlockedThemes(u),
   currentBadge: badgeName(u.currentBadge), badges: u.badges.map(badgeName),
   wordBadges: u.badges.filter((id) => !isUsageId(id)).map(badgeName),
   usageBadges: u.badges.filter((id) => isUsageId(id) && !isOpenUsageId(id)).map(badgeName),

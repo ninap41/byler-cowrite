@@ -462,6 +462,8 @@
 				readAllBtn: $("inboxReadAll"),
 				moreLink: $("inboxMore"),
 				limit: 5,
+				// a preview is a notice board, not a place to hold a conversation
+				replies: false,
 				// the rail's Inbox row carries the same count, so an unread message
 				// is visible from the top of the page without opening the card
 				onLoad: ({ unread }) => {

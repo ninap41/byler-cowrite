@@ -28,6 +28,22 @@ export const THEME_LABELS = {
 }
 const LABELS = THEME_LABELS
 
+// ---- Themes as rank rewards ----
+// A theme listed in achievements.json's themeUnlocks needs that word tier;
+// anything unlisted is free and admins get everything. The server hands the
+// menu {locks, unlocked} (GET /api/themes, or `themes` on /api/me) and this
+// module only paints it: a locked row says what earns it and refuses the
+// click. It is a REWARD, not a permission — a theme is a css attribute on your
+// own document, so there is nothing here to protect, only something to earn.
+export const DEFAULT_THEME = "neon"
+export const themeAllowed = (id, { locks = {}, unlocked = [] } = {}) => !locks[id] || unlocked.includes(id)
+// "🧙 Sorcerer · 20,000 words" — what a locked row tells you.
+export function lockTip(id, locks = {}) {
+	const lock = locks[id]
+	if (!lock) return ""
+	return `Unlocks at ${lock.name}${lock.min ? " · " + lock.min.toLocaleString() + " words" : ""}`
+}
+
 export function initTheme() {
 	const root = document.documentElement
 	const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches
@@ -37,8 +53,11 @@ export function initTheme() {
 	try {
 		saved = localStorage.getItem("cowriteTheme")
 	} catch (e) {}
-	let current = THEMES.indexOf(saved) >= 0 ? saved : "neon"
+	let current = THEMES.indexOf(saved) >= 0 ? saved : DEFAULT_THEME
 	let floatTweens = []
+	// Until the account's ranks arrive every theme is treated as available:
+	// the alternative is a visible flash of locks on every page load.
+	let gate = { locks: {}, unlocked: [] }
 
 	function stopFloat() {
 		floatTweens.forEach((t) => t && t.kill && t.kill())
@@ -93,6 +112,9 @@ export function initTheme() {
 		}
 	}
 	function applyTheme(theme) {
+		// An unearned theme can still be sitting in localStorage — from a demo,
+		// another account on this browser, or a lock added after the fact.
+		if (!themeAllowed(theme, gate)) theme = DEFAULT_THEME
 		current = theme
 		root.setAttribute("data-theme", theme)
 		try {
@@ -158,6 +180,9 @@ export function initTheme() {
 		menu.addEventListener("click", (e) => {
 			const b = e.target.closest("[data-theme-btn]")
 			if (b) {
+				// a locked row is a signpost, not a button: it stays put and
+				// keeps the menu open so you can read what earns it
+				if (b.classList.contains("locked")) return
 				applyTheme(b.getAttribute("data-theme-btn"))
 				closeMenu()
 			}
@@ -168,10 +193,30 @@ export function initTheme() {
 	document.addEventListener("keydown", (e) => {
 		if (e.key === "Escape" && menuOpen) closeMenu()
 	})
+	// Paint the lock state onto the menu: earned rows behave, unearned ones say
+	// what earns them. Called again whenever the account changes (sign in/out).
+	function setGate(next) {
+		gate = { locks: next?.locks || {}, unlocked: next?.unlocked || [] }
+		document.querySelectorAll("[data-theme-btn]").forEach((b) => {
+			const id = b.getAttribute("data-theme-btn")
+			const locked = !themeAllowed(id, gate)
+			b.classList.toggle("locked", locked)
+			b.setAttribute("aria-disabled", locked ? "true" : "false")
+			const tip = locked ? lockTip(id, gate.locks) : ""
+			if (tip) b.dataset.tip = tip
+			else delete b.dataset.tip
+			const label = b.querySelector("span")
+			if (label) label.textContent = (locked ? "🔒 " : "") + (LABELS[id] || id)
+		})
+		// and if you were wearing something you no longer have, step back
+		if (!themeAllowed(current, gate)) applyTheme(DEFAULT_THEME)
+	}
+
 	applyTheme(current)
 
 	return {
 		applyTheme,
+		setGate,
 		get current() {
 			return current
 		},

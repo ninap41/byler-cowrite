@@ -118,37 +118,41 @@
 								<button class="ghost" data-cmd="insertHorizontalRule" title="Horizontal rule" type="button">HR</button>
 								<button class="ghost" id="clearFmtBtn" title="Clear formatting" type="button">Tx</button>
 							</span>
-							<!-- Line spacing is a VIEW preference: it never enters the html,
-							     never reaches the server, and is remembered per browser. -->
-							<span class="tb-group">
-								<span
-									class="stepper pref-stepper"
-									id="lineStepper"
-									data-tip="Line spacing — your view only, not saved into the story"
-								>
-									<span class="step-label">↕</span>
-									<button class="step-btn" id="lsDown" type="button" aria-label="Tighter line spacing">−</button>
-									<span class="step-value" id="lsValue">1.7</span>
-									<button class="step-btn" id="lsUp" type="button" aria-label="Looser line spacing">+</button>
-								</span>
-								<select
-									id="fontSelect"
-									class="ghost"
-									aria-label="Typeface"
-									data-tip="Typeface for this page — your view only, not saved into the story"
-								></select>
-								<select
-									id="paperSelect"
-									class="ghost"
-									aria-label="Paper colour"
-									data-tip="Paper colour — your view only, not saved into the story"
-								>
-									<option value="theme">🎨 Theme</option>
-									<option value="light">🌕 Light</option>
-									<option value="dark">🌑 Dark</option>
-								</select>
-							</span>
 						</div>
+
+						<!-- Line spacing, typeface and paper are VIEW preferences: they
+						     never enter the html, never reach the server, and are
+						     remembered per browser. They live OUTSIDE #docToolbar because
+						     they are not editing controls — a beta reader keeps them when
+						     the formatting toolbar goes away. -->
+						<span class="toolbar tb-group doc-view-prefs" id="docViewPrefs">
+							<span
+								class="stepper pref-stepper"
+								id="lineStepper"
+								data-tip="Line spacing — your view only, not saved into the story"
+							>
+								<span class="step-label">↕</span>
+								<button class="step-btn" id="lsDown" type="button" aria-label="Tighter line spacing">−</button>
+								<span class="step-value" id="lsValue">1.7</span>
+								<button class="step-btn" id="lsUp" type="button" aria-label="Looser line spacing">+</button>
+							</span>
+							<select
+								id="fontSelect"
+								class="ghost"
+								aria-label="Typeface"
+								data-tip="Typeface for this page — your view only, not saved into the story"
+							></select>
+							<select
+								id="paperSelect"
+								class="ghost"
+								aria-label="Paper colour"
+								data-tip="Paper colour — your view only, not saved into the story"
+							>
+								<option value="theme">🎨 Theme</option>
+								<option value="light">🌕 Light</option>
+								<option value="dark">🌑 Dark</option>
+							</select>
+						</span>
 
 						<div class="toolbar-right">
 							<!-- Segmented control: the highlighted segment IS the current
@@ -306,8 +310,8 @@
 				stepLine,
 				DEFAULT_LINE,
 				PAPERS,
-				DOC_FONTS,
 				fontOf,
+				fontMenuHtml,
 				clampSide,
 				DEFAULT_SIDE,
 			} from "/js/doc-prefs.js"
@@ -409,6 +413,10 @@
 					// underlines and the click-to-jump identical for both sides — but
 					// it is never contentEditable for them, and every writing control
 					// is gone. Comment mode is the only mode they have.
+					// The formatting controls go; the VIEW preferences stay. How a
+					// story is set on your own screen — typeface, line spacing,
+					// paper — is reading comfort, and reading is the whole of what
+					// a beta reader came here to do.
 					$("docToolbar").classList.add("hidden")
 					$("modeSwitch").classList.add("hidden")
 					$("commentToggle").classList.add("hidden")
@@ -1150,13 +1158,18 @@
 			// writing surfaces: it never enters the document.
 			function applyFont() {
 				const stack = fontOf(prefs.font).stack
-				for (const el of [$("docEditor"), $("docSource")])
-					stack ? el.style.setProperty("--doc-font", stack) : el.style.removeProperty("--doc-font")
+				// Set on the page root, not on the two writing surfaces: the
+				// typeface you chose dresses the whole page — title, toolbar,
+				// comments and all — and the surfaces inherit it from here.
+				// "theme" removes the property so every face falls back to the
+				// theme's own.
+				const root = document.body
+				stack ? root.style.setProperty("--doc-font", stack) : root.style.removeProperty("--doc-font")
 				$("fontSelect").value = prefs.font
+				// the closed select previews the face it is currently set to
+				$("fontSelect").style.fontFamily = stack || ""
 			}
-			$("fontSelect").innerHTML = DOC_FONTS.map(
-				(f) => `<option value="${f.key}" style="font-family:${f.stack || "inherit"}">${f.label}</option>`,
-			).join("")
+			$("fontSelect").innerHTML = fontMenuHtml()
 			$("fontSelect").addEventListener("change", (e) => {
 				prefs = savePrefs({ ...prefs, font: e.target.value })
 				applyFont()

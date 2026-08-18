@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { installDom } from "./dom.mjs";
 
 installDom(); // plainBlockHtml parses through a detached div
-import { docCardHtml, docListHtml, presenceHtml, commentHtml, commentThreadHtml, readerChipsHtml, wordsLabel, formatSource, unformatSource, plainBlockHtml, visChipHtml, visMenuHtml, visLabel, VIS, scrollTargetFor, inviteOptions, inviteRowHtml, inviteListHtml } from "../public/js/write-view.js";
+import { docCardHtml, docListHtml, docShelfHtml, DOC_GROUPS, presenceHtml, commentHtml, commentThreadHtml, readerChipsHtml, wordsLabel, formatSource, unformatSource, plainBlockHtml, visChipHtml, visMenuHtml, visLabel, VIS, scrollTargetFor, inviteOptions, inviteRowHtml, inviteListHtml } from "../public/js/write-view.js";
 
 const DOC = {
   id: "abc", title: "The Upside Down", wordCount: 120, visibility: "private",
@@ -44,6 +44,35 @@ test("the empty listing invites you to start", () => {
   assert.ok(docListHtml([]).includes("Nothing written yet"));
   assert.ok(docListHtml(null).includes("Nothing written yet"));
   assert.equal(docListHtml([DOC, { ...DOC, id: "d2" }]).match(/doc-card"/g).length, 2);
+});
+
+test("the shelf separates what you write from what you were invited to read", () => {
+  const mine = { ...DOC, id: "m1", mine: true };
+  const reading = { ...DOC, id: "r1", mine: false, owner: "mikewheeler" };
+  const html = docShelfHtml([mine, reading]);
+  assert.match(html, /data-group="mine"/);
+  assert.match(html, /data-group="reading"/);
+  assert.ok(html.indexOf('data-group="mine"') < html.indexOf('data-group="reading"'), "your own work comes first");
+  assert.equal(html.match(/class="doc-grid"/g).length, 2, "each section keeps its own grid");
+  assert.equal(html.match(/doc-card"/g).length, 2);
+  // each section says how many, and names the relationship
+  assert.match(html, /My solo writes<span class="doc-group-count">1</);
+  assert.match(html, /Beta reading<span class="doc-group-count">1</);
+
+  // a section with nothing in it isn't drawn — no empty "beta reading" box
+  const onlyMine = docShelfHtml([mine]);
+  assert.match(onlyMine, /data-group="mine"/);
+  assert.ok(!onlyMine.includes('data-group="reading"'));
+  const onlyReading = docShelfHtml([reading]);
+  assert.ok(!onlyReading.includes('data-group="mine"'));
+  assert.match(onlyReading, /data-group="reading"/);
+
+  // and an empty shelf is one empty state, not two
+  for (const empty of [[], null, undefined]) {
+    assert.ok(docShelfHtml(empty).includes("Nothing written yet"));
+    assert.ok(!docShelfHtml(empty).includes("doc-group"));
+  }
+  assert.deepEqual(DOC_GROUPS.map((g) => g.key), ["mine", "reading"]);
 });
 
 test("presence renders one hoverable avatar per viewer", () => {

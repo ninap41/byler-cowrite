@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { installLocalStorage } from "./client-storage.mjs";
 
 installLocalStorage();
-const { loadPrefs, savePrefs, stepLine, LINE_STEPS, DEFAULT_LINE, PAPERS, DEFAULT_PAPER, DOC_FONTS, fontOf } = await import("../public/js/doc-prefs.js");
+const { loadPrefs, savePrefs, stepLine, LINE_STEPS, DEFAULT_LINE, PAPERS, DEFAULT_PAPER, DOC_FONTS, fontOf, fontMenuHtml } = await import("../public/js/doc-prefs.js");
 
 const mem = () => {
   const store = new Map();
@@ -132,6 +132,21 @@ test("an unknown typeface falls back to the theme's, and can't reach the DOM as 
   }
   assert.equal(fontOf("nope").key, "theme");
   assert.equal(fontOf("fraunces").label, "Fraunces");
+});
+
+test("the typeface menu previews each face in that face", () => {
+  const html = fontMenuHtml("newsreader");
+  for (const f of DOC_FONTS) {
+    assert.match(html, new RegExp(`value="${f.key}"`), f.key + " is offered");
+    // every row carries the face it names — "theme" inherits rather than lying
+    assert.ok(
+      html.includes(`font-family:${f.stack || "inherit"}`),
+      f.key + " previews in its own stack",
+    );
+  }
+  assert.match(html, /value="newsreader"[^>]*selected/);
+  assert.equal(html.match(/selected/g).length, 1);
+  assert.equal(fontMenuHtml().match(/selected/g), null); // no selection is legal
 });
 
 test("all three view preferences live together and survive each other", () => {

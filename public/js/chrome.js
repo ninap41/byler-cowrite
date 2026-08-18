@@ -111,11 +111,11 @@ const NAV = (page) => `
 
 const TOPBAR = `
 	<div class="topbar">
-		<div class="user-chip hidden" id="userChip">
+		<a class="user-chip hidden" id="userChip" href="/profile" title="Your profile">
 			<span id="ucAvatar"></span>
 			<span id="ucName"></span>
 			<span class="badge-chip" id="ucBadge"></span>
-		</div>
+		</a>
 		<div class="theme-switch" id="themeSwitch">
 			<button type="button" class="theme-toggle" id="themeToggle" aria-haspopup="listbox" aria-expanded="false">
 				<i class="sw sw-neon" id="themeCurSw"></i><span id="themeCurLabel">Neon Dusk</span><i class="chev">&#9662;</i>
@@ -174,6 +174,11 @@ export function mountKofi(doc = document) {
 	doc.addEventListener("keydown", (e) => e.key === "Escape" && close())
 	return { open, close, modal, frame }
 }
+
+// The mounted theme controller and the lock map, remembered so setUserChip can
+// re-gate the menu the moment an account arrives.
+let themeCtl = null
+let themeLocks = {}
 
 export function mountChrome({ page = "", nav = true, kofi = true } = {}) {
 	document.body.insertAdjacentHTML("afterbegin", BG + (nav ? NAV(page) : "") + TOPBAR)
@@ -260,6 +265,15 @@ export function mountChrome({ page = "", nav = true, kofi = true } = {}) {
 			}
 	}
 	const theme = initTheme()
+	// Themes are rank rewards, so the menu has to know what this account has
+	// earned. Signed out (or offline) it shows the free set and nothing breaks.
+	themeCtl = theme
+	api("/api/themes", null, "GET")
+		.then((d) => {
+			themeLocks = d.locks || {}
+			theme.setGate(d)
+		})
+		.catch(() => {})
 	const tips = initTooltips() // instant, theme-aware tooltips (js/tooltip.js)
 	initBadgeTips(document, tips) // hover any badge chip for its description
 	if (nav) initNav()
@@ -286,4 +300,7 @@ export function setUserChip(user) {
 	// The admin entrance only appears for admin accounts. Hiding it is
 	// cosmetic — every /api/admin route checks the account itself.
 	if (user.admin) document.getElementById("navAdmin")?.classList.remove("hidden")
+	// /api/me already carries the themes this rank has earned, so signing in
+	// re-gates the menu without a second round trip.
+	if (user.themes && themeCtl) themeCtl.setGate({ locks: themeLocks, unlocked: user.themes })
 }

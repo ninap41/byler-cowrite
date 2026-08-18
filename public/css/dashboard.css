@@ -312,6 +312,7 @@ a.rg-row {
 
 /* ---- inbox ---- */
 .ib-row {
+	position: relative; /* the compact row hangs its ✕ in the corner */
 	display: flex;
 	align-items: flex-start;
 	gap: 10px;
@@ -352,6 +353,7 @@ a.rg-row {
 }
 .ib-when {
 	margin-left: auto;
+	margin-right: 16px; /* the date stops short of the corner ✕ */
 	font-size: 0.72rem;
 	color: var(--muted);
 }
@@ -372,11 +374,98 @@ a.rg-row {
 	padding: 4px 10px;
 	font-size: 0.78rem;
 }
+/* Deleting is not an action you should have to aim at: the ✕ sits in the
+   card's own top-right corner, borderless and quiet, on every inbox surface.
+   It is a dismissal, not a button competing with the message. */
 .ib-del {
-	padding: 4px 8px;
+	position: absolute;
+	top: 4px;
+	right: 6px;
+	padding: 0 4px;
+	min-width: auto;
+	font-size: 0.72rem;
+	line-height: 1.6;
+	border: 0;
+	background: none;
+	box-shadow: none;
+	color: var(--muted);
+	opacity: 0.6;
+}
+.ib-del:hover {
+	border: 0;
+	background: none;
+	color: var(--ink);
+	opacity: 1;
+}
+/* ---- a conversation ---- */
+/* Replies chain under the message they answer, sided so an exchange reads as
+   an exchange. Only /inbox builds these — the dashboard preview never does. */
+.ib-chain {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	margin-top: 8px;
+	padding-left: 10px;
+	border-left: 2px solid var(--line);
+}
+.ib-chain-msg {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	background: var(--panel);
+	border: 1px solid var(--line);
+	border-radius: 10px;
+	padding: 6px 9px;
+}
+.ib-chain-msg.mine {
+	margin-left: 22px;
+	background: var(--chip);
+	border-color: var(--chip-brd);
+}
+.ib-chain-msg.unread {
+	border-color: var(--accent-2);
+}
+.ib-chain-msg .ib-when {
+	margin-right: 0;
+}
+.ib-chain-msg .ib-text {
+	font-size: 0.82rem;
 }
 
-/* the inline reply composer, inside the message row */
+/* a folded conversation: the opening message and the fold button, nothing
+   else — the chain and its composer are still in the DOM, just not shown. */
+.ib-row.ib-collapsed .ib-chain,
+.ib-row.ib-collapsed .ib-reply {
+	display: none;
+}
+.ib-fold {
+	align-self: flex-start;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	margin-top: 8px;
+	padding: 3px 9px;
+	background: var(--chip);
+	border: 1px solid var(--chip-brd);
+	border-radius: 999px;
+	color: var(--muted);
+	font: inherit;
+	font-size: 0.78rem;
+	cursor: pointer;
+}
+.ib-fold:hover {
+	color: var(--ink);
+	border-color: var(--accent-2);
+}
+.ib-fold-caret {
+	transition: transform 0.15s ease;
+}
+.ib-row.ib-collapsed .ib-fold-caret {
+	transform: rotate(-90deg);
+}
+
+/* the reply composer, at the foot of a conversation — always open, because a
+   thread you can answer should not need a button pressed before you can type */
 .ib-reply {
 	display: flex;
 	flex-direction: column;
