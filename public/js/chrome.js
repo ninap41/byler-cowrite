@@ -14,7 +14,7 @@ const BG = `
 	<div class="bg-layers" aria-hidden="true">
 		<div class="bg-wash"></div>
 		<div class="bg-set neon">
-			<div class="glow-sun"></div><div class="sun"></div><div class="stars"></div><div class="grid"></div><div class="scan"></div>
+			<div class="glow-sun"></div><div class="sun"></div><div class="stars"></div><div class="ripple"></div><div class="grid"></div><div class="scan"></div>
 		</div>
 		<div class="bg-set aurora">
 			<div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div><div class="orb o4"></div>

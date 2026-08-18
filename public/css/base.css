@@ -218,11 +218,66 @@ body {
 	border-radius: 50%;
 	background: linear-gradient(#ffde59, #ff3ea5 55%, #a855f7);
 	filter: blur(2px);
-	-webkit-mask:
-		linear-gradient(#000 60%, transparent 60%), repeating-linear-gradient(#000 0 10px, transparent 10px 18px);
-	-webkit-mask-composite: source-in;
-	mask-composite: intersect;
+	/* half a sun, and nothing else: the retro slats are gone, so the disc is a
+	   clean gradient cut off at the horizon rather than a set of blinds. */
+	-webkit-mask: linear-gradient(#000 60%, transparent 60%);
+	mask: linear-gradient(#000 60%, transparent 60%);
 	opacity: 0.8;
+}
+/* The horizon ripples. Two rings spread outward along the line where the grid
+   meets the sky (the grid's top edge sits at 45%), so the edge reads as water
+   under the sun instead of a hard seam. They hold still for a visitor who
+   asked for less motion. */
+.bg-set.neon .ripple {
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: 45%;
+	height: 200px;
+	transform: translateY(-50%);
+	-webkit-mask: radial-gradient(120% 100% at 50% 50%, #000 25%, transparent 78%);
+	mask: radial-gradient(120% 100% at 50% 50%, #000 25%, transparent 78%);
+}
+.bg-set.neon .ripple::before,
+.bg-set.neon .ripple::after {
+	content: "";
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	width: 360px;
+	height: 36px;
+	margin: -18px 0 0 -180px;
+	border-radius: 50%;
+	border: 1px solid rgba(34, 211, 238, 0.5);
+	box-shadow: 0 0 14px rgba(255, 62, 165, 0.3);
+	opacity: 0.3;
+	filter: blur(0.4px);
+}
+.bg-set.neon .ripple::after {
+	transform: scale(2);
+	opacity: 0.16;
+}
+@media (prefers-reduced-motion: no-preference) {
+	.bg-set.neon .ripple::before,
+	.bg-set.neon .ripple::after {
+		animation: horizon-ripple 7s ease-out infinite;
+	}
+	.bg-set.neon .ripple::after {
+		animation-delay: 3.5s;
+	}
+}
+@keyframes horizon-ripple {
+	from {
+		transform: scale(0.35);
+		opacity: 0;
+	}
+	18% {
+		opacity: 0.55;
+	}
+	to {
+		transform: scale(3.6);
+		opacity: 0;
+	}
 }
 .bg-set.neon .grid {
 	position: absolute;
