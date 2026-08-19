@@ -50,7 +50,7 @@ async function sendResetEmail(to, link) {
 }
 
 export function registerRoutes(app, game) {
-  const { sessions, onlineSockets, SAVE_DIR, gameSummary, freshStory, inGame, myGamesFor, recentGamesFor, deleteGame, endGameByCode, renameUser, setTags, commentRows, closeDocFor, closeDocReaders } = game;
+  const { sessions, onlineSockets, SAVE_DIR, gameSummary, freshStory, inGame, myGamesFor, recentGamesFor, deleteGame, endGameByCode, sleepGameByCode, inviteToGame, renameUser, setTags, commentRows, closeDocFor, closeDocReaders } = game;
 
   // Random tagline quote for the homepage hero. quotes.json (repo root, one
   // string per entry) is hand-editable and re-read on every request, so new
@@ -918,6 +918,43 @@ export function registerRoutes(app, game) {
     }
     if (d.hostUserId !== u.id && !isAdmin(u)) return res.status(403).json({ error: "Only the host can end this story." });
     if (!endGameByCode(code, u)) return res.status(409).json({ error: "That story is already over." });
+    res.json({ ok: true });
+  });
+
+  // The host (or an admin) puts a LIVE game to sleep from the dashboard: it
+  // is snapshotted and unloaded, and wakes on the next visit.
+  app.post("/api/games/:code/sleep", (req, res) => {
+    const u = authedUser(req);
+    if (!u) return res.status(401).json({ error: "Sign in first." });
+    const code = String(req.params.code || "").toUpperCase();
+    if (!CODE_RE.test(code)) return res.status(400).json({ error: "Bad code." });
+    const s = sessions.get(code);
+    if (!s) return res.status(409).json({ error: "That story is already asleep." });
+    if (s.hostUserId !== u.id && !isAdmin(u)) return res.status(403).json({ error: "Only the host can put this story to sleep." });
+    if (!sleepGameByCode(code, u)) return res.status(409).json({ error: "That story is over." });
+    res.json({ ok: true });
+  });
+
+  // The host invites a FRIEND to a live session: an inbox game-invite (and a
+  // live toast if they're online). Friends only — same trust line as beta
+  // readers; the game code is in the note, and the join is still gated by
+  // the host once they arrive.
+  app.post("/api/games/:code/invite", (req, res) => {
+    const u = authedUser(req);
+    if (!u) return res.status(401).json({ error: "Sign in first." });
+    const code = String(req.params.code || "").toUpperCase();
+    if (!CODE_RE.test(code)) return res.status(400).json({ error: "Bad code." });
+    const s = sessions.get(code);
+    if (!s) return res.status(404).json({ error: "That story isn't running right now." });
+    const hostSeat = [...s.writers.values()].find((w) => w.userId === u.id);
+    const isHostNow = hostSeat && s.writers.get(s.hostId) === hostSeat;
+    if (!isHostNow && s.hostUserId !== u.id && !isAdmin(u)) return res.status(403).json({ error: "Only the host can invite." });
+    const friend = findByUsername(req.body?.username);
+    if (!friend) return res.status(404).json({ error: "No writer by that name." });
+    if (friend.id === u.id) return res.status(400).json({ error: "That's you." });
+    if ([...s.writers.values()].some((w) => w.userId === friend.id)) return res.status(409).json({ error: `${friend.username} is already in this story.` });
+    if (!areFriends(u, friend)) return res.status(403).json({ error: "You can only invite friends." });
+    inviteToGame(code, u, friend);
     res.json({ ok: true });
   });
 

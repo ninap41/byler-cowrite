@@ -120,3 +120,24 @@ test("a dashboard card's `hosted` flag also rides on a paused snapshot with no l
   assert.equal(card.hosted, true);
   assert.equal(card.paused, true);
 });
+
+test("the host invites a friend to a live session: friends-only, host-only, an inbox game-invite with the code; strangers and non-hosts refused", async () => {
+  const { host, mike, A, B, code } = await startedGame(ctx, { rounds: 3 });
+  const carol = await signup(ctx, "carolstranger", "carol.s@x.com");
+  // not a friend yet
+  assert.equal((await ctx.api(`/api/games/${code}/invite`, { username: "carolstranger" }, host.token)).status, 403);
+  // a non-host writer can't invite
+  assert.equal((await ctx.api(`/api/games/${code}/invite`, { username: "carolstranger" }, mike.token)).status, 403);
+  // make host+carol friends
+  await ctx.api("/api/friends/request", { username: "carolstranger" }, host.token);
+  const req = (await ctx.api("/api/inbox", null, carol.token, "GET")).data.messages.find((m) => m.type === "friend-request");
+  await ctx.api("/api/friends/respond", { id: req.id, accept: true }, carol.token);
+  // now the host may invite; carol gets a game-invite carrying the code
+  assert.equal((await ctx.api(`/api/games/${code}/invite`, { username: "carolstranger" }, host.token)).status, 200);
+  const inv = (await ctx.api("/api/inbox", null, carol.token, "GET")).data.messages.find((m) => m.type === "game-invite" && m.code === code);
+  assert.ok(inv, "invite landed with the code");
+  assert.match(inv.text, /invited you to come write/);
+  // already in it → 409; unknown game → 404
+  assert.equal((await ctx.api(`/api/games/${code}/invite`, { username: "mikewheeler" }, host.token)).status, 409);
+  assert.equal((await ctx.api(`/api/games/ZZZZ/invite`, { username: "carolstranger" }, host.token)).status, 404);
+});

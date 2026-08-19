@@ -187,6 +187,14 @@
 										<button class="ghost" id="coverBtn2" style="flex: 0 0 auto; min-width: auto">Set</button>
 									</div>
 									<img id="coverPreview2" class="cover-preview hidden" alt="Cover preview" loading="lazy" />
+									<!-- invite a friend: an inbox note with the code (and a live
+									     toast if they're online). Friends only, host only. -->
+									<label for="inviteFriend" style="margin-top: 10px">Invite a friend</label>
+									<div class="chat-row">
+										<select id="inviteFriend" aria-label="Friend to invite"><option value="">Loading friends…</option></select>
+										<button class="ghost" id="inviteBtn" style="flex: 0 0 auto; min-width: auto">Invite</button>
+									</div>
+									<p class="subtle hidden" id="inviteNote" style="text-align: left; margin: 6px 0 0"></p>
 								</div>
 							</div>
 						</aside>
@@ -974,6 +982,35 @@
 				open: true,
 				onChange: ({ open }) => $("hostOpen").classList.toggle("hidden", open || $("hostSide").classList.contains("hidden")),
 			})
+			// ---- Invite a friend (host drawer) ----
+			async function loadInviteFriends() {
+				const sel = $("inviteFriend")
+				try {
+					const d = await authApi("/api/friends", null, "GET")
+					const friends = d.friends || []
+					sel.innerHTML = friends.length
+						? `<option value="">Pick a friend…</option>` +
+							friends.map((f) => `<option value="${esc(f.username)}">${esc(f.username)}${f.online ? " · online" : ""}</option>`).join("")
+						: `<option value="">No friends yet — add some from a profile</option>`
+				} catch (e) {
+					sel.innerHTML = `<option value="">Couldn't load friends</option>`
+				}
+			}
+			if (me) loadInviteFriends()
+			$("inviteBtn").onclick = async () => {
+				const who = $("inviteFriend").value
+				const note = $("inviteNote")
+				if (!who || !myCode) return
+				try {
+					await authApi("/api/games/" + encodeURIComponent(myCode) + "/invite", { username: who })
+					note.textContent = `✉ Invited ${who} — they'll get a note with the code${friendsOnline(who) ? " and a toast right now" : ""}.`
+				} catch (e) {
+					note.textContent = e.message
+				}
+				note.classList.remove("hidden")
+				setTimeout(() => note.classList.add("hidden"), 5000)
+			}
+			const friendsOnline = (name) => /· online$/.test($("inviteFriend").selectedOptions[0]?.textContent || "")
 
 $("pauseBtn").onclick = () =>
 				socket.emit($("pauseBtn").textContent.includes("Resume") ? "resume-game" : "pause-game")
@@ -1072,6 +1109,16 @@ $("pauseBtn").onclick = () =>
 			}
 
 			// ---- The host deleted this story ----
+			// The story went to sleep (30 idle minutes, or the host from the
+			// dashboard): snapshot on disk, session gone. The next visit wakes it.
+			socket.on("game-slept", ({ code, name, by }) => {
+				clearInterval(tickInterval)
+				vecnaClock.stop()
+				turnAlert(false)
+				onlyShow("none")
+				hide("chatCard")
+				gameMsg(`💤 “${name || code}” went to sleep${by ? ` — ${by} tucked it in` : " — nobody's written for a while"}. Wake it up from the dashboard, or reload to pick it back up.`)
+			})
 			socket.on("game-deleted", () => {
 				clearRejoin()
 				clearInterval(tickInterval)

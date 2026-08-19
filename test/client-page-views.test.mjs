@@ -274,3 +274,18 @@ test("dashboard: the host's card menu offers End & reveal and Delete behind conf
   assert.match(html, /"\/api\/games\/" \+ encodeURIComponent\(g\.code\), null, "DELETE"/);
   assert.ok(!/mg-del\b/.test(html), "the bare Delete button is gone");
 });
+
+test("archive: only the host may continue a story — canContinue is host-only, by username", async () => {
+  const { canContinue } = await import("../public/js/archive-view.js");
+  assert.equal(canContinue({ hostName: "mikewheeler" }, "mikewheeler"), true, "the host can continue");
+  assert.equal(canContinue({ hostName: "mikewheeler" }, "willbyers"), false, "a contributor cannot");
+  assert.equal(canContinue({ hostName: "mikewheeler" }, null), false, "signed out cannot");
+  assert.equal(canContinue({ hostName: "" }, "willbyers"), false, "no host named, no continue");
+  assert.equal(canContinue(null, "x"), false);
+  // and the page hides the buttons through it, not with an ad-hoc check
+  const { readFileSync } = await import("node:fs");
+  const html = readFileSync(new URL("../public/archive.html", import.meta.url), "utf-8");
+  assert.match(html, /import \{[^}]*canContinue[^}]*\} from "\/js\/archive-view\.js"/);
+  assert.match(html, /canContinue\(g, me\?\.username\)/, "the card's Continue is gated");
+  assert.match(html, /canContinue\(g, me\?\.username\)/, "the detail's Continue too");
+});

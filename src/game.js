@@ -186,7 +186,7 @@ export function createGame(io) {
       createdAt: d.createdAt ?? null, tags: d.tags || [],
     };
     sessions.set(code, s);
-    if (s.phase === "writing") armIdleEnd(s); // wakes paused — don't let it sit forever
+    if (s.phase === "writing") armIdleSleep(s); // wakes paused — and sleeps again if left alone
     return s;
   }
 
@@ -205,6 +205,7 @@ export function createGame(io) {
   // and is deliberately ephemeral: in-memory ring only, never snapshotted.
   const writersRoom = (s) => s.code + ":writers";
   function joinAsWriter(sock, s) {
+    touch(s);
     sock.join(s.code);
     sock.join(writersRoom(s));
     sock.emit("chat-history", s.chat);
@@ -335,7 +336,7 @@ export function createGame(io) {
       s.paused = true;
       s.remaining = Math.max(0, s.deadline - Date.now());
       clearTimeout(s.timer);
-      armIdleEnd(s);
+      armIdleSleep(s);
       saveSnapshot(s);
       announce(s, w, "stepped away — game paused");
     }
@@ -475,14 +476,40 @@ export function createGame(io) {
   // A paused writing game that sits idle this long ends itself with a reveal.
   // Nothing is lost: the snapshot survives and the host can continue-writing
   // from the archive any time. (Env override keeps the tests fast.)
-  const IDLE_END_MS = Number(process.env.COWRITE_IDLE_END_MS) || 30 * 60_000;
-  function armIdleEnd(s) {
+  // A live game with NO ACTIVITY for 30 minutes goes to SLEEP — paused or
+  // not: nobody wrote, typed, chatted, voted, joined or touched the rules —
+  // rather than being revealed. Sleep = snapshot to disk, everyone in the
+  // room told (`game-slept`), the session unloaded; the dashboard shows it
+  // as "Wake it up" and the first rejoin revives it (loadSession) paused.
+  // Turns advancing on their own are NOT activity — a timed game nobody is
+  // writing in is exactly the idle case. touch(s) is called on every real
+  // action; COWRITE_IDLE_SLEEP_MS (or the older COWRITE_IDLE_END_MS) shrinks
+  // the window for tests.
+  const IDLE_SLEEP_MS = Number(process.env.COWRITE_IDLE_SLEEP_MS || process.env.COWRITE_IDLE_END_MS) || 30 * 60_000;
+  function armIdleSleep(s) {
     clearTimeout(s.idleTimer);
+    if (s.phase === "over") return;
     s.idleTimer = setTimeout(() => {
-      if (s.phase !== "writing" || !s.paused) return;
-      announce(s, s.writers.get(s.hostId), `— idle for ${Math.round(IDLE_END_MS / 60_000)} minutes, so the story was revealed. Continue it any time from the archive.`);
-      endGame(s);
-    }, IDLE_END_MS);
+      if (!sessions.has(s.code) || s.phase === "over") return;
+      sleepGame(s, null, `— no one's written for ${Math.round(IDLE_SLEEP_MS / 60_000)} minutes, so the story went to sleep. Wake it up any time from the dashboard.`);
+    }, IDLE_SLEEP_MS);
+  }
+  const touch = (s) => s && armIdleSleep(s);
+  function sleepGame(s, by, line) {
+    if (!sessions.has(s.code)) return false;
+    if (s.phase === "writing" && !s.paused) {
+      s.paused = true;
+      s.remaining = s.turnSeconds ? Math.max(0, s.deadline - Date.now()) || s.turnSeconds * 1000 : 0;
+    }
+    clearTimeout(s.timer);
+    clearTimeout(s.idleTimer);
+    announce(s, by ? { name: by.username, color: cleanColor(by.color) } : (s.writers.get(s.hostId) ?? { name: s.hostName }), line);
+    saveSnapshot(s);
+    io.to(s.code).emit("game-slept", { code: s.code, name: s.name || "", by: by?.username ?? null });
+    for (const w of s.writers.values()) clearTimeout(w.ghostTimer);
+    for (const uid of [...(s.dice?.keys() ?? [])]) dropDie(s, uid);
+    sessions.delete(s.code);
+    return true;
   }
 
   // Turn length sanitizer: 0 (explicit) = untimed — turns wait for the writer.
@@ -495,7 +522,7 @@ export function createGame(io) {
 
   function startTurn(s) {
     clearTimeout(s.timer);
-    clearTimeout(s.idleTimer);
+    if (!s.idleTimer) armIdleSleep(s); // a game that never saw activity still has a clock on it
     s.paused = false;
     s.remaining = 0;
     if (s.turnOrder.length === 0) return endGame(s);
@@ -509,7 +536,6 @@ export function createGame(io) {
     if (!s.writers.get(currentId(s))?.connected) {
       s.paused = true;
       s.remaining = s.turnSeconds * 1000;
-      armIdleEnd(s);
       saveSnapshot(s);
       broadcastGame(s);
       return;
@@ -857,6 +883,7 @@ export function createGame(io) {
     socket.on("vote", ({ prompt }, ack) => {
       const s = mySession();
       if (!s || s.phase !== "choosing" || !s.options.includes(prompt)) return ack?.({ ok: false });
+      touch(s);
       s.votes.set(socket.id, prompt);
       if (s.votes.size >= connectedCount(s)) return finalizeVote(s);
       broadcastGame(s);
@@ -904,6 +931,7 @@ export function createGame(io) {
       const s = mySession();
       if (!s || s.phase !== "writing" || s.paused) return;
       if (currentId(s) !== socket.id) return;
+      touch(s);
       s.lastTypingRaw = String(text || ""); // committed at timeout; advance() sanitizes ONCE
       s.lastTyping = sanitizeRich(text || "");
       socket.to(s.code).emit("live-typing", { html: s.lastTyping });
@@ -958,6 +986,7 @@ export function createGame(io) {
       const s = mySession();
       if (!s || s.phase !== "writing" || s.paused) return ack?.({ ok: false });
       if (currentId(s) !== socket.id) return ack?.({ ok: false, error: "Not your turn." });
+      touch(s);
       advance(s, s.writers.get(socket.id), text);
       ack?.({ ok: true });
     });
@@ -995,7 +1024,7 @@ export function createGame(io) {
       s.paused = true;
       s.remaining = Math.max(0, s.deadline - Date.now());
       clearTimeout(s.timer);
-      armIdleEnd(s);
+      touch(s);
       saveSnapshot(s);
       broadcastGame(s);
       ack?.({ ok: true });
@@ -1066,7 +1095,7 @@ export function createGame(io) {
         ack?.({ ok: true });
         return startTurn(s);
       }
-      clearTimeout(s.idleTimer);
+      touch(s);
       if (s.turnSeconds === 0) {
         s.deadline = 0; // untimed: resume just unfreezes, no clock to rearm
         broadcastGame(s);
@@ -1090,6 +1119,7 @@ export function createGame(io) {
     socket.on("chat", ({ text }) => {
       const s = mySession();
       if (!s || !text || !text.trim()) return;
+      touch(s);
       const w = s.writers.get(socket.id);
       const msg = {
         id: socket.id, // lets clients tell their own echo from others' messages (sounds)
@@ -1188,6 +1218,7 @@ export function createGame(io) {
       s.gimmickRolls ??= new Map(); // userId -> last roll timestamp (never on the wire)
       if (now - (s.gimmickRolls.get(w.userId) ?? 0) < ROLL_MS) return ack?.({ ok: false, error: "Still rolling…" });
       s.gimmickRolls.set(w.userId, now);
+      touch(s);
       const outcome = rollOutcome(rollDie());
       // The steal: writing, not paused, and it isn't already their turn.
       let stole = false, from = "";
@@ -1591,5 +1622,27 @@ export function createGame(io) {
     }
   }
 
-  return { sessions, onlineSockets, SAVE_DIR, gameSummary, freshStory, inGame, myGamesFor, recentGamesFor, deleteGame, endGameByCode, renameUser, setTags, commentRows, closeDocFor, closeDocReaders };
+  // Host/admin from the dashboard: put a live game to sleep now.
+  function sleepGameByCode(code, by) {
+    const s = sessions.get(String(code || "").toUpperCase());
+    if (!s || s.phase === "over") return false;
+    return sleepGame(s, by, "put the story to sleep — wake it up any time from the dashboard.");
+  }
+  // Invite a friend to a session: an inbox game-invite (with the code) and a
+  // live toast if they're online. Host-only, friends-only (routes.js checks).
+  function inviteToGame(code, host, friend) {
+    const s = sessions.get(String(code || "").toUpperCase());
+    const name = s?.name || "";
+    friend.inbox = friend.inbox || [];
+    friend.inbox.unshift({
+      ...makeMsg("game-invite", host.id, `“${name || code}” — ${host.username} invited you to come write!`),
+      code,
+    });
+    saveStore();
+    for (const [sid, uid] of onlineSockets.entries())
+      if (uid === friend.id) io.to(sid).emit("game-invite", { code, name, host: host.username });
+    return true;
+  }
+
+  return { sessions, onlineSockets, SAVE_DIR, gameSummary, freshStory, inGame, myGamesFor, recentGamesFor, deleteGame, endGameByCode, sleepGameByCode, inviteToGame, renameUser, setTags, commentRows, closeDocFor, closeDocReaders };
 }

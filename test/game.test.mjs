@@ -232,27 +232,68 @@ test("delete-line: authors remove their own lines only; story re-broadcasts", as
   assert.ok(state.current.story[0].html.includes("a line that stays"), "the right line was removed");
 });
 
-test("idle timeout: a game paused past the idle window ends with a reveal", async () => {
-  const idleCtx = await startServer({ COWRITE_IDLE_END_MS: "700" });
+test("idle sleep: a live game with no activity for the window goes to SLEEP (not revealed); the snapshot survives and wakes paused", async () => {
+  const idleCtx = await startServer({ COWRITE_IDLE_SLEEP_MS: "700" });
   try {
-    const { A, state } = await startedGame(idleCtx);
-    let over = null;
+    const { A, host, code, state } = await startedGame(idleCtx);
+    let slept = null, over = null;
+    A.on("game-slept", (d) => (slept = d));
     A.on("game-over", (d) => (over = d));
-    await idleCtx.emit(A, "pause-game", {});
     await idleCtx.wait(300);
-    assert.equal(over, null, "not ended before the window");
+    assert.equal(slept, null, "not before the window");
     await idleCtx.wait(700);
-    assert.ok(over, "idle pause auto-ends with a reveal");
-    assert.equal(state.current?.phase === "over" || !!over, true);
-    // resuming inside the window must disarm the timer
-    const { A: A2, state: st2 } = await startedGame(idleCtx);
-    await idleCtx.emit(A2, "pause-game", {});
-    await idleCtx.wait(300);
-    await idleCtx.emit(A2, "resume-game", {});
-    await idleCtx.wait(700);
-    assert.equal(st2.current.phase, "writing", "resume disarms the idle end");
+    assert.ok(slept, "no activity → asleep");
+    assert.equal(over, null, "asleep, not revealed");
+    assert.equal(slept.code, code);
+    // it's off "games in progress"? no — a sleeping game still shows, as paused
+    const dash = await idleCtx.api("/api/dashboard", null, host.token, "GET");
+    const card = dash.data.myGames.find((g) => g.code === code);
+    assert.ok(card && card.paused && !card.live, "listed as paused, not live");
+    // and it's continuable — the archive still has it
+    const detail = await idleCtx.api("/api/games/" + code, null, host.token, "GET");
+    assert.equal(detail.status, 200);
+    assert.notEqual(detail.data.phase, "over");
   } finally {
     await idleCtx.stop();
+  }
+});
+
+test("idle sleep: real activity resets the window — a game being written in never sleeps", async () => {
+  const idleCtx = await startServer({ COWRITE_IDLE_SLEEP_MS: "700" });
+  try {
+    const { A, B, state } = await startedGame(idleCtx);
+    let slept = null;
+    A.on("game-slept", (d) => (slept = d));
+    // chat every 300ms across the 700ms window: activity keeps it awake
+    for (let i = 0; i < 4; i++) {
+      const who = state.current.currentId === A.id ? A : B;
+      who.emit("chat", { text: "still here " + i });
+      await idleCtx.wait(300);
+    }
+    assert.equal(slept, null, "activity keeps the window from firing");
+    // now go quiet
+    await idleCtx.wait(800);
+    assert.ok(slept, "silence finally sleeps it");
+  } finally {
+    await idleCtx.stop();
+  }
+});
+
+test("host puts a live game to sleep from the dashboard; non-hosts can't; a sleeping one is a 409", async () => {
+  const sctx = await startServer();
+  try {
+    const { host, mike, A, code } = await startedGame(sctx);
+    const slept = new Promise((r) => A.on("game-slept", r));
+    assert.equal((await sctx.api(`/api/games/${code}/sleep`, {}, mike.token)).status, 403, "not the host");
+    assert.equal((await sctx.api(`/api/games/${code}/sleep`, {}, host.token)).status, 200);
+    await slept;
+    await sctx.wait(100);
+    assert.equal((await sctx.api(`/api/games/${code}/sleep`, {}, host.token)).status, 409, "already asleep (unloaded)");
+    const dash = await sctx.api("/api/dashboard", null, host.token, "GET");
+    const card = dash.data.myGames.find((g) => g.code === code);
+    assert.ok(card && !card.live, "wakeable from the dashboard");
+  } finally {
+    await sctx.stop();
   }
 });
 

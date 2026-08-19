@@ -387,6 +387,23 @@
 					mgNote(e.message)
 				}
 			}
+			// Sleep: snapshot + unload a LIVE game now (it wakes on the next visit).
+			// Only a live game can be put to sleep — a sleeping one already is.
+			async function sleepFromCard(g) {
+				const ok = await confirmDialog({
+					title: `Put “${g.name || "Untitled story"}” to sleep?`,
+					text: "The story is saved where it is and everyone in it is told. It wakes up the next time anyone opens it — nothing is lost.",
+					confirmLabel: "Put to sleep",
+					danger: false,
+				})
+				if (!ok) return
+				try {
+					await api("/api/games/" + encodeURIComponent(g.code) + "/sleep")
+					loadDashboard()
+				} catch (e) {
+					mgNote(e.message)
+				}
+			}
 			async function deleteFromCard(g) {
 				const ok = await confirmDialog({
 					title: `Delete “${g.name || "Untitled story"}”?`,
@@ -436,9 +453,10 @@
 						more.innerHTML =
 							`<button type="button" class="ghost mg-more" aria-haspopup="menu" aria-expanded="false" title="More options">⋯</button>` +
 							`<div class="mg-menu-list" role="menu">` +
+							`<button type="button" role="menuitem" data-act="sleep" ${g.live ? "" : "disabled"}>💤 Put to sleep</button>` +
 							`<button type="button" role="menuitem" data-act="end" ${active ? "disabled" : ""}>🏁 End game &amp; reveal</button>` +
 							`<button type="button" role="menuitem" class="danger" data-act="delete" ${active ? "disabled" : ""}>🗑 Delete story</button>` +
-							(active ? `<span class="mg-menu-note">Pause the game first — it's in play.</span>` : "") +
+							(active ? `<span class="mg-menu-note">End/delete need the game paused — or put it to sleep.</span>` : g.live ? "" : `<span class="mg-menu-note">Already asleep.</span>`) +
 							`</div>`
 						more.querySelector(".mg-more").onclick = (e) => {
 							e.stopPropagation()
@@ -452,7 +470,8 @@
 							const b = e.target.closest("[data-act]")
 							if (!b || b.disabled) return
 							more.classList.remove("open")
-							if (b.dataset.act === "end") endFromCard(g)
+							if (b.dataset.act === "sleep") sleepFromCard(g)
+							else if (b.dataset.act === "end") endFromCard(g)
 							else deleteFromCard(g)
 						}
 						card.appendChild(more)

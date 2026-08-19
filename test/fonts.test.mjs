@@ -107,14 +107,14 @@ test("the solo editor's typeface menu is 'theme' plus the whole registry, in reg
   assert.deepEqual(DOC_FONTS.slice(1), [...LOADED_FONTS, ...SYSTEM_FONTS]);
 });
 
-test("every site font has its html[data-font] rule, overriding body + story and nothing else", async () => {
+test("every site font has its html[data-font] rule, overriding body + story + display (headings) and nothing else", async () => {
   const { SITE_FONTS } = await import("../public/js/fonts.js");
   const rules = {};
   for (const [, key, body] of css.matchAll(/html\[data-font="([a-z0-9]+)"\]\s*\{([\s\S]*?)\n\}/g)) rules[key] = body;
   assert.deepEqual(Object.keys(rules).sort(), SITE_FONTS.map((f) => f.key).sort(), "one rule per font, no strays");
   for (const f of SITE_FONTS) {
     const vars = Object.fromEntries([...rules[f.key].matchAll(/--font-(\w+):([^;]+);/g)].map((m) => [m[1], m[2].trim()]));
-    assert.deepEqual(vars, { body: f.stack, story: f.stack }, f.key + " overrides exactly body + story with its own stack");
+    assert.deepEqual(vars, { body: f.stack, story: f.stack, display: f.stack }, f.key + " overrides exactly body + story + display with its own stack");
   }
 });
 

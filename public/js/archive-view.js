@@ -5,6 +5,12 @@ import { coverStyle } from "./dashboard-view.js"
 export const fmtWhen = (ts) =>
 	ts ? new Date(ts).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : "unknown date"
 
+// Only the ORIGINAL host may continue a story from the archive — a
+// contributor can read it, but picking the story back up is the host's call
+// (and the server's `continue-writing` enforces the same). Matched by
+// username, since that's what the archive carries.
+export const canContinue = (g, username) => !!g && !!username && !!g.hostName && g.hostName === username
+
 export function gameCardHtml(g) {
 	// Title line: the game's name when the host set one, otherwise the prompt.
 	return (

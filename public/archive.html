@@ -73,7 +73,7 @@
 			import { api } from "/js/api.js"
 			import { mountChrome, setUserChip } from "/js/chrome.js"
 			import { requireAuth } from "/js/auth-guard.js"
-			import { gameCardHtml, archiveStoryHtml, fmtWhen } from "/js/archive-view.js"
+			import { gameCardHtml, archiveStoryHtml, fmtWhen, canContinue } from "/js/archive-view.js"
 			import { mountViewPicker, applyGrid } from "/js/components/view-picker.js"
 			import { safeColor, oneLinePrompt } from "/js/util.js"
 			import { buildExports, exportDocument } from "/js/export.js"
@@ -136,15 +136,18 @@
 					b.className = "game-card"
 					b.style.cursor = "pointer"
 					b.innerHTML = gameCardHtml(g)
-					const cont = document.createElement("button")
-					cont.className = "primary"
-					cont.textContent = "Continue →"
-					cont.style.cssText = "margin-top:10px;flex:none;min-width:0;padding:8px 14px;font-size:.85rem"
-					cont.onclick = (e) => {
-						e.stopPropagation()
-						location.href = "/game?code=" + encodeURIComponent(g.code)
+					// the host alone may continue; everyone else just reads
+					if (canContinue(g, me?.username)) {
+						const cont = document.createElement("button")
+						cont.className = "primary"
+						cont.textContent = "Continue →"
+						cont.style.cssText = "margin-top:10px;flex:none;min-width:0;padding:8px 14px;font-size:.85rem"
+						cont.onclick = (e) => {
+							e.stopPropagation()
+							location.href = "/game?code=" + encodeURIComponent(g.code)
+						}
+						b.appendChild(cont)
 					}
-					b.appendChild(cont)
 					b.onclick = () => openGameDetail(g.code)
 					box.appendChild(b)
 					if (window.gsap && hasGsap)
@@ -190,6 +193,8 @@
 				})
 				// story html was sanitized server-side by sanitizeRich() before being saved
 				$("archStory").innerHTML = archiveStoryHtml(g.story)
+				const mayContinue = canContinue(g, me?.username)
+				$("archContinue").classList.toggle("hidden", !mayContinue)
 				$("archContinue").onclick = () => (location.href = "/game?code=" + encodeURIComponent(g.code))
 				$("archDelete").classList.toggle("hidden", g.hostName !== me.username)
 				$("archiveList").classList.add("hidden")
