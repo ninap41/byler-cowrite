@@ -500,6 +500,30 @@ export function registerRoutes(app, game) {
     res.json({ ok: true, sentTo: admins.map((a) => a.username) });
   });
 
+  // Message another writer straight from their profile — a plain note into
+  // their inbox that starts a conversation (they Reply to chain onto it). No
+  // friendship required: an inbox note is how people first reach each other.
+  app.post("/api/message", (req, res) => {
+    const u = authedUser(req);
+    if (!u) return res.status(401).json({ error: "Sign in first." });
+    const to = findByUsername(req.body?.username);
+    if (!to) return res.status(404).json({ error: "No writer by that name." });
+    if (to.id === u.id) return res.status(400).json({ error: "That's you." });
+    const text = stripTags(String(req.body?.text || "")).trim().slice(0, HELP_MAX);
+    if (text.length < 1) return res.status(400).json({ error: "Type a message first." });
+    // light anti-spam, shared with the help box's cadence
+    if (u.lastHelpAt && Date.now() - u.lastHelpAt < HELP_COOLDOWN_MS)
+      return res.status(429).json({ error: "Give the last message a moment to land." });
+    u.lastHelpAt = Date.now();
+    const threadId = randomUUID();
+    to.inbox = to.inbox || [];
+    to.inbox.unshift(makeMsg("note", u.id, text, { threadId }));
+    u.inbox = u.inbox || [];
+    u.inbox.unshift(makeMsg("note", u.id, text, { threadId, mine: true, read: true }));
+    saveStore();
+    res.json({ ok: true });
+  });
+
   // Reply to a message sitting in MY inbox — the other half of the help box,
   // and how the admin answers. The reply is an ordinary note in their inbox.
   app.post("/api/inbox/reply", (req, res) => {

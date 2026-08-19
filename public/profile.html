@@ -42,7 +42,8 @@
 									<span class="me-name" id="meName"></span>
 									<span class="badge-chip" id="meBadge"></span>
 									<span class="player-chip hidden" id="onlineChip"><span class="st-dot on"></span>online</span>
-									<button class="ghost hidden" id="friendBtn" style="margin-left: auto"></button>
+									<button class="ghost hidden" id="msgBtn" style="margin-left: auto">✉ Message</button>
+									<button class="ghost hidden" id="friendBtn"></button>
 								</div>
 								<p class="welcome-sub" id="profileSub"></p>
 							<p class="subtle hidden" id="lastLineBox" style="text-align: left; margin: 8px 0 0; font-style: italic">
@@ -50,6 +51,20 @@
 								<span id="lastLineMeta" style="display: block; font-style: normal; font-size: 0.75rem; margin-top: 2px"></span>
 							</p>
 								<div class="err" id="profErr"></div>
+
+				<!-- message composer: a note into their inbox that starts a thread -->
+				<div class="confirm-modal hidden" id="msgModal">
+					<div class="confirm-card" style="max-width: 460px">
+						<h3 id="msgTitle">Message</h3>
+						<textarea id="msgText" rows="4" maxlength="1000" placeholder="Say hi…" style="width:100%;resize:vertical"></textarea>
+						<div class="row">
+							<button class="ghost" id="msgCancel">Cancel</button>
+							<button class="primary" id="msgSend">Send</button>
+						</div>
+						<div class="err" id="msgErr"></div>
+						<p class="subtle hidden" id="msgOk" style="text-align:left;margin:6px 0 0">✓ Sent — it's in their inbox.</p>
+					</div>
+				</div>
 							</div>
 						</div>
 						<div class="stat-row">
@@ -226,6 +241,39 @@
 						renderFriendBtn()
 					}
 					renderFriendBtn()
+					// Message: opens a small composer that posts a note into their inbox
+					const msgBtn = $("msgBtn")
+					msgBtn.classList.toggle("hidden", itsMe)
+					msgBtn.onclick = () => {
+						$("msgTitle").textContent = `Message ${p.username}`
+						$("msgText").value = ""
+						$("msgErr").textContent = ""
+						$("msgOk").classList.add("hidden")
+						$("msgModal").classList.remove("hidden")
+						$("msgText").focus()
+					}
+					const closeMsg = () => $("msgModal").classList.add("hidden")
+					$("msgCancel").onclick = closeMsg
+					$("msgModal").onclick = (e) => e.target === $("msgModal") && closeMsg()
+					$("msgSend").onclick = async () => {
+						const text = $("msgText").value.trim()
+						if (!text) return ($("msgErr").textContent = "Type a message first.")
+						$("msgSend").disabled = true
+						try {
+							await api("/api/message", { username: p.username, text })
+							$("msgErr").textContent = ""
+							$("msgOk").classList.remove("hidden")
+							$("msgText").value = ""
+							setTimeout(closeMsg, 900)
+						} catch (e) {
+							$("msgErr").textContent = e.message
+						}
+						$("msgSend").disabled = false
+					}
+					$("msgText").addEventListener("keydown", (e) => {
+						if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) $("msgSend").click()
+						if (e.key === "Escape") closeMsg()
+					})
 					$("statWords").textContent = p.wordCount.toLocaleString()
 					$("statBadges").textContent = p.badges.length
 					$("statStories").textContent = p.stories

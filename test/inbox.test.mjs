@@ -148,3 +148,34 @@ test("the inbox ✕ asks first — the same confirm modal as every other delete"
   assert.match(comp, /Delete this conversation\?/);
   assert.match(comp, /Delete this message\?/);
 });
+
+test("messaging a writer from their profile drops a note that starts a conversation on both sides; no friendship needed; self is refused", async () => {
+  const a = await signup(ctx, "msgsender", "ms1@x.com");
+  const b = await signup(ctx, "msgtarget", "ms2@x.com");
+  assert.equal((await ctx.api("/api/message", { username: "msgtarget", text: "" }, a.token)).status, 400, "empty refused");
+  assert.equal((await ctx.api("/api/message", { username: "nobody", text: "hi" }, a.token)).status, 404);
+  assert.equal((await ctx.api("/api/message", { username: "msgsender", text: "hi me" }, a.token)).status, 400, "not yourself");
+  const sent = await ctx.api("/api/message", { username: "msgtarget", text: "Loved your last line." }, a.token);
+  assert.equal(sent.status, 200);
+  const theirs = (await inboxOf(b)).find((m) => m.text === "Loved your last line.");
+  assert.ok(theirs, "it landed in their inbox");
+  assert.equal(theirs.type, "note");
+  assert.ok(!theirs.mine, "the recipient copy is not marked mine");
+  assert.ok(theirs.threadId, "starts a thread they can reply into");
+  const mine = (await inboxOf(a)).find((m) => m.threadId === theirs.threadId);
+  assert.ok(mine && mine.mine && mine.read, "the sender keeps a read copy so both halves show");
+  // and it's a real conversation — a reply chains onto it
+  await ctx.api("/api/inbox/reply", { id: theirs.id, text: "thank you!" }, b.token);
+  const chain = (await inboxOf(a)).filter((m) => m.threadId === theirs.threadId);
+  assert.equal(chain.length, 2);
+  // the 30s cadence is shared with the help box
+  assert.equal((await ctx.api("/api/message", { username: "msgtarget", text: "again" }, a.token)).status, 429);
+});
+
+test("the profile page carries a Message button beside the friend button, hidden on your own profile", async () => {
+  const html = await fetch(ctx.url + "/profile").then((r) => r.text());
+  assert.match(html, /id="msgBtn"/);
+  assert.match(html, /id="msgModal"/);
+  assert.match(html, /"\/api\/message", \{ username: p\.username, text \}/);
+  assert.match(html, /msgBtn\.classList\.toggle\("hidden", itsMe\)/, "hidden on your own profile");
+});
