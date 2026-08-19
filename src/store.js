@@ -5,7 +5,7 @@ import { readFileSync, writeFileSync, mkdirSync } from "fs";
 import { randomUUID } from "crypto";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
-import { badgeName, badgeDesc, isUsageId, isOpenUsageId, nextTierFor, migrateBadges, unlockedThemes } from "../lib/achievements.js";
+import { badgeName, badgeDesc, isUsageId, isOpenUsageId, nextTierFor, migrateBadges, unlockedThemes, unlockedGimmicks } from "../lib/achievements.js";
 import { mirror } from "./persist.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -125,6 +125,7 @@ export const publicUser = (u) => ({
   // the gated themes this rank has earned (admins: all of them) — the theme
   // menu reads it straight off /api/me, no second request on page load
   themes: unlockedThemes(u),
+  gimmicks: unlockedGimmicks(u), // same idea: the gimmicks this rank has earned
   currentBadge: badgeName(u.currentBadge), badges: u.badges.map(badgeName),
   wordBadges: u.badges.filter((id) => !isUsageId(id)).map(badgeName),
   usageBadges: u.badges.filter((id) => isUsageId(id) && !isOpenUsageId(id)).map(badgeName),
@@ -135,8 +136,8 @@ export const publicUser = (u) => ({
   streak: u.streak || 0, bestStreak: u.bestStreak || 0, lastWroteDay: u.lastWroteDay ?? null,
   // per-category sound prefs; a legacy boolean (or absence) fans out to all
   sounds: typeof u.sounds === "object" && u.sounds !== null
-    ? { chat: u.sounds.chat !== false, story: u.sounds.story !== false, clock: u.sounds.clock !== false }
-    : { chat: u.sounds !== false, story: u.sounds !== false, clock: u.sounds !== false },
+    ? { chat: u.sounds.chat !== false, story: u.sounds.story !== false, clock: u.sounds.clock !== false, gimmick: u.sounds.gimmick !== false }
+    : { chat: u.sounds !== false, story: u.sounds !== false, clock: u.sounds !== false, gimmick: u.sounds !== false },
   about: u.about || "", links: u.links || [], avatar: u.avatar || "", avatarFit: u.avatarFit || "cover",
   lastLine: u.lastLine || null, // newest committed story line (text/code/name/at)
 });

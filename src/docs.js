@@ -124,6 +124,11 @@ const onMyShelf = (doc, userId) =>
 // Public writes, for the all-stories listing. "Public" means LISTED: one tier
 // fewer to explain than a link-only one.
 export const publicDocs = () => allDocs().filter((d) => d.visibility === "public");
+// Everything ONE writer has written, private included, newest first — for
+// their profile and their /stories?user= page, where a private write is
+// still LISTED (it exists) but only opens for someone allowed to read it.
+export const docsOwnedBy = (userId) =>
+  allDocs().filter((d) => d.ownerId === userId).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
 
 export const listDocsFor = (userId, nameOf) =>
   allDocs()

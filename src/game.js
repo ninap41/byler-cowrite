@@ -2,11 +2,12 @@
 // Socket.IO handlers. createGame(io) owns the in-memory maps and returns the
 // pieces the HTTP routes need (sessions, archive helpers, presence).
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync, unlinkSync } from "fs";
-import { randomUUID } from "crypto";
+import { randomUUID, randomInt } from "crypto";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import { bumpStreak } from "../lib/streak.js";
-import { badgeName, badgeDesc, usageMatches, awardWordBadges, rewardsForTiers, describeRewards, unlockedThemes } from "../lib/achievements.js";
+import { badgeName, badgeDesc, usageMatches, awardWordBadges, rewardsForTiers, describeRewards, unlockedThemes, unlockedGimmicks, canUseGimmick } from "../lib/achievements.js";
+import { cleanGimmickId, rollOutcome, describeRoll, ROLL_COOLDOWN_MS, DIE_SIDES } from "../lib/gimmicks.js";
 import { PALETTE, cleanColor, sanitizeRich, stripTags, httpUrl, sanitizeDoc, CID_RE } from "./sanitize.js";
 import { store, saveStore, userByToken, makeMsg, isAdmin } from "./store.js";
 import { mirror, mirrorDelete } from "./persist.js";
@@ -208,20 +209,49 @@ export function createGame(io) {
     sock.join(writersRoom(s));
     sock.emit("chat-history", s.chat);
     sock.emit("spec-chat-history", s.specChat ?? []);
+    if (s.dice?.size) sock.emit("gimmick-dice", diceList(s));
   }
   const SPEC_CHAT_LIMIT = 50;
   // spectator name colors: stable per name, never attacker-controlled (PALETTE only)
   const specColor = (name) => PALETTE[[...name].reduce((h, c) => h + c.charCodeAt(0), 0) % PALETTE.length];
 
   // System-style chat line ("Will started the game") — rendered muted/italic client-side.
-  function announce(s, writer, text) {
+  // `chime: true` asks every client to ring for a system line (only the dice
+  // gimmick's natural 20 does — every other system line stays silent).
+  function announce(s, writer, text, { chime = false } = {}) {
     const msg = {
       name: writer?.name ?? "?", color: writer?.color ?? PALETTE[0],
-      text, sys: true, ts: Date.now(),
+      text, sys: true, ts: Date.now(), ...(chime ? { chime: true } : {}),
     };
     s.chat.push(msg);
     if (s.chat.length > CHAT_LIMIT) s.chat.shift();
     io.to(writersRoom(s)).emit("chat", msg);
+  }
+
+  // ---- Gimmicks (lib/gimmicks.js) ----
+  // Roll cooldown: COWRITE_ROLL_COOLDOWN_MS overrides (the tests shrink it).
+  const ROLL_MS = Number(process.env.COWRITE_ROLL_COOLDOWN_MS || ROLL_COOLDOWN_MS);
+  // Tests only: COWRITE_DICE_FIXED="20,1,7" makes the die land those values
+  // in order (then random again) so a natural 20 can be produced on demand.
+  const fixedDice = (process.env.COWRITE_DICE_FIXED || "").split(",").map((n) => Number(n)).filter((n) => n >= 1 && n <= DIE_SIDES);
+  const rollDie = () => (fixedDice.length ? fixedDice.shift() : 1 + randomInt(DIE_SIDES));
+  // "If one person at the table has the gimmick, everyone can play it": a
+  // seat may roll when its own account has the rank — or ANY seated account
+  // does (admins count as having every gimmick).
+  const tableHasGimmick = (s, id) =>
+    [...s.writers.values()].some((w) => {
+      const u = store.users.find((x) => x.id === w.userId);
+      return !!u && (canUseGimmick(u, id) || isAdmin(u));
+    });
+  // Every die on the table, so a late joiner (or a refresh) sees the ones
+  // already out: userId -> {name, color, x, y} with x/y as fractions of the
+  // viewer's own screen. In memory only — dice never survive a restart.
+  const diceList = (s) => [...(s.dice?.entries() ?? [])].map(([userId, d]) => ({ userId, ...d }));
+  // Put one player's die away for everyone (they left, or the game went friendly).
+  function dropDie(s, userId) {
+    if (!s.dice?.has(userId)) return;
+    s.dice.delete(userId);
+    io.to(s.code).emit("gimmick-die", { userId, on: false });
   }
 
   // Every writer is a signed-in account: name, color, and badge come from the
@@ -263,6 +293,7 @@ export function createGame(io) {
         badge: badgeName(id), desc: badgeDesc(id),
         name: writer.name, color: writer.color,
         unlocks, themes: unlocks ? unlockedThemes(u) : undefined,
+        gimmicks: unlocks ? unlockedGimmicks(u) : undefined, // likewise, the gimmicks they may now play
       });
     // word-usage collectibles: awarded once, the first line that says the word
     for (const id of usageMatches(text)) {
@@ -297,6 +328,7 @@ export function createGame(io) {
     const w = s.writers.get(id);
     if (!w) return;
     w.connected = false;
+    dropDie(s, w.userId); // a die with nobody behind it leaves the table
     // The host leaving (closed tab, routed away) pauses a running game — the
     // clock freezes until they return or the stand-in host resumes.
     if (s.hostId === id && s.phase === "writing" && !s.paused) {
@@ -553,6 +585,7 @@ export function createGame(io) {
     saveSnapshot(s); // seat (incl. its token) hits disk before removal — rejoinable later
     const wasHost = s.hostId === id;
     clearTimeout(s.writers.get(id)?.ghostTimer);
+    dropDie(s, s.writers.get(id)?.userId);
     s.writers.delete(id);
     s.votes.delete(id);
 
@@ -566,6 +599,8 @@ export function createGame(io) {
       const entries = [...s.writers.entries()];
       s.hostId = (entries.find(([, w]) => w.connected && w.userId) ??
         entries.find(([, w]) => w.connected) ?? entries[0])[0];
+    }
+    if (wasHost) {
       // The acting-host role moves so the game stays controllable, but the
       // ORIGINAL host keeps true-host rights forever (s.hostToken/hostUserId
       // never change) — nobody can hijack a story from its first host.
@@ -973,6 +1008,7 @@ export function createGame(io) {
       const s = mySession();
       if (!s || s.hostId !== socket.id || s.phase !== "writing") return ack?.({ ok: false });
       if (friendly != null) s.friendly = !!friendly;
+      if (s.friendly) for (const uid of [...(s.dice?.keys() ?? [])]) dropDie(s, uid); // friendly again: dice away
       if (endless) s.maxTurns = null; // ♾ the story loses its finish line
       const wantsUntimed = turnSeconds === 0 || turnSeconds === "0";
       const newSeconds = wantsUntimed || (turnSeconds != null && Number(turnSeconds) > 0);
@@ -1118,6 +1154,58 @@ export function createGame(io) {
     // join the broadcast room but hold no writer entry, so every game action
     // (vote, submit, chat, host controls) no-ops for them — mySession() is
     // keyed by joinedCode, which spectators never get.
+    // ---- Gimmicks (see lib/gimmicks.js) ----
+    // A die on the table is shown to EVERYONE — that's the distraction. The
+    // owner reports it (`on: true` + where it sits, as fractions of their
+    // screen; throttled client-side) or puts it away (`on: false`); the room
+    // gets `gimmick-die {userId, name, color, x, y, on}` and paints it.
+    socket.on("gimmick-die", ({ on, x, y } = {}) => {
+      const s = mySession();
+      const w = s?.writers.get(socket.id);
+      if (!s || !w) return;
+      if (on === false) return dropDie(s, w.userId);
+      if (s.friendly !== false) return;
+      const fx = Math.max(0, Math.min(1, Number(x) || 0)), fy = Math.max(0, Math.min(1, Number(y) || 0));
+      s.dice ??= new Map();
+      s.dice.set(w.userId, { name: w.name, color: w.color, x: fx, y: fy });
+      io.to(s.code).emit("gimmick-die", { userId: w.userId, name: w.name, color: w.color, x: fx, y: fy, on: true });
+    });
+    // One event: throw the die. The server rolls, calls it in chat, and on a
+    // natural 20 mid-writing hands the turn to the roller — the interrupted
+    // writer's unsent line is gone (that's the distraction). Only in a
+    // non-friendly game, only from a seat, only when the table has the rank.
+    // `steal: false` is the roller's opt-out: a natural 20 is still called
+    // in chat, but the turn stays where it is.
+    socket.on("gimmick-roll", ({ id, steal } = {}, ack) => {
+      const s = mySession();
+      const w = s?.writers.get(socket.id);
+      if (!s || !w) return ack?.({ ok: false, error: "You're not seated in a game." });
+      if (s.friendly !== false) return ack?.({ ok: false, error: "This is a friendly game — gimmicks are off." });
+      const gid = cleanGimmickId(id ?? "d20");
+      if (!gid) return ack?.({ ok: false, error: "Unknown gimmick." });
+      if (!tableHasGimmick(s, gid)) return ack?.({ ok: false, error: "Nobody at this table has unlocked that gimmick yet." });
+      const now = Date.now();
+      s.gimmickRolls ??= new Map(); // userId -> last roll timestamp (never on the wire)
+      if (now - (s.gimmickRolls.get(w.userId) ?? 0) < ROLL_MS) return ack?.({ ok: false, error: "Still rolling…" });
+      s.gimmickRolls.set(w.userId, now);
+      const outcome = rollOutcome(rollDie());
+      // The steal: writing, not paused, and it isn't already their turn.
+      let stole = false, from = "";
+      const declined = outcome.steal && steal === false;
+      if (outcome.steal && !declined && s.phase === "writing" && !s.paused && currentId(s) !== socket.id) {
+        const idx = s.turnOrder.indexOf(socket.id);
+        if (idx !== -1) {
+          from = s.writers.get(currentId(s))?.name ?? "";
+          s.currentIdx = idx;
+          stole = true;
+        }
+      }
+      announce(s, w, describeRoll(outcome, { stole, from, declined }), { chime: outcome.kind === "crit" });
+      io.to(s.code).emit("gimmick-roll", { userId: w.userId, name: w.name, color: w.color, value: outcome.value, kind: outcome.kind, stole });
+      if (stole) startTurn(s); // re-broadcasts game-state with the new current writer
+      ack?.({ ok: true, value: outcome.value, kind: outcome.kind, stole });
+    });
+
     socket.on("spectate-session", ({ code }, ack) => {
       code = (code || "").toUpperCase().trim();
       const s = sessions.get(code) ?? loadSession(code);
@@ -1126,6 +1214,7 @@ export function createGame(io) {
       socket.join(code); // NOT the ":writers" room — writers chat never reaches spectators
       ack?.({ ok: true, code, phase: s.phase, name: s.name || "" });
       socket.emit("spec-chat-history", s.specChat ?? []);
+      if (s.dice?.size) socket.emit("gimmick-dice", diceList(s));
       if (s.phase === "over") socket.emit("game-over", { prompt: s.prompt, story: s.story });
       else if (s.phase === "waiting") broadcastRoster(s);
       else broadcastGame(s);
@@ -1406,6 +1495,7 @@ export function createGame(io) {
       const cur = s.phase === "writing" ? s.writers.get(s.turnOrder[s.currentIdx]) : null;
       out.set(s.code, {
         code: s.code, name: s.name || "", cover: s.cover || "", phase: s.phase, paused: !!s.paused,
+        hosted: s.hostUserId === u.id, // the ORIGINAL host: the one who may delete it from here
         myTurn: s.phase === "writing" && !s.paused && cur?.userId === u.id,
         currentName: cur?.name ?? null,
         players: [...s.writers.values()].map((w) => ({
@@ -1423,6 +1513,7 @@ export function createGame(io) {
         if (d.phase === "over" || !(d.writers || []).some((w) => w.userId === u.id)) continue;
         out.set(code, {
           code, name: d.name || "", cover: d.cover || "", phase: d.phase, paused: true, myTurn: false, currentName: null,
+          hosted: d.hostUserId === u.id,
           players: (d.writers || []).map((w) => ({ name: w.name, color: cleanColor(w.color), connected: false })),
           lines: (d.story || []).length, savedAt: d.savedAt || 0, live: false,
         });
@@ -1448,29 +1539,56 @@ export function createGame(io) {
   // Admin moderation: end a running game from outside it (the dashboard),
   // without the moderator having to take a seat first. Returns false when the
   // code isn't a live, unfinished game.
-  function endGameByCode(code) {
-    const s = sessions.get(String(code || "").toUpperCase());
+  // End a game from outside it — an admin from /admin, or the host from
+  // their dashboard. A paused snapshot with no live session is revived first
+  // so the reveal (and the "over" phase) lands on disk the same way.
+  function endGameByCode(code, by = null) {
+    code = String(code || "").toUpperCase();
+    const s = sessions.get(code) ?? loadSession(code);
     if (!s || s.phase === "over") return false;
-    announce(s, { name: "Admin", color: PALETTE[0] }, "ended this story.");
+    announce(s, by ? { name: by.username, color: cleanColor(by.color) } : { name: "Admin", color: PALETTE[0] }, "ended this story.");
     endGame(s);
     return true;
   }
 
   // Permanently remove a game: kill the live session (players are told),
-  // then delete the snapshot so the code truly dies.
-  function deleteGame(code) {
+  // then delete the snapshot so the code truly dies. `by` is the account
+  // doing it: every OTHER writer who held a seat gets an inbox note saying
+  // the story is gone and who did it — a game vanishing from your dashboard
+  // without a word would read as a bug.
+  function deleteGame(code, by = null) {
     const s = sessions.get(code);
+    let name = s?.name || "", seats = s ? [...s.writers.values()] : [];
+    if (!s) {
+      try {
+        const d = JSON.parse(readFileSync(join(SAVE_DIR, code + ".json"), "utf-8"));
+        name = d.name || "";
+        seats = d.writers || [];
+      } catch { /* nothing on disk either */ }
+    }
     if (s) {
       clearTimeout(s.timer);
       clearTimeout(s.idleTimer);
       for (const w of s.writers.values()) clearTimeout(w.ghostTimer);
       io.to(code).emit("game-deleted");
-      sessions.delete(code);
+      sessions.delete(s.code);
     }
     try {
       unlinkSync(join(SAVE_DIR, code + ".json"));
     } catch { /* already gone */ }
     mirrorDelete("save", code); // no-op without DATABASE_URL
+    if (by) {
+      const told = new Set();
+      for (const w of seats) {
+        if (!w.userId || w.userId === by.id || told.has(w.userId)) continue;
+        const u = store.users.find((x) => x.id === w.userId);
+        if (!u) continue;
+        told.add(u.id);
+        u.inbox ??= [];
+        u.inbox.unshift(makeMsg("system", null, `🗑 “${name || "Untitled story"}” (${code}) has been deleted by ${by.username}.`));
+      }
+      if (told.size) saveStore();
+    }
   }
 
   return { sessions, onlineSockets, SAVE_DIR, gameSummary, freshStory, inGame, myGamesFor, recentGamesFor, deleteGame, endGameByCode, renameUser, setTags, commentRows, closeDocFor, closeDocReaders };

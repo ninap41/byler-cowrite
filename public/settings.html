@@ -59,6 +59,10 @@
 								<input type="checkbox" id="sndClock" />
 								Vecna clock (end-of-turn countdown)
 							</label>
+							<label class="checkline" style="margin: 9px 0 0">
+								<input type="checkbox" id="sndGimmick" />
+								Gimmick sounds (a natural 20 on the dice)
+							</label>
 						</div>
 					</div>
 
@@ -180,6 +184,7 @@
 				$("sndChat").checked = snd.chat !== false
 				$("sndStory").checked = snd.story !== false
 				$("sndClock").checked = snd.clock !== false
+				$("sndGimmick").checked = snd.gimmick !== false
 				;[1, 2, 3].forEach((n) => {
 					$("link" + n + "Label").value = me.links?.[n - 1]?.label || ""
 					$("link" + n + "Url").value = me.links?.[n - 1]?.url || ""
@@ -205,13 +210,14 @@
 			})
 
 			// Sounds save the moment a box is toggled — no separate save button.
-			for (const id of ["sndChat", "sndStory", "sndClock"])
+			for (const id of ["sndChat", "sndStory", "sndClock", "sndGimmick"])
 				$(id).onchange = async () => {
 					try {
 						const r = await api("/api/account/sounds", {
 							chat: $("sndChat").checked,
 							story: $("sndStory").checked,
 							clock: $("sndClock").checked,
+							gimmick: $("sndGimmick").checked,
 						})
 						me = { ...me, ...r.user }
 						say(true, "Sound settings saved.")

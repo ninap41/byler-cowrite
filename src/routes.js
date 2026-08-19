@@ -4,11 +4,12 @@ import { readFileSync, readdirSync } from "fs";
 import { randomUUID } from "crypto";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
-import { WORD_TIERS, USAGE, USAGE_OPEN, badgeName, awardWordBadges, themeLocks, unlockedThemes } from "../lib/achievements.js";
+import { WORD_TIERS, USAGE, USAGE_OPEN, badgeName, awardWordBadges, themeLocks, unlockedThemes, gimmickLocks, unlockedGimmicks } from "../lib/achievements.js";
+import { GIMMICKS } from "../lib/gimmicks.js";
 import { cleanColor, stripTags, httpUrl, sanitizeAbout, sanitizeDoc } from "./sanitize.js";
 import {
   readDoc, writeDoc, createDoc, deleteDoc, listDocsFor, docSummary,
-  canView, canEdit, canComment, isReader, cleanTitle, cleanVisibility, publicDocs,
+  canView, canEdit, canComment, isReader, cleanTitle, cleanVisibility, publicDocs, docsOwnedBy,
 } from "./docs.js";
 import { referenceBundle } from "./reference.js";
 import { hashPassword, checkPassword } from "./passwords.js";
@@ -242,7 +243,7 @@ export function registerRoutes(app, game) {
     const u = authedUser(req);
     if (!u) return res.status(401).json({ error: "Not signed in." });
     const b = req.body || {};
-    u.sounds = { chat: !!b.chat, story: !!b.story, clock: !!b.clock };
+    u.sounds = { chat: !!b.chat, story: !!b.story, clock: !!b.clock, gimmick: b.gimmick == null ? true : !!b.gimmick }; // absent = on (older settings pages)
     saveStore();
     res.json({ user: publicUser(u) });
   });
@@ -264,6 +265,18 @@ export function registerRoutes(app, game) {
   app.get("/api/themes", (req, res) => {
     const u = authedUser(req); // optional: signed-out visitors get the free set
     res.json({ locks: themeLocks(), unlocked: unlockedThemes(u), admin: isAdmin(u || {}) === true });
+  });
+
+  // Which gimmicks this account has earned. Same gate as themes: catalogue +
+  // locks for the menu, unlocked for the caller. Play is enforced server-side
+  // in game.js (a table where ANYONE holds the rank may play) — this only
+  // feeds the menu.
+  app.get("/api/gimmicks", (req, res) => {
+    const u = authedUser(req);
+    res.json({
+      catalogue: Object.values(GIMMICKS),
+      locks: gimmickLocks(), unlocked: unlockedGimmicks(u), admin: isAdmin(u || {}) === true,
+    });
   });
 
   // Public achievement metadata for the profile page. Raw trigger word lists
@@ -397,7 +410,12 @@ export function registerRoutes(app, game) {
     }
     hosted.sort((a, b) => b.savedAt - a.savedAt);
     contributed.sort((a, b) => b.savedAt - a.savedAt);
-    res.json({ user: profileOf(u, new Set(onlineSockets.values())), hosted, contributed, lastLine: u.lastLine || lastLine, friendState });
+    // Solo writes, private ones included: the profile LISTS everything this
+    // writer has written; `viewable` says whether the viewer may open it.
+    const writes = docsOwnedBy(u.id).map((d) => ({
+      ...docSummary(d, nameOf), mine: d.ownerId === viewer.id, viewable: canView(d, viewer.id),
+    }));
+    res.json({ user: profileOf(u, new Set(onlineSockets.values())), hosted, contributed, writes, lastLine: u.lastLine || lastLine, friendState });
   });
 
   // ---- Inbox ----
@@ -662,17 +680,20 @@ export function registerRoutes(app, game) {
       } catch { /* skip unreadable snapshot */ }
     }
     // Public solo writes are listed here too — "public" means listed, not
-    // merely reachable by link. Private and reader-shared ones never appear.
-    for (const d of publicDocs()) {
+    // merely reachable by link. Private and reader-shared ones never appear
+    // in the library at large — but ONE writer's page (?user=) lists all of
+    // theirs, with `viewable` deciding whether a card opens for the viewer.
+    const viewer = authedUser(req);
+    for (const d of forUser ? docsOwnedBy(forUser.id) : publicDocs()) {
       if (q && !String(d.title || "").toLowerCase().includes(q)) continue;
       if (tag) continue; // documents carry no tags
-      if (forUser && d.ownerId !== forUser.id) continue;
       all.push({
         kind: "write", id: d.id, name: d.title, prompt: "", code: "",
         lines: 0, phase: "write", tags: [], cover: "", writers: [],
         hostName: nameOf(d.ownerId),
         createdAt: d.createdAt, savedAt: d.updatedAt,
         wordCount: d.wordCount || 0,
+        visibility: d.visibility, viewable: canView(d, viewer.id),
       });
     }
     all.sort((a, b) => dir * (sort === "words" ? a.wordCount - b.wordCount : a.createdAt - b.createdAt));
@@ -882,6 +903,24 @@ export function registerRoutes(app, game) {
     res.json({ ok: true });
   });
 
+  // The host (or an admin) ends a game from the dashboard's card menu: the
+  // reveal fires for anyone in it and the snapshot stays continuable.
+  app.post("/api/games/:code/end", (req, res) => {
+    const u = authedUser(req);
+    if (!u) return res.status(401).json({ error: "Sign in first." });
+    const code = String(req.params.code || "").toUpperCase();
+    if (!CODE_RE.test(code)) return res.status(400).json({ error: "Bad code." });
+    let d;
+    try {
+      d = JSON.parse(readFileSync(join(SAVE_DIR, code + ".json"), "utf-8"));
+    } catch {
+      return res.status(404).json({ error: "Not found." });
+    }
+    if (d.hostUserId !== u.id && !isAdmin(u)) return res.status(403).json({ error: "Only the host can end this story." });
+    if (!endGameByCode(code, u)) return res.status(409).json({ error: "That story is already over." });
+    res.json({ ok: true });
+  });
+
   // ---- Previous-games archive (read-only, backed by saves/*.json snapshots) ----
   // No database on purpose: saveSnapshot() already persists every paused/finished
   // game to disk, so the archive is just a directory listing + file reads.
@@ -939,7 +978,7 @@ export function registerRoutes(app, game) {
     }
     if (d.hostUserId !== u.id && !isAdmin(u))
       return res.status(403).json({ error: "Only the host can delete this story." });
-    deleteGame(code);
+    deleteGame(code, u); // the other writers hear who did it (inbox note)
     res.json({ ok: true });
   });
 

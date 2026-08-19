@@ -3,7 +3,7 @@
 // by every page so the markup lives in exactly one place.
 import { towerSvg } from "./components/cleradin-tower.js"
 import { clockSvg } from "./components/vecna-clock.js"
-import { initTheme, THEMES, THEME_LABELS, SITE_FONTS } from "./theme.js"
+import { initTheme, THEMES, THEME_LABELS } from "./theme.js"
 import { logoHtml, quillHtml } from "./logo.js"
 import { initNav } from "./nav.js"
 import { initBadgeTips } from "./badge-tips.js"
@@ -137,19 +137,16 @@ const TOPBAR = `
 						`<button type="button" data-theme-btn="${id}"${i === 0 ? ' class="active"' : ""} role="option"><i class="sw sw-${id}"></i><span>${THEME_LABELS[id]}</span></button>`,
 				).join("\n\t\t\t\t")}
 				<!-- The Font row: a per-browser override of the theme's body +
-				     story faces (display and mono stay the theme's). A native
-				     select, not a flip menu — its popup escapes the menu's
-				     overflow, and it lives inside #themeSwitch so picking one
-				     doesn't count as an outside click and close the menu. -->
+				     story faces (display and mono stay the theme's). A flip
+				     menu (components/flip-select.js) so every face previews
+				     itself in its own letterforms; it opens as a PORTAL —
+				     lifted to <body> while open — so it escapes this menu's
+				     overflow and scrolls on its own when the list is long.
+				     initTheme() mounts it into #themeFontPick. -->
 				<hr class="theme-sep" />
 				<div class="theme-font-row" role="none">
-					<label for="themeFont">Font</label>
-					<select id="themeFont" aria-label="Site font">
-						<option value="theme">Theme default</option>
-						${SITE_FONTS.map(
-							(f) => `<option value="${f.key}" style="font-family:${f.stack.replace(/"/g, "&quot;")}">${f.label}</option>`,
-						).join("\n\t\t\t\t\t\t")}
-					</select>
+					<label id="themeFontLabel">Font</label>
+					<div class="theme-font-pick" id="themeFontPick"></div>
 				</div>
 			</div>
 		</div>
@@ -162,6 +159,8 @@ const TOPBAR = `
 // sticky strip along the bottom: always reachable, never in the way.
 export const FOOT_BAR = `<div class="foot-bar" id="footBar">
 		<button type="button" class="foot-btn" id="peekBtn" aria-pressed="false" title="Hide the UI to view the theme">👁 <span id="peekLabel">View theme</span></button>
+		<span class="foot-dot hidden" id="gimmickDot" aria-hidden="true">·</span>
+		<button type="button" class="foot-btn hidden" id="gimmickBtn" aria-haspopup="menu" aria-expanded="false" title="Play a gimmick with the table">🎲 Play gimmick</button>
 		<span class="foot-dot" aria-hidden="true">·</span>
 		<button type="button" class="foot-btn" id="kofiBtn" title="Support Byler Cowrite on Ko-fi">☕ Support</button>
 	</div>`
@@ -199,6 +198,47 @@ export function mountKofi(doc = document) {
 	modal.addEventListener("click", (e) => e.target === modal && close())
 	doc.addEventListener("keydown", (e) => e.key === "Escape" && close())
 	return { open, close, modal, frame }
+}
+
+// Theme peek: body.ui-peek hides every UI layer (content, topbar, nav,
+// toasts) so the theme background can be admired. The foot bar stays — it's
+// the way back — and the game chat dock deliberately stays visible too.
+// GSAP eases the UI layers out/in around the visibility flip; without GSAP
+// (or with reduced motion, or in a hidden tab whose rAF is throttled) the
+// class toggle alone does the job.
+const PEEK_LAYERS = ".wrap, .topbar, .hamburger"
+export function setPeek(on) {
+	const body = document.body
+	if (body.classList.contains("ui-peek") === on) return
+	const peekBtn = document.getElementById("peekBtn")
+	peekBtn?.setAttribute("aria-pressed", String(on))
+	const label = document.getElementById("peekLabel")
+	if (label) label.textContent = on ? "Show UI" : "View theme"
+	const g = window.gsap
+	const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches
+	// no GSAP, reduced motion, or a hidden tab (rAF is throttled there, so a
+	// tween's onComplete may never fire): the class flip alone does the job
+	if (!g || reduceMotion || document.visibilityState === "hidden") return body.classList.toggle("ui-peek", on)
+	g.killTweensOf(PEEK_LAYERS)
+	if (on) {
+		g.to(PEEK_LAYERS, {
+			opacity: 0,
+			y: 16,
+			duration: 0.35,
+			ease: "power2.in",
+			onComplete: () => {
+				body.classList.add("ui-peek")
+				g.set(PEEK_LAYERS, { clearProps: "opacity,transform" })
+			},
+		})
+	} else {
+		body.classList.remove("ui-peek")
+		g.fromTo(
+			PEEK_LAYERS,
+			{ opacity: 0, y: 16 },
+			{ opacity: 1, y: 0, duration: 0.45, ease: "power2.out", clearProps: "opacity,transform" },
+		)
+	}
 }
 
 // The mounted theme controller and the lock map, remembered so setUserChip can
@@ -241,42 +281,10 @@ export function mountChrome({ page = "", nav = true, kofi = true } = {}) {
 			}
 		})
 	}
-	// Theme peek lives in the foot bar: it hides every UI layer (content,
-	// topbar, nav, toasts) so the theme background can be admired. The bar
-	// itself stays — it's the way back — and the game chat dock deliberately
-	// stays visible too.
+	// Theme peek lives in the foot bar (setPeek above).
 	document.body.insertAdjacentHTML("beforeend", FOOT_BAR)
 	const peekBtn = document.getElementById("peekBtn")
-	// GSAP eases the UI layers out/in around the visibility flip; without
-	// GSAP (or with reduced motion) the class toggle alone does the job.
-	const PEEK_LAYERS = ".wrap, .topbar, .hamburger"
-	peekBtn.addEventListener("click", () => {
-		const on = !document.body.classList.contains("ui-peek")
-		peekBtn.setAttribute("aria-pressed", String(on))
-		document.getElementById("peekLabel").textContent = on ? "Show UI" : "View theme"
-		const g = window.gsap
-		if (!g || reduceMotion) return document.body.classList.toggle("ui-peek", on)
-		g.killTweensOf(PEEK_LAYERS)
-		if (on) {
-			g.to(PEEK_LAYERS, {
-				opacity: 0,
-				y: 16,
-				duration: 0.35,
-				ease: "power2.in",
-				onComplete: () => {
-					document.body.classList.add("ui-peek")
-					g.set(PEEK_LAYERS, { clearProps: "opacity,transform" })
-				},
-			})
-		} else {
-			document.body.classList.remove("ui-peek")
-			g.fromTo(
-				PEEK_LAYERS,
-				{ opacity: 0, y: 16 },
-				{ opacity: 1, y: 0, duration: 0.45, ease: "power2.out", clearProps: "opacity,transform" },
-			)
-		}
-	})
+	peekBtn.addEventListener("click", () => setPeek(!document.body.classList.contains("ui-peek")))
 	// Drawer logout (bottom-right): signed-out visitors just don't see it.
 	const navLogout = document.getElementById("navLogout")
 	if (navLogout) {

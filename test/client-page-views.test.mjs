@@ -259,3 +259,18 @@ test("a threaded conversation can be folded, and the button says how much it hid
   assert.match(foldBtnHtml(1), /1 reply</);
   assert.match(foldBtnHtml(3), /3 replies</);
 });
+
+test("dashboard: the host's card menu offers End & reveal and Delete behind confirms, and both are disabled while the game is active", async () => {
+  const { readFileSync } = await import("node:fs");
+  const html = readFileSync(new URL("../public/dashboard.html", import.meta.url), "utf-8");
+  assert.match(html, /import \{ confirmDialog \} from "\/js\/components\/confirm-delete\.js"/);
+  assert.match(html, /const isActive = \(g\) => g\.live && !g\.paused/, "active = a live session that isn't paused");
+  assert.match(html, /data-act="end" \$\{active \? "disabled" : ""\}/);
+  assert.match(html, /data-act="delete" \$\{active \? "disabled" : ""\}/);
+  assert.match(html, /if \(g\.hosted\) \{/, "host only");
+  assert.match(html, /confirmLabel: "End & reveal"/);
+  assert.match(html, /confirmLabel: "Delete forever"/);
+  assert.match(html, /"\/api\/games\/" \+ encodeURIComponent\(g\.code\) \+ "\/end"/);
+  assert.match(html, /"\/api\/games\/" \+ encodeURIComponent\(g\.code\), null, "DELETE"/);
+  assert.ok(!/mg-del\b/.test(html), "the bare Delete button is gone");
+});

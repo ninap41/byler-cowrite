@@ -6,7 +6,7 @@ installDom();
 const { storyHtml, livePreviewHtml, EMPTY_STORY_HTML } = await import("../public/js/components/story-feed.js");
 const { chatMessageHtml } = await import("../public/js/components/chat-view.js");
 const { countdownView } = await import("../public/js/components/countdown.js");
-const { statusDot, refreshStatusDots, updateLiveStatus } = await import("../public/js/status.js");
+const { statusDot, refreshStatusDots, updateLiveStatus, presenceHtml } = await import("../public/js/status.js");
 const { buildExports, exportDocument } = await import("../public/js/export.js");
 
 // ---- story feed ----
@@ -110,13 +110,16 @@ test("status dots resolve against the live map, unknown names stay unknown", () 
   const box = mount(statusDot("will") + statusDot("mike") + statusDot("ghost"));
   updateLiveStatus([{ name: "will", connected: true }, { name: "mike", connected: false }]);
   const [w, m, g] = box.querySelectorAll("[data-status-name]");
-  assert.ok(w.classList.contains("on") && w.title === "Online");
-  assert.ok(m.classList.contains("off") && m.title === "Offline");
+  assert.ok(w.classList.contains("on") && w.title === "In game");
+  assert.ok(m.classList.contains("off") && m.title === "Not in game");
   assert.ok(g.classList.contains("unknown") && g.title === "");
   updateLiveStatus("not-an-array"); // ignored, no throw
   refreshStatusDots();
   assert.ok(w.classList.contains("on"), "state survives refresh");
   box.remove();
+  // the writers/players lists say it in words too
+  assert.match(presenceHtml(true), /st-dot on" title="In game"><\/span><span class="st-label on">In game/);
+  assert.match(presenceHtml(false), /st-label off">Not in game/);
 });
 
 // ---- exports ----

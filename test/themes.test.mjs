@@ -126,7 +126,7 @@ test("a bad token is treated as signed out, not as an error", async () => {
 
 // ---- a rank-up says what it unlocked ----
 
-test("rewardsForTier / describeRewards: themes by label, gimmicks pool empty for now", () => {
+test("rewardsForTier / describeRewards: themes by label; puppymike hands out no gimmick", () => {
   const r = rewardsForTier("puppymike");
   const expect = Object.entries(THEME_UNLOCKS).filter(([, t]) => t === "puppymike").map(([id]) => id);
   assert.deepEqual(r.themes.map((x) => x.id).sort(), expect.sort());
@@ -162,7 +162,8 @@ test("crossing a tier toasts, announces and inboxes the themes it unlocks", asyn
   assert.equal(up.length, 2, "both writers get the rank-up toast");
   for (const t of up) {
     assert.deepEqual(t.unlocks.themes.map((x) => x.id).sort(), expect.sort(), "the toast names the themes");
-    assert.deepEqual(t.unlocks.gimmicks, [], "no gimmicks yet");
+    assert.deepEqual(t.unlocks.gimmicks, [], "puppymike unlocks no gimmick (the d20 is Sorcerer's)");
+    assert.ok(Array.isArray(t.gimmicks), "a rank-up toast also carries the writer's playable gimmicks, so the menu re-gates without a fetch");
     assert.ok(expect.every((id) => t.themes.includes(id)), "and the full wearable list rides along");
   }
   const line = chat.find((m) => m.sys && m.text.includes(tier.name));

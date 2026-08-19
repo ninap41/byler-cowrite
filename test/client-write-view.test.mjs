@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { installDom } from "./dom.mjs";
 
 installDom(); // plainBlockHtml parses through a detached div
-import { docCardHtml, docListHtml, docShelfHtml, DOC_GROUPS, presenceHtml, commentHtml, commentThreadHtml, readerChipsHtml, wordsLabel, formatSource, unformatSource, plainBlockHtml, visChipHtml, visMenuHtml, visLabel, VIS, scrollTargetFor, inviteOptions, inviteRowHtml, inviteListHtml } from "../public/js/write-view.js";
+import { docCardHtml, docListHtml, docShelfHtml, DOC_GROUPS, presenceHtml, soloRowHtml, soloListHtml, wireSoloDeletes, commentHtml, commentThreadHtml, readerChipsHtml, wordsLabel, formatSource, unformatSource, plainBlockHtml, visChipHtml, visMenuHtml, visLabel, VIS, scrollTargetFor, inviteOptions, inviteRowHtml, inviteListHtml } from "../public/js/write-view.js";
 
 const DOC = {
   id: "abc", title: "The Upside Down", wordCount: 120, visibility: "private",
@@ -362,4 +362,40 @@ test("a picker row escapes the name and can't smuggle a color into the style", (
   const html = inviteRowHtml({ username: '<img src=x onerror=alert(1)>', color: "red;}bad", friend: true });
   assert.ok(!html.includes("<img"), "the name is escaped");
   assert.ok(!html.includes("bad"), "and an unpalettable color is dropped");
+});
+
+test("solo rows: mine → Continue + Delete, viewable → Read, private → locked; the list caps and empties", () => {
+  const mine = soloRowHtml({ id: "d1", title: "Mine", wordCount: 12, updatedAt: 0, visibility: "private", mine: true, viewable: true });
+  assert.match(mine, /class="solo-row" data-id="d1"/);
+  assert.match(mine, /href="\/write\?id=d1">Continue</);
+  assert.match(mine, /class="ghost danger solo-del" data-id="d1"/);
+  const pub = soloRowHtml({ id: "d2", title: "Theirs <b>", wordCount: 1, updatedAt: 0, visibility: "public", mine: false, viewable: true });
+  assert.match(pub, /Read</);
+  assert.doesNotMatch(pub, /solo-del/);
+  assert.match(pub, /Theirs &lt;b&gt;/, "escaped");
+  const priv = soloRowHtml({ id: "d3", title: "Secret", wordCount: 0, updatedAt: 0, visibility: "private", mine: false, viewable: false });
+  assert.match(priv, /class="solo-row locked"/);
+  assert.match(priv, /🔒 Private/);
+  assert.doesNotMatch(priv, /href=/, "nothing to click");
+  assert.match(soloListHtml([], { empty: "Nada." }), /Nada\./);
+  const many = Array.from({ length: 7 }, (_, i) => ({ id: "x" + i, title: "T" + i, mine: true, viewable: true }));
+  assert.equal((soloListHtml(many).match(/class="solo-row/g) || []).length, 5, "capped at 5");
+});
+
+test("wireSoloDeletes: the first click arms, the second deletes and removes the row", async () => {
+  const box = document.createElement("div");
+  box.innerHTML = soloListHtml([{ id: "d9", title: "Gone soon", mine: true, viewable: true }]);
+  document.body.appendChild(box);
+  const deleted = [];
+  wireSoloDeletes(box, async (id) => deleted.push(id));
+  const b = box.querySelector(".solo-del");
+  b.click();
+  assert.equal(b.dataset.armed, "1");
+  assert.match(b.textContent, /Delete\?/);
+  assert.deepEqual(deleted, []);
+  b.click();
+  await new Promise((r) => setTimeout(r, 0));
+  assert.deepEqual(deleted, ["d9"]);
+  assert.equal(box.querySelector(".solo-row"), null, "row removed");
+  box.remove();
 });

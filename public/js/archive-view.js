@@ -30,6 +30,7 @@ export function writeCardHtml(d) {
 		`<p class="gc-prompt" style="font-weight:700">${esc(d.name) || "<em>Untitled</em>"}</p>` +
 		`<span class="gc-meta">` +
 		`<span>✒️ solo write</span>` +
+		(d.viewable === false ? `<span>🔒 private</span>` : d.visibility && d.visibility !== "public" ? `<span>👥 readers</span>` : "") +
 		(d.hostName ? `<span>by ${esc(d.hostName)}</span>` : "") +
 		`<span>${fmtWhen(d.savedAt)}</span>` +
 		`</span>`

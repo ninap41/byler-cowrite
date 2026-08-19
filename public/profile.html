@@ -68,6 +68,12 @@
 						</p>
 					</div>
 
+					<!-- solo writes: everything they've written, private ones listed but locked -->
+					<div class="card">
+						<h3 class="dash-h" style="margin-top: 0">Solo writes</h3>
+						<div id="writesList"></div>
+					</div>
+
 					<!-- hosted stories -->
 					<div class="card">
 						<h3 class="dash-h" style="margin-top: 0">Hosted stories</h3>
@@ -120,12 +126,15 @@
 			import { safeColor } from "/js/util.js"
 			import { streakRingHtml } from "/js/dashboard-view.js"
 			import { ladderAccordionHtml, usageCaseHtml, aboutHtml, avatarHtml } from "/js/profile-view.js"
+			import { soloListHtml, wireSoloDeletes } from "/js/write-view.js"
 
 			mountChrome({ page: "profile" })
 			const $ = (id) => document.getElementById(id)
 			const me = await requireAuth("/")
 			if (me) {
 				setUserChip(me)
+				// my own solo writes can be deleted from here (two clicks)
+				wireSoloDeletes($("writesList"), (id) => api("/api/docs/" + encodeURIComponent(id), null, "DELETE"))
 				const meta = await api("/api/achievements", null, "GET")
 				const wanted = new URLSearchParams(location.search).get("user")
 				// whose profile? mine by default, anyone else's via ?user=name.
@@ -133,6 +142,7 @@
 				let p = null
 				let hosted = []
 				let contributed = []
+				let writes = []
 				let lastLine = null
 				let friendState = { state: "self" }
 				const who = wanted || me.username
@@ -141,6 +151,7 @@
 					const r = await api("/api/users/" + encodeURIComponent(who), null, "GET")
 					p = r.user
 					hosted = r.hosted || []
+					writes = r.writes || []
 					contributed = r.contributed || []
 					lastLine = r.lastLine || null
 					friendState = r.friendState || friendState
@@ -266,6 +277,14 @@
 					}
 					renderStories("hostedList", hosted, "No hosted stories yet.")
 					renderStories("contribList", contributed, "No contributed stories yet.")
+					$("writesList").innerHTML = soloListHtml(writes, { empty: "No solo writes yet.", limit: 5 })
+					if (writes.length > 5) {
+						const more = document.createElement("p")
+						more.className = "subtle"
+						more.style.cssText = "text-align:left;margin:10px 0 0"
+						more.innerHTML = `<a class="linky" href="/stories?user=${encodeURIComponent(p.username)}">See all ${writes.length} →</a>`
+						$("writesList").appendChild(more)
+					}
 					$("openCase").innerHTML = usageCaseHtml(meta.usageOpen || [], p.openBadges || [], p.badgeDescs || {}, { secret: false })
 					$("usageCase").innerHTML = usageCaseHtml(meta.usage, p.usageBadges, p.badgeDescs || {})
 					$("streakBox").innerHTML =

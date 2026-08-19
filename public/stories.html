@@ -144,8 +144,14 @@
 						`</span>`
 					// a public write opens in the editor (read-only for anyone but
 					// its author); a game opens in the read-only story view here
-					b.onclick = () =>
-						g.kind === "write" ? (location.href = "/write?id=" + encodeURIComponent(g.id)) : openStory(g.code)
+					// a private write on someone's ?user= page is listed but locked
+					if (g.kind === "write" && g.viewable === false) {
+						b.classList.add("locked")
+						b.style.cursor = "default"
+						b.title = "Private — only its author can open it"
+					} else
+						b.onclick = () =>
+							g.kind === "write" ? (location.href = "/write?id=" + encodeURIComponent(g.id)) : openStory(g.code)
 					list.appendChild(b)
 					if (window.gsap && hasGsap)
 						gsap.from(b, { opacity: 0, y: 18, duration: 0.45, delay: 0.04 * list.children.length, ease: "power2.out" })

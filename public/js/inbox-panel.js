@@ -8,6 +8,7 @@
 // The page supplies the elements; this module owns the state, the rendering
 // and every button.
 import { api } from "/js/api.js"
+import { confirmInboxDelete } from "/js/components/confirm-delete.js"
 import { inboxMsgHtml, threadInbox } from "/js/dashboard-view.js"
 
 // A row keeps its own reply composer, so several can be open at once and
@@ -19,7 +20,10 @@ const replyParts = (row) => ({
 	send: row.querySelector(".ib-reply-send"),
 })
 
-export function mountInbox({ list, unreadChip, readAllBtn, moreLink, limit = 0, replies = true, onLoad } = {}) {
+// The delete confirmation lives in components/confirm-delete.js so it can be
+// unit-tested (this module imports "/js/api.js" by absolute path, which node
+// can't resolve) — and reused by any other list that deletes.
+export function mountInbox({ list, unreadChip, readAllBtn, moreLink, limit = 0, replies = true, onLoad, confirm = confirmInboxDelete } = {}) {
 	if (!list) return { reload: () => {} }
 	let inbox = { messages: [], unread: 0 }
 	// Which conversations are open. A thread with replies starts folded — the
@@ -162,11 +166,13 @@ export function mountInbox({ list, unreadChip, readAllBtn, moreLink, limit = 0, 
 				del.className = "ghost ib-del"
 				del.title = replies && t.messages.length > 1 ? "Delete conversation" : "Delete"
 				del.textContent = "✕"
-				del.onclick = (e) => {
+				del.onclick = async (e) => {
 					e.stopPropagation()
 					// a conversation goes as a whole — leaving half of it behind
-					// would read as a message that answers nothing
+					// would read as a message that answers nothing — and it goes
+					// only once you've said so (same confirm as every other delete)
 					const ids = t.messages.map((x) => x.id)
+					if (!(await confirm({ conversation: ids.length > 1, count: ids.length }))) return
 					act(() => Promise.all(ids.map((id) => api("/api/inbox/" + encodeURIComponent(id), null, "DELETE"))))
 				}
 				acts.append(del)

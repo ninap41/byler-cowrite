@@ -86,6 +86,13 @@
 						<div id="dashLive"></div>
 					</div>
 
+					<!-- solo writes: mine, continue or delete; the rail's "New solo write" starts one -->
+					<div class="card">
+						<h3 class="dash-h" style="margin-top: 0">Solo writes</h3>
+						<p class="subtle" style="text-align: left; margin: 4px 0 8px">Your own pages — no timer, no turns.</p>
+						<div id="dashWrites"></div>
+					</div>
+
 					<!-- writers directory + friends: two columns of the same question,
 					     "who else is here" — everyone on the left to search through,
 					     the ones you already know on the right. -->
@@ -196,6 +203,8 @@
 			} from "/js/dashboard-view.js"
 			import { avatarHtml } from "/js/profile-view.js"
 			import { showInviteToast } from "/js/turn-alert.js"
+			import { soloListHtml, wireSoloDeletes } from "/js/write-view.js"
+			import { confirmDialog } from "/js/components/confirm-delete.js"
 
 			mountChrome({ page: "dashboard" })
 			const $ = (id) => document.getElementById(id)
@@ -358,6 +367,54 @@
 			})
 
 			// ---- Games in progress ----
+			// The host's ⋯ menu on a card: End game & reveal, Delete story — each
+			// behind the site's confirm modal, and both disabled while the game
+			// is ACTIVE (a live session that isn't paused): you don't end or
+			// delete a story out from under people mid-turn; pause it first.
+			const isActive = (g) => g.live && !g.paused
+			async function endFromCard(g) {
+				const ok = await confirmDialog({
+					title: `End “${g.name || "Untitled story"}” and reveal?`,
+					text: "The story ends where it is: everyone in it sees the reveal, and it moves to the archive — you can still continue it from there.",
+					confirmLabel: "End & reveal",
+					danger: false,
+				})
+				if (!ok) return
+				try {
+					await api("/api/games/" + encodeURIComponent(g.code) + "/end")
+					loadDashboard()
+				} catch (e) {
+					mgNote(e.message)
+				}
+			}
+			async function deleteFromCard(g) {
+				const ok = await confirmDialog({
+					title: `Delete “${g.name || "Untitled story"}”?`,
+					text: "This permanently removes the story and its code — for every writer in it. The other writers get a note in their inbox saying you deleted it.",
+					confirmLabel: "Delete forever",
+				})
+				if (!ok) return
+				try {
+					await api("/api/games/" + encodeURIComponent(g.code), null, "DELETE")
+					loadDashboard() // the card is gone for me; the others hear by inbox note
+				} catch (e) {
+					mgNote(e.message)
+				}
+			}
+			// a refusal from the server, said under the grid for a moment
+			function mgNote(text) {
+				let n = $("mgNote")
+				if (!n) {
+					n = document.createElement("p")
+					n.id = "mgNote"
+					n.className = "err"
+					$("myGames").after(n)
+				}
+				n.textContent = text
+				setTimeout(() => (n.textContent = ""), 4000)
+			}
+			// one open ⋯ menu at a time; any click elsewhere closes it
+			document.addEventListener("click", () => document.querySelectorAll(".mg-menu.open").forEach((m) => m.classList.remove("open")))
 			function renderMyGames(games) {
 				const grid = $("myGames")
 				grid.innerHTML = ""
@@ -370,6 +427,36 @@
 					btn.textContent = g.myTurn ? "Resume — your turn" : g.paused && !g.live ? "Wake it up" : "Open"
 					btn.onclick = () => (location.href = "/game?code=" + encodeURIComponent(g.code))
 					card.appendChild(btn)
+					// The original host gets a ⋯ menu in the card's corner (admins act
+					// from /admin): End game & reveal, Delete story.
+					if (g.hosted) {
+						const active = isActive(g)
+						const more = document.createElement("div")
+						more.className = "mg-menu"
+						more.innerHTML =
+							`<button type="button" class="ghost mg-more" aria-haspopup="menu" aria-expanded="false" title="More options">⋯</button>` +
+							`<div class="mg-menu-list" role="menu">` +
+							`<button type="button" role="menuitem" data-act="end" ${active ? "disabled" : ""}>🏁 End game &amp; reveal</button>` +
+							`<button type="button" role="menuitem" class="danger" data-act="delete" ${active ? "disabled" : ""}>🗑 Delete story</button>` +
+							(active ? `<span class="mg-menu-note">Pause the game first — it's in play.</span>` : "") +
+							`</div>`
+						more.querySelector(".mg-more").onclick = (e) => {
+							e.stopPropagation()
+							const open = !more.classList.contains("open")
+							document.querySelectorAll(".mg-menu.open").forEach((m) => m.classList.remove("open"))
+							more.classList.toggle("open", open)
+							more.querySelector(".mg-more").setAttribute("aria-expanded", String(open))
+						}
+						more.querySelector(".mg-menu-list").onclick = (e) => {
+							e.stopPropagation()
+							const b = e.target.closest("[data-act]")
+							if (!b || b.disabled) return
+							more.classList.remove("open")
+							if (b.dataset.act === "end") endFromCard(g)
+							else deleteFromCard(g)
+						}
+						card.appendChild(more)
+					}
 					grid.appendChild(card)
 				})
 				// dashed "start new" slot
@@ -490,6 +577,17 @@
 			}
 
 			// ---- Poll the dashboard payload every 10s ----
+			// ---- Solo writes (mine only; beta-reads live on /writes) ----
+			wireSoloDeletes($("dashWrites"), (id) => api("/api/docs/" + encodeURIComponent(id), null, "DELETE"))
+			async function loadWrites() {
+				try {
+					const d = await api("/api/docs", null, "GET")
+					const mine = (d.docs || []).filter((x) => x.mine)
+					$("dashWrites").innerHTML = soloListHtml(mine, { empty: "Nothing written solo yet — start one from the rail.", limit: 5 })
+					if (mine.length > 5) $("dashWrites").insertAdjacentHTML("beforeend", `<p class="subtle" style="text-align:left;margin:10px 0 0"><a class="linky" href="/writes">See all ${mine.length} →</a></p>`)
+				} catch (e) {}
+			}
+			loadWrites()
 			async function loadDashboard() {
 				if (!me) return
 				loadInbox()

@@ -199,6 +199,77 @@
 	font-size: 0.85rem;
 	min-width: 0;
 }
+/* the host's ⋯ menu, tucked into the card's corner over the cover */
+.mg-card {
+	position: relative;
+}
+.mg-menu {
+	position: absolute;
+	top: 8px;
+	right: 8px;
+}
+.mg-card .mg-more {
+	margin: 0;
+	padding: 2px 9px;
+	min-width: 0;
+	width: auto;
+	font-size: 1rem;
+	line-height: 1.2;
+	border-radius: 8px;
+	background: color-mix(in srgb, var(--panel) 70%, transparent);
+	backdrop-filter: blur(6px);
+	-webkit-backdrop-filter: blur(6px);
+}
+.mg-menu-list {
+	display: none;
+	position: absolute;
+	top: calc(100% + 6px);
+	right: 0;
+	z-index: 20;
+	min-width: 190px;
+	flex-direction: column;
+	gap: 3px;
+	padding: 6px;
+	border-radius: 12px;
+	background: var(--panel);
+	border: 1px solid var(--panel-brd);
+	box-shadow: var(--panel-glow);
+}
+.mg-menu.open .mg-menu-list {
+	display: flex;
+}
+.mg-menu-list button {
+	margin: 0;
+	width: 100%;
+	min-width: 0;
+	text-align: left;
+	padding: 8px 10px;
+	font-size: 0.85rem;
+	background: none;
+	box-shadow: none;
+	color: var(--ink);
+}
+.mg-menu-list button:hover:not(:disabled) {
+	background: var(--chip);
+	transform: none;
+}
+.mg-menu-list button:disabled {
+	opacity: 0.45;
+	cursor: not-allowed;
+}
+.mg-menu-list button.danger {
+	background: none !important;
+	border-color: transparent !important;
+	color: #ff6b6b !important;
+}
+.mg-menu-list button.danger:hover:not(:disabled) {
+	background: rgba(211, 49, 49, 0.18) !important;
+}
+.mg-menu-note {
+	padding: 4px 10px 6px;
+	font-size: 0.72rem;
+	color: var(--muted);
+}
 .mg-open {
 	border-style: dashed;
 	background: transparent;

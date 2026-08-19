@@ -40,9 +40,9 @@ export function createSounds(AudioCtor = globalThis.Audio) {
 	}
 
 	// Account-level per-category mute (the game page feeds in the user's
-	// saved prefs): chat pings, story chimes, and the Vecna clock gate
-	// independently. A legacy boolean fans out to all three.
-	let prefs = { chat: true, story: true, clock: true }
+	// saved prefs): chat pings, story chimes, the Vecna clock and gimmick
+	// sounds gate independently. A legacy boolean fans out to all four.
+	let prefs = { chat: true, story: true, clock: true, gimmick: true }
 	const CATEGORY = {
 		incomingmessage: "chat",
 		outgoingmessage: "chat",
@@ -59,15 +59,17 @@ export function createSounds(AudioCtor = globalThis.Audio) {
 		clock,
 		clockAudio,
 		setPrefs(p) {
-			if (typeof p === "boolean" || p == null) p = { chat: p !== false, story: p !== false, clock: p !== false }
-			prefs = { chat: p.chat !== false, story: p.story !== false, clock: p.clock !== false }
+			if (typeof p === "boolean" || p == null) p = { chat: p !== false, story: p !== false, clock: p !== false, gimmick: p !== false }
+			prefs = { chat: p.chat !== false, story: p.story !== false, clock: p.clock !== false, gimmick: p.gimmick !== false }
 			if (!prefs.clock) clock.stop()
 		},
 		get prefs() {
 			return { ...prefs }
 		},
-		play(name) {
-			if (!prefs[CATEGORY[name]]) return
+		// `category` overrides the sound's own bucket — the dice gimmick's
+		// natural-20 chime is the chat ping played under the gimmick pref.
+		play(name, category = CATEGORY[name]) {
+			if (!prefs[category]) return
 			const a = sounds[name]
 			if (!a) return
 			try {
@@ -84,7 +86,9 @@ export const shouldChime = (v, myTurn, windowSecs = 15) =>
 
 // A chat message chimes only when it's someone else's real message: system
 // messages are silent, and so is my own echo (msgs carry the sender's id).
-export const shouldChimeChat = (m, myId) => !m?.sys && !!m?.id && m.id !== myId
+// The one exception is a system line that ASKS to ring (`chime: true` — a
+// natural 20 from the dice gimmick): everyone hears that, roller included.
+export const shouldChimeChat = (m, myId) => (m?.sys ? m.chime === true : !!m?.id && m.id !== myId)
 
 // Story-line chime: ring when the story grew and the just-ended turn wasn't
 // mine. seenStoryLen starts null so rejoins don't chime on the replayed story.

@@ -670,3 +670,41 @@ test("a resolved comment keeps its record, it just stops underlining", async () 
   assert.equal(after.comments[0].resolved, true);
   assert.equal(anchorsIn(after.html), 0, "but nothing is underlined for it");
 });
+
+test("a writer's solo writes are LISTED on their profile and /stories?user= — private ones included — and `viewable` says who may open them", async () => {
+  const priv = await newDoc(alice.token, "Alice private");
+  const pub = await newDoc(alice.token, "Alice public");
+  await ctx.api("/api/docs/" + pub.id + "/visibility", { visibility: "public" }, alice.token);
+  const shared = await newDoc(alice.token, "Alice for Bob");
+  await ctx.api("/api/docs/" + shared.id + "/visibility", { visibility: "readers" }, alice.token);
+  await ctx.api("/api/docs/" + shared.id + "/readers", { username: "bobbeta" }, alice.token);
+
+  // Carol (a stranger) sees all three listed; only the public one opens
+  const carolView = await ctx.api("/api/users/aliceauthor", null, carol.token, "GET");
+  const byTitle = (list) => Object.fromEntries(list.map((d) => [d.title, d]));
+  const cw = byTitle(carolView.data.writes);
+  assert.equal(Object.keys(cw).length >= 3, true);
+  assert.equal(cw["Alice private"].viewable, false);
+  assert.equal(cw["Alice private"].mine, false);
+  assert.equal(cw["Alice public"].viewable, true);
+  assert.equal(cw["Alice for Bob"].viewable, false, "readers-only isn't Carol's to open");
+  assert.equal(cw["Alice private"].visibility, "private");
+  assert.ok(!("html" in cw["Alice private"]), "a listing never carries the body");
+  // Bob (a beta reader) may open the shared one
+  const bobView = await ctx.api("/api/users/aliceauthor", null, bob.token, "GET");
+  assert.equal(byTitle(bobView.data.writes)["Alice for Bob"].viewable, true);
+  // Alice herself: everything is hers
+  const me = await ctx.api("/api/users/aliceauthor", null, alice.token, "GET");
+  assert.ok(me.data.writes.every((d) => d.mine && d.viewable));
+
+  // the library at large lists only the public one; ?user= lists all of Alice's with the same flags
+  const lib = await ctx.api("/api/stories?limit=50", null, carol.token, "GET");
+  const libTitles = lib.data.stories.filter((s) => s.kind === "write").map((s) => s.name);
+  assert.ok(libTitles.includes("Alice public"));
+  assert.ok(!libTitles.includes("Alice private"));
+  const hers = await ctx.api("/api/stories?user=aliceauthor&limit=50", null, carol.token, "GET");
+  const hw = byTitle(hers.data.stories.filter((s) => s.kind === "write").map((s) => ({ ...s, title: s.name })));
+  assert.equal(hw["Alice private"].viewable, false);
+  assert.equal(hw["Alice public"].viewable, true);
+  assert.equal(hw["Alice for Bob"].visibility, "readers");
+});

@@ -260,8 +260,9 @@
 			import { loadRejoin, saveRejoin, clearRejoin } from "/js/socket-client.js"
 			import { createSounds, createLineChime, shouldChimeChat, shouldChime } from "/js/sounds.js"
 			import { mountChrome, setUserChip, regateThemes } from "/js/chrome.js"
+			import { mountGimmickDice } from "/js/components/gimmick-dice.js"
 			import { requireAuth } from "/js/auth-guard.js"
-			import { statusDot, refreshStatusDots, updateLiveStatus } from "/js/status.js"
+			import { statusDot, refreshStatusDots, updateLiveStatus, presenceHtml } from "/js/status.js"
 			import { cleanHtml } from "/js/components/editor.js"
 			import { toolbarHtml, mountRichToolbar } from "/js/components/rich-toolbar.js"
 			import { storyHtml, livePreviewHtml } from "/js/components/story-feed.js"
@@ -346,6 +347,25 @@
 			const soundKit = createSounds()
 			soundKit.setPrefs(me?.sounds) // spectators (no account) default all-on
 			const { play: playSound, clock: vecnaClock } = soundKit
+
+			// ---- Gimmicks (components/gimmick-dice.js): the foot bar's 🎲 menu
+			// and the dice on the table — every die anyone has out tumbles over
+			// THIS page, editor included: it's a distraction, so the writer sees
+			// it too. Spectators never seat (setSeated stays false), so the
+			// button never shows for them, but they still see the dice.
+			let sessFriendlyFlag = true
+			const gimmicks = mountGimmickDice({
+				socket,
+				getMyUserId: () => me?.id ?? null,
+				getMyColor: () => safeColor(me?.color),
+				isSeated: () => !!myId && !spectateCode,
+				isFriendly: () => sessFriendlyFlag,
+			})
+			// what this account may START; re-gated live by a rank-up toast below
+			if (me?.gimmicks) gimmicks.setGate({ unlocked: me.gimmicks })
+			authApi("/api/gimmicks", null, "GET")
+				.then((d) => gimmicks.setGate(d))
+				.catch(() => {})
 			const lineChime = createLineChime(playSound)
 
 			// ---- Signed-in identity chip (badge may change mid-game) ----
@@ -564,6 +584,7 @@
 			function enterSession(res) {
 				myId = socket.id
 				hostId = res.hostId
+				gimmicks.setSeated(true)
 				if (res.token) saveRejoin(res.code, res.token)
 				myCode = res.code
 				gameMsg("")
@@ -626,12 +647,11 @@
 					if (w.connected === false) li.style.opacity = "0.45"
 					li.dataset.user = w.name
 					li.innerHTML =
-						`<span class="st-dot ${w.connected === false ? "off" : "on"}" title="${w.connected === false ? "Offline" : "Online"}"></span>` +
+						presenceHtml(w.connected !== false) +
 						miniAvatar(w) +
 						`<span class="rname" style="color:${col}">${esc(w.name)}</span>` +
 						whoMarks(w) +
-						`${w.badge ? `<span class="badge-chip">${esc(w.badge)}</span>` : ""}` +
-						`${w.connected === false ? '<span class="badge">away</span>' : ""}`
+						`${w.badge ? `<span class="badge-chip">${esc(w.badge)}</span>` : ""}`
 					list.appendChild(li)
 				}
 				hostId = writers.find((w) => w.isHost)?.id ?? hostId
@@ -649,6 +669,7 @@
 				if (st.code) myCode = st.code
 				if (st.name != null) sessName = st.name
 				if (st.friendly != null) sessFriendly = st.friendly
+				sessFriendlyFlag = st.friendly !== false
 				syncCover(st.cover)
 				updateSessionBar()
 				if (st.phase === "choosing") renderChoosing(st)
@@ -786,7 +807,7 @@
 						const on = w.connected !== false
 						return (
 							`<span class="player-chip${w.id === st.currentId ? " now" : ""}" data-user="${esc(w.name)}">` +
-							`<span class="st-dot ${on ? "on" : "off"}" title="${on ? "Online" : "Offline"}"></span>` +
+							presenceHtml(on) +
 							miniAvatar(w) +
 							`<span style="color:${col}">${esc(w.name)}</span>` +
 							whoMarks(w) +
@@ -1064,7 +1085,7 @@ $("pauseBtn").onclick = () =>
 			// ---- Badge unlock: centered pop + confetti bursting from behind it,
 			// falling down the page (GSAP; without it the card alone shows) ----
 			const reduceFx = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches
-			socket.on("badge-earned", ({ badge, desc, name, unlocks, themes }) => {
+			socket.on("badge-earned", ({ badge, desc, name, unlocks, themes, gimmicks: myGimmicks }) => {
 				const el = document.createElement("div")
 				el.className = "badge-pop"
 				const title = document.createElement("b")
@@ -1086,6 +1107,7 @@ $("pauseBtn").onclick = () =>
 					el.append(line)
 				}
 				if (mine && themes) regateThemes(themes)
+				if (mine && myGimmicks) gimmicks.setGate({ unlocked: myGimmicks })
 				document.body.appendChild(el)
 				playSound("incomingmessage")
 				const g = window.gsap
@@ -1222,7 +1244,9 @@ $("pauseBtn").onclick = () =>
 			$("chatTabS").onclick = () => setChatTab("s")
 			function pushMsg(logId, tab, m, silent) {
 				// spectators have no seat id — their own echo matches by socket id
-				if (!silent && shouldChimeChat(m, spectateCode ? socket.id : myId)) playSound("incomingmessage")
+				// a system line that asks to ring (the dice gimmick's natural 20)
+				// plays under the gimmick sound pref, not the chat one
+				if (!silent && shouldChimeChat(m, spectateCode ? socket.id : myId)) playSound("incomingmessage", m.sys ? "gimmick" : undefined)
 				const log = $(logId)
 				const p = document.createElement("p")
 				p.className = (m.sys ? "msg sys" : "msg") + (m.spec && !m.writer ? " spec-msg" : "")

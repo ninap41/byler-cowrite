@@ -2,6 +2,7 @@
 // GSAP is optional: without it (or with prefers-reduced-motion) everything
 // falls back to static CSS.
 import { SITE_FONTS, fontByKey } from "./fonts.js"
+import { mountFlipSelect } from "./components/flip-select.js"
 export { SITE_FONTS }
 export const THEMES = [
 	"neon", "aurora", "ink", "wall", "snowball", "upside", "starcourt", "arcade", "cerebro",
@@ -344,7 +345,9 @@ export function initTheme() {
 			}
 		})
 	document.addEventListener("click", (e) => {
-		if (menuOpen && sw && !sw.contains(e.target)) closeMenu()
+		// the font list is portaled to <body> while open: a click in it is a
+		// click in the theme menu, not outside it
+		if (menuOpen && sw && !sw.contains(e.target) && !fontPick?.menu.contains(e.target)) closeMenu()
 	})
 	document.addEventListener("keydown", (e) => {
 		if (e.key === "Escape" && menuOpen) closeMenu()
@@ -378,7 +381,25 @@ export function initTheme() {
 	try {
 		font = cleanSiteFont(localStorage.getItem("cowriteFont"))
 	} catch (e) {}
-	const fontSel = document.getElementById("themeFont")
+	// The Font row is a flip menu: each row set in its own face (a native
+	// option list can't promise that over a translucent panel), portaled out
+	// of the theme menu while open so it can fold past the menu's edge and
+	// scroll on its own. It lives inside #themeSwitch, and its portaled list
+	// counts as inside too (see the outside-click check below).
+	const fontHost = document.getElementById("themeFontPick")
+	const fontPick = fontHost
+		? mountFlipSelect(fontHost, {
+				id: "themeFont",
+				label: "Site font",
+				portal: true,
+				value: font,
+				rows: [
+					{ value: "theme", label: "Theme default", style: "" },
+					...SITE_FONTS.map((f) => ({ value: f.key, label: f.label, style: `font-family:${f.stack}` })),
+				],
+				onChange: (v) => applyFont(v),
+			})
+		: null
 	function applyFont(key) {
 		font = cleanSiteFont(key)
 		const f = fontByKey(font)
@@ -388,13 +409,8 @@ export function initTheme() {
 			if (f) localStorage.setItem("cowriteFont", font)
 			else localStorage.removeItem("cowriteFont")
 		} catch (e) {}
-		if (fontSel) {
-			fontSel.value = font
-			// the closed select previews the choice in its own face
-			fontSel.style.fontFamily = f ? f.stack : ""
-		}
+		fontPick?.set(font) // the closed toggle previews the choice in its own face
 	}
-	if (fontSel) fontSel.addEventListener("change", () => applyFont(fontSel.value))
 
 	applyTheme(current)
 	applyFont(font)

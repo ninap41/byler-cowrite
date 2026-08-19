@@ -38,7 +38,12 @@ export function flipSelectHtml(id, rows = [], value = "", { label = "" } = {}) {
 	)
 }
 
-export function mountFlipSelect(root, { id = "fs", rows = [], value = "", label = "", onChange } = {}) {
+// `portal: true` lifts the list out of its parent while open — appended to
+// <body>, fixed at the toggle's screen position — so a menu inside a box that
+// clips or scrolls (the theme menu) can still fold out past its edge and be
+// scrolled through when the list is long. It goes back home on close, so
+// outside-click checks and the DOM stay simple.
+export function mountFlipSelect(root, { id = "fs", rows = [], value = "", label = "", onChange, portal = false } = {}) {
 	root.innerHTML = flipSelectHtml(id, rows, value, { label })
 	const box = root.querySelector(".flip-select")
 	const toggle = box.querySelector(".flip-toggle")
@@ -51,13 +56,51 @@ export function mountFlipSelect(root, { id = "fs", rows = [], value = "", label 
 
 	if (gsap) menu.style.transition = "none" // the CSS transition is the fallback only
 
+	// portal: move the list to <body> at the toggle's spot; home again on close
+	function lift() {
+		if (!portal) return
+		const r = toggle.getBoundingClientRect()
+		document.body.appendChild(menu)
+		menu.classList.add("flip-portal")
+		const vw = window.innerWidth,
+			vh = window.innerHeight
+		const width = Math.max(200, r.width)
+		const left = Math.max(8, Math.min(r.left, vw - width - 8))
+		const below = vh - r.bottom - 16
+		const above = r.top - 16
+		const down = below >= 220 || below >= above
+		menu.style.left = left + "px"
+		menu.style.minWidth = width + "px"
+		if (down) {
+			menu.style.top = r.bottom + 6 + "px"
+			menu.style.bottom = ""
+			menu.style.maxHeight = Math.min(420, Math.max(120, below)) + "px"
+			menu.style.transformOrigin = "50% 0"
+		} else {
+			menu.style.top = ""
+			menu.style.bottom = vh - r.top + 6 + "px"
+			menu.style.maxHeight = Math.min(420, Math.max(120, above)) + "px"
+			menu.style.transformOrigin = "50% 100%"
+		}
+	}
+	function land() {
+		if (!portal || menu.parentNode === box) return
+		menu.classList.remove("flip-portal")
+		menu.style.left = menu.style.top = menu.style.bottom = menu.style.minWidth = menu.style.maxHeight = menu.style.transformOrigin = ""
+		box.appendChild(menu)
+	}
+
 	function openMenu() {
 		open = true
+		lift()
 		box.classList.add("open")
+		menu.classList.toggle("open", portal) // portaled: the box's .open can't reach it
 		toggle.setAttribute("aria-expanded", "true")
+		// bring the current choice into view in a long list
+		menu.querySelector(".active")?.scrollIntoView?.({ block: "nearest" })
 		if (!gsap) return
 		gsap.killTweensOf([menu, menu.children])
-		gsap.set(menu, { visibility: "visible", transformOrigin: "50% 0" })
+		gsap.set(menu, { visibility: "visible", transformOrigin: menu.style.transformOrigin || "50% 0" })
 		gsap.fromTo(menu, { rotationX: -90, opacity: 0 }, { rotationX: 0, opacity: 1, duration: 0.42, ease: "power2.out" })
 		gsap.fromTo(
 			menu.children,
@@ -68,7 +111,12 @@ export function mountFlipSelect(root, { id = "fs", rows = [], value = "", label 
 	function closeMenu() {
 		open = false
 		toggle.setAttribute("aria-expanded", "false")
-		if (!gsap) return box.classList.remove("open")
+		if (!gsap) {
+			box.classList.remove("open")
+			menu.classList.remove("open")
+			land()
+			return
+		}
 		gsap.killTweensOf([menu, menu.children])
 		gsap.to(menu, {
 			rotationX: -90,
@@ -77,7 +125,9 @@ export function mountFlipSelect(root, { id = "fs", rows = [], value = "", label 
 			ease: "power2.in",
 			onComplete: () => {
 				box.classList.remove("open")
+				menu.classList.remove("open")
 				gsap.set(menu, { clearProps: "all" })
+				land()
 			},
 		})
 	}
@@ -106,8 +156,14 @@ export function mountFlipSelect(root, { id = "fs", rows = [], value = "", label 
 		onChange?.(b.dataset.val)
 	})
 	document.addEventListener("click", (e) => {
-		if (open && !box.contains(e.target)) closeMenu()
+		if (open && !box.contains(e.target) && !menu.contains(e.target)) closeMenu()
 	})
+	// a portaled list must not sit still while the page under it scrolls or resizes
+	if (portal) {
+		const follow = () => open && lift()
+		window.addEventListener("resize", follow)
+		window.addEventListener("scroll", follow, true)
+	}
 	document.addEventListener("keydown", (e) => {
 		if (e.key === "Escape" && open) closeMenu()
 	})
@@ -119,5 +175,6 @@ export function mountFlipSelect(root, { id = "fs", rows = [], value = "", label 
 		},
 		close: closeMenu,
 		el: box,
+		menu, // exposed so a host (the theme switch) can treat clicks in it as its own
 	}
 }

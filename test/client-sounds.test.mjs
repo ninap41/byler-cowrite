@@ -56,6 +56,8 @@ test("chat chime rules: others' real messages only", () => {
   assert.equal(shouldChimeChat({ id: "them", text: "hi" }, "me"), true);
   assert.equal(shouldChimeChat({ id: "me", text: "hi" }, "me"), false, "own echo silent");
   assert.equal(shouldChimeChat({ sys: true, id: "them" }, "me"), false, "system silent");
+  assert.equal(shouldChimeChat({ sys: true, chime: true }, "me"), true, "…unless it asks to ring (the dice gimmick's natural 20)");
+  assert.equal(shouldChimeChat({ sys: true, chime: "yes" }, "me"), false, "only a true chime flag");
   assert.equal(shouldChimeChat({ text: "no id" }, "me"), false, "history-style msg silent");
 });
 
@@ -104,5 +106,18 @@ test("setPrefs gates chat/story/clock independently; legacy boolean fans out", (
   kit.setPrefs(false); // legacy off -> everything muted
   kit.play("incomingline");
   assert.equal(kit.sounds.incomingline.plays, 1, "no new plays while muted");
-  assert.deepEqual(kit.prefs, { chat: false, story: false, clock: false });
+  assert.deepEqual(kit.prefs, { chat: false, story: false, clock: false, gimmick: false });
+});
+
+test("the gimmick pref gates a chat ping played under the gimmick category — and only that", () => {
+  const kit = createSounds(FakeAudio);
+  kit.setPrefs({ chat: true, story: true, clock: true, gimmick: false });
+  kit.play("incomingmessage", "gimmick");
+  assert.equal(kit.sounds.incomingmessage.plays, 0, "gimmick sounds off: the natural-20 chime is silent");
+  kit.play("incomingmessage");
+  assert.equal(kit.sounds.incomingmessage.plays, 1, "ordinary chat pings still ring");
+  kit.setPrefs({ chat: false, story: true, clock: true, gimmick: true });
+  kit.play("incomingmessage", "gimmick");
+  assert.equal(kit.sounds.incomingmessage.plays, 2, "chat muted, gimmick on: the natural 20 still rings");
+  assert.equal(kit.prefs.gimmick, true);
 });

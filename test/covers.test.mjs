@@ -48,14 +48,16 @@ test("cover image: host-only, http(s)-validated, broadcast + snapshotted + liste
 test("sound prefs: default all-on, per-category save, rides /api/me", async () => {
   const u = await signup(ctx, "soundsuser", "sounds@x.com");
   const me = await ctx.api("/api/me", undefined, u.token);
-  assert.deepEqual(me.data.user.sounds, { chat: true, story: true, clock: true }, "fresh accounts hear everything");
+  assert.deepEqual(me.data.user.sounds, { chat: true, story: true, clock: true, gimmick: true }, "fresh accounts hear everything");
 
   const set = await ctx.api("/api/account/sounds", { chat: false, story: true, clock: false }, u.token);
   assert.equal(set.status, 200);
-  assert.deepEqual(set.data.user.sounds, { chat: false, story: true, clock: false });
+  assert.deepEqual(set.data.user.sounds, { chat: false, story: true, clock: false, gimmick: true }, "a settings page that never heard of gimmicks leaves them on");
 
   const again = await ctx.api("/api/me", undefined, u.token);
-  assert.deepEqual(again.data.user.sounds, { chat: false, story: true, clock: false }, "prefs persist");
+  assert.deepEqual(again.data.user.sounds, { chat: false, story: true, clock: false, gimmick: true }, "prefs persist");
+  const off = await ctx.api("/api/account/sounds", { chat: true, story: true, clock: true, gimmick: false }, u.token);
+  assert.equal(off.data.user.sounds.gimmick, false, "gimmick sounds can be muted on their own");
 
   const anon = await ctx.api("/api/account/sounds", { chat: true });
   assert.equal(anon.status, 401, "auth required");

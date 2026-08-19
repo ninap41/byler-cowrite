@@ -269,3 +269,74 @@ export const readerChipsHtml = (readers, canManage) =>
 						`</span>`,
 				)
 				.join("")
+
+// ---- solo writes as a compact list (profile + dashboard) ----
+// One row per document. What the row OFFERS depends on who's looking:
+//   mine      → Continue (the editor) + Delete (two-click: the first arms it)
+//   viewable  → Read (public, or I'm a beta reader)
+//   otherwise → 🔒 listed but not openable — a private write exists, it just
+//               isn't yours to read. That's deliberate: the list is the
+//               writer's shelf, and the lock says why a card won't open.
+export function soloRowHtml(d) {
+	const v = d.visibility || "private"
+	const title = esc(d.title || "Untitled")
+	const meta = `${esc(wordsLabel(d.wordCount))} · ${esc(fmtWhen(d.updatedAt))}`
+	const pill = `<span class="doc-pill ${v === "private" ? "" : "on"}">${visLabel(v)}</span>`
+	const open = `/write?id=${encodeURIComponent(d.id)}`
+	let acts
+	if (d.mine)
+		acts =
+			`<a class="ghost solo-open" href="${open}">Continue</a>` +
+			`<button type="button" class="ghost danger solo-del" data-id="${esc(d.id)}" data-title="${title}">Delete</button>`
+	else if (d.viewable) acts = `<a class="ghost solo-open" href="${open}">Read</a>`
+	else acts = `<span class="solo-lock" title="Private — only its author can open it">🔒 Private</span>`
+	const head = d.mine || d.viewable ? `<a class="solo-title" href="${open}">${title}</a>` : `<span class="solo-title locked">${title}</span>`
+	return (
+		`<div class="solo-row${d.mine || d.viewable ? "" : " locked"}" data-id="${esc(d.id)}">` +
+		`<span class="solo-info">${head}<span class="solo-meta">${meta} ${pill}</span></span>` +
+		`<span class="solo-acts">${acts}</span>` +
+		`</div>`
+	)
+}
+export const soloListHtml = (docs, { empty = "No solo writes yet.", limit = 5 } = {}) =>
+	!docs || !docs.length
+		? `<p class="subtle" style="text-align:left;margin:0">${esc(empty)}</p>`
+		: docs.slice(0, limit).map(soloRowHtml).join("")
+
+// Wire the two-click delete on a list container: the first click arms the
+// button ("Delete? ✓"), the second deletes; anything else disarms it.
+export function wireSoloDeletes(box, onDelete) {
+	box.addEventListener("click", async (e) => {
+		const b = e.target.closest(".solo-del")
+		if (!b) return
+		if (b.dataset.armed !== "1") {
+			box.querySelectorAll(".solo-del[data-armed]").forEach((x) => {
+				delete x.dataset.armed
+				x.textContent = "Delete"
+			})
+			b.dataset.armed = "1"
+			b.textContent = "Delete? ✓"
+			return
+		}
+		b.disabled = true
+		try {
+			await onDelete(b.dataset.id, b.dataset.title)
+			b.closest(".solo-row")?.remove()
+		} catch (err) {
+			b.disabled = false
+			b.textContent = err?.message || "Couldn't delete"
+		}
+	})
+	box.addEventListener(
+		"focusout",
+		() =>
+			setTimeout(() => {
+				if (!box.contains(document.activeElement))
+					box.querySelectorAll(".solo-del[data-armed]").forEach((x) => {
+						delete x.dataset.armed
+						x.textContent = "Delete"
+					})
+			}, 0),
+		true,
+	)
+}

@@ -137,3 +137,14 @@ test("the ✕ is a borderless corner control on every inbox surface", async () =
   assert.ok(!/\.ib-row\.ib-compact \.ib-del/.test(css));
   assert.match(css.slice(css.indexOf("\n.ib-row {"), css.indexOf("\n.ib-row.unread")), /position: relative/, "the card is what it is positioned in");
 });
+
+test("the inbox ✕ asks first — the same confirm modal as every other delete", async () => {
+  const panel = await fetch(ctx.url + "/js/inbox-panel.js").then((r) => r.text());
+  const comp = await fetch(ctx.url + "/js/components/confirm-delete.js").then((r) => r.text());
+  assert.match(panel, /import \{ confirmInboxDelete \} from "\/js\/components\/confirm-delete\.js"/);
+  assert.match(comp, /class="confirm-modal hidden" id="ibDelModal"/, "the site's confirm-modal shape");
+  assert.match(comp, /class="primary danger" id="ibDelConfirm"/);
+  assert.match(panel, /if \(!\(await confirm\(\{ conversation: ids\.length > 1, count: ids\.length \}\)\)\) return/, "nothing is deleted until the modal says so");
+  assert.match(comp, /Delete this conversation\?/);
+  assert.match(comp, /Delete this message\?/);
+});

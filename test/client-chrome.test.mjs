@@ -85,30 +85,37 @@ test("the theme menu's Font row overrides the site font: data-font + storage, su
   localStorage.removeItem("cowriteTheme");
   localStorage.removeItem("cowriteFont");
   const theme = mountChrome({ page: "dashboard" });
-  const sel = document.getElementById("themeFont");
-  assert.ok(sel && document.getElementById("themeMenu").contains(sel), "the select lives inside the theme menu");
-  assert.ok(!sel.closest("[data-theme-btn]"), "and is not a theme row (setGate never rewrites it)");
-  const opts = [...sel.options];
-  assert.equal(opts[0].value, "theme");
-  assert.equal(opts[0].textContent, "Theme default");
-  assert.deepEqual(opts.slice(1).map((o) => o.value), SITE_FONTS.map((f) => f.key), "one option per site font, registry order");
+  const pick = document.getElementById("themeFont");
+  assert.ok(pick && document.getElementById("themeMenu").contains(pick), "the flip select lives inside the theme menu");
+  assert.ok(pick.classList.contains("flip-select"), "a flip menu, not a native select — each row previews its own face");
+  assert.ok(!pick.closest("[data-theme-btn]"), "and is not a theme row (setGate never rewrites it)");
+  const rows = [...document.querySelectorAll("#themeFontMenu [data-val]")];
+  assert.equal(rows[0].dataset.val, "theme");
+  assert.equal(rows[0].textContent, "Theme default");
+  assert.deepEqual(rows.slice(1).map((o) => o.dataset.val), SITE_FONTS.map((f) => f.key), "one row per site font, registry order");
   for (const f of SITE_FONTS) {
-    const o = opts.find((x) => x.value === f.key);
+    const o = rows.find((x) => x.dataset.val === f.key);
     assert.equal(o.textContent, f.label);
     assert.ok(o.getAttribute("style").includes("font-family:"), f.key + " previews itself in its own face");
   }
   // fresh browser: no override
   assert.equal(theme.font, "theme");
   assert.equal(document.documentElement.getAttribute("data-font"), null);
-  // pick one from the menu itself
+  // pick one from the menu itself: open the theme menu, open the font list
+  // (it lifts to <body> — a portal — so it can fold past the menu's edge and
+  // scroll on its own), choose a row
   document.getElementById("themeToggle").click();
-  sel.value = "georgia";
-  sel.dispatchEvent(new window.Event("change", { bubbles: true }));
+  document.getElementById("themeFontToggle").click();
+  const list = document.getElementById("themeFontMenu");
+  assert.equal(list.parentNode, document.body, "open: the list is portaled to <body>");
+  assert.ok(list.classList.contains("flip-portal") && list.classList.contains("open"));
+  list.querySelector('[data-val="georgia"]').click();
   assert.equal(document.documentElement.getAttribute("data-font"), "georgia");
   assert.equal(localStorage.getItem("cowriteFont"), "georgia");
   assert.equal(theme.font, "georgia");
-  assert.ok(sel.style.fontFamily.includes("Georgia"), "the closed select wears the choice");
-  assert.ok(document.getElementById("themeSwitch").classList.contains("open"), "picking a font keeps the menu open");
+  assert.ok(document.getElementById("themeFontCur").getAttribute("style").includes("Georgia"), "the closed toggle wears the choice");
+  assert.ok(document.getElementById("themeSwitch").classList.contains("open"), "picking a font keeps the theme menu open");
+  assert.equal(list.parentNode, pick, "closed: the list is home again");
   // a theme change leaves the font alone, and vice versa
   theme.applyTheme("snowball");
   assert.equal(document.documentElement.getAttribute("data-font"), "georgia");
@@ -117,8 +124,8 @@ test("the theme menu's Font row overrides the site font: data-font + storage, su
   theme.applyFont("theme");
   assert.equal(document.documentElement.getAttribute("data-font"), null);
   assert.equal(localStorage.getItem("cowriteFont"), null);
-  assert.equal(sel.value, "theme");
-  assert.equal(sel.style.fontFamily, "");
+  assert.equal(document.getElementById("themeFontCur").textContent, "Theme default");
+  assert.equal(document.getElementById("themeFontCur").getAttribute("style"), "");
 });
 
 test("a saved site font is applied on mount; junk in storage is dropped, not worn", () => {
@@ -127,7 +134,7 @@ test("a saved site font is applied on mount; junk in storage is dropped, not wor
   let theme = mountChrome({ page: "dashboard" });
   assert.equal(theme.font, "verdana");
   assert.equal(document.documentElement.getAttribute("data-font"), "verdana");
-  assert.equal(document.getElementById("themeFont").value, "verdana");
+  assert.equal(document.getElementById("themeFontCur").textContent, "Verdana");
   document.body.innerHTML = "";
   localStorage.setItem("cowriteFont", "comic-sans-forever");
   document.documentElement.setAttribute("data-font", "comic-sans-forever"); // what the head script would have done
