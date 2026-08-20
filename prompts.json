@@ -24,9 +24,9 @@
     "Mike writes a letter he never intends to send. Will finds it. Take it from there.",
     "Christmas at the Wheelers'. Mistletoe is involved, and Nancy is enjoying this far too much.",
     "They're both grown now — late twenties — and reunite at a party reunion after years apart. Everything they never said is still sitting right there between them.",
-    "The Void. Will is pulled somewhere dark again, and the only anchor pulling him back is a voice he'd know anywhere.",
-    "Mike gets jealous of someone new in Will's life in California, and it forces him to admit — at least to himself — exactly what that jealousy means.",
-    "D&D made flesh: Will is the cleric, Mike is the paladin sworn to the party. When the healing runs out mid-quest, Mike is the one kneeling in the dirt refusing to let him go.",
+    "The Void. Will is pulled somewhere into the upside down. ",
+    "Mike gets jealous of someone new in Will's life in California, and gets jealous",
+    "Cleradin. Will is the cleric, Mike is the paladin sworn to the party. When the healing runs out mid-quest, Mike is the one kneeling in the dirt refusing to let him go.",
     "Will is a sorcerer who never asked for his magic, and Mike is the knight assigned to guard him from the people who want it. Neither of them is very good at keeping their distance.",
     "A witch and his familiar. Will's spells have gone strange lately, and every single one of them keeps pointing at the boy who was supposed to just be a black cat on his windowsill.",
     "Hogwarts AU. Mike is the Gryffindor who shouldn't be in the Hufflepuff common room at midnight, and Will is the one who keeps leaving the door unlocked anyway.",
@@ -77,7 +77,7 @@
         "weight": 4
       },
       {
-        "id": "dnd-realm",
+        "id": "Cleradin",
         "label": "D&D AU — the campaign is real (cleric & paladin)",
         "text": "the campaign is real, Will a cleric, Mike a paladin",
         "tags": [
@@ -89,8 +89,8 @@
         "weight": 3
       },
       {
-        "id": "spell-school",
-        "label": "Magic school AU",
+        "id": "Vampire",
+        "label": "Vampire Byler AU",
         "text": "a school of magic, a castle that rearranges itself",
         "tags": [
           "au",
@@ -139,7 +139,7 @@
       {
         "id": "stage-lights",
         "label": "Rock star & tattoo artist AU",
-        "text": "Mike's band got big, Will tattoos three states away",
+        "text": "Mike's band got big, Will tattoos.",
         "tags": [
           "au",
           "music",
@@ -151,7 +151,7 @@
       {
         "id": "staff-room",
         "label": "Teachers AU — English & art",
-        "text": "two teachers, English and art, the students knew first",
+        "text": " English and art teacher Byler.",
         "tags": [
           "au",
           "work",
@@ -163,7 +163,7 @@
       {
         "id": "cold-rink",
         "label": "Figure skater & hockey player AU",
-        "text": "figure skater and hockey player, same five a.m. ice",
+        "text": "figure skater and hockey player Byler.",
         "tags": [
           "au",
           "sport",
@@ -182,7 +182,7 @@
           "danger",
           "survival"
         ],
-        "weight": 3
+        "weight": 6
       }
     ],
     "timePeriods": [
@@ -303,7 +303,7 @@
           "no-monsters",
           "cold-rink",
           "stage-lights",
-          "spell-school"
+          "Vampire"
         ]
       },
       {
@@ -334,7 +334,7 @@
         "text": "an age of long roads, bad kings, worse gods",
         "ageGroup": "adult",
         "compatibleUniverses": [
-          "dnd-realm"
+          "Cleradin"
         ],
         "tags": [
           "fantasy",
@@ -349,7 +349,7 @@
         "text": "still students, basement age, a life without Hawkins",
         "ageGroup": "minor",
         "compatibleUniverses": [
-          "spell-school",
+          "Vampire",
           "cold-rink",
           "no-monsters"
         ],
@@ -1028,7 +1028,7 @@
         "category": "quiet",
         "privacy": "semi-private",
         "compatibleUniverses": [
-          "dnd-realm"
+          "Cleradin"
         ],
         "tags": [
           "fantasy",
@@ -1045,7 +1045,7 @@
         "category": "hurt-comfort",
         "privacy": "private",
         "compatibleUniverses": [
-          "dnd-realm"
+          "Cleradin"
         ],
         "tags": [
           "fantasy",
@@ -1062,7 +1062,7 @@
         "category": "quiet",
         "privacy": "private",
         "compatibleUniverses": [
-          "spell-school"
+          "Vampire"
         ],
         "tags": [
           "magic",
@@ -1079,7 +1079,7 @@
         "category": "forced-proximity",
         "privacy": "semi-private",
         "compatibleUniverses": [
-          "spell-school",
+          "Vampire",
           "no-monsters",
           "cold-rink"
         ],
@@ -1330,7 +1330,7 @@
         "privacy": "public",
         "compatibleUniverses": [
           "no-monsters",
-          "spell-school",
+          "Vampire",
           "cold-rink"
         ],
         "tags": [
