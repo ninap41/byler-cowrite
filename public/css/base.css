@@ -7755,13 +7755,305 @@ button.d20-stage.rolling {
 .d20-stage.fumble {
 	filter: saturate(0.6) brightness(0.85);
 }
-/* Every gimmick box above (.gd-layer/.gd-menu/.gd-hud/.gd-die/.gd-note) sets
-   display:*, so (per the .hidden source-order rule) the hidden state is
-   re-declared AFTER them, here. */
+/* ---------- Palace Arcade Galaga (components/galaga-game.js) ----------
+   The arcade theme's pixel sprites (see the .bg-set.arcade blocks above)
+   promoted from scenery to a SHARED battle fought over the live game, the
+   dice's way: full screen at z 60, no pointer events (the page under it
+   stays usable — only the HUD glass takes the pointer), one .gg-battle per
+   player, each ship re-inked in its owner's palette colour (inline
+   box-shadow from shipShadow()). Remote sprites ease between relayed
+   positions so an 80ms trickle reads as flight. */
+.gg-layer {
+	position: fixed;
+	inset: 0 0 var(--footbar-h) 0;
+	z-index: 60;
+	pointer-events: none;
+	display: block;
+}
+.gg-battle {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+}
+/* the bee: the arcade background's sprite grid, verbatim */
+.gg-enemy {
+	position: absolute;
+	width: 4px;
+	height: 4px;
+	margin: -12px 0 0 -2px; /* left/top land on the sprite's centre */
+	background: transparent;
+	box-shadow:
+		-8px 0 0 #4fa8ff, 8px 0 0 #4fa8ff,
+		-4px 4px 0 #ff4f79, 0 4px 0 #ff4f79, 4px 4px 0 #ff4f79,
+		-8px 8px 0 #ffd23f, -4px 8px 0 #ffd23f, 0 8px 0 #ffd23f, 4px 8px 0 #ffd23f, 8px 8px 0 #ffd23f,
+		-12px 12px 0 #ffd23f, -4px 12px 0 #ffd23f, 0 12px 0 #ffd23f, 4px 12px 0 #ffd23f, 12px 12px 0 #ffd23f,
+		-4px 16px 0 #ff4f79, 4px 16px 0 #ff4f79,
+		-8px 20px 0 #4fa8ff, 8px 20px 0 #4fa8ff;
+	filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.45));
+}
+.gg-enemy.dive {
+	filter: brightness(1.35) drop-shadow(0 0 6px rgba(255, 210, 63, 0.7));
+}
+.gg-enemy.hit {
+	transition: transform 0.24s ease, opacity 0.24s ease;
+	transform: scale(2.2);
+	opacity: 0;
+}
+/* the player ship: the pixel triangle; its colours come inline (shipShadow) */
+.gg-ship {
+	position: absolute;
+	width: 4px;
+	height: 4px;
+	margin: -2px 0 0 -2px;
+	background: transparent;
+	filter: drop-shadow(0 0 5px rgba(0, 0, 0, 0.5));
+}
+.gg-ship-tag {
+	position: absolute;
+	transform: translateX(-50%);
+	font: 600 0.68rem/1 var(--font-body);
+	text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+	white-space: nowrap;
+}
+.gg-shot {
+	position: absolute;
+	width: 3px;
+	height: 14px;
+	margin-left: -1px;
+	box-shadow: 0 0 10px rgba(255, 255, 255, 0.6);
+}
+/* While any Galaga battle is live, the ARCADE THEME's own ambient fleet,
+   ship and shot (scenery in .bg-set.arcade) are put away — the game being
+   played is the only Galaga on screen. The transition lives on the base
+   elements so they fade back in when the battle ends. */
+.bg-set.arcade .fleet,
+.bg-set.arcade .ship,
+.bg-set.arcade .shot {
+	transition: opacity 0.6s ease;
+}
+html.gg-live .bg-set.arcade .fleet,
+html.gg-live .bg-set.arcade .ship,
+html.gg-live .bg-set.arcade .shot {
+	opacity: 0;
+}
+/* a remote battle's sprites glide between relayed positions */
+.gg-battle.remote .gg-ship,
+.gg-battle.remote .gg-ship-tag,
+.gg-battle.remote .gg-enemy,
+.gg-battle.remote .gg-shot {
+	transition: left 0.09s linear, top 0.09s linear;
+}
+/* my HUD: the one thing on the layer that takes the pointer */
+.gg-hud {
+	position: absolute;
+	bottom: 12px;
+	left: 16px;
+	pointer-events: auto;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding: 10px 14px;
+	max-width: min(360px, calc(100vw - 32px));
+	border-radius: 14px;
+	background: color-mix(in srgb, var(--panel) 42%, transparent);
+	border: 1px solid color-mix(in srgb, var(--panel-brd) 70%, transparent);
+	backdrop-filter: blur(6px) saturate(1.1);
+	-webkit-backdrop-filter: blur(6px) saturate(1.1);
+	box-shadow: var(--panel-glow);
+	font: 500 0.8rem/1.3 var(--font-body);
+	color: var(--muted);
+}
+.gg-title {
+	font: 700 1rem/1.2 var(--font-display);
+	color: var(--ink);
+}
+.gg-row {
+	display: flex;
+	align-items: baseline;
+	gap: 10px;
+}
+.gg-row button {
+	flex: 0 0 auto;
+}
+.gg-score {
+	font: 700 1.15rem/1 var(--font-display);
+	color: #ffd23f;
+	font-variant-numeric: tabular-nums;
+}
+.gg-meta {
+	flex: 1;
+	min-width: 0;
+}
+.gg-time {
+	font-variant-numeric: tabular-nums;
+	color: var(--ink);
+}
+.gg-over {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding: 6px 0;
+}
+.gg-final {
+	font: 700 2rem/1 var(--font-display);
+	color: var(--ink);
+	font-variant-numeric: tabular-nums;
+}
+.gg-final.win {
+	color: #ffd23f;
+	text-shadow: 0 0 18px rgba(255, 210, 63, 0.55);
+}
+
+/* ---------- Starcourt Milkshake (components/milkshake-spill.js) ----------
+   The jazz-milkshake reference as a shared gimmick: a paper cup per player,
+   tinted to its owner, dragged and tipped over the live game; two canvases
+   carry the falling drops and the merged puddles along the bottom of the
+   screen (over the chat dock — that's the point). Layer contract as the
+   dice: fixed at z 60, pointer events only on MY cup and the HUD glass. */
+.ms-layer {
+	position: fixed;
+	inset: 0 0 var(--footbar-h) 0;
+	z-index: 60;
+	pointer-events: none;
+	display: block;
+}
+.ms-layer canvas {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+}
+.ms-cup {
+	position: absolute;
+	width: 150px;
+	height: 213px;
+	border: 0;
+	padding: 0;
+	background: none;
+	box-shadow: none;
+	outline: none;
+	min-width: 0;
+	cursor: grab;
+	pointer-events: auto;
+	touch-action: none;
+	-webkit-tap-highlight-color: transparent;
+	filter: drop-shadow(0 10px 14px rgba(0, 0, 0, 0.35));
+}
+button.ms-cup:hover,
+button.ms-cup:active {
+	transform: none; /* the cup tips by its own transforms, not the button hover lift */
+}
+.ms-cup.grabbing {
+	cursor: grabbing;
+}
+.ms-cup svg {
+	display: block;
+	width: 100%;
+	height: 100%;
+	overflow: visible;
+	transform-origin: 50% 86%;
+}
+.ms-cup.remote {
+	pointer-events: none;
+}
+.ms-cup.remote,
+.ms-cup.remote svg {
+	transition: left 0.09s linear, top 0.09s linear;
+}
+.ms-cup.remote svg {
+	transition: transform 0.12s linear;
+}
+.ms-cup-tag {
+	position: absolute;
+	left: 50%;
+	bottom: -4px;
+	transform: translateX(-50%);
+	font: 600 0.68rem/1 var(--font-body);
+	text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+	white-space: nowrap;
+}
+.ms-hud {
+	position: absolute;
+	bottom: 12px;
+	left: 16px;
+	pointer-events: auto;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding: 10px 14px;
+	max-width: min(380px, calc(100vw - 32px));
+	border-radius: 14px;
+	background: color-mix(in srgb, var(--panel) 42%, transparent);
+	border: 1px solid color-mix(in srgb, var(--panel-brd) 70%, transparent);
+	backdrop-filter: blur(6px) saturate(1.1);
+	-webkit-backdrop-filter: blur(6px) saturate(1.1);
+	box-shadow: var(--panel-glow);
+	font: 500 0.8rem/1.3 var(--font-body);
+	color: var(--muted);
+}
+.ms-title {
+	font: 700 1rem/1.2 var(--font-display);
+	color: var(--ink);
+}
+.ms-meter {
+	height: 8px;
+	border-radius: 4px;
+	background: color-mix(in srgb, var(--panel-brd) 60%, transparent);
+	overflow: hidden;
+}
+.ms-meter i {
+	display: block;
+	height: 100%;
+	width: 100%;
+	background: #ff8fb1;
+	transition: width 0.2s ease;
+}
+.ms-meter i.low {
+	background: #e8384f;
+}
+.ms-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+.ms-row button {
+	flex: 0 0 auto;
+}
+
+/* The notice when a friendly switch sweeps the gimmicks off the table */
+.gimmick-off-toast {
+	position: fixed;
+	left: 50%;
+	bottom: calc(var(--footbar-h) + 18px);
+	transform: translateX(-50%);
+	z-index: 102;
+	padding: 10px 16px;
+	border-radius: 14px;
+	background: var(--panel);
+	border: 1px solid var(--panel-brd);
+	box-shadow: var(--panel-glow);
+	font: 600 0.85rem/1.3 var(--font-body);
+	color: var(--ink);
+	pointer-events: none;
+	white-space: nowrap;
+	max-width: calc(100vw - 24px);
+}
+
+/* Every gimmick box above (.gd-layer/.gd-menu/.gd-hud/.gd-die/.gd-note, and
+   the Galaga layer's .gg-layer/.gg-battle/.gg-hud/.gg-over, and the milkshake's .ms-layer/.ms-cup/.ms-hud) sets display:*,
+   so (per the .hidden source-order rule) the hidden state is re-declared
+   AFTER them, here. */
 .gd-layer.hidden,
 .gd-menu.hidden,
 .gd-hud.hidden,
 .gd-die.hidden,
-.gd-note.hidden {
+.gd-note.hidden,
+.gg-layer.hidden,
+.gg-battle.hidden,
+.gg-hud.hidden,
+.gg-over.hidden,
+.ms-layer.hidden,
+.ms-cup.hidden,
+.ms-hud.hidden {
 	display: none;
 }

@@ -67,7 +67,10 @@ export const STEAL_KEY = "cowriteDiceSteal"
 // how often my die's position goes out while dragging / gliding
 const MOVE_MS = 60
 
-// opts: { socket, getMyUserId, getMyColor, isSeated, isFriendly, onEnter, onExit, onLand, document }
+// opts: { socket, getMyUserId, getMyColor, isSeated, isFriendly, onEnter, onExit,
+//         onRoll (any die starts tumbling — mine or a tablemate's; the roll sound),
+//         onLand, launchers ({ gimmickId: fn } — a menu pick that is NOT a die,
+//         e.g. the Galaga game, is handed to its own mount), document }
 export function mountGimmickDice(opts) {
 	const { socket, getMyColor = () => "#e63946", isSeated = () => true, isFriendly = () => true } = opts
 	const doc = opts.document || document
@@ -100,6 +103,14 @@ export function mountGimmickDice(opts) {
 
 	// The layer shows whenever ANY die is on the table (mine or theirs).
 	const syncLayer = () => layer.classList.toggle("hidden", !open && remote.size === 0)
+
+	// Fade an element out with gsap when it's around (the game page loads it),
+	// otherwise just finish — jsdom and a blocked CDN both land here.
+	const fadeOut = (el, done) => {
+		const g = win?.gsap
+		if (!g || !el) return done()
+		g.to(el, { opacity: 0, duration: 0.5, ease: "power2.in", onComplete: () => { g.set(el, { clearProps: "opacity" }); done() } })
+	}
 
 	// ---- the menu ----
 	const paintMenu = () => (menu.innerHTML = menuHtml({ ...gate, friendly: isFriendly(), seated: isSeated() }))
@@ -185,6 +196,7 @@ export function mountGimmickDice(opts) {
 	}
 
 	function enter(id = "d20") {
+		if (opts.launchers?.[id]) return opts.launchers[id]() // not a die — its own game takes it from here
 		if (open) return
 		open = true
 		current = id
@@ -205,14 +217,20 @@ export function mountGimmickDice(opts) {
 		report(true)
 		opts.onEnter?.()
 	}
-	function exit() {
+	function exit({ fade = false } = {}) {
 		if (!open) return
 		open = false
 		clearTimeout(reportTimer)
 		reportTimer = null
-		dieEl.classList.add("hidden")
-		hud.classList.add("hidden")
-		syncLayer()
+		const done = () => {
+			dieEl.classList.add("hidden")
+			hud.classList.add("hidden")
+			syncLayer()
+		}
+		if (fade) {
+			fadeOut(dieEl, done)
+			fadeOut(hud, () => {})
+		} else done()
 		if (btn) btn.textContent = "🎲 Play gimmick"
 		socket.emit("gimmick-die", { on: false })
 		opts.onExit?.()
@@ -317,7 +335,7 @@ export function mountGimmickDice(opts) {
 				if (ack?.error) note(ack.error)
 				return
 			}
-			// no sound here: the chat line carries the chime (nat 20 only)
+			opts.onRoll?.(ack) // the tumble sound (gimmick pref); the chat line still carries the nat-20 chime
 			die.rollTo(ack.value, {
 				onLand: () => {
 					rollLock = false
@@ -348,17 +366,29 @@ export function mountGimmickDice(opts) {
 		setPos(r.el, p.x, p.y)
 		syncLayer()
 	}
-	function dropRemote(userId) {
+	function dropRemote(userId, { fade = false } = {}) {
 		const r = remote.get(userId)
 		if (!r) return
-		r.die.destroy()
-		r.el.remove()
-		remote.delete(userId)
-		syncLayer()
+		remote.delete(userId) // out of the map now; the fade only delays the DOM
+		const done = () => {
+			r.die.destroy()
+			r.el.remove()
+			syncLayer()
+		}
+		fade ? fadeOut(r.el, done) : done()
+	}
+
+	// The table went friendly: everything out FADES away rather than blinking
+	// off. Returns whether anything was out, so the page knows to say why.
+	function gimmicksOff() {
+		const had = open || remote.size > 0
+		for (const uid of [...remote.keys()]) dropRemote(uid, { fade: true })
+		if (open) exit({ fade: true })
+		return had
 	}
 	socket.on("gimmick-die", (d) => {
 		if (!d || d.userId === myUserId()) return
-		if (d.on === false) dropRemote(d.userId)
+		if (d.on === false) dropRemote(d.userId, { fade: true })
 		else upsertRemote(d)
 	})
 	socket.on("gimmick-dice", (list) => {
@@ -367,7 +397,10 @@ export function mountGimmickDice(opts) {
 	// Someone else's landing: their die tumbles to it (mine lands off its ack).
 	socket.on("gimmick-roll", (r) => {
 		if (!r || r.userId === myUserId()) return
-		remote.get(r.userId)?.die.rollTo(r.value)
+		const rem = remote.get(r.userId)
+		if (!rem) return
+		opts.onRoll?.(r) // their tumble makes the same noise on my screen
+		rem.die.rollTo(r.value)
 	})
 
 	if (doc && typeof doc.addEventListener === "function")
@@ -390,6 +423,7 @@ export function mountGimmickDice(opts) {
 	})
 
 	return {
+		gimmicksOff,
 		setGate(g) {
 			gate = { ...gate, ...g }
 			if (!menu.classList.contains("hidden")) paintMenu()

@@ -7,7 +7,7 @@ import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import { bumpStreak } from "../lib/streak.js";
 import { badgeName, badgeDesc, usageMatches, awardWordBadges, rewardsForTiers, describeRewards, unlockedThemes, unlockedGimmicks, canUseGimmick } from "../lib/achievements.js";
-import { cleanGimmickId, rollOutcome, describeRoll, ROLL_COOLDOWN_MS, DIE_SIDES } from "../lib/gimmicks.js";
+import { cleanGimmickId, rollOutcome, describeRoll, galagaOutcome, describeGalaga, GALAGA_MAX_SCORE, ROLL_COOLDOWN_MS, DIE_SIDES } from "../lib/gimmicks.js";
 import { PALETTE, cleanColor, sanitizeRich, stripTags, httpUrl, sanitizeDoc, CID_RE } from "./sanitize.js";
 import { store, saveStore, userByToken, makeMsg, isAdmin } from "./store.js";
 import { mirror, mirrorDelete } from "./persist.js";
@@ -211,6 +211,8 @@ export function createGame(io) {
     sock.emit("chat-history", s.chat);
     sock.emit("spec-chat-history", s.specChat ?? []);
     if (s.dice?.size) sock.emit("gimmick-dice", diceList(s));
+    if (s.ships?.size) sock.emit("gimmick-ships", shipsList(s));
+    if (s.cups?.size) sock.emit("gimmick-cups", cupsList(s));
   }
   const SPEC_CHAT_LIMIT = 50;
   // spectator name colors: stable per name, never attacker-controlled (PALETTE only)
@@ -253,6 +255,25 @@ export function createGame(io) {
     if (!s.dice?.has(userId)) return;
     s.dice.delete(userId);
     io.to(s.code).emit("gimmick-die", { userId, on: false });
+  }
+  // The Galaga battles out right now, same contract as the dice: userId ->
+  // {name, color, x, score, shots, bees} with every coordinate a fraction of
+  // the viewer's own screen. In memory only — a battle never survives a restart.
+  const shipsList = (s) => [...(s.ships?.entries() ?? [])].map(([userId, sh]) => ({ userId, ...sh }));
+  function dropShip(s, userId) {
+    if (!s.ships?.has(userId)) return;
+    s.ships.delete(userId);
+    io.to(s.code).emit("gimmick-ship", { userId, on: false });
+  }
+  // The milkshakes out on the table (Starcourt gimmick), same contract again:
+  // userId -> {name, color, x, y, rot, level}. The spill itself is simulated
+  // on every viewer's screen from this stream — the server relays the cup,
+  // not the drops. In memory only.
+  const cupsList = (s) => [...(s.cups?.entries() ?? [])].map(([userId, c]) => ({ userId, ...c }));
+  function dropCup(s, userId) {
+    if (!s.cups?.has(userId)) return;
+    s.cups.delete(userId);
+    io.to(s.code).emit("gimmick-cup", { userId, on: false });
   }
 
   // Every writer is a signed-in account: name, color, and badge come from the
@@ -330,6 +351,8 @@ export function createGame(io) {
     if (!w) return;
     w.connected = false;
     dropDie(s, w.userId); // a die with nobody behind it leaves the table
+    dropShip(s, w.userId); // and so does a Galaga battle
+    dropCup(s, w.userId); //  ...and a milkshake
     // The host leaving (closed tab, routed away) pauses a running game — the
     // clock freezes until they return or the stand-in host resumes.
     if (s.hostId === id && s.phase === "writing" && !s.paused) {
@@ -508,6 +531,8 @@ export function createGame(io) {
     io.to(s.code).emit("game-slept", { code: s.code, name: s.name || "", by: by?.username ?? null });
     for (const w of s.writers.values()) clearTimeout(w.ghostTimer);
     for (const uid of [...(s.dice?.keys() ?? [])]) dropDie(s, uid);
+    for (const uid of [...(s.ships?.keys() ?? [])]) dropShip(s, uid);
+    for (const uid of [...(s.cups?.keys() ?? [])]) dropCup(s, uid);
     sessions.delete(s.code);
     return true;
   }
@@ -612,6 +637,8 @@ export function createGame(io) {
     const wasHost = s.hostId === id;
     clearTimeout(s.writers.get(id)?.ghostTimer);
     dropDie(s, s.writers.get(id)?.userId);
+    dropShip(s, s.writers.get(id)?.userId);
+    dropCup(s, s.writers.get(id)?.userId);
     s.writers.delete(id);
     s.votes.delete(id);
 
@@ -1037,7 +1064,11 @@ export function createGame(io) {
       const s = mySession();
       if (!s || s.hostId !== socket.id || s.phase !== "writing") return ack?.({ ok: false });
       if (friendly != null) s.friendly = !!friendly;
-      if (s.friendly) for (const uid of [...(s.dice?.keys() ?? [])]) dropDie(s, uid); // friendly again: dice away
+      if (s.friendly) {
+        for (const uid of [...(s.dice?.keys() ?? [])]) dropDie(s, uid); // friendly again: dice away
+        for (const uid of [...(s.ships?.keys() ?? [])]) dropShip(s, uid); // and the arcade closes
+        for (const uid of [...(s.cups?.keys() ?? [])]) dropCup(s, uid); // and Scoops Ahoy shuts
+      }
       if (endless) s.maxTurns = null; // ♾ the story loses its finish line
       const wantsUntimed = turnSeconds === 0 || turnSeconds === "0";
       const newSeconds = wantsUntimed || (turnSeconds != null && Number(turnSeconds) > 0);
@@ -1236,6 +1267,105 @@ export function createGame(io) {
       if (stole) startTurn(s); // re-broadcasts game-state with the new current writer
       ack?.({ ok: true, value: outcome.value, kind: outcome.kind, stole });
     });
+    // A Galaga battle in progress (components/galaga-game.js): the player
+    // reports their ship, live shots and fleet as fractions of their own
+    // screen (throttled client-side, exactly like gimmick-die); the server
+    // clamps and relays so the whole table — spectators too — watches every
+    // battle over the live game. The SCORE here is display-only; the one that
+    // counts arrives at the end via gimmick-galaga.
+    socket.on("gimmick-ship", ({ on, x, score, shots, bees } = {}) => {
+      const s = mySession();
+      const w = s?.writers.get(socket.id);
+      if (!s || !w) return;
+      if (on === false) return dropShip(s, w.userId);
+      if (s.friendly !== false) return;
+      const fr = (v) => Math.max(0, Math.min(1, Number(v) || 0));
+      const ship = {
+        name: w.name,
+        color: w.color,
+        x: fr(x),
+        score: Math.max(0, Math.min(GALAGA_MAX_SCORE, Math.floor(Number(score) || 0))),
+        shots: (Array.isArray(shots) ? shots.slice(0, 4) : []).map((p) => [fr(p?.[0]), fr(p?.[1])]),
+        bees: (Array.isArray(bees) ? bees.slice(0, 10) : []).map((p) => [fr(p?.[0]), fr(p?.[1]), p?.[2] ? 1 : 0]),
+      };
+      s.ships ??= new Map();
+      s.ships.set(w.userId, ship);
+      io.to(s.code).emit("gimmick-ship", { userId: w.userId, ...ship, on: true });
+    });
+    // A milkshake on the table (components/milkshake-spill.js): the owner
+    // reports their cup — where it sits, how tipped it is, how much is left —
+    // as fractions/degrees, throttled client-side; the server clamps and
+    // relays, and EVERY viewer simulates the spill from that stream, so the
+    // mess runs down everyone's screen without a single drop on the wire.
+    socket.on("gimmick-cup", ({ on, x, y, rot, level } = {}) => {
+      const s = mySession();
+      const w = s?.writers.get(socket.id);
+      if (!s || !w) return;
+      if (on === false) return dropCup(s, w.userId);
+      if (s.friendly !== false) return;
+      const fr = (v) => Math.max(0, Math.min(1, Number(v) || 0));
+      const cup = {
+        name: w.name,
+        color: w.color,
+        x: fr(x),
+        y: fr(y),
+        rot: Math.max(-90, Math.min(90, Number(rot) || 0)),
+        level: fr(level),
+      };
+      s.cups ??= new Map();
+      s.cups.set(w.userId, cup);
+      io.to(s.code).emit("gimmick-cup", { userId: w.userId, ...cup, on: true });
+    });
+    // Tipping the cup right over is worth calling in the chat — once per
+    // cooldown, so a mashed pour can't flood it. No steal, no chime: the
+    // milkshake is pure distraction.
+    socket.on("gimmick-pour", (_payload, ack) => {
+      const s = mySession();
+      const w = s?.writers.get(socket.id);
+      if (!s || !w) return ack?.({ ok: false, error: "You're not seated in a game." });
+      if (s.friendly !== false) return ack?.({ ok: false, error: "This is a friendly game — gimmicks are off." });
+      if (!tableHasGimmick(s, "milkshake")) return ack?.({ ok: false, error: "Nobody at this table has unlocked that gimmick yet." });
+      const now = Date.now();
+      s.gimmickPours ??= new Map();
+      if (now - (s.gimmickPours.get(w.userId) ?? 0) < ROLL_MS) return ack?.({ ok: false, error: "Still dripping…" });
+      s.gimmickPours.set(w.userId, now);
+      touch(s);
+      announce(s, w, "tipped a milkshake over the game 🥤");
+      io.to(s.code).emit("gimmick-pour", { userId: w.userId, name: w.name, color: w.color });
+      ack?.({ ok: true });
+    });
+    // A finished Galaga run (components/galaga-game.js): the run itself plays
+    // on the player's own screen, only the final score comes here. Same gates
+    // as a die roll, and beating GALAGA_TARGET steals the turn exactly like a
+    // natural 20 (`steal: false` is the same opt-out — the score is still
+    // called in chat, the turn stays put).
+    socket.on("gimmick-galaga", ({ score, steal } = {}, ack) => {
+      const s = mySession();
+      const w = s?.writers.get(socket.id);
+      if (!s || !w) return ack?.({ ok: false, error: "You're not seated in a game." });
+      if (s.friendly !== false) return ack?.({ ok: false, error: "This is a friendly game — gimmicks are off." });
+      if (!tableHasGimmick(s, "galaga")) return ack?.({ ok: false, error: "Nobody at this table has unlocked that gimmick yet." });
+      const now = Date.now();
+      s.gimmickRolls ??= new Map(); // shared cooldown ledger with the dice
+      if (now - (s.gimmickRolls.get(w.userId) ?? 0) < ROLL_MS) return ack?.({ ok: false, error: "Catch your breath…" });
+      s.gimmickRolls.set(w.userId, now);
+      touch(s);
+      const outcome = galagaOutcome(score);
+      let stole = false, from = "";
+      const declined = outcome.steal && steal === false;
+      if (outcome.steal && !declined && s.phase === "writing" && !s.paused && currentId(s) !== socket.id) {
+        const idx = s.turnOrder.indexOf(socket.id);
+        if (idx !== -1) {
+          from = s.writers.get(currentId(s))?.name ?? "";
+          s.currentIdx = idx;
+          stole = true;
+        }
+      }
+      announce(s, w, describeGalaga(outcome, { stole, from, declined }), { chime: outcome.kind === "highscore" });
+      io.to(s.code).emit("gimmick-galaga", { userId: w.userId, name: w.name, color: w.color, score: outcome.score, kind: outcome.kind, stole });
+      if (stole) startTurn(s);
+      ack?.({ ok: true, score: outcome.score, kind: outcome.kind, stole });
+    });
 
     socket.on("spectate-session", ({ code }, ack) => {
       code = (code || "").toUpperCase().trim();
@@ -1246,6 +1376,8 @@ export function createGame(io) {
       ack?.({ ok: true, code, phase: s.phase, name: s.name || "" });
       socket.emit("spec-chat-history", s.specChat ?? []);
       if (s.dice?.size) socket.emit("gimmick-dice", diceList(s));
+      if (s.ships?.size) socket.emit("gimmick-ships", shipsList(s));
+      if (s.cups?.size) socket.emit("gimmick-cups", cupsList(s));
       if (s.phase === "over") socket.emit("game-over", { prompt: s.prompt, story: s.story });
       else if (s.phase === "waiting") broadcastRoster(s);
       else broadcastGame(s);

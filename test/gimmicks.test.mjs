@@ -6,7 +6,10 @@ import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { startServer, signup, startedGame } from "./helpers.mjs";
-import { GIMMICKS, GIMMICK_IDS, cleanGimmickId, rollOutcome, describeRoll, DIE_SIDES } from "../lib/gimmicks.js";
+import {
+  GIMMICKS, GIMMICK_IDS, cleanGimmickId, rollOutcome, describeRoll, DIE_SIDES,
+  GALAGA_TARGET, GALAGA_MAX_SCORE, galagaOutcome, describeGalaga,
+} from "../lib/gimmicks.js";
 import {
   WORD_TIERS, GIMMICK_UNLOCKS, THEME_UNLOCKS, tierForGimmick, canUseGimmick, unlockedGimmicks, gimmickLocks,
   rewardsForTier, describeRewards,
@@ -23,14 +26,17 @@ after(async () => ctx.stop());
 
 // ---- the data ----
 
-test("every gimmickUnlocks key is a real gimmick pointing at a real tier, and its label is the registry name", () => {
+test("a gimmick unlocks with its own THEME: GIMMICK_UNLOCKS is derived from the registry's theme field + themeUnlocks, not a second map", () => {
+  assert.equal(CFG.gimmickUnlocks, undefined, "no separate gimmick map in achievements.json");
   const tierIds = WORD_TIERS.map((t) => t.id);
-  for (const [id, tier] of Object.entries(CFG.gimmickUnlocks)) {
+  for (const [id, tier] of Object.entries(GIMMICK_UNLOCKS)) {
     assert.ok(GIMMICK_IDS.includes(id), `${id} is a gimmick`);
     assert.ok(tierIds.includes(tier), `${tier} is a tier`);
-    assert.equal(CFG.gimmickLabels[id], GIMMICKS[id].name, `label for ${id} matches the registry`);
+    assert.equal(tier, THEME_UNLOCKS[GIMMICKS[id].theme], `${id} unlocks with its theme`);
   }
-  assert.deepEqual(Object.keys(GIMMICK_UNLOCKS).sort(), Object.keys(CFG.gimmickUnlocks).sort());
+  // every registry gimmick naming a GATED theme is gated; a free theme would mean a free gimmick
+  for (const [id, g] of Object.entries(GIMMICKS))
+    assert.equal(GIMMICK_UNLOCKS[id], THEME_UNLOCKS[g.theme], `${id} rides its theme's tier`);
   assert.ok(GIMMICK_UNLOCKS.d20, "the d20 ships gated");
 });
 
@@ -76,6 +82,32 @@ test("cleaners + outcomes: ids off the wire, nat 20 wants the turn, nat 1 fumble
   assert.equal(describeRoll(rollOutcome(20), { stole: true }), "rolled a NATURAL 20 🎲 and stole the turn!");
 });
 
+// ---- the Galaga run (pure) ----
+
+test("the Galaga gimmick unlocks with the Palace Arcade theme at practicewithme", () => {
+  assert.equal(THEME_UNLOCKS.arcade, "practicewithme");
+  assert.equal(tierForGimmick("galaga"), THEME_UNLOCKS.arcade);
+  const r = rewardsForTier("practicewithme");
+  assert.ok(r.themes.some((t) => t.id === "arcade"));
+  assert.deepEqual(r.gimmicks, [{ id: "galaga", name: "Palace Arcade Galaga" }]);
+  assert.equal(canUseGimmick({ badges: ["practicewithme"] }, "galaga"), true);
+  assert.equal(canUseGimmick({ badges: ["practice"] }, "galaga"), false);
+});
+
+test("galagaOutcome: beating 3000 wants the turn, 3000 exactly does not, junk clamps", () => {
+  assert.equal(GALAGA_TARGET, 3000);
+  assert.deepEqual(galagaOutcome(3200), { score: 3200, kind: "highscore", steal: true });
+  assert.deepEqual(galagaOutcome(3000), { score: 3000, kind: "plain", steal: false });
+  assert.deepEqual(galagaOutcome(0), { score: 0, kind: "plain", steal: false });
+  assert.equal(galagaOutcome(-40).score, 0);
+  assert.equal(galagaOutcome("junk").score, 0);
+  assert.equal(galagaOutcome(1e9).score, GALAGA_MAX_SCORE, "a run can't claim the moon");
+  assert.equal(describeGalaga(galagaOutcome(350)), "scored 350 on the Galaga fleet 👾");
+  assert.equal(describeGalaga(galagaOutcome(3200), { stole: true, from: "Mike" }), "blasted the fleet for 3,200 👾 — beat 3000 and stole the turn from Mike!");
+  assert.equal(describeGalaga(galagaOutcome(3200), { declined: true }), "blasted the fleet for 3,200 👾 — beat 3000, and let the writer keep the turn.");
+  assert.equal(describeGalaga(galagaOutcome(3200)), "blasted the fleet for 3,200 👾 — beat 3000!");
+});
+
 // ---- the endpoint ----
 
 test("/api/gimmicks: catalogue + locks for everyone, unlocked per rank, all for admins; /api/me agrees", async () => {
@@ -93,7 +125,7 @@ test("/api/gimmicks: catalogue + locks for everyone, unlocked per rank, all for 
   const admin = await signup(ctx, "diceadmin", ADMIN_EMAIL);
   const a = await ctx.api("/api/gimmicks", undefined, admin.token);
   assert.equal(a.data.admin, true);
-  assert.deepEqual(a.data.unlocked, ["d20"]);
+  assert.deepEqual(a.data.unlocked.sort(), ["d20", "galaga", "milkshake"]);
 });
 
 // ---- the socket flow ----
@@ -253,4 +285,198 @@ test("gimmick-die: a die on the table is shown to everyone, follows its owner, a
   A.emit("gimmick-die", { on: true, x: 0.2, y: 0.2 });
   await ctx.wait(100);
   assert.equal(spec.length, 0, "no die in a friendly game");
+});
+
+test("gimmick-galaga: friendly/unranked refused; a run over 3000 steals the turn (unless declined); the score is called in chat", async () => {
+  const local = await startServer({ COWRITE_ROLL_COOLDOWN_MS: "50" });
+  try {
+    const admin = await signup(local, "diceadmin", ADMIN_EMAIL);
+    const mike = await signup(local, "arcademike", "arcademike@x.com", "#e63946");
+    const A = await local.conn();
+    const B = await local.conn();
+    let game = null;
+    const chat = [];
+    const runs = [];
+    A.on("game-state", (st) => (game = st));
+    A.on("chat", (m) => chat.push(m));
+    A.on("gimmick-galaga", (r) => runs.push(r));
+    const c = await local.emit(A, "create-session", { auth: admin.token });
+    await local.emit(B, "join-session", { code: c.code, auth: mike.token });
+    await local.emit(A, "start-game", { turnSeconds: 60, rounds: 2, friendly: true });
+    await local.wait(150);
+    A.emit("vote", { prompt: game.options[0] });
+    B.emit("vote", { prompt: game.options[0] });
+    await local.wait(200);
+    assert.equal(game.phase, "writing");
+    assert.equal(game.currentId, A.id);
+    // friendly game: refused
+    const f = await local.emit(B, "gimmick-galaga", { score: 9000 });
+    assert.equal(f.ok, false);
+    assert.match(f.error, /friendly/);
+    await local.emit(A, "update-rules", { friendly: false });
+    // a plain run: announced, no steal
+    const plain = await local.emit(B, "gimmick-galaga", { score: 350 });
+    assert.equal(plain.ok, true);
+    assert.deepEqual({ score: plain.score, kind: plain.kind, stole: plain.stole }, { score: 350, kind: "plain", stole: false });
+    await local.wait(100);
+    assert.ok(chat.some((m) => m.sys && /scored 350 on the Galaga fleet 👾/.test(m.text)));
+    assert.equal(game.currentId, A.id, "turn untouched");
+    await local.wait(80); // cooldown
+    // beat 3000 with the opt-out: called, turn stays
+    const dec = await local.emit(B, "gimmick-galaga", { score: 3100, steal: false });
+    assert.equal(dec.stole, false);
+    await local.wait(100);
+    assert.ok(chat.some((m) => m.sys && /beat 3000, and let the writer keep the turn/.test(m.text)));
+    assert.equal(game.currentId, A.id);
+    await local.wait(80);
+    // beat 3000 for real: Mike (no rank, admin's table) steals the turn
+    const win = await local.emit(B, "gimmick-galaga", { score: 3200 });
+    assert.equal(win.ok, true);
+    assert.equal(win.kind, "highscore");
+    assert.equal(win.stole, true);
+    await local.wait(150);
+    assert.equal(game.currentId, B.id, "the turn changed hands");
+    assert.equal(runs.at(-1).userId, mike.user.id);
+    assert.equal(runs.at(-1).stole, true);
+    const call = chat.find((m) => m.sys && /blasted the fleet for 3,200 👾 — beat 3000 and stole the turn from diceadmin!/.test(m.text));
+    assert.ok(call, "the steal is called in chat");
+    assert.equal(call.chime, true, "and it rings like a natural 20");
+    // a spectator has no seat, no run
+    const S = await local.conn();
+    await local.emit(S, "spectate-session", { code: c.code });
+    assert.equal((await local.emit(S, "gimmick-galaga", { score: 999 })).ok, false);
+  } finally {
+    await local.stop();
+  }
+});
+
+test("gimmick-ship: a battle is relayed to everyone (clamped), late joiners get the list, and it leaves with its owner or a friendly switch", async () => {
+  const local = await startServer({ COWRITE_ROLL_COOLDOWN_MS: "50" });
+  try {
+    const admin = await signup(local, "diceadmin", ADMIN_EMAIL);
+    const mike = await signup(local, "shipmike", "shipmike@x.com", "#e63946");
+    const A = await local.conn();
+    const B = await local.conn();
+    let game = null;
+    const seen = [];
+    A.on("game-state", (st) => (game = st));
+    A.on("gimmick-ship", (d) => seen.push(d));
+    const c = await local.emit(A, "create-session", { auth: admin.token });
+    await local.emit(B, "join-session", { code: c.code, auth: mike.token });
+    await local.emit(A, "start-game", { turnSeconds: 60, rounds: 2, friendly: false });
+    await local.wait(150);
+    // Mike's battle goes out: ship, fleet, shots — clamped to fractions
+    B.emit("gimmick-ship", { on: true, x: 0.5, score: 150, bees: [[0.2, 0.1, 0], [7, -1, 1]], shots: [[0.5, 0.7]] });
+    await local.wait(100);
+    assert.equal(seen.length, 1);
+    const d = seen[0];
+    assert.equal(d.userId, mike.user.id);
+    assert.equal(d.name, "shipmike");
+    assert.equal(d.color, "#e63946");
+    assert.equal(d.score, 150);
+    assert.deepEqual(d.bees, [[0.2, 0.1, 0], [1, 0, 1]], "coordinates clamped, dive flag kept");
+    assert.deepEqual(d.shots, [[0.5, 0.7]]);
+    // an absurd payload is bounded, not trusted
+    B.emit("gimmick-ship", { on: true, x: 9, score: 1e12, bees: Array.from({ length: 40 }, () => [0, 0, 0]), shots: Array.from({ length: 40 }, () => [0, 0]) });
+    await local.wait(100);
+    assert.equal(seen.at(-1).x, 1);
+    assert.equal(seen.at(-1).score, GALAGA_MAX_SCORE);
+    assert.equal(seen.at(-1).bees.length, 10);
+    assert.equal(seen.at(-1).shots.length, 4);
+    // a spectator arriving now gets the battles already on
+    const S = await local.conn();
+    const list = new Promise((r) => S.on("gimmick-ships", r));
+    await local.emit(S, "spectate-session", { code: c.code });
+    const ships = await list;
+    assert.equal(ships.length, 1);
+    assert.equal(ships[0].userId, mike.user.id);
+    // friendly again: the arcade closes for everyone
+    A.emit("vote", { prompt: game.options[0] });
+    B.emit("vote", { prompt: game.options[0] });
+    await local.wait(200);
+    assert.equal(game.phase, "writing");
+    const gone = new Promise((r) => A.on("gimmick-ship", (x) => x.on === false && r(x)));
+    await local.emit(A, "update-rules", { friendly: true });
+    assert.equal((await gone).userId, mike.user.id);
+    // and a friendly game takes no new battles
+    const before = seen.length;
+    B.emit("gimmick-ship", { on: true, x: 0.5, score: 0, bees: [], shots: [] });
+    await local.wait(100);
+    assert.equal(seen.length, before, "a friendly game takes no new battles");
+    // disconnect takes the battle with it
+    await local.emit(A, "update-rules", { friendly: false });
+    B.emit("gimmick-ship", { on: true, x: 0.4, score: 100, bees: [], shots: [] });
+    await local.wait(100);
+    const left = new Promise((r) => A.on("gimmick-ship", (x) => x.on === false && r(x)));
+    B.disconnect();
+    assert.equal((await left).userId, mike.user.id);
+  } finally {
+    await local.stop();
+  }
+});
+
+test("the Starcourt Milkshake unlocks with the Starcourt theme at practice", () => {
+  assert.equal(THEME_UNLOCKS.starcourt, "practice");
+  assert.equal(tierForGimmick("milkshake"), THEME_UNLOCKS.starcourt);
+  const r = rewardsForTier("practice");
+  assert.ok(r.themes.some((t) => t.id === "starcourt"));
+  assert.deepEqual(r.gimmicks, [{ id: "milkshake", name: "Starcourt Milkshake" }]);
+  assert.equal(canUseGimmick({ badges: ["practice"] }, "milkshake"), true);
+  assert.equal(canUseGimmick({ badges: ["puppymike"] }, "milkshake"), false);
+});
+
+test("gimmick-cup / gimmick-pour: the cup is relayed (clamped), the pour is called in chat on a cooldown, and the cup leaves with its owner", async () => {
+  const local = await startServer({ COWRITE_ROLL_COOLDOWN_MS: "200" });
+  try {
+    const admin = await signup(local, "diceadmin", ADMIN_EMAIL);
+    const mike = await signup(local, "shakemike", "shakemike@x.com", "#e63946");
+    const A = await local.conn();
+    const B = await local.conn();
+    const seen = [];
+    const chat = [];
+    A.on("gimmick-cup", (d) => seen.push(d));
+    A.on("chat", (m) => chat.push(m));
+    const c = await local.emit(A, "create-session", { auth: admin.token });
+    await local.emit(B, "join-session", { code: c.code, auth: mike.token });
+    // friendly game: no cup, no pour
+    B.emit("gimmick-cup", { on: true, x: 0.5, y: 0.5, rot: 0, level: 1 });
+    await local.wait(100);
+    assert.equal(seen.length, 0, "a friendly game takes no cup");
+    assert.match((await local.emit(B, "gimmick-pour", {})).error, /friendly/);
+    await local.emit(A, "start-game", { turnSeconds: 60, rounds: 2, friendly: false });
+    await local.wait(150);
+    // the cup goes out, clamped
+    B.emit("gimmick-cup", { on: true, x: 0.4, y: 9, rot: -400, level: 2 });
+    await local.wait(100);
+    assert.equal(seen.length, 1);
+    assert.equal(seen[0].userId, mike.user.id);
+    assert.equal(seen[0].color, "#e63946");
+    assert.equal(seen[0].x, 0.4);
+    assert.equal(seen[0].y, 1, "clamped");
+    assert.equal(seen[0].rot, -90, "clamped");
+    assert.equal(seen[0].level, 1, "clamped");
+    // the pour: announced once, then the cooldown holds
+    const p1 = await local.emit(B, "gimmick-pour", {});
+    assert.equal(p1.ok, true);
+    await local.wait(100);
+    const call = chat.find((m) => m.sys && /shakemike/.test(m.name) && /tipped a milkshake over the game 🥤/.test(m.text));
+    assert.ok(call, "the pour is called in chat");
+    assert.notEqual(call.chime, true, "no chime — pure distraction");
+    assert.equal((await local.emit(B, "gimmick-pour", {})).ok, false, "cooldown");
+    // a spectator arriving now gets the cups already out
+    const S = await local.conn();
+    const list = new Promise((r) => S.on("gimmick-cups", r));
+    await local.emit(S, "spectate-session", { code: c.code });
+    const cups = await list;
+    assert.equal(cups.length, 1);
+    assert.equal(cups[0].userId, mike.user.id);
+    // and has no seat: no pour
+    assert.equal((await local.emit(S, "gimmick-pour", {})).ok, false);
+    // the cup leaves with its owner
+    const gone = new Promise((r) => A.on("gimmick-cup", (d) => d.on === false && r(d)));
+    B.disconnect();
+    assert.equal((await gone).userId, mike.user.id);
+  } finally {
+    await local.stop();
+  }
 });

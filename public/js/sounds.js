@@ -1,5 +1,5 @@
 // Sounds (sounds/*.mp3, served at /sounds/) and the chime decision rules.
-export const SOUND_NAMES = ["incomingline", "incomingmessage", "outgoingline", "outgoingmessage"]
+export const SOUND_NAMES = ["incomingline", "incomingmessage", "outgoingline", "outgoingmessage", "dierolling"]
 
 export function createSounds(AudioCtor = globalThis.Audio) {
 	const sounds = {}
@@ -48,6 +48,7 @@ export function createSounds(AudioCtor = globalThis.Audio) {
 		outgoingmessage: "chat",
 		incomingline: "story",
 		outgoingline: "story",
+		dierolling: "gimmick", // the tumble itself, when any die is thrown
 	}
 	const realStart = clock.start.bind(clock)
 	clock.start = () => {

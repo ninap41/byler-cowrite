@@ -201,3 +201,17 @@ test("LAYER_HTML markup carries the ids the mount reads", () => {
   for (const id of ["gimmickLayer", "gdOthers", "gdHud", "gdTitle", "gdRead", "gdSteal", "gdNote", "gdDie", "gimmickMenu"])
     assert.match(LAYER_HTML, new RegExp(`id="${id}"`));
 });
+
+test("gimmicksOff: a friendly switch sweeps every die away and reports whether anything was out", () => {
+  document.body.innerHTML = `<button class="foot-btn" id="gimmickBtn"></button>`;
+  const socket = fakeSocket();
+  const t = mountGimmickDice({ socket, getMyUserId: () => "u1", getMyColor: () => "#6c8cff", isSeated: () => true, isFriendly: () => false, document });
+  t.setGate({ catalogue: [{ id: "d20", name: "Hellfire d20" }], unlocked: ["d20"] });
+  assert.equal(t.gimmicksOff(), false, "nothing out, nothing to say");
+  t.enter("d20");
+  socket.fire("gimmick-die", { userId: "u2", name: "Mike", color: "#e63946", x: 0.5, y: 0.5, on: true });
+  assert.equal(t.gimmicksOff(), true);
+  assert.equal(t.open, false);
+  assert.deepEqual(t.others, []);
+  assert.ok(document.getElementById("gimmickLayer").classList.contains("hidden"));
+});
