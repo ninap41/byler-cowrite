@@ -95,18 +95,19 @@ test("the Galaga gimmick unlocks with the Palace Arcade theme at explorer", () =
   assert.equal(canUseGimmick({ badges: ["practice"] }, "galaga"), false);
 });
 
-test("galagaOutcome: beating 3000 wants the turn, 3000 exactly does not, junk clamps", () => {
-  assert.equal(GALAGA_TARGET, 3000);
-  assert.deepEqual(galagaOutcome(3200), { score: 3200, kind: "highscore", steal: true });
-  assert.deepEqual(galagaOutcome(3000), { score: 3000, kind: "plain", steal: false });
+test("galagaOutcome: beating 8000 wants the turn, 8000 exactly does not, junk clamps", () => {
+  assert.equal(GALAGA_TARGET, 8000);
+  assert.deepEqual(galagaOutcome(8200), { score: 8200, kind: "highscore", steal: true });
+  assert.deepEqual(galagaOutcome(8000), { score: 8000, kind: "plain", steal: false });
   assert.deepEqual(galagaOutcome(0), { score: 0, kind: "plain", steal: false });
   assert.equal(galagaOutcome(-40).score, 0);
   assert.equal(galagaOutcome("junk").score, 0);
   assert.equal(galagaOutcome(1e9).score, GALAGA_MAX_SCORE, "a run can't claim the moon");
   assert.equal(describeGalaga(galagaOutcome(350)), "scored 350 on the Galaga fleet 👾");
-  assert.equal(describeGalaga(galagaOutcome(3200), { stole: true, from: "Mike" }), "blasted the fleet for 3,200 👾 — beat 3000 and stole the turn from Mike!");
-  assert.equal(describeGalaga(galagaOutcome(3200), { declined: true }), "blasted the fleet for 3,200 👾 — beat 3000, and let the writer keep the turn.");
-  assert.equal(describeGalaga(galagaOutcome(3200)), "blasted the fleet for 3,200 👾 — beat 3000!");
+  assert.equal(describeGalaga(galagaOutcome(8200), { stole: true, from: "Mike" }), "blasted the fleet for 8,200 👾 — beat 8,000 and stole the turn from Mike!");
+  assert.equal(describeGalaga(galagaOutcome(8200), { declined: true }), "blasted the fleet for 8,200 👾 — beat 8,000, and let the writer keep the turn.");
+  assert.equal(describeGalaga(galagaOutcome(8200)), "blasted the fleet for 8,200 👾 — beat 8,000!");
+  assert.equal(describeGalaga(galagaOutcome(8200), { beaten: true, by: "Will" }), "blasted the fleet for 8,200 👾 — beat 8,000, but Will's higher run holds the turn.");
 });
 
 // ---- the endpoint ----
@@ -288,7 +289,7 @@ test("gimmick-die: a die on the table is shown to everyone, follows its owner, a
   assert.equal(spec.length, 0, "no die in a friendly game");
 });
 
-test("gimmick-galaga: friendly/unranked refused; a run over 3000 steals the turn (unless declined); the score is called in chat", async () => {
+test("gimmick-galaga: friendly/unranked refused; a run over 8000 steals the turn (unless declined); the score is called in chat", async () => {
   const local = await startServer({ COWRITE_ROLL_COOLDOWN_MS: "50" });
   try {
     const admin = await signup(local, "diceadmin", ADMIN_EMAIL);
@@ -323,15 +324,15 @@ test("gimmick-galaga: friendly/unranked refused; a run over 3000 steals the turn
     assert.ok(chat.some((m) => m.sys && /scored 350 on the Galaga fleet 👾/.test(m.text)));
     assert.equal(game.currentId, A.id, "turn untouched");
     await local.wait(80); // cooldown
-    // beat 3000 with the opt-out: called, turn stays
-    const dec = await local.emit(B, "gimmick-galaga", { score: 3100, steal: false });
+    // beat 8000 with the opt-out: called, turn stays
+    const dec = await local.emit(B, "gimmick-galaga", { score: 8100, steal: false });
     assert.equal(dec.stole, false);
     await local.wait(100);
-    assert.ok(chat.some((m) => m.sys && /beat 3000, and let the writer keep the turn/.test(m.text)));
+    assert.ok(chat.some((m) => m.sys && /beat 8,000, and let the writer keep the turn/.test(m.text)));
     assert.equal(game.currentId, A.id);
     await local.wait(80);
-    // beat 3000 for real: Mike (no rank, admin's table) steals the turn
-    const win = await local.emit(B, "gimmick-galaga", { score: 3200 });
+    // beat 8000 for real: Mike (no rank, admin's table) steals the turn
+    const win = await local.emit(B, "gimmick-galaga", { score: 8200 });
     assert.equal(win.ok, true);
     assert.equal(win.kind, "highscore");
     assert.equal(win.stole, true);
@@ -339,7 +340,7 @@ test("gimmick-galaga: friendly/unranked refused; a run over 3000 steals the turn
     assert.equal(game.currentId, B.id, "the turn changed hands");
     assert.equal(runs.at(-1).userId, mike.user.id);
     assert.equal(runs.at(-1).stole, true);
-    const call = chat.find((m) => m.sys && /blasted the fleet for 3,200 👾 — beat 3000 and stole the turn from diceadmin!/.test(m.text));
+    const call = chat.find((m) => m.sys && /blasted the fleet for 8,200 👾 — beat 8,000 and stole the turn from diceadmin!/.test(m.text));
     assert.ok(call, "the steal is called in chat");
     assert.equal(call.chime, true, "and it rings like a natural 20");
     // a spectator has no seat, no run
@@ -414,6 +415,86 @@ test("gimmick-ship: a battle is relayed to everyone (clamped), late joiners get 
   } finally {
     await local.stop();
   }
+});
+
+test("galaga steals STACK: the best run holds the turn, a lower run past the target bounces off, a higher one takes it", async () => {
+  const local = await startServer({ COWRITE_ROLL_COOLDOWN_MS: "50" });
+  try {
+    const admin = await signup(local, "diceadmin", ADMIN_EMAIL);
+    const mike = await signup(local, "stackmike", "stackmike@x.com", "#e63946");
+    const will = await signup(local, "stackwill", "stackwill@x.com", "#6c8cff");
+    const A = await local.conn();
+    const B = await local.conn();
+    const C = await local.conn();
+    let game = null;
+    const chat = [];
+    A.on("game-state", (st) => (game = st));
+    A.on("chat", (m) => chat.push(m));
+    const c = await local.emit(A, "create-session", { auth: admin.token });
+    await local.emit(B, "join-session", { code: c.code, auth: mike.token });
+    await local.emit(C, "join-session", { code: c.code, auth: will.token });
+    await local.emit(A, "start-game", { turnSeconds: 60, rounds: 3, friendly: false });
+    await local.wait(150);
+    A.emit("vote", { prompt: game.options[0] });
+    B.emit("vote", { prompt: game.options[0] });
+    C.emit("vote", { prompt: game.options[0] });
+    await local.wait(200);
+    assert.equal(game.currentId, A.id);
+    // Mike steals with 8,200
+    const first = await local.emit(B, "gimmick-galaga", { score: 8200 });
+    assert.equal(first.stole, true);
+    await local.wait(150);
+    assert.equal(game.currentId, B.id, "Mike holds the stolen turn");
+    // Will clears the target too — but under Mike's run: the turn HOLDS
+    const under = await local.emit(C, "gimmick-galaga", { score: 8100 });
+    assert.equal(under.ok, true);
+    assert.equal(under.stole, false, "a lower run can't take a stolen turn");
+    await local.wait(150);
+    assert.equal(game.currentId, B.id, "Mike still holds it");
+    assert.ok(
+      chat.some((m) => m.sys && /8,100 👾 — beat 8,000, but stackmike's higher run holds the turn\./.test(m.text)),
+      "the bounce is called in chat, naming the holder"
+    );
+    // Will comes back over the top: 9,000 beats 8,200 and takes it
+    await local.wait(80);
+    const over = await local.emit(C, "gimmick-galaga", { score: 9000 });
+    assert.equal(over.stole, true, "the higher score steals the stolen turn");
+    await local.wait(150);
+    assert.equal(game.currentId, C.id);
+    // a NATURAL turn change wipes the ledger: Will submits, the next turn
+    // can be stolen by any run past the target again
+    await local.emit(C, "submit-line", { text: "a line from the thief" });
+    await local.wait(150);
+    await local.wait(80);
+    const fresh = await local.emit(B, "gimmick-galaga", { score: 8050 });
+    assert.equal(fresh.stole, true, "a new turn starts the contest over");
+  } finally {
+    await local.stop();
+  }
+});
+
+test("game-state carries the turn order and who's up next, for writers and spectators alike", async () => {
+  const g = await startedGame(ctx, { friendly: true });
+  await ctx.wait(100);
+  let st = g.state.current;
+  assert.equal(st.phase, "writing");
+  assert.deepEqual(st.turnOrder, [g.A.id, g.B.id].filter((id) => st.turnOrder.includes(id)), "the order rides the broadcast");
+  assert.equal(st.turnOrder.length, 2);
+  assert.equal(st.currentId, st.turnOrder[0]);
+  assert.equal(st.nextId, st.turnOrder[1], "the other writer is up next");
+  // the turn advances: next becomes current, current becomes next
+  await ctx.emit(g.A, "submit-line", { text: "the first line" });
+  await ctx.wait(150);
+  st = g.state.current;
+  assert.equal(st.currentId, st.turnOrder[1]);
+  assert.equal(st.nextId, st.turnOrder[0]);
+  // a spectator gets the same fields in its broadcast
+  const S = await ctx.conn();
+  const seen = new Promise((r) => S.on("game-state", r));
+  await ctx.emit(S, "spectate-session", { code: g.code });
+  const spec = await seen;
+  assert.deepEqual(spec.turnOrder, st.turnOrder, "spectators see the order");
+  assert.equal(spec.nextId, st.nextId, "and who's up next");
 });
 
 test("the Starcourt Milkshake unlocks with the Starcourt theme at practice", () => {

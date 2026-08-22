@@ -19,9 +19,9 @@
 // rules — the server does.
 import { esc, safeColor } from "../util.js"
 
-export const GALAGA_TARGET = 3000 // beat this and the run steals the turn (server agrees)
+export const GALAGA_TARGET = 8000 // beat this and the run steals the turn (server agrees)
 export const ROUND_SECS = 45
-export const POINTS = { bob: 100, dive: 300 } // a diving bee is worth chasing; ~20+ kills reaches the 3,000 target
+export const POINTS = { bob: 100, dive: 300 } // a diving bee is worth chasing; a long run of ~55+ kills reaches the 8,000 target
 export const STEAL_KEY = "cowriteDiceSteal" // one standing preference for every gimmick
 const SLOTS = 4 // fleet columns (two rows)
 const MOVE_MS = 80 // how often my battle goes out while running (dice use 60)

@@ -2835,6 +2835,25 @@ input[type="checkbox"]:focus-visible {
 	border-color: var(--accent-2);
 	box-shadow: 0 0 8px var(--chip-brd);
 }
+/* the players row reads in turn order: a small seat number on every chip,
+   and the next connected writer wears the "up next" tag */
+.player-chip .turn-no {
+	font: 700 0.66rem/1 var(--font-mono);
+	color: var(--muted);
+}
+.player-chip.next {
+	border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
+}
+.player-chip .up-next {
+	font: 700 0.6rem/1 var(--font-mono);
+	font-style: normal;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	color: var(--accent);
+	border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+	border-radius: 999px;
+	padding: 2px 6px;
+}
 .who-mark {
 	cursor: default;
 	margin-right: 3px;

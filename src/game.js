@@ -491,6 +491,16 @@ export function createGame(io) {
     return n;
   }
 
+  // Who writes after the current writer: the next CONNECTED seat around the
+  // circle (ghosts are skipped exactly as startTurn would skip them).
+  function nextUpId(s) {
+    if (s.phase !== "writing" || s.turnOrder.length < 2) return null;
+    for (let i = 1; i < s.turnOrder.length; i++) {
+      const id = s.turnOrder[(s.currentIdx + i) % s.turnOrder.length];
+      if (s.writers.get(id)?.connected !== false) return id;
+    }
+    return null;
+  }
   function broadcastGame(s) {
     const curId = currentId(s);
     io.to(s.code).emit("game-state", {
@@ -519,6 +529,8 @@ export function createGame(io) {
       maxTurns: s.maxTurns,
       players: names(s),
       writers: roster(s), // incl. connected flags -> online/offline dots
+      turnOrder: s.phase === "writing" || s.phase === "over" ? s.turnOrder : [],
+      nextId: nextUpId(s),
       hostId: s.hostId,
       hostName: s.writers.get(s.hostId)?.name ?? null,
       spectators: spectatorCount(s),
@@ -581,6 +593,8 @@ export function createGame(io) {
     if (!s.idleTimer) armIdleSleep(s); // a game that never saw activity still has a clock on it
     s.paused = false;
     s.remaining = 0;
+    s.stealScore = 0; // a fresh turn wipes the stacked-steal ledger
+    s.stealBy = "";
     if (s.turnOrder.length === 0) return endGame(s);
     // Skip ghost seats; if nobody is connected, auto-pause (and snapshot) so the
     // game waits instead of burning empty turns.
@@ -1502,19 +1516,31 @@ export function createGame(io) {
       s.gimmickRolls.set(w.userId, now);
       touch(s);
       const outcome = galagaOutcome(score);
-      let stole = false, from = "";
+      let stole = false, from = "", beaten = false;
       const declined = outcome.steal && steal === false;
+      // Steals STACK: the first run past the target takes the turn, and a
+      // later run this same turn only takes it away with a HIGHER score —
+      // s.stealScore/.stealBy remember the run that holds the stolen turn
+      // (startTurn clears them whenever the turn changes hands for real).
       if (outcome.steal && !declined && s.phase === "writing" && !s.paused && currentId(s) !== socket.id) {
-        const idx = s.turnOrder.indexOf(socket.id);
-        if (idx !== -1) {
-          from = s.writers.get(currentId(s))?.name ?? "";
-          s.currentIdx = idx;
-          stole = true;
+        if (outcome.score <= (s.stealScore ?? 0)) {
+          beaten = true;
+        } else {
+          const idx = s.turnOrder.indexOf(socket.id);
+          if (idx !== -1) {
+            from = s.writers.get(currentId(s))?.name ?? "";
+            s.currentIdx = idx;
+            stole = true;
+          }
         }
       }
-      announce(s, w, describeGalaga(outcome, { stole, from, declined }), { chime: outcome.kind === "highscore" });
+      announce(s, w, describeGalaga(outcome, { stole, from, declined, beaten, by: s.stealBy ?? "" }), { chime: outcome.kind === "highscore" });
       io.to(s.code).emit("gimmick-galaga", { userId: w.userId, name: w.name, color: w.color, score: outcome.score, kind: outcome.kind, stole });
-      if (stole) startTurn(s);
+      if (stole) {
+        startTurn(s);
+        s.stealScore = outcome.score; // after startTurn — it resets the ledger
+        s.stealBy = w.name;
+      }
       ack?.({ ok: true, score: outcome.score, kind: outcome.kind, stole });
     });
 

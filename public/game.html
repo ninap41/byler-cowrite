@@ -872,15 +872,24 @@
 					(st.maxTurns ? `Turn ${st.turnCount + 1} of ${st.maxTurns}` : `Turn ${st.turnCount + 1} · endless`) +
 					(st.paused ? " · ⏸ paused by host" : "")
 				const row = $("playersRow")
-				row.innerHTML = (st.writers || [])
-					.map((w) => {
+				// the row reads in TURN ORDER (writers and spectators alike): the
+				// current writer marked, the next connected writer wearing "up next"
+				const byId = new Map((st.writers || []).map((w) => [w.id, w]))
+				const ordered = (st.turnOrder || []).map((id) => byId.get(id)).filter(Boolean)
+				for (const w of st.writers || []) if (!ordered.includes(w)) ordered.push(w)
+				const numbered = (st.turnOrder || []).length > 1
+				row.innerHTML = ordered
+					.map((w, i) => {
 						const col = safeColor(w.color)
 						const on = w.connected !== false
+						const next = w.id === st.nextId && w.id !== st.currentId
 						return (
-							`<span class="player-chip${w.id === st.currentId ? " now" : ""}" data-user="${esc(w.name)}">` +
+							`<span class="player-chip${w.id === st.currentId ? " now" : ""}${next ? " next" : ""}" data-user="${esc(w.name)}">` +
+							(numbered ? `<b class="turn-no">${i + 1}</b>` : "") +
 							presenceHtml(on) +
 							miniAvatar(w) +
 							`<span style="color:${col}">${esc(w.name)}</span>` +
+							(next ? `<em class="up-next">up next</em>` : "") +
 							whoMarks(w) +
 							`</span>`
 						)

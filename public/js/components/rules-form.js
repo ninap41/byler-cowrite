@@ -13,7 +13,7 @@
 // Each sentence is tagged with its mode so the CSS can spotlight the one the
 // dropdown currently selects (the form carries data-mode="friendly|hostile").
 const MODE_DESC =
-	'<span class="rmode-desc" data-desc="friendly"><b>Friendly mode</b> disables gimmicks, but mini-games can still be played.</span><br> ' +
+	'<span class="rmode-desc" data-desc="friendly"><b>Friendly mode</b> disables gimmicks.</span><br> ' +
 	'<span class="rmode-desc" data-desc="hostile"><b>Non-friendly mode</b> allows other writers to distract players with their gimmicks.</span>'
 
 export function mountRulesForm(container, opts = {}) {

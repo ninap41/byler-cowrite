@@ -13,8 +13,8 @@ const { GALAGA_TARGET, ROUND_SECS, POINTS, STEAL_KEY, galagaHtml, galagaResultHt
   await import("../public/js/components/galaga-game.js");
 const dice = await import("../public/js/components/gimmick-dice.js");
 
-test("the target is 3000 and the steal preference shares the dice's localStorage key", () => {
-  assert.equal(GALAGA_TARGET, 3000);
+test("the target is 8000 and the steal preference shares the dice's localStorage key", () => {
+  assert.equal(GALAGA_TARGET, 8000);
   assert.equal(STEAL_KEY, dice.STEAL_KEY);
   assert.ok(ROUND_SECS > 0 && POINTS.dive > POINTS.bob);
 });
@@ -22,7 +22,7 @@ test("the target is 3000 and the steal preference shares the dice's localStorage
 test("galagaHtml: layer, my battle, others' box, HUD with score/time/steal/fire/way out", () => {
   const h = galagaHtml();
   for (const id of ["ggLayer", "ggMine", "ggOthers", "ggHud", "ggScore", "ggTime", "ggOver", "ggSteal"]) assert.match(h, new RegExp(`id="${id}"`));
-  assert.match(h, /beat 3000 to steal the turn/);
+  assert.match(h, /beat 8000 to steal the turn/);
   assert.match(h, /data-act="gg-fire"/);
   assert.match(h, /data-act="gg-exit"/);
 });
@@ -37,7 +37,7 @@ test("galagaResultHtml: every ending", () => {
   assert.match(galagaResultHtml({ score: 350, kind: "plain" }), /350[\s\S]*The fleet holds/);
   assert.match(galagaResultHtml({ score: 3200, kind: "highscore", stole: true }), /win">3,200[\s\S]*the turn is yours/);
   assert.match(galagaResultHtml({ score: 3200, kind: "highscore", stole: false, declined: true }), /let the writer keep the turn/);
-  assert.match(galagaResultHtml({ score: 3200, kind: "highscore", stole: false }), /You beat 3000!/);
+  assert.match(galagaResultHtml({ score: 8200, kind: "highscore", stole: false }), /You beat 8000!/);
   assert.match(galagaResultHtml({ error: "This is a friendly game — gimmicks are off." }), /friendly game/);
   assert.match(galagaResultHtml({ score: 350, kind: "plain" }), /data-act="gg-again"/);
 });
@@ -55,7 +55,7 @@ function fakeSocket(reply = () => ({ ok: true, score: 0, kind: "plain", stole: f
 
 test("mountGalaga: start opens the shared layer, spawns MY fleet and relays the battle; finishing submits {score, steal}; exit puts the ship away", () => {
   document.body.innerHTML = "";
-  const socket = fakeSocket((data) => ({ ok: true, score: data.score, kind: data.score > 3000 ? "highscore" : "plain", stole: false }));
+  const socket = fakeSocket((data) => ({ ok: true, score: data.score, kind: data.score > 8000 ? "highscore" : "plain", stole: false }));
   const g = mountGalaga({ socket, getMyUserId: () => "u1", getMyName: () => "willthewise", getMyColor: () => "#6c8cff", document });
   const layer = document.getElementById("ggLayer");
   assert.ok(layer.classList.contains("hidden"), "closed until a battle is on");
