@@ -1009,14 +1009,16 @@ a.rg-row {
 	padding: 0;
 }
 
-/* The two scenery-heavy themes get a translucent sheet back under the
-   editorial columns — Vecna's clock and the Castle Byers forest run right
-   behind the type, so each column sits on its theme's panel glass while
+/* The scenery-heavy themes get a translucent sheet back under the editorial
+   columns — Vecna's clock, the Castle Byers forest and Cleradin's tower run
+   right behind the type, so each column sits on its theme's panel glass while
    every other theme keeps the bare editorial page. */
 [data-theme="vecna"] .dash-col,
 [data-theme="vecna"] .dash-rail,
 [data-theme="castlebyers"] .dash-col,
-[data-theme="castlebyers"] .dash-rail {
+[data-theme="castlebyers"] .dash-rail,
+[data-theme="cleradin"] .dash-col,
+[data-theme="cleradin"] .dash-rail {
 	background: var(--panel);
 	border: 1px solid var(--panel-brd);
 	border-radius: var(--r-md);
@@ -1025,10 +1027,10 @@ a.rg-row {
 	-webkit-backdrop-filter: blur(16px);
 }
 
-/* Cleradin goes the other way: the tower and the moon ARE the page, so the
-   dashboard columns drop their card glass entirely — background, blur and the
-   slab shadow all go, and the type sits straight on the scenery. The borders
-   stay so the cards still delineate without walling the view off. */
+/* Cleradin's sheet is the ONLY glass on its columns: the cards inside stay
+   bare (no second pane of background/blur/shadow between the sheet and the
+   type), so the tower still reads through one translucent layer, not two.
+   The card borders stay to delineate the sections. */
 [data-theme="cleradin"] .dash-col > .card,
 [data-theme="cleradin"] .dash-rail > .card {
 	background: transparent;
