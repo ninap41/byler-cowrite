@@ -117,10 +117,6 @@
 							<button class="primary" id="endBtn">End game &amp; reveal</button>
 						</span>
 					</div>
-					<div id="doomFx" aria-hidden="true">
-						<img class="doom-img" src="/img/demogorgon.gif" alt="" />
-						<span class="doom-text">Running out of time</span>
-					</div>
 					<div class="game-cols">
 						<div class="game-main">
 							<!-- the prompt lives INSIDE the main column, so who is here
@@ -151,6 +147,10 @@
 								<h4>Writers &amp; spectators</h4>
 								<div class="players-row" id="playersRow"></div>
 								<p class="subtle" id="specCount" style="margin: 8px 0 0"></p>
+							</div>
+							<div id="doomFx" aria-hidden="true">
+								<img class="doom-img" src="/img/demogorgon.gif" alt="" />
+								<span class="doom-text">Running out of time</span>
 							</div>
 						</aside>
 						<!-- HOST CONTROLS: a drawer, and deliberately the same one the
@@ -365,7 +365,12 @@
 			// button never shows for them, but they still see the dice.
 			let sessFriendlyFlag = true
 			const galaga = mountGalaga({ socket, getMyUserId: () => me?.id ?? null, getMyName: () => me?.username || "me", getMyColor: () => safeColor(me?.color) })
-			const milkshake = mountMilkshake({ socket, getMyUserId: () => me?.id ?? null, getMyColor: () => safeColor(me?.color) })
+			const milkshake = mountMilkshake({
+				socket,
+				getMyUserId: () => me?.id ?? null,
+				getMyColor: () => safeColor(me?.color),
+				getMyName: () => me?.username || "",
+			})
 			const gimmicks = mountGimmickDice({
 				socket,
 				getMyUserId: () => me?.id ?? null,

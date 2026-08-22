@@ -3899,10 +3899,13 @@ button.danger,
 	}
 }
 
-/* ---------- Low-time alarm: demogorgon left of the game card, blinking
-   vertical warning to its right. Shown only in the countdown's final stretch. ---------- */
-#game {
-	position: relative;
+/* ---------- Low-time alarm: the demogorgon stalks the side column, hugging
+   the bottom under Writers & spectators, its warning at its feet.
+   Final stretch only. ---------- */
+.game-side {
+	/* span the whole grid row (the grid aligns items start), so the column
+	   has a real bottom for the demogorgon to hug */
+	align-self: stretch;
 }
 #doomFx {
 	display: none;
@@ -3910,29 +3913,21 @@ button.danger,
 }
 #doomFx.on {
 	display: block;
+	margin-top: auto;
+	text-align: center;
 }
 #doomFx .doom-img {
-	position: absolute;
-	right: 100%;
-	margin-right: 24px;
-	top: 50%;
-	transform: translateY(-50%);
 	width: clamp(110px, 12vw, 190px);
 	height: auto;
 	animation: doom-in 0.5s ease-out;
 }
 #doomFx .doom-text {
-	position: absolute;
-	left: 100%;
-	margin-left: 24px;
-	top: 50%;
-	transform: translateY(-50%);
-	writing-mode: vertical-rl;
-	text-orientation: mixed;
+	display: block;
+	margin-top: 4px;
 	font-family: var(--font-mono, monospace);
 	font-weight: 800;
-	font-size: 1.05rem;
-	letter-spacing: 0.35em;
+	font-size: 0.82rem;
+	letter-spacing: 0.14em;
 	text-transform: uppercase;
 	color: #e03131;
 	white-space: nowrap;
@@ -3942,11 +3937,11 @@ button.danger,
 	50% { opacity: 0; }
 }
 @keyframes doom-in {
-	from { opacity: 0; transform: translateY(-50%) scale(0.85); }
-	to { opacity: 1; transform: translateY(-50%) scale(1); }
+	from { opacity: 0; transform: scale(0.85); }
+	to { opacity: 1; transform: scale(1); }
 }
-@media (max-width: 1100px) {
-	/* no room to flank the card on narrow screens */
+@media (max-width: 760px) {
+	/* it would cover the editor itself on a phone */
 	#doomFx.on {
 		display: none;
 	}
@@ -4148,9 +4143,9 @@ button.danger,
 	height: 26%;
 	background:
 		radial-gradient(52% 80% at 50% 118%, rgba(0, 0, 0, 0.55), transparent 70%),
-		radial-gradient(80% 60% at 22% 8%, rgba(90, 66, 38, 0.22), transparent 72%),
-		radial-gradient(70% 55% at 78% 14%, rgba(70, 52, 30, 0.2), transparent 74%),
-		linear-gradient(to top, #120c07 0%, #1a1209 42%, rgba(22, 16, 10, 0.82) 72%, transparent 100%);
+		radial-gradient(80% 60% at 22% 8%, rgba(38, 74, 62, 0.22), transparent 72%),
+		radial-gradient(70% 55% at 78% 14%, rgba(30, 60, 50, 0.2), transparent 74%),
+		linear-gradient(to top, #081009 0%, #0c1613 42%, rgba(10, 18, 15, 0.82) 72%, transparent 100%);
 }
 
 /* The mound the fort rests on (img/ground.svg, inked the forest-floor brown):

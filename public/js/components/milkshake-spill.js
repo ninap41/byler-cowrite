@@ -130,7 +130,9 @@ export function mountMilkshake(opts) {
 		dctx = dropsC.getContext?.("2d") || null
 		gctx?.setTransform(Math.min(2, win?.devicePixelRatio || 1), 0, 0, Math.min(2, win?.devicePixelRatio || 1), 0, 0)
 		dctx?.setTransform(Math.min(2, win?.devicePixelRatio || 1), 0, 0, Math.min(2, win?.devicePixelRatio || 1), 0, 0)
-		floorY = vh() - 26 // the spill pools along the bottom edge, chat dock included
+		// the spill pools just above the foot bar (chat dock still included)
+		const footH = parseFloat(win?.getComputedStyle?.(doc.documentElement).getPropertyValue("--footbar-h")) || 0
+		floorY = vh() - footH - 26
 		groundDirty = true
 	}
 
@@ -524,7 +526,10 @@ export function mountMilkshake(opts) {
 		if (open) return
 		open = true
 		sizeCanvases()
-		cupEl.innerHTML = cupSvg(getMyColor(), "me")
+		const myName = opts.getMyName?.() || ""
+		cupEl.innerHTML =
+			cupSvg(getMyColor(), "me") +
+			(myName ? `<span class="ms-cup-tag" style="color:${safeColor(getMyColor())}">${esc(myName)}</span>` : "")
 		cupEl.classList.remove("hidden")
 		hud.classList.remove("hidden")
 		level = 1
