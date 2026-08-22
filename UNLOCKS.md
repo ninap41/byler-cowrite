@@ -57,7 +57,7 @@ Change `themeUnlocks` in `achievements.json` — keys are theme ids from `THEMES
 
 ## Art Room (gimmick)
 
-paint splash gimmick
+painting gimmick
 
 ## Supersoaker (gimmick)
 
