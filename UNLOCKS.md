@@ -14,10 +14,10 @@ A hand-editable reference of which themes unlock at which word-count ranks, and 
 | #   | Tier id         | Badge                                       |   Words |
 | --- | --------------- | ------------------------------------------- | ------: |
 | 1   | `outloud`       | 🔫 There. Out Loud.                         |       0 |
-| 2   | `puppymike`     | 🐶 Puppy Mike                               |   5,000 |
+| 5   | `sorcerer`      | 🧙 Sorcerer                                 |   5,000 |
 | 3   | `practice`      | 🪄 Practice                                 |  10,000 |
 | 4   | `explorer`      | 🫶 You have explored (like Mike, offscreen) |  15,000 |
-| 5   | `sorcerer`      | 🧙 Sorcerer                                 |  20,000 |
+| 2   | `puppymike`     | 🐶 Puppy Mike                               |  20,000 |
 | 6   | `soldiers`      | 🪖 Like the soldiers                        |  25,000 |
 | 7   | `innate`        | ⚡ Innate Powers                            |  30,000 |
 | 8   | `clouds`        | ☁️ I miss clouds I miss you                 |  40,000 |
@@ -31,10 +31,10 @@ A hand-editable reference of which themes unlock at which word-count ranks, and 
 | Rank (tier id) | Words | Themes (theme id) | Gimmick that rides along |
 | --- | --: | --- | --- |
 | `outloud` | 0 | Upside Down (`upside`) | 🔫 SuperSoaker (`supersoaker`) |
-| `puppymike` | 5,000 | Snow Ball (`snowball`) |
+| `sorcerer` | 5,000 | Hellfire Club (`hellfire`) | 🎲 Hellfire d20 (`d20`) |
 | `practice` | 10,000 | Starcourt (`starcourt`) | 🥤 Starcourt Milkshake (`milkshake`) |
 | `explorer` | 15,000 | Palace Arcade (`arcade`) | 👾 Palace Arcade Galaga (`galaga`) |
-| `sorcerer` | 20,000 | Hellfire Club (`hellfire`) | 🎲 Hellfire d20 (`d20`) |
+| `puppymike` | 20,000 | Snow Ball (`snowball`) |
 | `soldiers` | 25,000 | Hawkins Lab (`hawkinslab`) | — |
 | `innate` | 30,000 | Castle Byers (`castlebyers`) | — |
 | `clouds` | 40,000 | Vecna's Clock (`vecna`) | — Vecna's Curse (`vecnascurse`) |

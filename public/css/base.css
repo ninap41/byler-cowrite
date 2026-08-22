@@ -658,6 +658,19 @@ a.solo-title:hover {
 .dash-h {
 	margin: 18px 0 8px !important;
 }
+/* the little + beside a section heading (e.g. Solo Writes → new write) */
+.dash-h .h-plus {
+	flex: none;
+	min-width: 0;
+	width: 24px;
+	height: 24px;
+	padding: 0;
+	display: grid;
+	place-items: center;
+	border-radius: 50%;
+	font-size: 1rem;
+	line-height: 1;
+}
 
 /* ---------- Top bar: signed-in user chip + theme switcher ---------- */
 .topbar {
