@@ -36,6 +36,11 @@
 	--font-story: "Space Grotesk", sans-serif;
 	--font-mono: "Inconsolata", ui-monospace, monospace;
 	--tsn: 0.5s cubic-bezier(0.6, 0.01, 0.05, 1);
+	/* The editorial revamp's radius scale: sharp panels, not pillowy cards.
+	   Pills (99px/999px) stay pills — that's the metadata grammar. */
+	--r-lg: 8px;
+	--r-md: 6px;
+	--r-sm: 4px;
 	/* The bottom strip carrying theme peek + the tip jar. Everything else
 	   pinned to the bottom of the window clears itself by this. */
 	--footbar-h: 32px;
@@ -152,7 +157,7 @@ body {
 }
 ::-webkit-scrollbar-thumb {
 	background: var(--scroll-thumb);
-	border-radius: 20px;
+	border-radius: var(--r-lg);
 }
 ::-webkit-scrollbar-track {
 	background: transparent;
@@ -476,7 +481,7 @@ body {
 	overflow-y: auto;
 	background: var(--panel);
 	border: 1px solid var(--panel-brd);
-	border-radius: 20px;
+	border-radius: var(--r-lg);
 	box-shadow: var(--panel-glow);
 	backdrop-filter: blur(18px);
 	-webkit-backdrop-filter: blur(18px);
@@ -527,7 +532,7 @@ body {
 	align-items: center;
 	gap: 10px;
 	border: 1px solid var(--line);
-	border-radius: 12px;
+	border-radius: var(--r-md);
 	padding: 10px 12px;
 	margin-bottom: 8px;
 	background: var(--panel-2);
@@ -540,7 +545,7 @@ body {
 	align-items: center;
 	gap: 10px;
 	position: relative; /* anchors the .solo-date corner chip */
-	border-radius: 12px;
+	border-radius: var(--r-md);
 	padding: 22px 12px 10px; /* room up top for the date chip */
 	margin-bottom: 8px;
 	background: var(--panel-2);
@@ -687,7 +692,7 @@ a.solo-title:hover {
 	align-items: center;
 	gap: 8px;
 	padding: 9px 14px;
-	border-radius: 14px;
+	border-radius: var(--r-md);
 	background: var(--panel);
 	box-shadow: var(--panel-glow);
 	backdrop-filter: blur(14px);
@@ -732,7 +737,7 @@ a.solo-title:hover {
 	background: transparent;
 	border: 0;
 	padding: 7px 12px;
-	border-radius: 11px;
+	border-radius: var(--r-md);
 	cursor: pointer;
 	transition:
 		color 0.3s,
@@ -757,7 +762,7 @@ a.solo-title:hover {
 	color: var(--ink) !important;
 	background: var(--panel) !important;
 	border: 1px solid var(--panel-brd) !important;
-	border-radius: 14px !important;
+	border-radius: var(--r-md) !important;
 	padding: 9px 14px !important;
 	box-shadow: var(--panel-glow);
 	backdrop-filter: blur(14px);
@@ -788,7 +793,7 @@ a.solo-title:hover {
 	flex-direction: column;
 	gap: 3px;
 	padding: 6px;
-	border-radius: 14px;
+	border-radius: var(--r-md);
 	background: var(--panel);
 	border: 1px solid var(--panel-brd);
 	box-shadow: var(--panel-glow);
@@ -882,7 +887,7 @@ a.solo-title:hover {
 	color: var(--ink);
 	background: var(--chip);
 	border: 1px solid var(--chip-brd);
-	border-radius: 10px;
+	border-radius: var(--r-md);
 	padding: 6px 10px;
 	cursor: pointer;
 }
@@ -916,7 +921,7 @@ a.solo-title:hover {
 	flex-direction: column;
 	gap: 3px;
 	padding: 6px;
-	border-radius: 14px;
+	border-radius: var(--r-md);
 	background: var(--flip-bg); /* opaque on purpose — see above */
 	border: 1px solid var(--panel-brd);
 	box-shadow: var(--panel-glow);
@@ -978,7 +983,7 @@ a.solo-title:hover {
 	gap: 5px;
 	background: var(--panel);
 	border: 1px solid var(--panel-brd);
-	border-radius: 14px;
+	border-radius: var(--r-md);
 	box-shadow: var(--panel-glow);
 	backdrop-filter: blur(14px);
 	-webkit-backdrop-filter: blur(14px);
@@ -1052,7 +1057,7 @@ a.solo-title:hover {
 	background: var(--panel-2);
 	color: var(--ink);
 	border: 1px solid var(--line);
-	border-radius: 12px;
+	border-radius: var(--r-md);
 	padding: 12px 16px;
 	font-size: 1rem;
 	text-decoration: none;
@@ -1093,7 +1098,7 @@ a.solo-title:hover {
 	max-width: min(420px, 88vw);
 	background: var(--panel);
 	border: 1px solid var(--chip-brd);
-	border-radius: 18px;
+	border-radius: var(--r-lg);
 	padding: 20px 28px;
 	box-shadow: var(--panel-glow), 0 0 60px var(--glow);
 	backdrop-filter: blur(14px);
@@ -1152,7 +1157,7 @@ a.solo-title:hover {
 .toast {
 	background: var(--panel);
 	border: 1px solid var(--chip-brd);
-	border-radius: 14px;
+	border-radius: var(--r-md);
 	padding: 12px 16px;
 	box-shadow: var(--panel-glow);
 	backdrop-filter: blur(14px);
@@ -1364,7 +1369,7 @@ a.solo-title:hover {
 	align-items: center;
 	background: var(--panel-2);
 	border: 1px solid var(--panel-brd);
-	border-radius: 12px;
+	border-radius: var(--r-md);
 	padding: 3px;
 }
 .st-view {
@@ -1403,7 +1408,7 @@ a.solo-title:hover {
 	text-align: left;
 	background: var(--panel);
 	border: 1px solid var(--panel-brd);
-	border-radius: 16px;
+	border-radius: var(--r-lg);
 	padding: 16px 18px;
 	margin-bottom: 12px;
 	cursor: pointer;
@@ -1436,7 +1441,7 @@ a.solo-title:hover {
 	width: 100%;
 	aspect-ratio: 3 / 1; /* banner proportions: height follows the card width */
 	height: auto;
-	border-radius: 10px;
+	border-radius: var(--r-md);
 	margin-bottom: 10px;
 }
 .game-card .gc-prompt {
@@ -1460,7 +1465,7 @@ a.solo-title:hover {
 	width: 100%;
 	aspect-ratio: 3 / 1;
 	object-fit: cover;
-	border-radius: 10px;
+	border-radius: var(--r-md);
 	border: 1px solid var(--panel-2);
 	margin-top: 8px;
 }
@@ -1567,7 +1572,7 @@ a.solo-title:hover {
 	width: min(420px, 100%);
 	margin-top: 10px;
 	padding: 10px 16px;
-	border-radius: 12px;
+	border-radius: var(--r-md);
 	border: 1px solid color-mix(in srgb, var(--good) 55%, transparent);
 	background: transparent;
 	color: var(--muted);
@@ -1652,7 +1657,7 @@ a.solo-title:hover {
 	font-family: var(--font-mono);
 	font-size: 0.72rem;
 	padding: 5px 8px;
-	border-radius: 10px;
+	border-radius: var(--r-md);
 	border: 1px solid var(--panel-brd);
 	background: transparent;
 	color: var(--muted);
@@ -1681,7 +1686,7 @@ a.solo-title:hover {
 	background: var(--panel);
 	border: 1px solid var(--panel-brd);
 	border-bottom: 0;
-	border-radius: 16px 16px 0 0;
+	border-radius: var(--r-lg) var(--r-lg) 0 0;
 	box-shadow: var(--panel-glow);
 	backdrop-filter: blur(16px);
 	-webkit-backdrop-filter: blur(16px);
@@ -1723,7 +1728,7 @@ a.solo-title:hover {
 .chat-unread {
 	background: var(--accent);
 	color: var(--btn-ink);
-	border-radius: 20px;
+	border-radius: var(--r-lg);
 	font-size: 0.7rem;
 	font-family: var(--font-mono);
 	padding: 2px 8px;
@@ -1778,7 +1783,7 @@ a.solo-title:hover {
 	padding: 8px 12px;
 	background: var(--panel);
 	border: 1px solid var(--panel-brd);
-	border-radius: 10px;
+	border-radius: var(--r-md);
 	color: var(--ink);
 	font: 500 0.8rem/1.45 var(--font-body);
 	box-shadow: var(--panel-glow);
@@ -1814,7 +1819,7 @@ a.solo-title:hover {
 	width: min(420px, 92vw);
 	background: var(--panel);
 	border: 1px solid var(--panel-brd);
-	border-radius: 14px;
+	border-radius: var(--r-md);
 	padding: 12px 14px;
 	box-shadow: var(--panel-glow), 0 0 40px var(--glow);
 	backdrop-filter: blur(14px);
@@ -1839,7 +1844,7 @@ a.solo-title:hover {
 }
 .turn-toast a.turn-toast-go {
 	border: 1px solid var(--panel-brd);
-	border-radius: 10px;
+	border-radius: var(--r-md);
 	color: var(--accent-2);
 	text-decoration: none;
 	font-weight: 600;
@@ -1942,7 +1947,7 @@ h1.brand-link:focus-visible {
 .card {
 	background: var(--panel);
 	border: 1px solid var(--panel-brd);
-	border-radius: 12px;
+	border-radius: var(--r-md);
 	padding: 24px;
 	box-shadow: var(--panel-glow);
 	backdrop-filter: blur(16px);
@@ -1968,7 +1973,7 @@ textarea {
 	padding: 12px 14px;
 	background: var(--panel-2);
 	border: 1px solid var(--line);
-	border-radius: 10px;
+	border-radius: var(--r-md);
 	color: var(--ink);
 	font-family: inherit;
 	font-size: 1rem;
@@ -1999,7 +2004,7 @@ button {
 	min-width: 110px;
 	padding: 13px 16px;
 	border: none;
-	border-radius: 12px;
+	border-radius: var(--r-md);
 	font-family: inherit;
 	font-size: 0.98rem;
 	font-weight: 600;
@@ -2124,7 +2129,7 @@ ul.roster li {
 	gap: 10px;
 	padding: 10px 12px;
 	border: 1px solid var(--line);
-	border-radius: 12px;
+	border-radius: var(--r-md);
 	margin-bottom: 8px;
 	background: var(--panel-2);
 }
@@ -2146,7 +2151,7 @@ ul.roster li {
 	background: var(--chip);
 	border: 1px solid var(--chip-brd);
 	padding: 3px 8px;
-	border-radius: 20px;
+	border-radius: var(--r-lg);
 }
 .prompt-banner {
 	/* a guided prompt is one bulleted clause per line — keep its breaks, and
@@ -2157,7 +2162,7 @@ ul.roster li {
 	background: var(--chip);
 	border: 1px solid var(--chip-brd);
 	border-left: 4px solid var(--accent);
-	border-radius: 14px;
+	border-radius: var(--r-md);
 	font-family: var(--font-story);
 	font-size: 1.1rem;
 	line-height: 1.5;
@@ -2175,7 +2180,7 @@ ul.roster li {
 	font-size: 1.02rem;
 	line-height: 1.45;
 	padding: 16px 60px 16px calc(16px + 1.15em);
-	border-radius: 14px;
+	border-radius: var(--r-md);
 	cursor: pointer;
 	width: 100%;
 	margin-bottom: 10px;
@@ -2198,7 +2203,7 @@ ul.roster li {
 	transform: translateY(-50%);
 	background: var(--panel);
 	border: 1px solid var(--line);
-	border-radius: 20px;
+	border-radius: var(--r-lg);
 	padding: 4px 10px;
 	font-family: var(--font-mono);
 	font-size: 0.85rem;
@@ -2210,7 +2215,7 @@ ul.roster li {
 	padding: 20px;
 	background: var(--story-bg);
 	border: 1px solid var(--line);
-	border-radius: 14px;
+	border-radius: var(--r-md);
 	font-family: var(--font-story);
 	font-size: 1.12rem;
 	line-height: 1.75;
@@ -2255,7 +2260,7 @@ ul.roster li {
 	padding: 14px 16px;
 	background: var(--panel-2);
 	border: 1px dashed var(--accent-2);
-	border-radius: 14px;
+	border-radius: var(--r-md);
 	font-family: var(--font-story);
 	font-size: 1.08rem;
 	line-height: 1.65;
@@ -2325,7 +2330,7 @@ ul.roster li {
 .toolbar select {
 	flex: 0 0 auto;
 	padding: 8px 10px;
-	border-radius: 12px;
+	border-radius: var(--r-md);
 	background: var(--panel-2);
 	color: var(--ink);
 	border: 1px solid var(--line);
@@ -2378,7 +2383,7 @@ ul.roster li {
 	overflow-y: auto;
 	background: var(--panel-2);
 	border: 1px solid var(--accent-2);
-	border-radius: 14px;
+	border-radius: var(--r-md);
 	color: var(--ink);
 	font-family: var(--font-story);
 	font-size: 1.12rem;
@@ -2416,7 +2421,7 @@ ul.roster li {
 	overflow-y: auto;
 	background: var(--panel-2);
 	border: 1px solid var(--line);
-	border-radius: 12px;
+	border-radius: var(--r-md);
 	padding: 12px;
 	margin-bottom: 10px;
 }
@@ -2499,7 +2504,7 @@ ul.roster li {
 	background: var(--panel-2);
 	border: 1px solid var(--line);
 	border-left: 3px solid var(--rules-mode);
-	border-radius: 12px;
+	border-radius: var(--r-md);
 	padding: 14px 16px 16px;
 	transition: border-color 0.35s ease;
 }
@@ -2535,7 +2540,7 @@ ul.roster li {
 	padding: 10px 34px 10px 12px;
 	background: var(--panel-2);
 	border: 1px solid var(--line);
-	border-radius: 10px;
+	border-radius: var(--r-md);
 	color: var(--ink);
 	font-family: inherit;
 	font-size: 0.95rem;
@@ -2718,7 +2723,7 @@ input[type="checkbox"]:focus-visible {
 	gap: 3px;
 	max-width: 230px;
 	padding: 10px 12px;
-	border-radius: 12px;
+	border-radius: var(--r-md);
 	background: var(--panel-2);
 	border: 1px solid var(--panel-brd);
 	box-shadow: var(--panel-glow);
@@ -2820,7 +2825,7 @@ input[type="checkbox"]:focus-visible {
 	align-items: center;
 	gap: 6px;
 	padding: 5px 11px;
-	border-radius: 20px;
+	border-radius: var(--r-lg);
 	border: 1px solid var(--line);
 	background: var(--panel-2);
 	font-size: 0.82rem;
@@ -2908,7 +2913,7 @@ input[type="checkbox"]:focus-visible {
 	gap: 10px;
 	background: var(--panel);
 	border: 1px solid var(--panel-brd);
-	border-radius: 14px;
+	border-radius: var(--r-md);
 	padding: 12px 14px;
 	box-shadow: var(--panel-glow);
 	backdrop-filter: blur(14px);
@@ -2980,7 +2985,7 @@ button.linky {
 	background: var(--chip);
 	border: 1px solid var(--chip-brd);
 	color: var(--accent);
-	border-radius: 20px;
+	border-radius: var(--r-lg);
 	padding: 2px 8px;
 	letter-spacing: 0.5px;
 	white-space: nowrap;
@@ -3754,7 +3759,7 @@ h3 {
 .confirm-card {
 	background: var(--panel);
 	border: 1px solid var(--panel-brd);
-	border-radius: 18px;
+	border-radius: var(--r-lg);
 	box-shadow: var(--panel-glow);
 	padding: 22px 24px;
 	max-width: 440px;
@@ -3873,12 +3878,12 @@ button.danger,
    down, which give it its sticky card, its grip and its phone sheet. */
 .game-cols {
 	display: grid;
-	grid-template-columns: minmax(0, 1fr) 280px var(--doc-side-w, 300px);
+	grid-template-columns: minmax(0, 1fr) 250px var(--doc-side-w, 300px);
 	gap: 28px;
 	align-items: start;
 }
 .game-cols.side-closed {
-	grid-template-columns: minmax(0, 1fr) 280px;
+	grid-template-columns: minmax(0, 1fr) 250px;
 }
 .game-cols.side-closed .doc-side {
 	display: none;
@@ -3905,7 +3910,7 @@ button.danger,
 	min-width: 0;
 }
 .side-sec {
-	border-radius: 10px;
+	border-radius: var(--r-md);
 	padding: 16px 18px 18px;
 }
 .side-sec h4 {
@@ -3932,7 +3937,7 @@ button.danger,
 	   part); the grid just stops holding a column for it */
 	.game-cols,
 	.game-cols.side-closed {
-		grid-template-columns: minmax(0, 1fr) 280px;
+		grid-template-columns: minmax(0, 1fr) 250px;
 	}
 	/* the sheet covers the foot of the page — give the story somewhere to end */
 	.game-cols:not(.side-closed) .game-main {
@@ -5626,7 +5631,7 @@ body.ui-peek .foot-dot {
 	height: min(560px, 72svh);
 	margin-top: 10px;
 	border: 0;
-	border-radius: 12px;
+	border-radius: var(--r-md);
 	background: #fff; /* ko-fi's panel is a light page; don't flash the theme through it */
 }
 .kofi-out {
@@ -5668,7 +5673,7 @@ body.ui-peek .turn-toast {
 	color: var(--muted);
 	background: var(--chip);
 	border: 1px solid var(--chip-brd);
-	border-radius: 20px;
+	border-radius: var(--r-lg);
 	padding: 2px 9px;
 }
 .doc-group-blurb {
@@ -5688,7 +5693,7 @@ body.ui-peek .turn-toast {
 .doc-card {
 	background: var(--panel);
 	position: relative; /* anchors the .doc-date corner chip */
-	border-radius: 18px;
+	border-radius: var(--r-lg);
 	padding: 16px;
 	box-shadow: var(--panel-glow);
 	backdrop-filter: blur(16px);
@@ -5741,7 +5746,7 @@ body.ui-peek .turn-toast {
 	align-items: center;
 	justify-content: center;
 	padding: 8px 10px;
-	border-radius: 12px;
+	border-radius: var(--r-md);
 	text-decoration: none;
 	font-size: 0.85rem;
 }
@@ -5785,7 +5790,7 @@ body.write-page {
 	min-width: 140px;
 	background: transparent;
 	border: 1px solid transparent;
-	border-radius: 12px;
+	border-radius: var(--r-md);
 	padding: 8px 12px;
 	color: var(--ink);
 	font-family: var(--font-display);
@@ -5821,7 +5826,7 @@ body.write-page {
 	z-index: 45;
 	margin: 0 0 14px;
 	border: 1px solid var(--panel-brd);
-	border-radius: 18px;
+	border-radius: var(--r-lg);
 	background: color-mix(in srgb, var(--panel) 88%, transparent);
 	backdrop-filter: blur(16px);
 	-webkit-backdrop-filter: blur(16px);
@@ -5841,7 +5846,7 @@ body.write-page {
 	text-decoration: none;
 	font-size: 0.92rem;
 	padding: 8px 10px;
-	border-radius: 12px;
+	border-radius: var(--r-md);
 	white-space: nowrap;
 }
 .doc-back:hover {
@@ -6037,7 +6042,7 @@ body.doc-page .topbar {
 	min-width: 230px;
 	padding: 6px;
 	border: 1px solid var(--panel-brd);
-	border-radius: 14px;
+	border-radius: var(--r-md);
 	background: var(--panel);
 	box-shadow: var(--panel-glow);
 	backdrop-filter: blur(14px);
@@ -6051,7 +6056,7 @@ body.doc-page .topbar {
 	width: 100%;
 	padding: 9px 10px;
 	border: 0;
-	border-radius: 10px;
+	border-radius: var(--r-md);
 	background: none;
 	color: var(--ink);
 	font: inherit;
@@ -6214,12 +6219,12 @@ body.doc-page .topbar {
 }
 .doc-img {
 	max-width: 100%;
-	border-radius: 10px;
+	border-radius: var(--r-md);
 }
 /* read-only view beta readers comment on */
 .doc-read {
 	padding: 16px;
-	border-radius: 14px;
+	border-radius: var(--r-md);
 	background: var(--panel-2);
 	border: 1px solid var(--line);
 	font-family: var(--font-story);
@@ -6295,7 +6300,7 @@ body.doc-page .topbar {
 	bottom: 0;
 	width: 14px;
 	cursor: col-resize;
-	border-radius: 18px 0 0 18px;
+	border-radius: var(--r-lg) 0 0 var(--r-lg);
 	touch-action: none;
 	display: flex;
 	align-items: center;
@@ -6360,7 +6365,7 @@ body.resizing-side {
 	border-right: 0;
 	background: var(--panel);
 	color: var(--ink);
-	border-radius: 12px 0 0 12px;
+	border-radius: var(--r-md) 0 0 12px;
 	padding: 12px 10px;
 	cursor: pointer;
 	box-shadow: var(--panel-glow);
@@ -6408,7 +6413,7 @@ body.resizing-side {
 		max-height: 85vh;
 		margin: 0;
 		padding: 12px 14px 14px;
-		border-radius: 16px 16px 0 0;
+		border-radius: var(--r-lg) var(--r-lg) 0 0;
 	}
 	.doc-side-grip {
 		left: 0;
@@ -6418,7 +6423,7 @@ body.resizing-side {
 		width: auto;
 		height: 18px;
 		cursor: row-resize;
-		border-radius: 16px 16px 0 0;
+		border-radius: var(--r-lg) var(--r-lg) 0 0;
 	}
 	.doc-side-grip::before {
 		width: 44px;
@@ -6443,7 +6448,7 @@ body.resizing-side {
 	.doc-side-tab {
 		top: auto;
 		bottom: calc(var(--footbar-h) + 16px);
-		border-radius: 12px 0 0 12px;
+		border-radius: var(--r-md) 0 0 12px;
 	}
 }
 .dc-group {
@@ -6479,7 +6484,7 @@ body.resizing-side {
 .doc-comment {
 	background: var(--panel-2);
 	border: 1px solid var(--line);
-	border-radius: 12px;
+	border-radius: var(--r-md);
 	padding: 10px;
 }
 .doc-comment.resolved {
@@ -6617,7 +6622,7 @@ body.resizing-side {
 	width: 100%;
 	min-height: 116px;
 	resize: vertical;
-	border-radius: 10px;
+	border-radius: var(--r-md);
 	padding: 9px 10px;
 	background: var(--panel-2);
 	border: 1px solid var(--accent-2);
@@ -6697,7 +6702,7 @@ body.resizing-side {
 	overflow-y: auto;
 	overscroll-behavior: contain;
 	border: 1px solid var(--line);
-	border-radius: 12px;
+	border-radius: var(--r-md);
 	background: var(--panel-2);
 }
 .pick-row {
@@ -6801,7 +6806,7 @@ body.resizing-side {
 	flex-direction: column;
 	background: var(--panel);
 	border: 1px solid var(--accent-2);
-	border-radius: 14px;
+	border-radius: var(--r-md);
 	box-shadow: 0 18px 44px rgba(0, 0, 0, 0.45);
 	backdrop-filter: blur(16px);
 	text-align: left;
@@ -6966,7 +6971,7 @@ body.resizing-side {
 	min-width: 260px;
 	padding: 6px;
 	border: 1px solid var(--panel-brd);
-	border-radius: 14px;
+	border-radius: var(--r-md);
 	background: var(--panel);
 	box-shadow: var(--panel-glow);
 	backdrop-filter: blur(14px);
@@ -6982,7 +6987,7 @@ body.resizing-side {
 	width: 100%;
 	padding: 8px 10px;
 	border: 0;
-	border-radius: 10px;
+	border-radius: var(--r-md);
 	background: none;
 	color: var(--ink);
 	font: inherit;
@@ -7012,7 +7017,7 @@ body.resizing-side {
 	flex: 0 0 auto;
 	padding: 3px;
 	gap: 3px;
-	border-radius: 12px;
+	border-radius: var(--r-md);
 	background: var(--panel-2);
 	border: 1px solid var(--line);
 }
@@ -7150,7 +7155,7 @@ body.resizing-side {
 	gap: 2px;
 	flex: 0 0 auto;
 	padding: 2px;
-	border-radius: 10px;
+	border-radius: var(--r-md);
 	background: var(--panel-2);
 	border: 1px solid var(--line);
 }
@@ -7361,7 +7366,7 @@ body.resizing-side {
 		min-height: 52vh;
 		min-height: 52svh;
 		padding: 14px 12px;
-		border-radius: 12px;
+		border-radius: var(--r-md);
 	}
 	#editorHint {
 		font-size: 0.8rem;
@@ -7525,7 +7530,7 @@ body.resizing-side {
 	margin: 0 0 16px;
 	padding: 14px;
 	border: 1px solid var(--line);
-	border-radius: 14px;
+	border-radius: var(--r-md);
 	background: var(--panel-2);
 }
 .guided-controls label {
@@ -7579,7 +7584,7 @@ body.resizing-side {
 	color: var(--muted);
 	background: var(--panel);
 	border: 1px solid var(--line);
-	border-radius: 20px;
+	border-radius: var(--r-lg);
 	padding: 3px 9px;
 }
 
@@ -7612,7 +7617,7 @@ body.resizing-side {
 }
 .gd-layer .glass {
 	pointer-events: auto;
-	border-radius: 14px;
+	border-radius: var(--r-md);
 	background: color-mix(in srgb, var(--panel) 42%, transparent);
 	border: 1px solid color-mix(in srgb, var(--panel-brd) 70%, transparent);
 	backdrop-filter: blur(6px) saturate(1.1);
@@ -7708,7 +7713,7 @@ body.resizing-side {
 	bottom: calc(var(--footbar-h) + 64px);
 	transform: translateX(-50%);
 	padding: 6px 12px;
-	border-radius: 10px;
+	border-radius: var(--r-md);
 	background: var(--panel);
 	border: 1px solid var(--panel-brd);
 	color: var(--ink);
@@ -7729,7 +7734,7 @@ body.resizing-side {
 	flex-direction: column;
 	gap: 3px;
 	padding: 6px;
-	border-radius: 14px;
+	border-radius: var(--r-md);
 	background: var(--panel);
 	border: 1px solid var(--panel-brd);
 	box-shadow: var(--panel-glow);
@@ -7946,7 +7951,7 @@ html.gg-live .bg-set.arcade .shot {
 	gap: 6px;
 	padding: 10px 14px;
 	max-width: min(360px, calc(100vw - 32px));
-	border-radius: 14px;
+	border-radius: var(--r-md);
 	background: color-mix(in srgb, var(--panel) 42%, transparent);
 	border: 1px solid color-mix(in srgb, var(--panel-brd) 70%, transparent);
 	backdrop-filter: blur(6px) saturate(1.1);
@@ -8073,7 +8078,7 @@ button.ms-cup:active {
 	gap: 6px;
 	padding: 10px 14px;
 	max-width: min(380px, calc(100vw - 32px));
-	border-radius: 14px;
+	border-radius: var(--r-md);
 	background: color-mix(in srgb, var(--panel) 42%, transparent);
 	border: 1px solid color-mix(in srgb, var(--panel-brd) 70%, transparent);
 	backdrop-filter: blur(6px) saturate(1.1);
@@ -8328,7 +8333,7 @@ button.db-ball:active {
 	gap: 6px;
 	padding: 10px 14px;
 	max-width: min(380px, calc(100vw - 32px));
-	border-radius: 14px;
+	border-radius: var(--r-md);
 	background: color-mix(in srgb, var(--panel) 42%, transparent);
 	border: 1px solid color-mix(in srgb, var(--panel-brd) 70%, transparent);
 	backdrop-filter: blur(6px) saturate(1.1);
@@ -8359,7 +8364,7 @@ button.db-ball:active {
 	transform: translateX(-50%);
 	z-index: 102;
 	padding: 10px 16px;
-	border-radius: 14px;
+	border-radius: var(--r-md);
 	background: var(--panel);
 	border: 1px solid var(--panel-brd);
 	box-shadow: var(--panel-glow);
@@ -8368,6 +8373,179 @@ button.db-ball:active {
 	pointer-events: none;
 	white-space: nowrap;
 	max-width: calc(100vw - 24px);
+}
+
+/* ============================================================
+   EDITORIAL REVAMP — recompose the big screens around the page
+   grid instead of nested cards. The page is the container:
+   dividers + typography + spacing do the structure, borders only
+   where they mark a real boundary (the editor you're operating,
+   the prompt's red rule). Radii come from --r-* at :root.
+   ============================================================ */
+
+/* ---- the game is a writing console, not a card ---- */
+body.game-page .main {
+	max-width: 1240px;
+}
+body.game-page #game.card,
+body.game-page #over.card {
+	background: none;
+	border: 0;
+	box-shadow: none;
+	backdrop-filter: none;
+	-webkit-backdrop-filter: none;
+	padding: 8px 4px 20px;
+}
+/* the console's title row: story name in the story face, one hairline under
+   the whole row — code + game actions ride the far end */
+body.game-page .session-bar {
+	padding-bottom: 12px;
+	border-bottom: 1px solid var(--line);
+	margin-bottom: 22px;
+}
+body.game-page .session-bar .sess-name {
+	font-family: var(--font-story);
+	font-style: italic;
+	font-size: 1.35rem;
+}
+/* the prompt: dark fill behind the red left rule, no card around it */
+.prompt-banner {
+	background: var(--story-bg);
+	border: 0;
+	border-left: 4px solid var(--accent);
+	border-radius: 0 var(--r-sm) var(--r-sm) 0;
+	font-size: 1.15rem;
+	line-height: 1.55;
+}
+/* the story reads as fiction on the page, not text inside a form control */
+#game .story {
+	background: none;
+	border: 0;
+	border-radius: 0;
+	border-bottom: 1px solid var(--line);
+	padding: 24px 2px;
+	line-height: 1.7;
+}
+#game .story > * {
+	max-width: 720px;
+}
+/* the turn row is a game mechanic: the mono call on the left, big digits right */
+#game .turnbar {
+	margin-top: 20px;
+	align-items: baseline;
+}
+#game .who-turn {
+	font-family: var(--font-mono);
+	text-transform: uppercase;
+	letter-spacing: 0.14em;
+	font-size: 0.95rem;
+	color: var(--accent-2);
+}
+#game .timer {
+	font-size: 2.4rem;
+	font-weight: 800;
+	line-height: 1;
+}
+/* the toolbar groups by whitespace, not by boxes */
+#game .toolbar {
+	gap: 2px;
+}
+#game .toolbar button {
+	min-width: 34px;
+	padding: 7px 9px;
+	background: none;
+	border: 1px solid transparent;
+	box-shadow: none;
+}
+#game .toolbar button:hover {
+	background: var(--chip);
+	transform: none;
+}
+#game .toolbar button.on {
+	background: var(--chip);
+	color: var(--accent-2);
+}
+#game .toolbar select {
+	background: none;
+	border-color: transparent;
+}
+#game .toolbar select:hover {
+	border-color: var(--line);
+}
+/* the editor stays the one obviously ACTIVE rectangle on the screen */
+#game .editor {
+	min-height: 180px;
+	margin-top: 4px;
+}
+/* the console speaks mono in its margins */
+#game .hint {
+	font-family: var(--font-mono);
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	font-size: 0.68rem;
+	line-height: 1.7;
+}
+/* ADD LINE is the console's one big control: full width, the gradient */
+#game #submitBtn {
+	width: 100%;
+	font-family: var(--font-mono);
+	text-transform: uppercase;
+	letter-spacing: 0.18em;
+	font-size: 0.95rem;
+	border-radius: var(--r-md);
+}
+/* the right column is a rail, not a card zone: one hairline is the boundary */
+#game .game-side {
+	margin-top: 0;
+	border-left: 1px solid var(--line);
+	padding-left: 22px;
+}
+#game .side-sec {
+	background: none;
+	border: 0;
+	box-shadow: none;
+	padding: 0 0 4px;
+}
+
+/* ---- the open menu is navigation, not a stack of CTAs ---- */
+.nav-scrim {
+	background: rgba(0, 0, 0, 0.55);
+}
+.nav-drawer {
+	gap: 2px;
+}
+.nav-drawer .nav-sep {
+	width: 100%;
+	border: 0;
+	border-top: 1px solid var(--line);
+	margin: 8px 0;
+}
+.nav-drawer a {
+	background: none;
+	border: 0;
+	border-left: 3px solid transparent;
+	border-radius: 0 var(--r-sm) var(--r-sm) 0;
+	padding: 11px 12px;
+}
+.nav-drawer a:hover,
+.nav-drawer a:focus-visible {
+	background: color-mix(in srgb, var(--ink) 6%, transparent);
+	border-color: transparent;
+	border-left-color: transparent;
+}
+/* the current page: faint fill + the accent bar, not a ring */
+.nav-drawer a[aria-current="page"] {
+	background: color-mix(in srgb, var(--ink) 5%, transparent);
+	border-left-color: var(--accent);
+	color: var(--ink);
+}
+.nav-drawer button {
+	background: none;
+	border: 1px solid transparent;
+}
+.nav-drawer button:hover,
+.nav-drawer button:focus-visible {
+	border-color: var(--line);
 }
 
 /* Every gimmick box above (.gd-layer/.gd-menu/.gd-hud/.gd-die/.gd-note, and

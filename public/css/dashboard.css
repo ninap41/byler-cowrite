@@ -113,7 +113,7 @@
 	margin-top: 12px;
 }
 .mg-card {
-	border-radius: 10px;
+	border-radius: var(--r-md);
 	overflow: hidden;
 	background: var(--panel-2);
 	display: flex;
@@ -241,7 +241,7 @@
 	flex-direction: column;
 	gap: 3px;
 	padding: 6px;
-	border-radius: 12px;
+	border-radius: var(--r-md);
 	/* opaque on purpose — a menu over a cover image must be readable — and
 	   in the theme's own palette (a solid mix of the panel over the page bg) */
 	background: color-mix(in srgb, var(--bg-2) 90%, var(--ink) 10%);
@@ -529,7 +529,7 @@ a.rg-row {
 	gap: 2px;
 	background: var(--panel);
 	border: 1px solid var(--line);
-	border-radius: 10px;
+	border-radius: var(--r-md);
 	padding: 6px 9px;
 }
 .ib-chain-msg.mine {
@@ -666,14 +666,14 @@ a.rg-row {
 	width: 100%;
 	max-height: 220px;
 	object-fit: cover;
-	border-radius: 12px;
+	border-radius: var(--r-md);
 	border: 1px solid var(--line);
 }
 .rg-cover {
 	flex: none;
 	width: 40px;
 	height: 40px;
-	border-radius: 10px;
+	border-radius: var(--r-md);
 }
 .rg-info {
 	flex: 1;
@@ -703,7 +703,7 @@ a.rg-row {
 	align-items: center;
 	gap: 12px;
 	padding: 10px 12px;
-	border-radius: 12px;
+	border-radius: var(--r-md);
 	background: var(--panel-2);
 	margin-top: 8px;
 	opacity: 0.55;
@@ -835,7 +835,7 @@ a.rg-row {
 	margin: 0;
 	padding: 10px 12px;
 	border: 0;
-	border-radius: 12px;
+	border-radius: var(--r-md);
 	background: none;
 	box-shadow: none;
 	color: var(--ink);
@@ -931,4 +931,80 @@ a.rg-row {
 }
 .dash-nav .err:empty {
 	display: none;
+}
+
+/* ============================================================
+   EDITORIAL REVAMP — one continuous editorial column + a rail.
+   Profile, Games and Solo Writes stop carrying card shells: the
+   page is their container, hairlines + section labels divide it.
+   (Profile shares this sheet and flattens the same way.)
+   ============================================================ */
+.dash-wrap {
+	max-width: 1120px;
+	grid-template-columns: minmax(0, 1fr) 280px;
+	gap: 24px 28px;
+}
+.dash-col {
+	gap: 26px;
+}
+.dash-col > .card {
+	background: none;
+	border: 0;
+	box-shadow: none;
+	backdrop-filter: none;
+	-webkit-backdrop-filter: none;
+	padding: 0;
+}
+.dash-col > .card + .card {
+	border-top: 1px solid var(--line);
+	padding-top: 22px;
+	border-radius: 0;
+}
+/* section headings become editorial labels */
+.dash-h {
+	font-family: var(--font-mono);
+	font-size: 0.74rem;
+	letter-spacing: 0.16em;
+	text-transform: uppercase;
+	color: var(--muted);
+}
+/* the profile header: a real player header with large numeric typography */
+.welcome-info .me-row {
+	font-size: 1.2rem;
+}
+.stat-row {
+	gap: 34px;
+	margin-top: 18px;
+}
+.stat b {
+	font-family: var(--font-display);
+	font-size: 2.1rem;
+	line-height: 1.1;
+}
+.stat:first-child b {
+	color: var(--accent);
+}
+.stat span {
+	font-family: var(--font-mono);
+	text-transform: uppercase;
+	letter-spacing: 0.14em;
+	font-size: 0.66rem;
+}
+/* the rail sheds its card shells too: nav rows, a hairline, the quote */
+.dash-rail > .card {
+	background: none;
+	border: 0;
+	box-shadow: none;
+	backdrop-filter: none;
+	-webkit-backdrop-filter: none;
+	padding: 0;
+}
+.dash-rail > .quote-card {
+	border-top: 1px solid var(--line);
+	border-radius: 0;
+	padding-top: 18px;
+	min-height: 0;
+}
+.dash-nav {
+	padding: 0;
 }

@@ -112,9 +112,11 @@ const NAV = (page) => `
 		<a href="/dashboard" ${page === "dashboard" ? 'aria-current="page"' : ""}>🏠 Dashboard</a>
 		<a href="/inbox" ${page === "inbox" ? 'aria-current="page"' : ""}>📬 Inbox</a>
 		<a href="/game" ${page === "game" ? 'aria-current="page"' : ""}>✍️ Current game</a>
+		<hr class="nav-sep" />
 		<a href="/writes" ${page === "writes" || page === "write" ? 'aria-current="page"' : ""}>✒️ Solo writes</a>
 		<a href="/archive" ${page === "archive" ? 'aria-current="page"' : ""}>📚 Previous games</a>
 		<a href="/stories" ${page === "stories" ? 'aria-current="page"' : ""}>📖 All stories</a>
+		<hr class="nav-sep" />
 		<a href="/profile" ${page === "profile" ? 'aria-current="page"' : ""}>🏆 Profile</a>
 		<a href="/settings" ${page === "settings" ? 'aria-current="page"' : ""}>⚙️ Settings</a>
 		<a href="/admin" class="hidden" id="navAdmin" ${page === "admin" ? 'aria-current="page"' : ""}>🛡️ Admin</a>
