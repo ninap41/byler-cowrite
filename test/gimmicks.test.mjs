@@ -368,7 +368,7 @@ test("gimmick-ship: a battle is relayed to everyone (clamped), late joiners get 
     await local.emit(A, "start-game", { turnSeconds: 60, rounds: 2, friendly: false });
     await local.wait(150);
     // Mike's battle goes out: ship, fleet, shots — clamped to fractions
-    B.emit("gimmick-ship", { on: true, x: 0.5, score: 150, bees: [[0.2, 0.1, 0], [7, -1, 1]], shots: [[0.5, 0.7]] });
+    B.emit("gimmick-ship", { on: true, x: 0.5, score: 150, bees: [[0.2, 0.1, 0, 3], [7, -1, 1, 9e9]], shots: [[0.5, 0.7]] });
     await local.wait(100);
     assert.equal(seen.length, 1);
     const d = seen[0];
@@ -376,7 +376,7 @@ test("gimmick-ship: a battle is relayed to everyone (clamped), late joiners get 
     assert.equal(d.name, "shipmike");
     assert.equal(d.color, "#e63946");
     assert.equal(d.score, 150);
-    assert.deepEqual(d.bees, [[0.2, 0.1, 0], [1, 0, 1]], "coordinates clamped, dive flag kept");
+    assert.deepEqual(d.bees, [[0.2, 0.1, 0, 3], [1, 0, 1, 1e6]], "coordinates clamped, dive flag kept, bee id relayed (bounded)");
     assert.deepEqual(d.shots, [[0.5, 0.7]]);
     // an absurd payload is bounded, not trusted
     B.emit("gimmick-ship", { on: true, x: 9, score: 1e12, bees: Array.from({ length: 40 }, () => [0, 0, 0]), shots: Array.from({ length: 40 }, () => [0, 0]) });

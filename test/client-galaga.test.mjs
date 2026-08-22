@@ -105,7 +105,7 @@ test("others' battles: relayed ships/bees/shots are painted in their colour, mov
   const socket = fakeSocket();
   mountGalaga({ socket, getMyUserId: () => "u1", getMyColor: () => "#6c8cff", document });
   const layer = document.getElementById("ggLayer");
-  socket.fire("gimmick-ship", { userId: "u2", name: "Mike", color: "#e63946", x: 0.5, score: 150, on: true, bees: [[0.2, 0.1, 0], [0.4, 0.5, 1]], shots: [[0.5, 0.7]] });
+  socket.fire("gimmick-ship", { userId: "u2", name: "Mike", color: "#e63946", x: 0.5, score: 150, on: true, bees: [[0.2, 0.1, 0, 4], [0.4, 0.5, 1, 5]], shots: [[0.5, 0.7]] });
   assert.ok(!layer.classList.contains("hidden"), "someone else's battle shows the layer");
   const battle = document.querySelector("#ggOthers .gg-battle");
   assert.match(battle.querySelector(".gg-ship").style.boxShadow, /#e63946/, "their ship wears their colour");
@@ -113,9 +113,14 @@ test("others' battles: relayed ships/bees/shots are painted in their colour, mov
   assert.equal(battle.querySelectorAll(".gg-enemy").length, 2);
   assert.ok(battle.querySelectorAll(".gg-enemy")[1].classList.contains("dive"));
   assert.equal(battle.querySelectorAll(".gg-shot").length, 1);
-  // fewer sprites next frame: the extras leave
-  socket.fire("gimmick-ship", { userId: "u2", name: "Mike", color: "#e63946", x: 0.6, score: 300, on: true, bees: [[0.3, 0.2, 0]], shots: [] });
-  assert.equal(battle.querySelectorAll(".gg-enemy").length, 1);
+  // a bee gone from the next update was SHOT: it explodes here too — the
+  // .hit flash the shooter sees — and its id keys it, so the survivor (id 4)
+  // keeps its own element instead of every later bee reshuffling
+  const survivor = battle.querySelectorAll(".gg-enemy")[0];
+  socket.fire("gimmick-ship", { userId: "u2", name: "Mike", color: "#e63946", x: 0.6, score: 300, on: true, bees: [[0.3, 0.2, 0, 4]], shots: [] });
+  assert.equal(battle.querySelectorAll(".gg-enemy:not(.hit)").length, 1, "one bee left standing");
+  assert.equal(battle.querySelectorAll(".gg-enemy.hit").length, 1, "the killed bee explodes before it goes");
+  assert.equal(battle.querySelectorAll(".gg-enemy:not(.hit)")[0], survivor, "the survivor kept its own element");
   assert.equal(battle.querySelectorAll(".gg-shot").length, 0);
   assert.equal(battle.querySelector(".gg-ship-tag").textContent, "Mike · 300");
   // my own echo is ignored

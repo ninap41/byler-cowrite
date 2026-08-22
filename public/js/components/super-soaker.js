@@ -23,17 +23,13 @@ const frac = (n) => {
 	return x - Math.floor(x)
 }
 
-// The gun: a squirt-gun silhouette drawn in CSS parts, tinted in its owner's
-// colour (whose it is also lives in the name tag). Deterministic per key.
+// The gun: the water-pistol emoji (green on every modern platform) — whose it
+// is lives in the name tag beside it; the owner's colour still tints the
+// water itself. The emoji glyph points LEFT, so setPos() flips it to face the
+// way the burst will fly.
 export function gunHtml(key, color = "#38bdf8") {
 	const c = safeColor(color)
-	return `<span class="sk-gun3d" style="--sk-c:${c}">
-	<span class="sk-tank"></span>
-	<span class="sk-body"></span>
-	<span class="sk-barrel"></span>
-	<span class="sk-muzzle"></span>
-	<span class="sk-grip"></span>
-</span>`
+	return `<span class="sk-gun3d" style="--sk-c:${c}"><span class="sk-emoji">🔫</span></span>`
 }
 
 export const layerHtml = () => `<div class="sk-layer hidden" id="skLayer" aria-label="SuperSoaker">
@@ -71,7 +67,14 @@ export function mountSuperSoaker(opts) {
 		el.style.left = Math.round(px) + "px"
 		el.style.top = Math.round(py) + "px"
 		const g = el.querySelector(".sk-gun3d")
-		if (g) g.style.transform = `rotate(${Math.round(angle)}deg)`
+		if (!g) return
+		// the emoji points LEFT: an aim toward the left keeps it as-is (rotated
+		// so base+rotation lands on the aim), an aim toward the right mirrors
+		// it first — either way the muzzle faces where the water will go and
+		// the gun is never upside down
+		const norm = ((Math.round(angle) % 360) + 360) % 360
+		const lefty = norm > 90 && norm < 270
+		g.style.transform = lefty ? `rotate(${Math.round(angle) - 180}deg)` : `rotate(${Math.round(angle)}deg) scaleX(-1)`
 	}
 	const gunInner = (key, name, color) =>
 		gunHtml(key, color) + (name ? `<span class="sk-tag" style="color:${safeColor(color)}">${esc(name)}</span>` : "")

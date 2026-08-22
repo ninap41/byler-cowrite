@@ -10,10 +10,10 @@ installDom();
 const { GUN_W, gunHtml, layerHtml, mountSuperSoaker } =
   await import("../public/js/components/super-soaker.js");
 
-test("gunHtml: a CSS-part squirt gun tinted in its owner's colour, junk colours fall back", () => {
+test("gunHtml: the water-pistol emoji, with the owner's colour riding along for the water; junk colours fall back", () => {
   const a = gunHtml("me", "#e63946");
-  for (const part of ["sk-gun3d", "sk-tank", "sk-body", "sk-barrel", "sk-muzzle", "sk-grip"])
-    assert.match(a, new RegExp(`class="${part}"`), part + " is part of the gun");
+  assert.match(a, /class="sk-gun3d"/, "the positioned wrapper stays (setPos rotates it)");
+  assert.match(a, /class="sk-emoji">🔫</, "the gun IS the green water-pistol emoji");
   assert.match(a, /--sk-c:#e63946/, "tinted in the owner's colour");
   assert.ok(!gunHtml("me", "red;url(x)").includes("url(x)"), "junk colours fall back");
 });

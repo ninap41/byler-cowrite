@@ -8858,47 +8858,16 @@ body.game-page .session-bar .sess-name {
 	height: 44px;
 	transition: transform 0.15s ease-out;
 }
-.sk-gun3d span {
+/* the gun is the water-pistol emoji (green everywhere modern); the glyph
+   points left and the component's setPos() mirrors/rotates it to the aim */
+.sk-emoji {
 	position: absolute;
-	border-radius: 4px;
-}
-.sk-tank {
-	left: 2px;
-	top: 2px;
-	width: 26px;
-	height: 16px;
-	border-radius: 8px;
-	background: color-mix(in srgb, var(--sk-c) 70%, #fff);
-}
-.sk-body {
-	left: 8px;
-	top: 14px;
-	width: 34px;
-	height: 14px;
-	background: var(--sk-c);
-}
-.sk-barrel {
-	left: 40px;
-	top: 17px;
-	width: 18px;
-	height: 8px;
-	background: color-mix(in srgb, var(--sk-c) 55%, #16223a);
-}
-.sk-muzzle {
-	left: 57px;
-	top: 18px;
-	width: 6px;
-	height: 6px;
-	border-radius: 50%;
-	background: #dff3ff;
-}
-.sk-grip {
-	left: 14px;
-	top: 26px;
-	width: 9px;
-	height: 16px;
-	transform: skewX(-12deg);
-	background: color-mix(in srgb, var(--sk-c) 55%, #16223a);
+	inset: 0;
+	display: grid;
+	place-items: center;
+	font-size: 40px;
+	line-height: 1;
+	filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.35));
 }
 .sk-tag {
 	position: absolute;

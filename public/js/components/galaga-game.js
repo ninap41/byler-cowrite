@@ -123,11 +123,12 @@ export function mountGalaga(opts) {
 			row = Math.floor(slot / SLOTS)
 		return { x: vw() * (0.2 + (0.6 / (SLOTS - 1)) * col), y: vh() * 0.1 + row * 46 }
 	}
+	let beeN = 0 // stable per-bee ids ride the relay so viewers can tell a KILL from a reshuffle
 	function spawnBee(slot) {
 		const el = doc.createElement("i")
 		el.className = "gg-enemy"
 		mine.appendChild(el)
-		const b = { el, slot, dive: false, t: Math.random() * 6.28, x: 0, y: 0, dead: false }
+		const b = { el, slot, id: beeN++, dive: false, t: Math.random() * 6.28, x: 0, y: 0, dead: false }
 		const p = slotXY(slot)
 		b.x = p.x
 		b.y = p.y
@@ -230,7 +231,7 @@ export function mountGalaga(opts) {
 			x: shipX,
 			score,
 			shots: shots.map((sh) => [sh.x / vw(), sh.y / vh()]),
-			bees: bees.filter((b) => !b.dead).map((b) => [b.x / vw(), b.y / vh(), b.dive ? 1 : 0]),
+			bees: bees.filter((b) => !b.dead).map((b) => [b.x / vw(), b.y / vh(), b.dive ? 1 : 0, b.id]),
 		})
 	}
 
@@ -375,7 +376,7 @@ export function mountGalaga(opts) {
 	}
 
 	// ---- everyone else's battles: painted from the relay, inert ----
-	const remote = new Map() // userId -> { el, ship, tag, bees: [], shots: [], color }
+	const remote = new Map() // userId -> { el, ship, tag, bees: Map, shots: [], color }
 	function upsertRemote(d) {
 		let r = remote.get(d.userId)
 		if (!r) {
@@ -388,7 +389,7 @@ export function mountGalaga(opts) {
 			tag.className = "gg-ship-tag"
 			el.appendChild(tag)
 			othersBox.appendChild(el)
-			r = { el, ship, tag, bees: [], shots: [], color: "" }
+			r = { el, ship, tag, bees: new Map(), shots: [], color: "" }
 			remote.set(d.userId, r)
 		}
 		if (r.color !== d.color) {
@@ -399,22 +400,50 @@ export function mountGalaga(opts) {
 		r.tag.textContent = `${d.name} · ${Number(d.score || 0).toLocaleString()}`
 		setPos(r.ship, d.x * vw(), shipY())
 		setPos(r.tag, d.x * vw(), shipY() + 18)
-		const sync = (list, want, cls) => {
-			while (list.length < want.length) {
-				const el = doc.createElement("i")
-				el.className = cls
-				r.el.appendChild(el)
-				list.push(el)
-			}
-			while (list.length > want.length) list.pop().remove()
-		}
-		sync(r.bees, d.bees || [], "gg-enemy")
+		// Bees are keyed by the id riding the relay ([x, y, dive, id]) so a
+		// kill removes exactly the bee that was hit — index-matching made every
+		// LATER bee jump into the dead one's place. A bee that vanishes between
+		// updates was shot: it explodes here too (the shooter's own .hit flash)
+		// instead of silently blinking away. Updates arrive throttled (~80ms),
+		// so the remote elements carry a CSS left/top transition — but a dive
+		// wrapping from the bottom edge back to the top would GLIDE up the whole
+		// screen, so a jump longer than half the screen snaps instead.
+		const seen = new Set()
 		;(d.bees || []).forEach((p, i) => {
-			r.bees[i].classList.toggle("dive", !!p[2])
-			setPos(r.bees[i], p[0] * vw(), p[1] * vh())
+			const key = Number.isFinite(Number(p?.[3])) && p.length > 3 ? "b" + p[3] : "i" + i
+			seen.add(key)
+			let el = r.bees.get(key)
+			if (!el) {
+				el = doc.createElement("i")
+				el.className = "gg-enemy"
+				r.el.appendChild(el)
+				r.bees.set(key, el)
+			}
+			el.classList.toggle("dive", !!p[2])
+			const py = p[1] * vh()
+			const prevY = Number(el.dataset.y)
+			if (Number.isFinite(prevY) && Math.abs(py - prevY) > vh() * 0.4) {
+				el.style.transition = "none"
+				setTimeout(() => (el.style.transition = ""), 60)
+			}
+			el.dataset.y = py
+			setPos(el, p[0] * vw(), py)
 		})
-		sync(r.shots, d.shots || [], "gg-shot")
-		;(d.shots || []).forEach((p, i) => {
+		for (const [key, el] of [...r.bees.entries()]) {
+			if (seen.has(key)) continue
+			r.bees.delete(key)
+			el.classList.add("hit")
+			setTimeout(() => el.remove(), 260)
+		}
+		const want = d.shots || []
+		while (r.shots.length < want.length) {
+			const el = doc.createElement("i")
+			el.className = "gg-shot"
+			r.el.appendChild(el)
+			r.shots.push(el)
+		}
+		while (r.shots.length > want.length) r.shots.pop().remove()
+		want.forEach((p, i) => {
 			r.shots[i].style.background = safeColor(d.color)
 			setPos(r.shots[i], p[0] * vw(), p[1] * vh())
 		})

@@ -58,7 +58,7 @@ export const layerHtml = () => `<div class="ar-layer hidden" id="arLayer" aria-l
 	<div id="arCatch" class="hidden"></div>
 	<div class="ar-hud glass hidden" id="arHud">
 		<b class="ar-title">🎨 Will's Art Room</b>
-		<span class="ar-hint" id="arHint">Drag anywhere to paint</span>
+		<span class="ar-hint" id="arHint">Drag anywhere to paint · put the brush away to grab other gimmicks</span>
 		<div class="ar-row" id="arColors"></div>
 		<div class="ar-row" id="arSizes"></div>
 		<div class="ar-row">
@@ -125,6 +125,10 @@ export function mountArtRoom(opts) {
 	}
 	function redraw() {
 		if (!ctx) return
+		// the canvas starts at the element default (300x150) until someone sizes
+		// it — a viewer who never opened the room would have every remote stroke
+		// land outside the bitmap and see nothing, so redraw sizes it on demand
+		if (canvas.width !== vw() || canvas.height !== vh()) sizeCanvas()
 		ctx.clearRect(0, 0, canvas.width, canvas.height)
 		for (const p of paint.values()) {
 			for (const s of p.strokes) drawStroke(s)
@@ -283,7 +287,7 @@ export function mountArtRoom(opts) {
 		curErase = false
 		catcher.classList.remove("hidden")
 		hud.classList.remove("hidden")
-		hint.textContent = "Drag anywhere to paint"
+		hint.textContent = "Drag anywhere to paint · put the brush away to grab other gimmicks"
 		syncLayer()
 		// the server calls the brush coming out in chat (and is the cooldown);
 		// a hard refusal (friendly / nobody unlocked) shows here and the brush

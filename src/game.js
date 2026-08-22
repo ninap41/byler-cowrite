@@ -1368,7 +1368,14 @@ export function createGame(io) {
         x: fr(x),
         score: Math.max(0, Math.min(GALAGA_MAX_SCORE, Math.floor(Number(score) || 0))),
         shots: (Array.isArray(shots) ? shots.slice(0, 4) : []).map((p) => [fr(p?.[0]), fr(p?.[1])]),
-        bees: (Array.isArray(bees) ? bees.slice(0, 10) : []).map((p) => [fr(p?.[0]), fr(p?.[1]), p?.[2] ? 1 : 0]),
+        // the 4th slot is a stable per-bee id (see galaga-game.js: viewers key
+        // bees by it so a kill explodes the right one instead of reshuffling)
+        bees: (Array.isArray(bees) ? bees.slice(0, 10) : []).map((p) => {
+          const bee = [fr(p?.[0]), fr(p?.[1]), p?.[2] ? 1 : 0];
+          const id = Number(p?.[3]);
+          if (Number.isFinite(id)) bee.push(Math.max(0, Math.min(1e6, Math.floor(id))));
+          return bee;
+        }),
       };
       s.ships ??= new Map();
       s.ships.set(w.userId, ship);
