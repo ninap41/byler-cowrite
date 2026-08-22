@@ -67,8 +67,8 @@ test("chrome menu lists every theme and switching updates data-theme + storage",
   assert.equal(document.querySelectorAll(".bg-set.starcourt .zig").length, 2, "starcourt zigzags");
   assert.ok(document.querySelector(".bg-set.starcourt .memdots"), "starcourt dot grid");
   assert.equal(document.querySelectorAll(".bg-set.upside .dust").length, 3, "upside dust layers");
-  assert.ok(!document.querySelector(".bg-set.upside .vines") && document.querySelectorAll(".bg-set.upside .mtn").length === 2,
-    "upside landscape: two mountain ridges, vines removed");
+  assert.ok(!document.querySelector(".bg-set.upside .vines") && document.querySelectorAll(".bg-set.upside .mtn").length === 1,
+    "upside landscape: one traced svg mountain range, vines removed");
   assert.equal(document.querySelectorAll(".bg-set.wall .lights").length, 2, "chasing light strings");
   theme.applyTheme("snowball");
   assert.equal(document.documentElement.getAttribute("data-theme"), "snowball");

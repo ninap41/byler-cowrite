@@ -3529,20 +3529,48 @@ h3 {
 }
 .bg-set.upside .mtn {
 	position: absolute;
-	left: -2%;
-	right: -2%;
+	left: 0;
+	right: 0;
 	bottom: 0;
+	/* the traced landscape (public/img/upside-mountains.svg, 1672x421, transparent
+	   sky): cover keeps the bottom edge pinned and crops the sides when the
+	   min-height wins */
+	aspect-ratio: 1672 / 421;
+	min-height: 26vh;
+	background: url("../img/upside-mountains.svg") bottom center / cover no-repeat;
 }
-.bg-set.upside .m1 {
-	height: 34%;
-	background: #0a1f1a;
-	opacity: 0.8;
-	clip-path: polygon(0 78%, 8% 52%, 17% 70%, 27% 38%, 38% 66%, 50% 30%, 61% 62%, 72% 42%, 83% 68%, 93% 48%, 100% 72%, 100% 100%, 0 100%);
+/* the red rim behind the ridgeline: the same silhouette, blurred, nudged up,
+   painted in the theme's red — a glow the svg itself no longer carries */
+.bg-set.upside .mtn-glow {
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	aspect-ratio: 1672 / 421;
+	min-height: 26vh;
+	/* the blur lives on the parent so it softens the masked child's EDGES —
+	   filter on the masked element itself blurs before masking and leaves a
+	   crisp outline. No offset: an even blur of the ridge edge is the same
+	   width everywhere, and .mtn hides the half that bleeds downhill */
+	filter: blur(18px);
+	opacity: 0.65;
 }
-.bg-set.upside .m2 {
-	height: 22%;
-	background: #061410;
-	clip-path: polygon(0 60%, 10% 82%, 20% 44%, 33% 76%, 47% 36%, 60% 74%, 71% 50%, 84% 80%, 94% 56%, 100% 78%, 100% 100%, 0 100%);
+/* the second, wider pass: same silhouette, much bigger blur, pushed up a
+   touch — the glow dissolves into the sky instead of stopping */
+.bg-set.upside .mtn-glow.g2 {
+	filter: blur(46px);
+	opacity: 0.4;
+}
+.bg-set.upside .mtn-glow::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background: #c22a2a;
+	-webkit-mask: url("../img/upside-mountains.svg") bottom center / cover no-repeat;
+	mask: url("../img/upside-mountains.svg") bottom center / cover no-repeat;
+}
+.bg-set.upside .mtn-glow.g2::before {
+	transform: translateY(-3%);
 }
 
 /* ---- Starcourt: striped retro sun + bouncing 80s shapes ---- */

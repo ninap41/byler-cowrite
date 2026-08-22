@@ -32,7 +32,7 @@ const BG = `
 			<div class="flakes f1"></div><div class="flakes f2"></div><div class="glint"></div>
 		</div>
 		<div class="bg-set upside">
-			<div class="veins"></div><div class="mtn m1"></div><div class="mtn m2"></div>
+			<div class="mtn-glow"></div><div class="mtn-glow g2"></div><div class="mtn"></div><div class="veins"></div>
 			<div class="dust d1"></div><div class="dust d2"></div><div class="dust d3"></div>
 			<div class="spore drift s1"></div><div class="spore drift s2"></div><div class="spore drift s3"></div><div class="spore drift s4"></div>
 		</div>
