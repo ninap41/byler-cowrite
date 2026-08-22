@@ -55,24 +55,91 @@ Note: `ink` and `wall` sit at the 0-word tier, so any signed-in account has them
 
 Change `themeUnlocks` in `achievements.json` — keys are theme ids from `THEMES` in `public/js/theme.js`, values are tier ids from `wordTiers` above. `test/themes.test.mjs` pins every key to a real theme and every value to a real tier, so run `npm test` after editing. Update this file to match.
 
+## Table rules for every gimmick
+
+All gimmicks share the table rules: only in **non-friendly** games, only from a
+seat (spectators watch but can't play), and "if one person at the table has
+it, everyone can play it" (`tableHasGimmick()` — admins count as having every
+gimmick). Flipping the game friendly fades every toy off every screen with a
+"💛 This is a friendly game now" toast. Positions travel as fractions of each
+player's own screen; heavy effects (water, light shows, paint pixels) are
+simulated locally on every viewer so almost nothing crosses the wire.
+
+## Hellfire d20 (gimmick)
+
+`d20`, rides the Hellfire Club theme (`sorcerer`, 20k). A real 3D icosahedron
+in your own palette colour that you drag anywhere over the live game — the
+editor included, that's the point — flick to throw it, click to roll. The
+SERVER rolls and calls every landing in writers chat ("rolled a 13 🎲",
+"a natural 1 — fumble."). A **natural 20 mid-writing steals the turn**: the
+roller becomes the current writer and the interrupted writer's unsent line is
+gone. The HUD's "Steal the turn on a natural 20" box is the roller's opt-out
+(remembered in `cowriteDiceSteal`, shared by Galaga). Every throw plays the
+tumble sound and the natural-20 chat line chimes, both under the account's
+gimmick sound preference. 1.8s per-user roll cooldown.
+
+## Palace Arcade Galaga (gimmick)
+
+`galaga`, rides the Palace Arcade theme (`explorer`, 15k). A playable
+mini-Galaga fought full-screen over the live game: your pixel ship in your
+own colour at the foot of the screen, a bobbing bee fleet up top, divers
+worth chasing (100 points a bob, 300 a dive), a 45-second run. Steering is
+mouse/←→ from the document, Space or the HUD's Fire button shoots — keys are
+ignored while focus is in an editor or input, so typing never fires a shot.
+**Every battle is shared**: your ship, shots and fleet stream to the table
+(bees carry stable ids, so when you kill one, everyone sees exactly that bee
+explode), several players can blast their own fleets side by side, and while
+any battle is live the arcade theme's own ambient fleet fades away. Only the
+FINAL score counts: beat **8,000** and it steals the turn under exactly the
+d20's conditions and opt-out. High scores chime like a natural 20.
+
+## Starcourt Milkshake (gimmick)
+
+`milkshake`, rides the Starcourt theme (`practice`, 10k). A paper cup tinted
+in your colour that you drag over the game and tip — click for a full pour,
+whip it sideways to slosh — and the spill rains down, pooling along the
+bottom of the screen over the chat dock, pools merging per colour. Every
+viewer simulates the drops locally from the cup's streamed position; the pour
+is called in chat ("tipped a milkshake over the game 🥤") on a cooldown. No
+steal, no chime — pure distraction. HUD: Refill (local), Wipe up (clears this
+viewer's puddles), Put the cup away. The mess clears when the last cup leaves.
+
+## Rink-O-Mania Disco Ball (gimmick)
+
+`disco`, rides the Rink-O-Mania theme (`puppymike`, 5k). A silver CSS-3D
+mirror ball hung by a chain from the top edge — not tinted, a disco ball is
+silver for everyone; whose it is lives in the name tag. Drag it anywhere over
+the game; **click to spin**: for one 8-second show, colored light spots orbit
+the ball on tilted elliptical sweeps under a turning beam fan, tinted your
+colour first and then the table's. One spin lights every screen from a single
+relayed event (the spin is also the cooldown), and the lights follow the ball
+if it's dragged mid-show. Chat call "turned on the disco ball 🪩". No steal,
+no chime, no sound — pure distraction.
+
 ## Will's Art Room (gimmick)
 
-Take a paintbrush out over the live game and paint — a swatch row (your own
-palette colour first), a free color picker, and the whole table watches every
-stroke land. Stroke data travels as screen fractions and each viewer redraws
-it on their own canvas, so no pixel crosses the wire; the paint layer takes
-the pointer only for the painter, so painting never costs another writer
-their caret. Paint STAYS until its painter wipes it or leaves (putting the
-brush away keeps it); the game going friendly clears the room. No steal, no
-chime — pure distraction, the milkshake's category.
+`artroom`, rides The Void theme (`artist`, 50k). Take a paintbrush out over
+the live game and paint — a swatch row (your own palette colour first), a
+free color picker, an eraser 🧽, and a four-stop brush-size row whose dots
+preview their own width. The whole table watches every stroke land: stroke
+data travels as screen fractions and each viewer redraws it on their own
+canvas (sized on demand, so a viewer who never opened the room still sees the
+painting), so no pixel crosses the wire. While YOUR brush is out an invisible
+catcher owns the pointer — painting never costs another writer their caret,
+but it also means you must **put the brush away before grabbing any other
+gimmick**, and the HUD hint says so. Paint STAYS until its painter wipes it
+or leaves (putting the brush away keeps it); the game going friendly clears
+the room. No steal, no chime — pure distraction, the milkshake's category.
 
 ## SuperSoaker (gimmick)
 
-A water gun you drag anywhere over the live game — drag to aim (it points
-away from the nearest wall), a clean click FIRES: a burst of droplets arcs
-out of the muzzle in the shooter's colour, splashes, and streaks run down
-before the water dries (~8s). Shared the disco ball's way: the gun's
-position streams as fractions (`gimmick-gun`), and one seeded
+The gun is the 🔫 water-pistol emoji (green on every modern platform),
+mirrored and rotated to face wherever it's aiming so it's never upside down,
+with the owner's name tag beside it. Drag it anywhere over the live game —
+it aims away from the nearest wall — and a clean click FIRES: a burst of
+droplets arcs out of the muzzle in the shooter's colour, splashes, and
+streaks run down before the water dries (~8s). Shared the disco ball's way:
+the gun's position streams as fractions (`gimmick-gun`), and one seeded
 `gimmick-squirt` relay starts the identical burst on every screen — no
 droplet ever crosses the wire. Chat call "soaked the game with the
 SuperSoaker 💦" on a cooldown. No steal, no chime, no persistence: water
