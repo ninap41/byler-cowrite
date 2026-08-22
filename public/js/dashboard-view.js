@@ -201,12 +201,17 @@ export function myGameStatus(g) {
 	return { text: g.currentName ? `Waiting for ${g.currentName}` : "In progress", cls: "" }
 }
 
+// Short date for the card corner (archive-view has its own longer fmtWhen;
+// defined here rather than imported to avoid a module cycle — archive-view
+// already imports coverStyle from this file).
+const fmtWhen = (ts) => (ts ? new Date(ts).toLocaleDateString([], { dateStyle: "medium" }) : "")
+
 // A "games in progress" card (button appended by the page).
 export function myGameCardHtml(g) {
 	const st = myGameStatus(g)
 	const glyph = (g.name || "").trim().charAt(0).toUpperCase() || "✒"
 	return (
-		`<div class="mg-cover" style="${coverStyle(g)}">${g.cover ? "" : `<span class="mg-glyph">${esc(glyph)}</span>`}</div>` +
+		`<div class="mg-cover" style="${coverStyle(g)}">${g.cover ? "" : `<span class="mg-glyph">${esc(glyph)}</span>`}<span class="mg-date">${fmtWhen(g.savedAt)}</span></div>` +
 		`<div class="mg-body">` +
 		`<div class="mg-head"><b class="mg-name">${esc(g.name || "Untitled story")}</b>` +
 		`<span class="mg-code">${esc(g.code)}</span></div>` +

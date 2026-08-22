@@ -14,6 +14,7 @@ export const canContinue = (g, username) => !!g && !!username && !!g.hostName &&
 export function gameCardHtml(g) {
 	// Title line: the game's name when the host set one, otherwise the prompt.
 	return (
+		`<span class="gc-date">${fmtWhen(g.savedAt)}</span>` +
 		`<span class="gc-cover" style="${coverStyle(g)}"></span>` +
 		`<p class="gc-prompt"${g.name ? ' style="font-weight:700"' : ""}>${esc(g.name) || esc(oneLinePrompt(g.prompt)) || "<em>No prompt yet</em>"}</p>` +
 		`<span class="gc-meta">` +
@@ -22,7 +23,6 @@ export function gameCardHtml(g) {
 		`<span>${g.lines} line${g.lines === 1 ? "" : "s"}</span>` +
 		`<span>${g.phase === "over" ? "finished" : "paused"}</span>` +
 		`<span>${esc(g.writers.map((w) => w.name + (w.isHost ? " (host)" : "")).join(", "))}</span>` +
-		`<span>${fmtWhen(g.savedAt)}</span>` +
 		`</span>`
 	)
 }
@@ -32,13 +32,13 @@ export function gameCardHtml(g) {
 // it — a write has no code, no host and no turns.
 export function writeCardHtml(d) {
 	return (
+		`<span class="gc-date">${fmtWhen(d.savedAt)}</span>` +
 		`<span class="gc-cover" style="${coverStyle({ code: d.id || "", cover: "" })}"></span>` +
 		`<p class="gc-prompt" style="font-weight:700">${esc(d.name) || "<em>Untitled</em>"}</p>` +
 		`<span class="gc-meta">` +
 		`<span>✒️ solo write</span>` +
 		(d.viewable === false ? `<span>🔒 private</span>` : d.visibility && d.visibility !== "public" ? `<span>👥 readers</span>` : "") +
 		(d.hostName ? `<span>by ${esc(d.hostName)}</span>` : "") +
-		`<span>${fmtWhen(d.savedAt)}</span>` +
 		`</span>`
 	)
 }

@@ -663,7 +663,6 @@ a.solo-title:hover {
 	padding: 9px 14px;
 	border-radius: 14px;
 	background: var(--panel);
-	border: 1px solid var(--panel-brd);
 	box-shadow: var(--panel-glow);
 	backdrop-filter: blur(14px);
 	-webkit-backdrop-filter: blur(14px);
@@ -1365,6 +1364,7 @@ a.solo-title:hover {
 
 .game-card {
 	width: 100%;
+	position: relative; /* anchors the .gc-date corner chip */
 	text-align: left;
 	background: var(--panel);
 	border: 1px solid var(--panel-brd);
@@ -1382,6 +1382,19 @@ a.solo-title:hover {
 .game-card:hover {
 	border-color: var(--accent-2);
 	transform: translateY(-2px);
+}
+/* the save date rides the top of every archive/story card */
+.game-card .gc-date {
+	position: absolute;
+	top: 8px;
+	right: 10px;
+	z-index: 2;
+	font-size: 0.7rem;
+	line-height: 1;
+	padding: 3px 8px;
+	border-radius: 8px;
+	background: rgba(0, 0, 0, 0.45);
+	color: rgba(255, 255, 255, 0.85);
 }
 .game-card .gc-cover {
 	display: block;
@@ -3857,7 +3870,6 @@ button.danger,
 	min-width: 0;
 }
 .side-sec {
-	border: 1px solid var(--panel-brd);
 	border-radius: 10px;
 	padding: 16px 18px 18px;
 }

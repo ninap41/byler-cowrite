@@ -113,7 +113,6 @@
 	margin-top: 12px;
 }
 .mg-card {
-	border: 1px solid var(--line);
 	border-radius: 10px;
 	overflow: hidden;
 	background: var(--panel-2);
@@ -125,6 +124,18 @@
 	height: 74px;
 	position: relative;
 	overflow: hidden;
+}
+/* the save date rides the top of every game card */
+.mg-date {
+	position: absolute;
+	top: 6px;
+	right: 8px;
+	font-size: 0.68rem;
+	line-height: 1;
+	padding: 3px 7px;
+	border-radius: 8px;
+	background: rgba(0, 0, 0, 0.45);
+	color: rgba(255, 255, 255, 0.85);
 }
 .mg-glyph {
 	position: absolute;
@@ -377,7 +388,6 @@
 	width: 100%;
 	text-align: left;
 	background: var(--panel-2);
-	border: 1px solid var(--line);
 	border-radius: 8px;
 	padding: 9px 12px;
 	margin-top: 8px;
@@ -693,7 +703,6 @@ a.rg-row {
 	align-items: center;
 	gap: 12px;
 	padding: 10px 12px;
-	border: 1px solid var(--line);
 	border-radius: 12px;
 	background: var(--panel-2);
 	margin-top: 8px;
