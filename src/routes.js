@@ -285,7 +285,9 @@ export function registerRoutes(app, game) {
   // the non-secret kind: their descriptions always show.
   app.get("/api/achievements", (_req, res) => {
     res.json({
-      wordTiers: WORD_TIERS.map((t) => ({ name: t.name, min: t.min, desc: t.desc })),
+      // ids ride along so the ranks page can join tiers to themeUnlocks /
+      // gimmick locks (they're not secret — UNLOCKS.md prints them)
+      wordTiers: WORD_TIERS.map((t) => ({ id: t.id, name: t.name, min: t.min, desc: t.desc })),
       usage: USAGE.map((b) => ({ name: b.name })),
       usageOpen: USAGE_OPEN.map((b) => ({ name: b.name, desc: b.desc })),
       usageCount: USAGE.length,

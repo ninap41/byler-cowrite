@@ -9076,3 +9076,174 @@ html.vcx-live[data-theme="vecna"] #vc-pend {
 .vcx-hud.hidden {
 	display: none;
 }
+
+/* ---- Ranks & Unlocks (/ranks, public/js/ranks-view.js): the whole ladder,
+   theme screenshots, gimmick rundowns and word badges on one page. All of it
+   is data-driven; these styles only give the data a shape. */
+.rk-section {
+	margin: 26px 0 10px;
+	text-align: left;
+	font-family: var(--font-display);
+}
+.rk-progress {
+	margin: 6px 0 2px;
+}
+.rk-progress-line {
+	margin: 0 0 6px;
+	text-align: left;
+}
+.rk-bar {
+	max-width: 420px;
+}
+.rk-ladder {
+	display: grid;
+	gap: 12px;
+}
+.rk-tier {
+	text-align: left;
+	padding: 14px 16px;
+	border-radius: var(--r-md);
+	border: 1px solid var(--line);
+	background: color-mix(in srgb, var(--panel) 55%, transparent);
+	opacity: 0.82;
+}
+.rk-tier.earned {
+	opacity: 1;
+	border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+}
+.rk-tier.current {
+	box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 60%, transparent), var(--panel-glow);
+}
+.rk-tier-head {
+	display: flex;
+	align-items: baseline;
+	gap: 10px;
+	flex-wrap: wrap;
+}
+.rk-badge {
+	font-size: 1.05rem;
+}
+.rk-words {
+	color: var(--muted);
+	font-size: 0.85rem;
+}
+.rk-earned {
+	margin-left: auto;
+	color: var(--accent);
+	font-size: 0.8rem;
+	font-weight: 700;
+	flex: none;
+}
+.rk-desc {
+	margin: 6px 0 0;
+	color: var(--muted);
+	font-size: 0.9rem;
+}
+/* theme screenshots: small cards, the shot on top, the label under it */
+.rk-themes {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	margin-top: 10px;
+}
+.rk-theme {
+	margin: 0;
+	width: 190px;
+	border: 1px solid var(--line);
+	border-radius: 10px;
+	overflow: hidden;
+	background: color-mix(in srgb, var(--panel) 70%, transparent);
+	cursor: pointer;
+}
+.rk-theme img {
+	display: block;
+	width: 100%;
+	aspect-ratio: 16 / 9;
+	object-fit: cover;
+}
+/* no screenshot shipped (a fandom pack without images): the card stays,
+   just label-only on a swatch of the page's own panel colour */
+.rk-theme.noshot::before {
+	content: "";
+	display: block;
+	aspect-ratio: 16 / 9;
+	background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 30%, var(--panel)), var(--panel));
+}
+.rk-theme figcaption {
+	padding: 6px 9px;
+	font-size: 0.78rem;
+	color: var(--muted);
+}
+.rk-theme.unlocked figcaption {
+	color: var(--ink);
+}
+.rk-gimmicks {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-top: 10px;
+}
+.rk-gimmick-chip {
+	padding: 4px 10px;
+	border-radius: 999px;
+	border: 1px solid var(--line);
+	font-size: 0.8rem;
+	color: var(--muted);
+}
+.rk-gimmick-chip.unlocked {
+	color: var(--ink);
+	border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+}
+.rk-free {
+	margin-top: 0;
+}
+/* the gimmick rundown: one card per toy */
+.rk-gimmick-grid,
+.rk-usage-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+	gap: 12px;
+}
+.rk-gimmick,
+.rk-usage {
+	text-align: left;
+	padding: 12px 14px;
+	border-radius: var(--r-md);
+	border: 1px solid var(--line);
+	background: color-mix(in srgb, var(--panel) 55%, transparent);
+}
+.rk-gimmick.earned,
+.rk-usage.earned {
+	border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+}
+.rk-gimmick header {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+.rk-gicon {
+	font-size: 1.3rem;
+}
+.rk-gate {
+	margin: 8px 0 0;
+	font-size: 0.78rem;
+	color: var(--muted);
+}
+.rk-usage b {
+	font-size: 0.95rem;
+}
+.rk-usage p {
+	margin: 6px 0 0;
+	font-size: 0.85rem;
+	color: var(--muted);
+}
+.rk-usage.mystery p {
+	font-style: italic;
+}
+.rk-usage .rk-earned {
+	display: inline-block;
+	margin: 8px 0 0;
+}
+.rk-signin {
+	text-align: left;
+}

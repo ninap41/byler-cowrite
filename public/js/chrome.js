@@ -118,6 +118,7 @@ const NAV = (page) => `
 		<a href="/stories" ${page === "stories" ? 'aria-current="page"' : ""}>📖 All stories</a>
 		<hr class="nav-sep" />
 		<a href="/profile" ${page === "profile" ? 'aria-current="page"' : ""}>🏆 Profile</a>
+		<a href="/ranks" ${page === "ranks" ? 'aria-current="page"' : ""}>🏅 Ranks &amp; unlocks</a>
 		<a href="/settings" ${page === "settings" ? 'aria-current="page"' : ""}>⚙️ Settings</a>
 		<a href="/admin" class="hidden" id="navAdmin" ${page === "admin" ? 'aria-current="page"' : ""}>🛡️ Admin</a>
 		<button type="button" class="nav-logout" id="navLogout">🚪 Log out</button>

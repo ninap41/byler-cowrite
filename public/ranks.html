@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en" data-theme="neon">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<script>
+			// Apply the saved theme before first paint (initTheme() re-validates it later)
+			try { var _t = localStorage.getItem("cowriteTheme"); if (_t) document.documentElement.setAttribute("data-theme", _t); var _f = localStorage.getItem("cowriteFont"); if (_f) document.documentElement.setAttribute("data-font", _f) } catch (e) {}
+		</script>
+		<title>Byler Cowrite — Ranks &amp; Unlocks</title>
+		<link rel="icon" type="image/x-icon" href="./favicon.ico?v=2" />
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,900;1,9..144,400;1,9..144,600&family=Inconsolata:wght@400;600;700&family=Orbitron:wght@500;700;900&family=Space+Grotesk:wght@400;500;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Tiny5&family=Jersey+15&display=swap"
+			rel="stylesheet"
+		/>
+		<link rel="stylesheet" href="/css/base.css" />
+	</head>
+	<body>
+		<div class="wrap">
+			<div class="archive-inner">
+				<div class="archive-head">
+					<a class="ghost" href="/dashboard" style="text-decoration: none; padding: 10px 16px; border-radius: 12px">← Back</a>
+					<h2>Ranks &amp; Unlocks</h2>
+				</div>
+				<p class="subtle" style="text-align: left; margin: 0 0 8px">
+					Every word you write in a game climbs the ladder. Ranks are badges; most carry a theme for your whole site, and some themes bring a gimmick — a toy you play over a live game.
+				</p>
+				<div id="rkProgress"></div>
+
+				<h3 class="rk-section">🏅 The rank ladder</h3>
+				<div id="rkLadder" class="rk-ladder"><p class="subtle">Loading…</p></div>
+
+				<h3 class="rk-section">🎁 Free themes — everyone starts with these</h3>
+				<div id="rkFree" class="rk-themes rk-free"></div>
+
+				<h3 class="rk-section">🎲 The gimmicks — what each one does</h3>
+				<p class="subtle" style="text-align: left; margin: 0 0 10px">
+					Gimmicks only come out in <b>non-friendly</b> games — and if one person at the table has one, everyone can play it.
+				</p>
+				<div id="rkGimmicks" class="rk-gimmick-grid"></div>
+
+				<h3 class="rk-section">🔤 Word badges</h3>
+				<p class="subtle" style="text-align: left; margin: 0 0 10px">
+					One-time collectibles for writing the right words into a committed story line. The mystery ones stay secret until you stumble into them.
+				</p>
+				<div id="rkUsage" class="rk-usage-grid"></div>
+			</div>
+		</div>
+
+		<script type="module">
+			import { api, getToken } from "/js/api.js"
+			import { mountChrome, setUserChip } from "/js/chrome.js"
+			import { THEMES, THEME_LABELS } from "/js/theme.js"
+			import {
+				buildLadder, ladderHtml, progressHtml, freeThemes, freeThemesHtml,
+				usageListHtml, gimmickListHtml,
+			} from "/js/ranks-view.js"
+
+			mountChrome({ page: "ranks" })
+
+			// The page is viewable signed out (everything shows, all locked) —
+			// signed in it marks what's yours and how far the next rung is.
+			let me = null
+			if (getToken()) {
+				try {
+					const d = await api("/api/me", null, "GET")
+					me = d.user
+					setUserChip(me)
+				} catch (e) {}
+			}
+
+			const [ach, themes, gimmicks] = await Promise.all([
+				api("/api/achievements", null, "GET"),
+				api("/api/themes", null, "GET"),
+				api("/api/gimmicks", null, "GET"),
+			])
+
+			const rows = buildLadder({
+				tiers: ach.wordTiers,
+				themeLocks: themes.locks,
+				themeLabels: THEME_LABELS,
+				gimmicks: gimmicks.catalogue,
+			})
+			const unlockedThemes = themes.admin ? THEMES : themes.unlocked || []
+
+			document.getElementById("rkProgress").innerHTML = progressHtml(rows, me)
+			document.getElementById("rkLadder").innerHTML = ladderHtml(rows, { me, unlockedThemes })
+			document.getElementById("rkFree").innerHTML = freeThemesHtml(freeThemes(THEMES, themes.locks, THEME_LABELS))
+			document.getElementById("rkGimmicks").innerHTML = gimmickListHtml(gimmicks, { tiers: ach.wordTiers, themeLabels: THEME_LABELS })
+			document.getElementById("rkUsage").innerHTML = usageListHtml(ach, me)
+
+			// clicking a theme card tries it on (the theme menu's own gate still
+			// applies — a locked theme bounces back, which is its own answer)
+			document.addEventListener("click", (e) => {
+				const fig = e.target.closest(".rk-theme[data-theme-id]")
+				if (!fig) return
+				document.documentElement.setAttribute("data-theme", fig.dataset.themeId)
+			})
+		</script>
+	</body>
+</html>
