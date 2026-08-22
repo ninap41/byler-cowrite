@@ -1025,6 +1025,18 @@ a.rg-row {
 	-webkit-backdrop-filter: blur(16px);
 }
 
+/* Cleradin goes the other way: the tower and the moon ARE the page, so the
+   dashboard columns drop their card glass entirely — background, blur and the
+   slab shadow all go, and the type sits straight on the scenery. The borders
+   stay so the cards still delineate without walling the view off. */
+[data-theme="cleradin"] .dash-col > .card,
+[data-theme="cleradin"] .dash-rail > .card {
+	background: transparent;
+	box-shadow: none;
+	backdrop-filter: none;
+	-webkit-backdrop-filter: none;
+}
+
 /* The Void's lightning strikes right behind the profile header, so just the
    welcome card gets its glass back there — the rest of the page stays bare. */
 [data-theme="void"] .dash-col > .card:has(.welcome) {

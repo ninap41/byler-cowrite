@@ -5201,12 +5201,6 @@ button.danger,
 	opacity: 0.34;
 }
 .bg-set.cleradin .cl-joint-v { opacity: 0.22; }
-.bg-set.cleradin .cl-tread {
-	fill: none;
-	stroke: var(--cl-line);
-	stroke-width: 1;
-	opacity: 0.45;
-}
 .bg-set.cleradin .cl-petal {
 	fill: var(--cl-stone-lit);
 	opacity: 0.75;
@@ -8749,6 +8743,36 @@ body.game-page .session-bar .sess-name {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
+}
+/* the brush sizes: each button previews its width as a dot of that size */
+.ar-sizes {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+}
+.ar-size {
+	flex: 0 0 26px;
+	width: 26px;
+	height: 26px;
+	min-width: 0;
+	min-height: 0;
+	box-sizing: border-box;
+	padding: 0;
+	border-radius: 50%;
+	border: 2px solid transparent;
+	background: color-mix(in srgb, var(--panel) 70%, transparent);
+	cursor: pointer;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+}
+.ar-size i {
+	display: block;
+	border-radius: 50%;
+	background: var(--ink);
+}
+.ar-size.on {
+	border-color: var(--ink);
 }
 .ar-swatches input[type="color"] {
 	width: 26px;

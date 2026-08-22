@@ -299,7 +299,7 @@ test("the Cleradin tower is drawn from its own numbers, part by part", async () 
   const { towerSvg, TOWER, radiusAt, bow, lancet } = await import("../public/js/components/cleradin-tower.js");
   const svg = towerSvg();
   // every named part is present and separately editable
-  for (const id of ["shaft", "spiral", "openings", "door", "moss", "balcony", "roof", "dormer", "spire"])
+  for (const id of ["shaft", "openings", "door", "moss", "balcony", "roof", "dormer", "spire"])
     assert.ok(svg.includes(`id="cl-${id}"`), id + " group");
   // back to front: the roof is drawn after the shaft it sits on, the flag last
   assert.ok(svg.indexOf('id="cl-shaft"') < svg.indexOf('id="cl-roof"'));
@@ -307,9 +307,8 @@ test("the Cleradin tower is drawn from its own numbers, part by part", async () 
   // the shaft tapers: narrower at the top than at the foot, and monotonically
   assert.ok(radiusAt(TOWER.shaftTopY) < radiusAt(TOWER.shaftBottomY));
   assert.ok(radiusAt(500) < radiusAt(700) && radiusAt(700) < radiusAt(TOWER.shaftBottomY));
-  // the spiral really climbs: one band per turn, none of them flat rings
-  const bands = svg.slice(svg.indexOf('id="cl-spiral"'), svg.indexOf('id="cl-openings"'));
-  assert.equal(bands.match(/url\(#cl-ledge\)/g).length, TOWER.turns);
+  // the stair band is gone on purpose: plain stone, no diagonal stripes
+  assert.ok(!svg.includes("cl-spiral") && !svg.includes("cl-tread"), "no spiral band");
   // shared shapes, not copy-paste: the bow and the lancet are functions
   assert.match(bow(100, 40, 120), /^M 80 100 Q 120 116 160 100$/);
   assert.ok(lancet(50, 100, 20, 30, "x").includes('class="x"'));

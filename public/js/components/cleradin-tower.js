@@ -9,7 +9,6 @@
 //
 // Structure (each is its own <g id="…"> in the output, in back-to-front order):
 //   #cl-shaft    the cylindrical body: taper, masonry courses, weathering
-//   #cl-spiral   the stair band winding up the outside — the defining feature
 //   #cl-openings the arched windows and the rose light
 //   #cl-door     the arched wooden door in its stone frame
 //   #cl-moss     small green patches in the joints
@@ -34,7 +33,6 @@ export const TOWER = {
 	rTop: 46, // half-width under the balcony — the taper
 	curve: 16, // how far a course bows down at the centre (the cylinder read)
 	courseH: 26, // masonry course height
-	turns: 6, // full wraps of the spiral stair
 	roofTopY: 74,
 	spireTopY: 8,
 }
@@ -97,48 +95,6 @@ function shaft(t) {
 		${masonry(t)}
 		</g>
 	</g>`
-}
-
-// ---- #cl-spiral -------------------------------------------------------------
-// The stair band, and the point of the whole drawing. Each turn is ONE pass
-// around the tower — a solid ledge, bowed down and lit on top — and successive
-// turns start where the last one ended, so the eye follows a real helix upwards
-// rather than a stack of rings.
-//
-// Only the FRONT of each turn is drawn, and it is clamped to the shaft's own
-// width at every point. The far half used to show as a dashed line and the ends
-// used to overhang the taper; both put marks outside the silhouette, and a
-// stair that leaves the tower is not a stair.
-function spiral(t) {
-	const parts = []
-	const top = t.shaftTopY + 26
-	const bottom = t.shaftBottomY - 40
-	const rise = (bottom - top) / t.turns
-	for (let i = 0; i < t.turns; i++) {
-		const yStart = bottom - i * rise // left side of this turn
-		const yEnd = yStart - rise / 2 // right side, half a turn higher
-		// each end sits ON the stone at its own height, never past it
-		const rL = radiusAt(yStart, t) - 1
-		const rR = radiusAt(yEnd, t) - 1
-		const th = 13 - i * 0.6 // the band narrows with the taper
-		// the visible front face
-		parts.push(
-			`<path d="M ${(t.cx - rL).toFixed(1)} ${yStart.toFixed(1)}
-				Q ${t.cx} ${(yStart + t.curve + 8).toFixed(1)} ${(t.cx + rR).toFixed(1)} ${yEnd.toFixed(1)}
-				l 0 ${th} Q ${t.cx} ${(yStart + t.curve + 8 + th).toFixed(1)} ${(t.cx - rL).toFixed(1)} ${(yStart + th).toFixed(1)} Z"
-				fill="url(#cl-ledge)" stroke="var(--cl-line)" stroke-width="1.2" stroke-linejoin="round" />`,
-		)
-		// treads: short ticks across the band, so it reads as a stair to climb
-		// and not as a ribbon tied round the tower
-		const steps = 7
-		for (let k = 1; k < steps; k++) {
-			const f = k / steps
-			const x = t.cx - rL + f * (rL + rR)
-			const y = yStart - (yStart - yEnd) * f + (t.curve + 8) * 2 * f * (1 - f)
-			parts.push(`<path d="M ${x.toFixed(1)} ${y.toFixed(1)} v ${th.toFixed(1)}" class="cl-tread" />`)
-		}
-	}
-	return `<g id="cl-spiral">\n\t\t${parts.join("\n\t\t")}\n\t</g>`
 }
 
 // ---- #cl-openings -----------------------------------------------------------
@@ -325,10 +281,6 @@ export function towerSvg(t = TOWER) {
 			<stop offset="0" stop-color="var(--cl-shade)" stop-opacity="0" />
 			<stop offset="1" stop-color="var(--cl-shade)" stop-opacity="0.55" />
 		</linearGradient>
-		<linearGradient id="cl-ledge" x1="0" y1="0" x2="1" y2="0">
-			<stop offset="0" stop-color="var(--cl-stone-lit)" />
-			<stop offset="1" stop-color="var(--cl-stone-dark)" />
-		</linearGradient>
 		<linearGradient id="cl-roofpaint" x1="0" y1="0" x2="1" y2="0.3">
 			<stop offset="0" stop-color="var(--cl-roof-lit)" />
 			<stop offset="0.5" stop-color="var(--cl-roof)" />
@@ -336,7 +288,6 @@ export function towerSvg(t = TOWER) {
 		</linearGradient>
 	</defs>
 	${shaft(t)}
-	${spiral(t)}
 	${openings(t)}
 	${door(t)}
 	${moss(t)}
