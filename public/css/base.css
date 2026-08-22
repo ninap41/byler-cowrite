@@ -1061,6 +1061,15 @@ a.solo-title:hover {
 .nav-drawer a:hover {
 	border-color: var(--accent-2);
 }
+/* No focus ring on menu links — the accent border is the focus cue, like hover. */
+.nav-drawer a:focus,
+.nav-drawer button:focus {
+	outline: none;
+}
+.nav-drawer a:focus-visible,
+.nav-drawer button:focus-visible {
+	border-color: var(--accent-2);
+}
 /* logout pinned to the drawer's bottom-right corner */
 .nav-drawer .nav-logout {
 	margin-top: auto;

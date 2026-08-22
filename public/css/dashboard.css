@@ -845,6 +845,9 @@ a.rg-row {
 	cursor: pointer;
 	transition: background 0.15s ease, color 0.15s ease;
 }
+.dnav:focus {
+	outline: none; /* no ring — the chip background below is the focus cue */
+}
 .dnav:hover,
 .dnav:focus-visible {
 	background: var(--chip);
