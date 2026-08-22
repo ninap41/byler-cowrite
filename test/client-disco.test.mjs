@@ -7,16 +7,18 @@ import assert from "node:assert/strict";
 import { installDom } from "./dom.mjs";
 
 installDom();
-const { BALL_W, ballSvg, layerHtml, spotColors, mountDiscoBall } =
+const { BALL_W, ballHtml, layerHtml, spotColors, mountDiscoBall } =
   await import("../public/js/components/disco-ball.js");
 
-test("ballSvg: ids suffixed per ball so two balls can share a page", () => {
-  const a = ballSvg("me");
-  assert.match(a, /id="dbshineme"/);
-  assert.match(a, /class="db-facets"/, "the facet grid is what spins");
-  const b = ballSvg("u2");
-  assert.match(b, /id="dbshineu2"/);
-  assert.ok(!b.includes("dbshineme"), "no id collisions between balls");
+test("ballHtml: a CSS-3D tile sphere, deterministic per key, distinct between keys", () => {
+  const a = ballHtml("me");
+  assert.match(a, /class="db-facets"/, "the tile sphere is what spins");
+  for (const part of ["db-ball3d", "db-halo", "db-core", "db-stage", "db-shade", "db-spec"])
+    assert.match(a, new RegExp(`class="${part}"`), part + " is part of the ball");
+  assert.match(a, /rotateY\([\d.]+deg\) rotateX\(-?[\d.]+deg\) translateZ\(34px\)/, "tiles are rotated onto the sphere");
+  assert.ok((a.match(/db-facet/g) || []).length > 50, "a real tile sphere, not a sticker");
+  assert.equal(a, ballHtml("me"), "the same ball rebuilds identically");
+  assert.notEqual(a, ballHtml("u2"), "two balls shimmer differently");
 });
 
 test("layerHtml: lights box, my ball, others' box, HUD with spin/way out", () => {
@@ -105,12 +107,33 @@ test("a relayed spin spawns one bounded show per owner (repeat replaces, cap tri
   socket.fire("gimmick-spin", { userId: "u2", name: "Mike", color: "#e63946", duration: 8000 });
   assert.equal(m.spotCount, 8, "one show is 8 spots");
   assert.ok(document.querySelectorAll("#dbLights .db-spot").length === 8);
+  assert.equal(document.querySelectorAll("#dbLights .db-beams").length, 1, "one beam fan per show");
+  assert.ok(document.querySelectorAll("#dbLights .db-beam").length >= 8, "a fan of beams, the reference's way");
   socket.fire("gimmick-spin", { userId: "u2", name: "Mike", color: "#e63946", duration: 8000 });
   assert.equal(m.spotCount, 8, "a repeat spin replaces its owner's show");
   socket.fire("gimmick-spin", { userId: "u3", name: "Dustin", color: "#3ddc84", duration: 8000 });
   assert.equal(m.spotCount, 16, "two shows side by side");
   socket.fire("gimmick-spin", { userId: "u4", name: "Will", color: "#6c8cff", duration: 8000 });
   assert.equal(m.spotCount, 16, "the cap trims the oldest show");
+});
+
+test("the lights hang from the ball: putting a ball away — mine or a tablemate's — ends its owner's show", () => {
+  document.body.innerHTML = "";
+  const socket = fakeSocket();
+  const m = mountDiscoBall({ socket, getMyUserId: () => "u1", getMyColor: () => "#6c8cff", document });
+  // mine: spin, then put the ball away
+  m.start();
+  socket.fire("gimmick-spin", { userId: "u1", color: "#6c8cff", duration: 8000 });
+  assert.equal(m.spotCount, 8);
+  m.exit();
+  assert.equal(m.spotCount, 0, "my lights leave with my ball");
+  // theirs: their relayed on:false takes their show too
+  socket.fire("gimmick-ball", { userId: "u2", name: "Mike", color: "#e63946", x: 0.5, y: 0.5, on: true });
+  socket.fire("gimmick-spin", { userId: "u2", name: "Mike", color: "#e63946", duration: 8000 });
+  assert.equal(m.spotCount, 8);
+  socket.fire("gimmick-ball", { userId: "u2", on: false });
+  assert.equal(m.spotCount, 0, "their lights leave with their ball");
+  assert.ok(document.getElementById("dbLayer").classList.contains("hidden"), "nothing left, layer gone");
 });
 
 test("gimmicksOff: a friendly switch sweeps every ball and light away and reports whether anything was out", () => {

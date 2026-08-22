@@ -8124,17 +8124,43 @@ button.ms-cup:active {
 	pointer-events: none;
 	display: block;
 }
+/* The show's lights, straight from the reference: small blurred dots orbiting
+   the owner's ball (size and brightness come per-frame from JS), and a fan of
+   blurred beams turning under it. */
 .db-spot {
 	position: absolute;
 	left: 0;
 	top: 0;
-	width: 300px;
-	height: 300px;
+	width: 26px;
+	height: 26px;
 	border-radius: 50%;
 	opacity: 0;
+	filter: blur(3px);
 	pointer-events: none;
 	will-change: transform, opacity;
 	mix-blend-mode: screen;
+}
+.db-beams {
+	position: absolute;
+	left: 0;
+	top: 0;
+	width: 0;
+	height: 0;
+	opacity: 0;
+	mix-blend-mode: screen;
+	filter: blur(7px);
+	pointer-events: none;
+	will-change: transform, opacity;
+}
+.db-beam {
+	position: absolute;
+	left: 0;
+	top: 0;
+	display: block;
+	margin-left: -30px;
+	transform-origin: 50% 0;
+	background: linear-gradient(rgba(214, 232, 255, 0.3), rgba(190, 215, 255, 0.1) 40%, transparent 78%);
+	clip-path: polygon(46% 0%, 54% 0%, 100% 100%, 0% 100%);
 }
 .db-ball {
 	position: absolute;
@@ -8160,19 +8186,114 @@ button.db-ball:active {
 .db-ball.grabbing {
 	cursor: grabbing;
 }
-.db-ball svg {
+/* The ball itself is a CSS-3D sphere (see ballHtml in disco-ball.js):
+   a perspective stage holds the dark core and the tile sphere, which turns
+   forever; the shade/spec overlays are lighting and stay put while it turns.
+   A spin doesn't start the rotation — it hurries it. */
+.db-ball3d {
+	position: absolute;
+	inset: 0;
 	display: block;
-	width: 100%;
-	height: 100%;
-	overflow: visible;
+	pointer-events: none;
 }
-.db-ball svg.spinning .db-facets {
-	animation: db-rotate 2.4s linear infinite;
-	transform-origin: 50% 50%;
+.db-halo {
+	position: absolute;
+	inset: -26px;
+	border-radius: 50%;
+	background: radial-gradient(circle, rgba(206, 228, 255, 0.3) 0%, rgba(150, 180, 255, 0.1) 34%, transparent 66%);
+	mix-blend-mode: screen;
+	animation: db-halo 2.4s ease-in-out infinite alternate;
 }
-@keyframes db-rotate {
+@keyframes db-halo {
 	to {
-		transform: rotate(360deg);
+		opacity: 0.55;
+	}
+}
+.db-core {
+	position: absolute;
+	inset: 3px;
+	border-radius: 50%;
+	background: radial-gradient(circle at 34% 28%, #263049 0%, #12172a 60%, #070a14 100%);
+}
+.db-stage {
+	position: absolute;
+	inset: 0;
+	display: block;
+	perspective: 300px;
+}
+.db-facets {
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	width: 0;
+	height: 0;
+	display: block;
+	transform-style: preserve-3d;
+	will-change: transform;
+	animation: db-turn 14s linear infinite;
+}
+.db-ball3d.spinning .db-facets {
+	animation-duration: 2.4s;
+}
+@keyframes db-turn {
+	from {
+		transform: rotateX(-8deg) rotateY(0deg);
+	}
+	to {
+		transform: rotateX(-8deg) rotateY(360deg);
+	}
+}
+.db-facet {
+	position: absolute;
+	left: 0;
+	top: 0;
+	display: block;
+	border-radius: 1px;
+	backface-visibility: hidden;
+	background: linear-gradient(150deg, #e8f3ff 0%, #8ea6c8 46%, #3d4c6b 100%);
+	box-shadow: inset 0 0 0 0.5px rgba(6, 10, 22, 0.55);
+	overflow: hidden;
+}
+.db-facet::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background: #fff;
+	opacity: 0;
+	animation: db-glint var(--dur, 5s) linear var(--delay, 0s) infinite;
+}
+@keyframes db-glint {
+	0%,
+	88%,
+	100% {
+		opacity: 0;
+	}
+	93% {
+		opacity: 0.95;
+	}
+}
+/* lighting overlays that stay put while the ball turns */
+.db-shade {
+	position: absolute;
+	inset: 1px;
+	border-radius: 50%;
+	background: radial-gradient(circle at 33% 27%, rgba(0, 0, 0, 0) 26%, rgba(4, 5, 14, 0.52) 68%, rgba(3, 4, 10, 0.92) 100%);
+	mix-blend-mode: multiply;
+}
+.db-spec {
+	position: absolute;
+	inset: 1px;
+	border-radius: 50%;
+	background:
+		radial-gradient(circle at 32% 26%, rgba(255, 255, 255, 0.55) 0%, rgba(214, 234, 255, 0.16) 20%, transparent 46%),
+		radial-gradient(circle at 74% 78%, rgba(126, 230, 255, 0.16) 0%, transparent 34%);
+	mix-blend-mode: screen;
+}
+@media (prefers-reduced-motion: reduce) {
+	.db-facets,
+	.db-facet::after,
+	.db-halo {
+		animation: none;
 	}
 }
 .db-chain {

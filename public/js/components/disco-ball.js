@@ -1,7 +1,8 @@
 // The Rink-O-Mania Disco Ball gimmick (see lib/gimmicks.js): a mirrored ball
 // you hang anywhere over the live game — it dangles by a chain to the top
-// edge — and SPIN: for the length of one show, colored light spots sweep the
-// whole page, tinted in the seated players' palette colours. No steal, pure
+// edge — and SPIN: for the length of one show, colored light spots orbit the
+// ball and a beam fan turns under it (the repo-root disco-ball.html look),
+// tinted in the seated players' palette colours. No steal, pure
 // distraction, the milkshake's category.
 //
 // Shared exactly like the cups: the owner streams their ball's position
@@ -9,7 +10,7 @@
 // `gimmick-spin`, which the server calls in the chat (cooldown = the show's
 // length) and relays with a `duration` — every viewer then runs the light
 // show locally from that one event; no light spot ever crosses the wire.
-// Pure string builders (ballSvg, layerHtml, spotColors) are exported for
+// Pure string builders (ballHtml, layerHtml, spotColors) are exported for
 // tests; mountDiscoBall() is the DOM + socket half.
 import { esc, safeColor } from "../util.js"
 
@@ -17,29 +18,53 @@ export const BALL_W = 76 // on-screen ball width (viewBox is 100x100)
 const MOVE_MS = 80 // how often my ball goes out (cups use the same)
 const SPOTS_PER_SPIN = 8 // one show's light spots
 const MAX_SPOTS = 16 // hard cap across overlapping shows — oldest show trims
-const SPOT_R = 150 // a spot's radius, px
+const SPOT_R = 13 // a spot dot's radius, px (the reference's 26px dot; size comes from scale())
 
-// The mirror ball. Every SVG id is suffixed `key` because ids are
-// document-global and several balls share the page. Not tinted — a disco
-// ball is silver for everyone; whose it is lives in the name tag.
-export function ballSvg(key) {
-	const rows = []
-	// facet grid: latitude bands of small rects, denser toward the equator
-	for (let ry = 8; ry < 100; ry += 12) {
-		for (let rx = (ry / 12) % 2 ? 2 : 8; rx < 100; rx += 12) rows.push(`<rect x="${rx}" y="${ry}" width="9" height="9" rx="1"/>`)
+// The mirror ball: a real CSS-3D sphere of mirror tiles (latitude bands of
+// small quads, denser toward the equator, each rotated into place and pushed
+// out by the sphere radius), turning forever inside a perspective stage, with
+// a dark core behind the tiles, a shade + specular overlay that stay put
+// while it turns, a screen-blend halo, and per-tile glints. Adapted from the
+// repo-root `disco-ball.html` reference, shrunk to a draggable 76px ball.
+// Not tinted — a disco ball is silver for everyone; whose it is lives in the
+// name tag. Pure string builder: every per-tile "random" (glint timing,
+// brightness) is derived from `key` + tile index, so the same ball rebuilds
+// identically and two balls on one page shimmer differently.
+const BALL_R = 34 // sphere radius inside the 76px button
+const BALL_ROWS = 12 // latitude bands
+const frac = (n) => {
+	const x = Math.sin(n) * 43758.5453
+	return x - Math.floor(x)
+}
+export function ballHtml(key) {
+	const seed = [...String(key)].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 9973, 7)
+	const tileH = (Math.PI * BALL_R) / BALL_ROWS
+	const tiles = []
+	for (let i = 0; i < BALL_ROWS; i++) {
+		const lat = -90 + (180 * (i + 0.5)) / BALL_ROWS
+		const ringR = Math.cos((lat * Math.PI) / 180) * BALL_R
+		const count = Math.max(4, Math.round((2 * Math.PI * ringR) / tileH))
+		const tileW = (2 * Math.PI * ringR) / count
+		for (let j = 0; j < count; j++) {
+			const lon = (360 * j) / count + (i % 2 ? 180 / count : 0)
+			const k = seed + i * 977 + j * 137
+			const w = (tileW + 0.6).toFixed(2)
+			const h = (tileH + 0.6).toFixed(2)
+			tiles.push(
+				`<i class="db-facet" style="width:${w}px;height:${h}px;margin:${(-(tileH + 0.6) / 2).toFixed(2)}px 0 0 ${(-(tileW + 0.6) / 2).toFixed(2)}px;` +
+					`transform:rotateY(${lon.toFixed(1)}deg) rotateX(${lat.toFixed(1)}deg) translateZ(${BALL_R}px);` +
+					`--dur:${(3 + frac(k) * 7).toFixed(2)}s;--delay:${(-frac(k + 1) * 10).toFixed(2)}s;` +
+					`filter:brightness(${(0.82 + frac(k + 2) * 0.36).toFixed(2)})"></i>`
+			)
+		}
 	}
-	return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-	<defs>
-		<radialGradient id="dbshine${key}" cx="0.35" cy="0.3" r="0.9">
-			<stop offset="0" stop-color="#f4f7ff"/><stop offset="0.55" stop-color="#aeb6c8"/><stop offset="1" stop-color="#5a6274"/>
-		</radialGradient>
-		<clipPath id="dbclip${key}"><circle cx="50" cy="50" r="46"/></clipPath>
-	</defs>
-	<circle cx="50" cy="50" r="46" fill="url(#dbshine${key})"/>
-	<g class="db-facets" clip-path="url(#dbclip${key})" fill="#e8ecf6" opacity=".5" stroke="#3c4254" stroke-width=".6">${rows.join("")}</g>
-	<circle cx="50" cy="50" r="46" fill="none" stroke="#2c3140" stroke-width="2"/>
-	<ellipse cx="36" cy="30" rx="14" ry="9" fill="#fff" opacity=".55"/>
-</svg>`
+	return `<span class="db-ball3d">
+	<span class="db-halo"></span>
+	<span class="db-core"></span>
+	<span class="db-stage"><span class="db-facets">${tiles.join("")}</span></span>
+	<span class="db-shade"></span>
+	<span class="db-spec"></span>
+</span>`
 }
 
 export const layerHtml = () => `<div class="db-layer hidden" id="dbLayer" aria-label="Disco ball">
@@ -88,7 +113,7 @@ export function mountDiscoBall(opts) {
 		if (chain) chain.style.height = Math.max(0, Math.round(py - BALL_W / 2)) + "px"
 	}
 	const ballInner = (key, name, color) =>
-		`<span class="db-chain"></span>` + ballSvg(key) +
+		`<span class="db-chain"></span>` + ballHtml(key) +
 		(name ? `<span class="db-tag" style="color:${safeColor(color)}">${esc(name)}</span>` : "")
 
 	// Fade an element out with gsap when the page loads it; instant otherwise.
@@ -98,39 +123,70 @@ export function mountDiscoBall(opts) {
 		g.to(el, { opacity: 0, duration: 0.5, ease: "power2.in", onComplete: () => { g.set(el, { clearProps: "opacity" }); done() } })
 	}
 
-	// ---- the light show: spot sets keyed by owner, one shared rAF loop ----
-	// spot: { el, color, ax, bx, fx, fy, phx, phy, born, dur, dead }
-	const shows = new Map() // ownerId -> spot[]
+	// ---- the light show, the reference's way (see repo-root disco-ball.html):
+	// each show's spots ORBIT its owner's ball — small blurred dots on tilted
+	// elliptical sweeps, swelling and brightening on the near side, flickering
+	// — under a fan of blurred beams turning in step. The orbit centre is read
+	// every frame, so the lights follow a ball being dragged mid-show. One
+	// shared rAF loop; nothing here crosses the wire.
+	// show: { spots: [{el, radius, yLift, tilt, size, phase, flickF, flickP}], beams, born, dur }
+	const shows = new Map() // ownerId -> show
 	let raf = 0, looping = false
-	const totalSpots = () => [...shows.values()].reduce((n, set) => n + set.length, 0)
+	const ORBIT_S = 7 // seconds per sweep around the ball (the reference's SPIN, hurried)
+	const BEAMS = 12
+	const totalSpots = () => [...shows.values()].reduce((n, s) => n + s.spots.length, 0)
+	// where a show's lights hang: its owner's ball, mine or theirs
+	function showCenter(ownerId) {
+		if (ownerId === myUserId() && open) return [x, y]
+		const r = remote.get(ownerId)
+		if (r) return [r.x * vw(), r.y * vh()]
+		return [vw() / 2, vh() * 0.38] // owner's ball already gone — the reference's spot
+	}
 	function startShow(ownerId, ownerColor, duration) {
 		endShow(ownerId) // a repeat spin replaces its owner's set
 		while (totalSpots() + SPOTS_PER_SPIN > MAX_SPOTS && shows.size) endShow(shows.keys().next().value)
 		const colors = spotColors(ownerColor, opts.getTableColors?.() ?? [])
 		// deterministic-ish seeds from the owner id so every viewer's sweep is similar
 		const seed = [...String(ownerId)].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 9973, 7)
-		const set = colors.map((color, i) => {
+		const fit = Math.min(1.15, Math.max(0.42, Math.min(vw() / 760, vh() / 620))) // the reference's viewport fit
+		const spots = colors.map((color, i) => {
 			const el = doc.createElement("div")
 			el.className = "db-spot"
-			el.style.background = `radial-gradient(circle, ${color} 0%, transparent 68%)`
+			el.style.background = `radial-gradient(circle, ${color} 0%, rgba(255,255,255,.28) 40%, transparent 70%)`
 			lightsBox.appendChild(el)
 			const k = seed + i * 137
 			return {
-				el, color,
-				fx: 0.10 + ((k * 7) % 100) / 400, fy: 0.13 + ((k * 13) % 100) / 400, // sweep speeds, Hz-ish
-				phx: (k % 63) / 10, phy: (k % 47) / 10, // phases
-				born: nowMs(), dur: Math.max(1000, Number(duration) || 8000), dead: false,
+				el,
+				radius: (240 + frac(k) * 640) * fit,
+				yLift: (-260 + frac(k + 1) * 620) * fit,
+				tilt: 0.44 * (0.3 + frac(k + 2) * 0.3), // the reference's two stacked scaleY()s
+				size: 0.5 + frac(k + 3) * 1.9,
+				phase: frac(k + 4) * 6.283,
+				flickF: 0.4 + frac(k + 5) * 1.2, flickP: frac(k + 6) * 6.283, // shimmer, Hz + phase
 			}
 		})
-		shows.set(ownerId, set)
+		// the beam fan under the ball, turning with the orbit
+		const beams = doc.createElement("div")
+		beams.className = "db-beams"
+		for (let b = 0; b < BEAMS; b++) {
+			const bm = doc.createElement("i")
+			bm.className = "db-beam"
+			bm.style.transform = `rotate(${((360 / BEAMS) * b + frac(seed + b) * 8 - 4).toFixed(1)}deg)`
+			bm.style.opacity = (0.35 + frac(seed + b + 50) * 0.65).toFixed(2)
+			bm.style.width = Math.round(40 + frac(seed + b + 90) * 70) + "px"
+			bm.style.height = Math.round(540 * fit) + "px"
+			beams.appendChild(bm)
+		}
+		lightsBox.appendChild(beams)
+		shows.set(ownerId, { spots, beams, born: nowMs(), dur: Math.max(1000, Number(duration) || 8000) })
 		syncLayer()
 		loop()
 	}
 	function endShow(ownerId, { fade = false } = {}) {
-		const set = shows.get(ownerId)
-		if (!set) return
+		const show = shows.get(ownerId)
+		if (!show) return
 		shows.delete(ownerId)
-		for (const sp of set) fade ? fadeOut(sp.el, () => sp.el.remove()) : sp.el.remove()
+		for (const el of [...show.spots.map((sp) => sp.el), show.beams]) fade ? fadeOut(el, () => el.remove()) : el.remove()
 		syncLayer()
 	}
 	const nowMs = () => (win?.performance || performance).now()
@@ -144,20 +200,26 @@ export function mountDiscoBall(opts) {
 			looping = false
 			return
 		}
-		for (const [ownerId, set] of [...shows.entries()]) {
-			const t = (now - set[0].born) / 1000
-			const dur = set[0].dur
-			const age = now - set[0].born
-			if (age > dur + 600) { endShow(ownerId); continue }
+		for (const [ownerId, show] of [...shows.entries()]) {
+			const age = now - show.born
+			if (age > show.dur + 600) { endShow(ownerId); continue }
+			const t = age / 1000
 			// fade in 300ms, hold, fade out over the last 600ms past dur
-			const alpha = age < 300 ? age / 300 : age > dur ? Math.max(0, 1 - (age - dur) / 600) : 1
-			set.forEach((sp, i) => {
-				// slow Lissajous sweep across the whole viewport
-				const x = (0.5 + 0.48 * Math.sin(6.283 * sp.fx * t + sp.phx)) * vw()
-				const y = (0.5 + 0.46 * Math.sin(6.283 * sp.fy * t + sp.phy)) * vh()
-				sp.el.style.transform = `translate(${Math.round(x - SPOT_R)}px, ${Math.round(y - SPOT_R)}px)`
-				sp.el.style.opacity = (alpha * 0.5).toFixed(2)
-			})
+			const alpha = age < 300 ? age / 300 : age > show.dur ? Math.max(0, 1 - (age - show.dur) / 600) : 1
+			const [cx, cy] = showCenter(ownerId)
+			for (const sp of show.spots) {
+				const ang = 6.283 * (t / ORBIT_S) + sp.phase
+				const px = cx + sp.radius * Math.cos(ang)
+				const py = cy + (sp.yLift + sp.radius * Math.sin(ang)) * sp.tilt
+				// near side reads bigger and brighter than far side (the reference's yoyo)
+				const near = 0.5 + 0.5 * Math.cos(ang)
+				const sc = sp.size * (1 + 0.9 * near)
+				const flick = 0.32 + 0.23 * Math.sin(6.283 * sp.flickF * t + sp.flickP)
+				sp.el.style.transform = `translate(${Math.round(px - SPOT_R)}px, ${Math.round(py - SPOT_R)}px) scale(${sc.toFixed(2)})`
+				sp.el.style.opacity = (alpha * flick * (0.6 + 0.4 * near)).toFixed(2)
+			}
+			show.beams.style.transform = `translate(${Math.round(cx)}px, ${Math.round(cy)}px) rotate(${((360 * t) / ORBIT_S).toFixed(1)}deg)`
+			show.beams.style.opacity = (alpha * 0.85).toFixed(2)
 		}
 		raf = win.requestAnimationFrame(frame)
 	}
@@ -258,7 +320,7 @@ export function mountDiscoBall(opts) {
 		x = vw() * 0.72
 		y = vh() * 0.28
 		setPos(ballEl, x, y)
-		ballEl.querySelector("svg")?.classList.remove("spinning")
+		ballEl.querySelector(".db-ball3d")?.classList.remove("spinning")
 		syncLayer()
 		report(true)
 	}
@@ -267,6 +329,7 @@ export function mountDiscoBall(opts) {
 		open = false
 		clearTimeout(reportTimer)
 		reportTimer = null
+		endShow(myUserId(), { fade: true }) // the lights hang from the ball — they leave with it
 		const done = () => {
 			ballEl.classList.add("hidden")
 			hud.classList.add("hidden")
@@ -309,6 +372,7 @@ export function mountDiscoBall(opts) {
 		const r = remote.get(userId)
 		if (!r) return
 		remote.delete(userId) // out of the map now; the fade only delays the DOM
+		endShow(userId, { fade: true }) // their lights leave with their ball
 		const done = () => {
 			r.el.remove()
 			syncLayer()
@@ -328,10 +392,10 @@ export function mountDiscoBall(opts) {
 	socket.on("gimmick-spin", (d) => {
 		if (!d?.userId) return
 		const el = d.userId === myUserId() ? ballEl : remote.get(d.userId)?.el
-		el?.querySelector("svg")?.classList.add("spinning")
+		el?.querySelector(".db-ball3d")?.classList.add("spinning")
 		const dur = Math.max(1000, Number(d.duration) || 8000)
 		startShow(d.userId, d.color, dur)
-		setTimeout(() => el?.querySelector("svg")?.classList.remove("spinning"), dur)
+		setTimeout(() => el?.querySelector(".db-ball3d")?.classList.remove("spinning"), dur)
 	})
 
 	win?.addEventListener?.("resize", () => {

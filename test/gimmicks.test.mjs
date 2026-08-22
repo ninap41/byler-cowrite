@@ -550,3 +550,24 @@ test("gimmick-cup / gimmick-pour: the cup is relayed (clamped), the pour is call
     await local.stop();
   }
 });
+
+// Adding a gimmick to the registry is not enough: the 🎲 menu lists it from
+// the server catalogue automatically, but game.html must LINK it by hand —
+// a launcher in mountGimmickDice's `launchers` map (dice excepted: the d20 is
+// gimmick-dice's own) and a gimmicksOff() call on the friendly switch. A
+// registry entry missing either would sit in the menu and do nothing when
+// picked, or stay on screen after the table went friendly — so this pins
+// every non-die gimmick id into both places.
+test("every registry gimmick is linked in game.html: a launcher in the 🎲 menu and a gimmicksOff on the friendly switch", () => {
+  const page = readFileSync(new URL("../public/game.html", import.meta.url), "utf-8");
+  const launchers = page.match(/launchers:\s*\{([^}]*)\}/)?.[1] ?? "";
+  const offLine = page.match(/\[([^\]]*gimmicksOff\(\)[^\]]*)\]\.some\(Boolean\)/)?.[1] ?? "";
+  for (const id of GIMMICK_IDS) {
+    if (id === "d20") continue; // the die is gimmick-dice's own game
+    assert.match(launchers, new RegExp(`\\b${id}:`), `game.html launches "${id}" from the 🎲 menu`);
+  }
+  // one gimmicksOff() per mount (the dice mount + every launcher mount)
+  const mounts = GIMMICK_IDS.filter((id) => id !== "d20").length + 1;
+  assert.equal((offLine.match(/gimmicksOff\(\)/g) || []).length, mounts,
+    "the friendly switch sweeps every mounted gimmick off");
+});
