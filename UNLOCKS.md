@@ -37,7 +37,7 @@ A hand-editable reference of which themes unlock at which word-count ranks, and 
 | `sorcerer` | 20,000 | Hellfire Club (`hellfire`) | 🎲 Hellfire d20 (`d20`) |
 | `soldiers` | 25,000 | Hawkins Lab (`hawkinslab`), Russian Bunker (`bunker`) | — |
 | `innate` | 30,000 | Castle Byers (`castlebyers`) | — |
-| `clouds` | 35,000 | Vecna's Clock (`vecna`) | — Vecna's Curse (`vecnascurse`) |
+| `clouds` | 35,000 | Vecna's Clock (`vecna`) | 🕰️ Vecna's Curse (`curse`) |
 | `artist` | 50,000 | The Void (`void`) | 🎨 Will's Art Room (`artroom`) |
 | `notmyfault` | 75,000 | Cerebro (`cerebro`), Family Video (`video`) | — |
 | `bestfriend` | 100,000 | Cleradin (`cleradin`) | — |
@@ -66,9 +66,18 @@ their caret. Paint STAYS until its painter wipes it or leaves (putting the
 brush away keeps it); the game going friendly clears the room. No steal, no
 chime — pure distraction, the milkshake's category.
 
-## Supersoaker (gimmick)
+## SuperSoaker (gimmick)
 
-A gun that fires water.
+A water gun you drag anywhere over the live game — drag to aim (it points
+away from the nearest wall), a clean click FIRES: a burst of droplets arcs
+out of the muzzle in the shooter's colour, splashes, and streaks run down
+before the water dries (~8s). Shared the disco ball's way: the gun's
+position streams as fractions (`gimmick-gun`), and one seeded
+`gimmick-squirt` relay starts the identical burst on every screen — no
+droplet ever crosses the wire. Chat call "soaked the game with the
+SuperSoaker 💦" on a cooldown. No steal, no chime, no persistence: water
+dries on its own. Registry id `supersoaker`, theme `ink`, so any signed-in
+account has it (the 0-word tier).
 
 ## Vecna's curse
 
@@ -76,11 +85,11 @@ Vecna's Curse — you lift the curse off the grandfather clock and place it on a
 
 The escape is the theme's own logic inverted: writing is the song that saves you. The curse lifts the moment the cursed writer types ~15 characters anywhere (editor or chat) — their words are their Running Up That Hill. If they just sit there, it fades on its own after ~20 seconds; nothing is ever actually blocked (the mist is pointer-events none, text stays readable underneath). Cosmetic dread, zero mechanical harm — which is right, because unlike the d20 this one targets a person.
 
-How it fits the architecture:
+How it fits the architecture (as built):
 
-- Events: gimmick-curse {targetUserId} — server checks seat + rank via tableHasGimmick(), per-user cooldown (~30s, one curse in flight per session), relays gimmick-curse {byName, byColor, targetUserId} to the room so everyone sees who's cursed (watchers get a subtle red pulse around the victim's roster entry and story bylines while it holds). The lift is client-local on the victim (they know when they've typed) with a gimmick-uncurse ack relayed so the room sees them escape.
-- Chat calls via announce(): "placed Vecna's curse on Will 🕰️" and — the payoff line — "Will wrote their way out. ⏱" The four chimes ride the gimmick sound pref (announce(…, {chime: true}) on the placement only, like the natural 20).
-- The clock is the anchor: while a curse is live, the theme's pendulum (#vc-pend) swings faster and the dimmed .clockface sky behind it glows red — the background itself becomes the gimmick's tell, which no other gimmick does yet.
-- Spectators see the mist on the victim the same as writers (relay to the whole room, like dice), but can't cast — cast requires a seat, per the standing rule.
+- Events: `gimmick-curse {targetUserId}` — server checks seat + rank via tableHasGimmick(), target must be another CONNECTED seat, per-user cooldown (the shared gimmick cooldown; one curse in flight per session), relays `gimmick-curse {byName, byColor, targetUserId, targetName, duration}` to the whole room so everyone sees who's cursed (watchers get a red pulse on the victim's chips while it holds). The victim's typed characters are counted client-local; at ~15 they emit `gimmick-uncurse` (only the cursed seat may), and the lift relays as `gimmick-curse {targetUserId, lift: true}` — the same relay the server's expiry timer, the victim leaving, and the friendly switch use, so no screen ever stays grey.
+- Chat calls via announce(): "placed Vecna's curse on Will 🕰️" (with `chime: true` — the placement rings like a natural 20, under the gimmick sound pref) and the payoff line "wrote their way out of Vecna's curse ⏱". The victim also hears the vecna clock strike for a few seconds (the existing `/sounds/vecnaclock.mp3` loop, borrowed briefly, never fighting the turn countdown).
+- The clock is the anchor: while a curse is live `<html>` wears `vcx-live`, and on the vecna theme the pendulum (#vc-pend) hurries and the dimmed .clockface sky glows red — the background itself becomes the gimmick's tell, which no other gimmick does yet.
+- Spectators see the mist indicators the same as writers (relay to the whole room, like dice), but can't cast — cast requires a seat, per the standing rule.
 
-Registry entry: id curse, theme: "vecna", so it inherits whatever tier Vecna's Clock sits at (clouds, 40k — a suitably late toy, since it's the first one aimed at a specific person).
+Registry entry: id `curse`, theme: "vecna", so it inherits whatever tier Vecna's Clock sits at (clouds, 35k — a suitably late toy, since it's the first one aimed at a specific person). `CURSE_MS` (20s) and `CURSE_LIFT_CHARS` (15) live in lib/gimmicks.js; `COWRITE_CURSE_MS` shrinks the hold for tests.

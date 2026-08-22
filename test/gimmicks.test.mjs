@@ -121,13 +121,13 @@ test("/api/gimmicks: catalogue + locks for everyone, unlocked per rank, all for 
   assert.equal(anon.data.locks.d20.tier, "sorcerer");
   const rookie = await signup(ctx, "dicerookie", "dice@x.com");
   const r = await ctx.api("/api/gimmicks", undefined, rookie.token);
-  assert.deepEqual(r.data.unlocked, []);
+  assert.deepEqual(r.data.unlocked, ["supersoaker"], "the 0-word tier's gimmick comes with the account");
   const me = await ctx.api("/api/me", undefined, rookie.token);
-  assert.deepEqual(me.data.user.gimmicks, []);
+  assert.deepEqual(me.data.user.gimmicks, ["supersoaker"]);
   const admin = await signup(ctx, "diceadmin", ADMIN_EMAIL);
   const a = await ctx.api("/api/gimmicks", undefined, admin.token);
   assert.equal(a.data.admin, true);
-  assert.deepEqual(a.data.unlocked.sort(), ["artroom", "d20", "disco", "galaga", "milkshake"]);
+  assert.deepEqual(a.data.unlocked.sort(), ["artroom", "curse", "d20", "disco", "galaga", "milkshake", "supersoaker"]);
 });
 
 // ---- the socket flow ----
@@ -618,6 +618,142 @@ test("gimmick-stroke: an unranked table's strokes are ignored", async () => {
   g.A.emit("gimmick-stroke", { stroke: { color: "#112233", pts: [[0.5, 0.5]] }, live: false });
   await ctx.wait(150);
   assert.equal(seen.length, 0, "the stroke IS the visible effect, so the rank gate holds on it too");
+});
+
+test("the SuperSoaker unlocks with the Inkwell theme at outloud — the 0-word tier, so every account has it", () => {
+  assert.equal(THEME_UNLOCKS.ink, "outloud");
+  assert.equal(tierForGimmick("supersoaker"), "outloud");
+  const r = rewardsForTier("outloud");
+  assert.ok(r.gimmicks.some((g) => g.id === "supersoaker" && g.name === "SuperSoaker"));
+  assert.equal(canUseGimmick({ badges: ["outloud"] }, "supersoaker"), true);
+  assert.equal(canUseGimmick({ badges: [] }, "supersoaker"), false, "the badge itself is still the key");
+});
+
+test("Vecna's Curse unlocks with the Vecna's Clock theme at clouds", () => {
+  assert.equal(THEME_UNLOCKS.vecna, "clouds");
+  assert.equal(tierForGimmick("curse"), "clouds");
+  const r = rewardsForTier("clouds");
+  assert.ok(r.themes.some((t) => t.id === "vecna"));
+  assert.ok(r.gimmicks.some((g) => g.id === "curse" && g.name === "Vecna's Curse"));
+  assert.equal(canUseGimmick({ badges: ["clouds"] }, "curse"), true);
+  assert.equal(canUseGimmick({ badges: ["innate"] }, "curse"), false);
+});
+
+test("gimmick-gun / gimmick-squirt: the gun is relayed (clamped), the shot is seeded + called in chat on a cooldown, and the gun leaves with its owner", async () => {
+  const local = await startServer({ COWRITE_ROLL_COOLDOWN_MS: "200" });
+  try {
+    const admin = await signup(local, "diceadmin", ADMIN_EMAIL);
+    const mike = await signup(local, "soakmike", "soakmike@x.com", "#e63946");
+    const A = await local.conn();
+    const B = await local.conn();
+    const seen = [];
+    const shots = [];
+    const chat = [];
+    A.on("gimmick-gun", (d) => seen.push(d));
+    A.on("gimmick-squirt", (d) => shots.push(d));
+    A.on("chat", (m) => chat.push(m));
+    const c = await local.emit(A, "create-session", { auth: admin.token });
+    await local.emit(B, "join-session", { code: c.code, auth: mike.token });
+    // friendly game: no gun, no shot
+    B.emit("gimmick-gun", { on: true, x: 0.5, y: 0.5, angle: 20 });
+    await local.wait(100);
+    assert.equal(seen.length, 0, "a friendly game takes no gun");
+    assert.match((await local.emit(B, "gimmick-squirt", {})).error, /friendly/);
+    await local.emit(A, "start-game", { turnSeconds: 60, rounds: 2, friendly: false });
+    await local.wait(150);
+    // the gun goes out, clamped
+    B.emit("gimmick-gun", { on: true, x: 0.3, y: 7, angle: 999 });
+    await local.wait(100);
+    assert.equal(seen.length, 1);
+    assert.equal(seen[0].userId, mike.user.id);
+    assert.equal(seen[0].name, "soakmike");
+    assert.equal(seen[0].x, 0.3);
+    assert.equal(seen[0].y, 1, "clamped");
+    assert.equal(seen[0].angle, 180, "angle clamped");
+    // the shot: announced once with the gun's aim + a seed, no chime, cooldown holds
+    const s1 = await local.emit(B, "gimmick-squirt", {});
+    assert.equal(s1.ok, true);
+    await local.wait(100);
+    const call = chat.find((m) => m.sys && /soakmike/.test(m.name) && /soaked the game with the SuperSoaker 💦/.test(m.text));
+    assert.ok(call, "the shot is called in chat");
+    assert.notEqual(call.chime, true, "no chime — pure soak");
+    assert.equal(shots.at(-1).userId, mike.user.id);
+    assert.equal(shots.at(-1).x, 0.3);
+    assert.ok(Number.isInteger(shots.at(-1).seed), "the relay carries a seed for every viewer's identical burst");
+    assert.match((await local.emit(B, "gimmick-squirt", {})).error, /Pump/, "cooldown");
+    // a spectator arriving now gets the guns already out, and can't shoot
+    const S = await local.conn();
+    const list = new Promise((r) => S.on("gimmick-guns", r));
+    await local.emit(S, "spectate-session", { code: c.code });
+    const guns = await list;
+    assert.equal(guns.length, 1);
+    assert.equal(guns[0].userId, mike.user.id);
+    assert.equal((await local.emit(S, "gimmick-squirt", {})).ok, false);
+    // the gun leaves with its owner
+    const gone = new Promise((r) => A.on("gimmick-gun", (d) => d.on === false && r(d)));
+    B.disconnect();
+    assert.equal((await gone).userId, mike.user.id);
+  } finally {
+    await local.stop();
+  }
+});
+
+test("gimmick-curse: gated + targeted, one in flight, the victim writes their way out (or it expires), and it's called in chat", async () => {
+  const local = await startServer({ COWRITE_ROLL_COOLDOWN_MS: "150", COWRITE_CURSE_MS: "600" });
+  try {
+    const admin = await signup(local, "diceadmin", ADMIN_EMAIL);
+    const mike = await signup(local, "cursemike", "cursemike@x.com", "#e63946");
+    const will = await signup(local, "cursewill", "cursewill@x.com", "#6c8cff");
+    const A = await local.conn();
+    const B = await local.conn();
+    const C = await local.conn();
+    const curses = [];
+    const chat = [];
+    C.on("gimmick-curse", (d) => curses.push(d));
+    A.on("chat", (m) => chat.push(m));
+    const c = await local.emit(A, "create-session", { auth: admin.token });
+    await local.emit(B, "join-session", { code: c.code, auth: mike.token });
+    await local.emit(C, "join-session", { code: c.code, auth: will.token });
+    // friendly: refused
+    assert.match((await local.emit(B, "gimmick-curse", { targetUserId: will.user.id })).error, /friendly/);
+    await local.emit(A, "start-game", { turnSeconds: 60, rounds: 2, friendly: false });
+    await local.wait(150);
+    // self and absent targets: refused
+    assert.match((await local.emit(B, "gimmick-curse", { targetUserId: mike.user.id })).error, /ELSE/);
+    assert.match((await local.emit(B, "gimmick-curse", { targetUserId: "nobody" })).error, /isn't at the table/);
+    // the placement: relayed with names + duration, announced WITH the chime
+    const p = await local.emit(B, "gimmick-curse", { targetUserId: will.user.id });
+    assert.equal(p.ok, true);
+    assert.ok(p.duration > 0);
+    await local.wait(100);
+    assert.equal(curses.at(-1).targetUserId, will.user.id);
+    assert.equal(curses.at(-1).targetName, "cursewill");
+    assert.equal(curses.at(-1).byName, "cursemike");
+    const call = chat.find((m) => m.sys && /placed Vecna's curse on cursewill 🕰️/.test(m.text));
+    assert.ok(call, "the curse is called in chat");
+    assert.equal(call.chime, true, "and rings like a natural 20");
+    // one in flight per session
+    await local.wait(160); // past the caster cooldown, the in-flight rule still refuses
+    assert.match((await local.emit(A, "gimmick-curse", { targetUserId: mike.user.id })).error, /already in flight/);
+    // only the victim may lift it — and the payoff line lands
+    assert.equal((await local.emit(B, "gimmick-uncurse", {})).ok, false, "the caster isn't the victim");
+    const lifted = new Promise((r) => A.on("gimmick-curse", (d) => d.lift === true && r(d)));
+    assert.equal((await local.emit(C, "gimmick-uncurse", {})).ok, true);
+    assert.equal((await lifted).targetUserId, will.user.id);
+    await local.wait(100);
+    assert.ok(chat.some((m) => m.sys && /cursewill/.test(m.name) && /wrote their way out of Vecna's curse ⏱/.test(m.text)), "the payoff line");
+    // a second curse left alone EXPIRES on its own (shrunk hold), lifting everywhere
+    await local.wait(160);
+    assert.equal((await local.emit(B, "gimmick-curse", { targetUserId: will.user.id })).ok, true);
+    const expired = new Promise((r) => A.on("gimmick-curse", (d) => d.lift === true && r(d)));
+    assert.equal((await expired).targetUserId, will.user.id, "the veil never stays");
+    // a spectator can watch but not cast
+    const S = await local.conn();
+    await local.emit(S, "spectate-session", { code: c.code });
+    assert.equal((await local.emit(S, "gimmick-curse", { targetUserId: will.user.id })).ok, false);
+  } finally {
+    await local.stop();
+  }
 });
 
 test("gimmick-ball / gimmick-spin: the ball is relayed (clamped), the spin is called in chat on a cooldown, and the ball leaves with its owner", async () => {

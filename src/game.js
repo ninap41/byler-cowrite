@@ -7,7 +7,7 @@ import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import { bumpStreak } from "../lib/streak.js";
 import { badgeName, badgeDesc, usageMatches, awardWordBadges, rewardsForTiers, describeRewards, unlockedThemes, unlockedGimmicks, canUseGimmick } from "../lib/achievements.js";
-import { cleanGimmickId, rollOutcome, describeRoll, galagaOutcome, describeGalaga, GALAGA_MAX_SCORE, ROLL_COOLDOWN_MS, SPIN_MS, DIE_SIDES, PAINT_MAX_STROKES, PAINT_MAX_PTS } from "../lib/gimmicks.js";
+import { cleanGimmickId, rollOutcome, describeRoll, galagaOutcome, describeGalaga, GALAGA_MAX_SCORE, ROLL_COOLDOWN_MS, SPIN_MS, DIE_SIDES, PAINT_MAX_STROKES, PAINT_MAX_PTS, CURSE_MS } from "../lib/gimmicks.js";
 import { PALETTE, cleanColor, cleanHex, sanitizeRich, stripTags, httpUrl, sanitizeDoc, CID_RE } from "./sanitize.js";
 import { store, saveStore, userByToken, makeMsg, isAdmin } from "./store.js";
 import { mirror, mirrorDelete } from "./persist.js";
@@ -215,6 +215,7 @@ export function createGame(io) {
     if (s.cups?.size) sock.emit("gimmick-cups", cupsList(s));
     if (s.balls?.size) sock.emit("gimmick-balls", ballsList(s));
     if (s.paint?.size) sock.emit("gimmick-paints", paintsList(s));
+    if (s.guns?.size) sock.emit("gimmick-guns", gunsList(s));
   }
   const SPEC_CHAT_LIMIT = 50;
   // spectator name colors: stable per name, never attacker-controlled (PALETTE only)
@@ -239,6 +240,8 @@ export function createGame(io) {
   // The disco ball's spin cooldown is the show's own length; the same test
   // override shrinks it so the suite never waits out a real 8s show.
   const SPIN_COOLDOWN_MS = Number(process.env.COWRITE_ROLL_COOLDOWN_MS || SPIN_MS);
+  // Vecna's curse duration; COWRITE_CURSE_MS overrides (the tests shrink it).
+  const CURSE_HOLD_MS = Number(process.env.COWRITE_CURSE_MS || CURSE_MS);
   // Tests only: COWRITE_DICE_FIXED="20,1,7" makes the die land those values
   // in order (then random again) so a natural 20 can be produced on demand.
   const fixedDice = (process.env.COWRITE_DICE_FIXED || "").split(",").map((n) => Number(n)).filter((n) => n >= 1 && n <= DIE_SIDES);
@@ -301,6 +304,27 @@ export function createGame(io) {
     if (!s.paint?.has(userId)) return;
     s.paint.delete(userId);
     io.to(s.code).emit("gimmick-stroke", { userId, on: false, wipe: true });
+  }
+  // The water guns out on the table (SuperSoaker gimmick), same contract as
+  // the dice: userId -> {name, color, x, y, angle}. A fired burst never
+  // touches the wire beyond one seeded `gimmick-squirt` event — every viewer
+  // simulates the same water locally. In memory only.
+  const gunsList = (s) => [...(s.guns?.entries() ?? [])].map(([userId, g]) => ({ userId, ...g }));
+  function dropGun(s, userId) {
+    if (!s.guns?.has(userId)) return;
+    s.guns.delete(userId);
+    io.to(s.code).emit("gimmick-gun", { userId, on: false });
+  }
+  // Vecna's curse in flight (at most ONE per session): targetUserId ->
+  // {by, until, timer}. Transient (~20s) — never snapshotted, no late-join
+  // list; it simply expires. Dropping it early (victim leaves, friendly
+  // switch) relays the lift so no screen stays grey.
+  function dropCurse(s, targetUserId) {
+    const c = s.curses?.get(targetUserId);
+    if (!c) return;
+    clearTimeout(c.timer);
+    s.curses.delete(targetUserId);
+    io.to(s.code).emit("gimmick-curse", { targetUserId, lift: true });
   }
 
   // Every writer is a signed-in account: name, color, and badge come from the
@@ -382,6 +406,8 @@ export function createGame(io) {
     dropCup(s, w.userId); //  ...and a milkshake
     dropBall(s, w.userId); //  ...and a disco ball
     dropPaint(s, w.userId); //  ...and a painting with no painter
+    dropGun(s, w.userId); //  ...and a water gun
+    dropCurse(s, w.userId); // a curse lifts when its victim leaves
     // The host leaving (closed tab, routed away) pauses a running game — the
     // clock freezes until they return or the stand-in host resumes.
     if (s.hostId === id && s.phase === "writing" && !s.paused) {
@@ -469,6 +495,7 @@ export function createGame(io) {
       id, name: w.name, color: w.color, badge: w.badge ?? null,
       avatar: w.avatar ?? "", avatarFit: w.avatarFit ?? "cover",
       isHost: id === s.hostId, connected: w.connected !== false,
+      userId: w.userId ?? null, // gimmick relays already speak userId (the curse targets by it)
     }));
   }
   const broadcastRoster = (s) =>
@@ -576,6 +603,8 @@ export function createGame(io) {
     for (const uid of [...(s.cups?.keys() ?? [])]) dropCup(s, uid);
     for (const uid of [...(s.balls?.keys() ?? [])]) dropBall(s, uid);
     for (const uid of [...(s.paint?.keys() ?? [])]) dropPaint(s, uid);
+    for (const uid of [...(s.guns?.keys() ?? [])]) dropGun(s, uid);
+    for (const uid of [...(s.curses?.keys() ?? [])]) dropCurse(s, uid);
     sessions.delete(s.code);
     return true;
   }
@@ -686,6 +715,8 @@ export function createGame(io) {
     dropCup(s, s.writers.get(id)?.userId);
     dropBall(s, s.writers.get(id)?.userId);
     dropPaint(s, s.writers.get(id)?.userId);
+    dropGun(s, s.writers.get(id)?.userId);
+    dropCurse(s, s.writers.get(id)?.userId);
     s.writers.delete(id);
     s.votes.delete(id);
 
@@ -1117,6 +1148,8 @@ export function createGame(io) {
         for (const uid of [...(s.cups?.keys() ?? [])]) dropCup(s, uid); // and Scoops Ahoy shuts
         for (const uid of [...(s.balls?.keys() ?? [])]) dropBall(s, uid); // and the rink goes dark
         for (const uid of [...(s.paint?.keys() ?? [])]) dropPaint(s, uid); // and the art room closes
+        for (const uid of [...(s.guns?.keys() ?? [])]) dropGun(s, uid); // and the water dries
+        for (const uid of [...(s.curses?.keys() ?? [])]) dropCurse(s, uid); // and every curse lifts
       }
       if (endless) s.maxTurns = null; // ♾ the story loses its finish line
       const wantsUntimed = turnSeconds === 0 || turnSeconds === "0";
@@ -1499,6 +1532,95 @@ export function createGame(io) {
       io.to(s.code).emit("gimmick-paint", { userId: w.userId, name: w.name, color: w.color });
       ack?.({ ok: true });
     });
+    // A water gun on the table (components/super-soaker.js): the owner
+    // reports where it sits and where it points, throttled client-side; the
+    // server clamps and relays. The water never touches the wire — a burst
+    // starts from `gimmick-squirt` and every viewer simulates it locally
+    // from the seed.
+    socket.on("gimmick-gun", ({ on, x, y, angle } = {}) => {
+      const s = mySession();
+      const w = s?.writers.get(socket.id);
+      if (!s || !w) return;
+      if (on === false) return dropGun(s, w.userId);
+      if (s.friendly !== false) return;
+      const fr = (v) => Math.max(0, Math.min(1, Number(v) || 0));
+      const gun = {
+        name: w.name,
+        color: w.color,
+        x: fr(x),
+        y: fr(y),
+        angle: Math.max(-180, Math.min(180, Number(angle) || 0)),
+      };
+      s.guns ??= new Map();
+      s.guns.set(w.userId, gun);
+      io.to(s.code).emit("gimmick-gun", { userId: w.userId, ...gun, on: true });
+    });
+    // Firing is worth calling in the chat — once per cooldown, so a mashed
+    // trigger can't flood it. No steal, no chime: the soak is pure
+    // distraction, the milkshake's category.
+    socket.on("gimmick-squirt", (_payload, ack) => {
+      const s = mySession();
+      const w = s?.writers.get(socket.id);
+      if (!s || !w) return ack?.({ ok: false, error: "You're not seated in a game." });
+      if (s.friendly !== false) return ack?.({ ok: false, error: "This is a friendly game — gimmicks are off." });
+      if (!tableHasGimmick(s, "supersoaker")) return ack?.({ ok: false, error: "Nobody at this table has unlocked that gimmick yet." });
+      const now = Date.now();
+      s.gimmickSquirts ??= new Map();
+      if (now - (s.gimmickSquirts.get(w.userId) ?? 0) < ROLL_MS) return ack?.({ ok: false, error: "Pump it up first…" });
+      s.gimmickSquirts.set(w.userId, now);
+      touch(s);
+      const g = s.guns?.get(w.userId) ?? { x: 0.5, y: 0.5, angle: 0 };
+      const seed = randomInt(1e6);
+      announce(s, w, "soaked the game with the SuperSoaker 💦");
+      io.to(s.code).emit("gimmick-squirt", { userId: w.userId, name: w.name, color: w.color, x: g.x, y: g.y, angle: g.angle, seed });
+      ack?.({ ok: true });
+    });
+    // Vecna's curse (components/vecna-curse.js): placed on a PERSON. The
+    // victim's screen greys under red mist while the clock chimes; typing
+    // ~15 characters lifts it (their words are their Running Up That Hill),
+    // else it expires on its own. One curse in flight per session, cosmetic
+    // only — nothing is ever blocked.
+    socket.on("gimmick-curse", ({ targetUserId } = {}, ack) => {
+      const s = mySession();
+      const w = s?.writers.get(socket.id);
+      if (!s || !w) return ack?.({ ok: false, error: "You're not seated in a game." });
+      if (s.friendly !== false) return ack?.({ ok: false, error: "This is a friendly game — gimmicks are off." });
+      if (!tableHasGimmick(s, "curse")) return ack?.({ ok: false, error: "Nobody at this table has unlocked that gimmick yet." });
+      const target = [...s.writers.values()].find((x) => x.userId === targetUserId);
+      if (!target || target.connected === false) return ack?.({ ok: false, error: "That writer isn't at the table." });
+      if (targetUserId === w.userId) return ack?.({ ok: false, error: "The curse wants someone ELSE." });
+      if (s.curses?.size) return ack?.({ ok: false, error: "A curse is already in flight…" });
+      const now = Date.now();
+      s.gimmickCurses ??= new Map();
+      if (now - (s.gimmickCurses.get(w.userId) ?? 0) < ROLL_MS) return ack?.({ ok: false, error: "The clock is still striking…" });
+      s.gimmickCurses.set(w.userId, now);
+      s.curses ??= new Map();
+      const timer = setTimeout(() => {
+        // it fades on its own; silent — the victim just wasn't saved this time
+        if (s.curses?.delete(targetUserId)) io.to(s.code).emit("gimmick-curse", { targetUserId, lift: true });
+      }, CURSE_HOLD_MS);
+      s.curses.set(targetUserId, { by: w.userId, until: now + CURSE_HOLD_MS, timer });
+      touch(s);
+      announce(s, w, `placed Vecna's curse on ${target.name} 🕰️`, { chime: true });
+      io.to(s.code).emit("gimmick-curse", {
+        byName: w.name, byColor: w.color, targetUserId, targetName: target.name, duration: CURSE_HOLD_MS,
+      });
+      ack?.({ ok: true, duration: CURSE_HOLD_MS });
+    });
+    // The escape: only the CURSED seat may sing itself out, and the payoff
+    // is called in chat for the whole table.
+    socket.on("gimmick-uncurse", (_payload, ack) => {
+      const s = mySession();
+      const w = s?.writers.get(socket.id);
+      if (!s || !w) return ack?.({ ok: false });
+      const c = s.curses?.get(w.userId);
+      if (!c) return ack?.({ ok: false, error: "No curse on you." });
+      clearTimeout(c.timer);
+      s.curses.delete(w.userId);
+      announce(s, w, "wrote their way out of Vecna's curse ⏱");
+      io.to(s.code).emit("gimmick-curse", { targetUserId: w.userId, lift: true });
+      ack?.({ ok: true });
+    });
     // A finished Galaga run (components/galaga-game.js): the run itself plays
     // on the player's own screen, only the final score comes here. Same gates
     // as a die roll, and beating GALAGA_TARGET steals the turn exactly like a
@@ -1557,6 +1679,7 @@ export function createGame(io) {
       if (s.cups?.size) socket.emit("gimmick-cups", cupsList(s));
       if (s.balls?.size) socket.emit("gimmick-balls", ballsList(s));
       if (s.paint?.size) socket.emit("gimmick-paints", paintsList(s));
+      if (s.guns?.size) socket.emit("gimmick-guns", gunsList(s));
       if (s.phase === "over") socket.emit("game-over", { prompt: s.prompt, story: s.story });
       else if (s.phase === "waiting") broadcastRoster(s);
       else broadcastGame(s);

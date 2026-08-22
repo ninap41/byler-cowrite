@@ -8827,6 +8827,236 @@ body.game-page .session-bar .sess-name {
 	background: var(--chip);
 	border-color: color-mix(in srgb, var(--accent) 55%, var(--panel-brd));
 }
+/* ---- The SuperSoaker (components/super-soaker.js): a water gun over the
+   live game. Same layer contract as the dice: fixed, z-60, no pointer —
+   only my gun and the HUD glass take it. */
+.sk-layer {
+	position: fixed;
+	inset: 0 0 var(--footbar-h) 0;
+	z-index: 60;
+	pointer-events: none;
+	display: block;
+}
+.sk-gunbtn {
+	position: absolute;
+	width: 64px;
+	height: 44px;
+	padding: 0;
+	border: 0;
+	background: none;
+	transform: translate(-50%, -50%);
+	pointer-events: auto;
+	cursor: grab;
+}
+.sk-gunbtn.remote {
+	pointer-events: none;
+}
+.sk-gun3d {
+	position: relative;
+	display: block;
+	width: 64px;
+	height: 44px;
+	transition: transform 0.15s ease-out;
+}
+.sk-gun3d span {
+	position: absolute;
+	border-radius: 4px;
+}
+.sk-tank {
+	left: 2px;
+	top: 2px;
+	width: 26px;
+	height: 16px;
+	border-radius: 8px;
+	background: color-mix(in srgb, var(--sk-c) 70%, #fff);
+}
+.sk-body {
+	left: 8px;
+	top: 14px;
+	width: 34px;
+	height: 14px;
+	background: var(--sk-c);
+}
+.sk-barrel {
+	left: 40px;
+	top: 17px;
+	width: 18px;
+	height: 8px;
+	background: color-mix(in srgb, var(--sk-c) 55%, #16223a);
+}
+.sk-muzzle {
+	left: 57px;
+	top: 18px;
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: #dff3ff;
+}
+.sk-grip {
+	left: 14px;
+	top: 26px;
+	width: 9px;
+	height: 16px;
+	transform: skewX(-12deg);
+	background: color-mix(in srgb, var(--sk-c) 55%, #16223a);
+}
+.sk-tag {
+	position: absolute;
+	left: 50%;
+	bottom: -16px;
+	transform: translateX(-50%);
+	font: 600 0.68rem/1 var(--font-body);
+	text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+	white-space: nowrap;
+}
+.sk-drop {
+	position: absolute;
+	left: 0;
+	top: 0;
+	width: 6px;
+	height: 9px;
+	border-radius: 50% 50% 60% 60%;
+	opacity: 0;
+	filter: blur(0.5px);
+	pointer-events: none;
+	will-change: transform, opacity;
+}
+.sk-hud {
+	position: absolute;
+	bottom: 12px;
+	left: 16px;
+	pointer-events: auto;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding: 10px 14px;
+	max-width: min(380px, calc(100vw - 32px));
+	border-radius: var(--r-md);
+	background: color-mix(in srgb, var(--panel) 42%, transparent);
+	border: 1px solid color-mix(in srgb, var(--panel-brd) 70%, transparent);
+	backdrop-filter: blur(6px) saturate(1.1);
+	-webkit-backdrop-filter: blur(6px) saturate(1.1);
+	box-shadow: var(--panel-glow);
+	font: 500 0.8rem/1.3 var(--font-body);
+	color: var(--muted);
+}
+.sk-title {
+	font: 700 1rem/1.2 var(--font-display);
+	color: var(--ink);
+}
+.sk-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+/* ---- Vecna's Curse (components/vecna-curse.js): the toy aimed at a
+   person. The veil greys the VICTIM's page under red mist — pointer-events
+   none, nothing blocked — while their chips pulse red on every screen. */
+.vcx-layer {
+	position: fixed;
+	inset: 0 0 var(--footbar-h) 0;
+	z-index: 60;
+	pointer-events: none;
+	display: block;
+}
+.vcx-veil {
+	position: fixed;
+	inset: 0;
+	pointer-events: none;
+	display: block;
+	backdrop-filter: grayscale(0.85) brightness(0.8);
+	-webkit-backdrop-filter: grayscale(0.85) brightness(0.8);
+	background: radial-gradient(120% 120% at 50% 50%, transparent 42%, rgba(140, 10, 16, 0.42) 82%, rgba(90, 4, 8, 0.62) 100%);
+	animation: vcx-close-in 1.6s ease-out;
+}
+@keyframes vcx-close-in {
+	from { opacity: 0; }
+	to { opacity: 1; }
+}
+.vcx-mote {
+	position: absolute;
+	bottom: -14px;
+	width: 7px;
+	height: 7px;
+	border-radius: 2px;
+	background: rgba(200, 170, 150, 0.35);
+	animation: vcx-rise 7s linear infinite;
+}
+.vcx-mote.m1 { left: 12%; animation-delay: 0s; }
+.vcx-mote.m2 { left: 30%; animation-delay: 1.4s; width: 10px; height: 10px; }
+.vcx-mote.m3 { left: 47%; animation-delay: 2.8s; }
+.vcx-mote.m4 { left: 62%; animation-delay: 0.9s; width: 5px; height: 5px; }
+.vcx-mote.m5 { left: 78%; animation-delay: 2.1s; }
+.vcx-mote.m6 { left: 90%; animation-delay: 3.5s; width: 9px; height: 9px; }
+@keyframes vcx-rise {
+	from { transform: translateY(0) rotate(0deg); opacity: 0; }
+	12% { opacity: 1; }
+	to { transform: translateY(-105vh) rotate(200deg); opacity: 0; }
+}
+.vcx-word {
+	position: absolute;
+	left: 50%;
+	bottom: 14%;
+	transform: translateX(-50%);
+	font: 700 1.1rem/1 var(--font-mono);
+	letter-spacing: 0.3em;
+	color: rgba(255, 120, 120, 0.8);
+	text-shadow: 0 0 18px rgba(255, 40, 40, 0.6);
+}
+.vcx-hud {
+	position: absolute;
+	bottom: 12px;
+	left: 16px;
+	pointer-events: auto;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding: 10px 14px;
+	max-width: min(380px, calc(100vw - 32px));
+	border-radius: var(--r-md);
+	background: color-mix(in srgb, var(--panel) 42%, transparent);
+	border: 1px solid color-mix(in srgb, var(--panel-brd) 70%, transparent);
+	backdrop-filter: blur(6px) saturate(1.1);
+	-webkit-backdrop-filter: blur(6px) saturate(1.1);
+	box-shadow: var(--panel-glow);
+	font: 500 0.8rem/1.3 var(--font-body);
+	color: var(--muted);
+}
+.vcx-title {
+	font: 700 1rem/1.2 var(--font-display);
+	color: var(--ink);
+}
+.vcx-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+.vcx-target {
+	font-weight: 700;
+}
+/* the victim, seen from outside: their chips pulse red on every screen
+   (doubled class names outrank .player-chip.now's border) */
+.player-chip.vcx-cursed,
+[data-user].vcx-cursed.vcx-cursed {
+	animation: vcx-pulse 1.2s ease-in-out infinite alternate;
+	border-color: rgba(220, 40, 40, 0.7);
+}
+@keyframes vcx-pulse {
+	from { box-shadow: 0 0 4px rgba(220, 40, 40, 0.3); }
+	to { box-shadow: 0 0 14px rgba(220, 40, 40, 0.75); }
+}
+/* the vecna theme's own clock is the tell: while a curse is live the
+   pendulum hurries and the dimmed clockface sky glows red */
+html.vcx-live[data-theme="vecna"] .clockface {
+	filter: drop-shadow(0 0 26px rgba(220, 30, 30, 0.5)) brightness(1.2);
+}
+html.vcx-live[data-theme="vecna"] #vc-pend {
+	animation-duration: 0.9s;
+}
+
 /* both set display:* above, so (the .hidden source-order rule) hidden and
    folded states are re-declared AFTER them, here */
 .gk-tab.hidden,
@@ -8834,6 +9064,14 @@ body.game-page .session-bar .sess-name {
 .gg-hud.gk-minned,
 .ms-hud.gk-minned,
 .db-hud.gk-minned,
-.ar-hud.gk-minned {
+.ar-hud.gk-minned,
+.sk-hud.gk-minned,
+.vcx-hud.gk-minned,
+.sk-layer.hidden,
+.sk-gunbtn.hidden,
+.sk-hud.hidden,
+.vcx-layer.hidden,
+.vcx-veil.hidden,
+.vcx-hud.hidden {
 	display: none;
 }
