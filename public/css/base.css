@@ -8621,3 +8621,195 @@ body.game-page .session-bar .sess-name {
 .db-hud.hidden {
 	display: none;
 }
+
+/* ---- Will's Art Room (components/art-room.js): paint over the live game.
+   Same layer contract as the dice/disco: fixed over the page above the chat
+   dock, taking no pointer — only the painter's own invisible catcher and the
+   HUD glass do, so painting never costs another writer their caret. */
+.ar-layer {
+	position: fixed;
+	inset: 0 0 var(--footbar-h) 0;
+	z-index: 60;
+	pointer-events: none;
+	display: block;
+}
+.ar-layer canvas {
+	/* fixed to the FULL viewport, not the layer's footbar-inset box — the
+	   bitmap is sized to innerWidth/innerHeight, so any mismatch between the
+	   element and the bitmap would squash the drawing and make strokes drift
+	   away from the pointer toward the bottom of the page */
+	position: fixed;
+	inset: 0;
+	width: 100vw;
+	height: 100vh;
+	pointer-events: none;
+}
+#arCatch {
+	position: absolute;
+	inset: 0;
+	pointer-events: auto;
+	/* the pointer IS a paintbrush while the room is open */
+	cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='30' height='30'><text y='24' font-size='24'>🖌</text></svg>") 3 26, crosshair;
+	display: block;
+}
+.ar-brush {
+	position: absolute;
+	transform: translate(-4px, -18px);
+	font-size: 20px;
+	pointer-events: none;
+	text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+.ar-tag {
+	position: absolute;
+	left: 50%;
+	top: 24px;
+	transform: translateX(-50%);
+	font: 600 0.68rem/1 var(--font-body);
+	text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+	white-space: nowrap;
+}
+.ar-hud {
+	position: absolute;
+	bottom: 12px;
+	left: 16px;
+	pointer-events: auto;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding: 10px 14px;
+	max-width: min(380px, calc(100vw - 32px));
+	border-radius: var(--r-md);
+	background: color-mix(in srgb, var(--panel) 42%, transparent);
+	border: 1px solid color-mix(in srgb, var(--panel-brd) 70%, transparent);
+	backdrop-filter: blur(6px) saturate(1.1);
+	-webkit-backdrop-filter: blur(6px) saturate(1.1);
+	box-shadow: var(--panel-glow);
+	font: 500 0.8rem/1.3 var(--font-body);
+	color: var(--muted);
+}
+.ar-title {
+	font: 700 1rem/1.2 var(--font-display);
+	color: var(--ink);
+}
+.ar-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+.ar-row button {
+	flex: 0 0 auto;
+}
+.ar-swatches {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	flex-wrap: wrap;
+}
+.ar-swatch {
+	/* true circles: pin both axes and opt out of the global button box */
+	flex: 0 0 22px;
+	width: 22px;
+	height: 22px;
+	min-width: 0;
+	min-height: 0;
+	box-sizing: border-box;
+	padding: 0;
+	line-height: 1;
+	font-size: 13px;
+	border-radius: 50%;
+	border: 2px solid transparent;
+	cursor: pointer;
+}
+.ar-swatch.on {
+	border-color: var(--ink);
+}
+.ar-eraser {
+	background: color-mix(in srgb, var(--panel) 70%, transparent);
+	border-color: var(--line);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+}
+.ar-swatches input[type="color"] {
+	width: 26px;
+	height: 26px;
+	padding: 0;
+	border: 1px solid var(--line);
+	border-radius: 6px;
+	background: none;
+	cursor: pointer;
+}
+/* the art room's boxes set display:* above, so (per the .hidden source-order
+   rule) their hidden state is re-declared AFTER them, here */
+.ar-layer.hidden,
+#arCatch.hidden,
+.ar-hud.hidden {
+	display: none;
+}
+
+/* ---- The gimmick dock (components/gimmick-dock.js): every open gimmick's
+   HUD gains a minimize control, and a minimized panel becomes an icon tab
+   stacked on the left edge — the toy stays out, only the panel folds away. */
+.gk-tabs {
+	position: fixed;
+	left: 0;
+	top: 38%;
+	z-index: 61;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	pointer-events: none;
+}
+.gk-tab {
+	pointer-events: auto;
+	width: 42px;
+	height: 42px;
+	padding: 0;
+	font-size: 20px;
+	line-height: 1;
+	border-radius: 0 12px 12px 0;
+	border: 1px solid color-mix(in srgb, var(--panel-brd) 70%, transparent);
+	border-left: 0;
+	background: color-mix(in srgb, var(--panel) 55%, transparent);
+	backdrop-filter: blur(6px) saturate(1.1);
+	-webkit-backdrop-filter: blur(6px) saturate(1.1);
+	box-shadow: var(--panel-glow);
+	cursor: pointer;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+}
+.gk-tab:hover {
+	background: color-mix(in srgb, var(--panel) 80%, transparent);
+}
+.gk-min {
+	position: absolute;
+	top: 6px;
+	right: 6px;
+	width: 22px;
+	height: 22px;
+	min-width: 0;
+	padding: 0;
+	line-height: 1;
+	font-size: 12px;
+	border: 0;
+	border-radius: 6px;
+	background: none;
+	color: var(--muted);
+	cursor: pointer;
+}
+.gk-min:hover {
+	color: var(--ink);
+	background: color-mix(in srgb, var(--panel-brd) 40%, transparent);
+}
+/* both set display:* above, so (the .hidden source-order rule) hidden and
+   minimized states are re-declared AFTER them, here */
+.gk-tab.hidden,
+.gd-hud.gk-minned,
+.gg-hud.gk-minned,
+.ms-hud.gk-minned,
+.db-hud.gk-minned,
+.ar-hud.gk-minned {
+	display: none;
+}

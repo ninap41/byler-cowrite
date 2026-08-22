@@ -38,7 +38,7 @@ A hand-editable reference of which themes unlock at which word-count ranks, and 
 | `soldiers` | 25,000 | Hawkins Lab (`hawkinslab`), Russian Bunker (`bunker`) | — |
 | `innate` | 30,000 | Castle Byers (`castlebyers`) | — |
 | `clouds` | 35,000 | Vecna's Clock (`vecna`) | — Vecna's Curse (`vecnascurse`) |
-| `artist` | 50,000 | The Void (`void`) | — Will's art room (`artroom`) |
+| `artist` | 50,000 | The Void (`void`) | 🎨 Will's Art Room (`artroom`) |
 | `notmyfault` | 75,000 | Cerebro (`cerebro`), Family Video (`video`) | — |
 | `bestfriend` | 100,000 | Cleradin (`cleradin`) | — |
 | `crazytogether` | 150,000 | I Miss the Clouds (`clouds`) | — |
@@ -55,9 +55,16 @@ Note: `ink` and `wall` sit at the 0-word tier, so any signed-in account has them
 
 Change `themeUnlocks` in `achievements.json` — keys are theme ids from `THEMES` in `public/js/theme.js`, values are tier ids from `wordTiers` above. `test/themes.test.mjs` pins every key to a real theme and every value to a real tier, so run `npm test` after editing. Update this file to match.
 
-## Art Room (gimmick)
+## Will's Art Room (gimmick)
 
-painting gimmick
+Take a paintbrush out over the live game and paint — a swatch row (your own
+palette colour first), a free color picker, and the whole table watches every
+stroke land. Stroke data travels as screen fractions and each viewer redraws
+it on their own canvas, so no pixel crosses the wire; the paint layer takes
+the pointer only for the painter, so painting never costs another writer
+their caret. Paint STAYS until its painter wipes it or leaves (putting the
+brush away keeps it); the game going friendly clears the room. No steal, no
+chime — pure distraction, the milkshake's category.
 
 ## Supersoaker (gimmick)
 

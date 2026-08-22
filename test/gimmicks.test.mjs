@@ -9,6 +9,7 @@ import { startServer, signup, startedGame } from "./helpers.mjs";
 import {
   GIMMICKS, GIMMICK_IDS, cleanGimmickId, rollOutcome, describeRoll, DIE_SIDES,
   GALAGA_TARGET, GALAGA_MAX_SCORE, galagaOutcome, describeGalaga,
+  PAINT_MAX_STROKES, PAINT_MAX_PTS,
 } from "../lib/gimmicks.js";
 import {
   WORD_TIERS, GIMMICK_UNLOCKS, THEME_UNLOCKS, tierForGimmick, canUseGimmick, unlockedGimmicks, gimmickLocks,
@@ -125,7 +126,7 @@ test("/api/gimmicks: catalogue + locks for everyone, unlocked per rank, all for 
   const admin = await signup(ctx, "diceadmin", ADMIN_EMAIL);
   const a = await ctx.api("/api/gimmicks", undefined, admin.token);
   assert.equal(a.data.admin, true);
-  assert.deepEqual(a.data.unlocked.sort(), ["d20", "disco", "galaga", "milkshake"]);
+  assert.deepEqual(a.data.unlocked.sort(), ["artroom", "d20", "disco", "galaga", "milkshake"]);
 });
 
 // ---- the socket flow ----
@@ -433,6 +434,109 @@ test("the Disco Ball unlocks with the Rink-O-Mania theme at puppymike", () => {
   assert.ok(r.gimmicks.some((g) => g.id === "disco" && g.name === "Rink-O-Mania Disco Ball"));
   assert.equal(canUseGimmick({ badges: ["puppymike"] }, "disco"), true);
   assert.equal(canUseGimmick({ badges: ["outloud"] }, "disco"), false);
+});
+
+test("the Art Room unlocks with The Void theme at artist", () => {
+  assert.equal(THEME_UNLOCKS.void, "artist");
+  assert.equal(tierForGimmick("artroom"), THEME_UNLOCKS.void);
+  const r = rewardsForTier("artist");
+  assert.ok(r.themes.some((t) => t.id === "void"));
+  assert.ok(r.gimmicks.some((g) => g.id === "artroom" && g.name === "Will's Art Room"));
+  assert.equal(canUseGimmick({ badges: ["artist"] }, "artroom"), true);
+  assert.equal(canUseGimmick({ badges: ["clouds"] }, "artroom"), false);
+});
+
+test("gimmick-stroke / gimmick-paint: strokes are relayed (clamped, color-validated, capped), the brush is called in chat on a cooldown, paint outlives the brush but not its painter", async () => {
+  const local = await startServer({ COWRITE_ROLL_COOLDOWN_MS: "200" });
+  try {
+    const admin = await signup(local, "diceadmin", ADMIN_EMAIL);
+    const will = await signup(local, "voidwill", "voidwill@x.com", "#6c8cff");
+    const A = await local.conn();
+    const B = await local.conn();
+    const seen = [];
+    const chat = [];
+    A.on("gimmick-stroke", (d) => seen.push(d));
+    A.on("chat", (m) => chat.push(m));
+    const c = await local.emit(A, "create-session", { auth: admin.token });
+    await local.emit(B, "join-session", { code: c.code, auth: will.token });
+    // friendly game: no paint, no brush call
+    B.emit("gimmick-stroke", { stroke: { color: "#ff0000", pts: [[0.1, 0.1]] } });
+    await local.wait(100);
+    assert.equal(seen.length, 0, "a friendly game takes no paint");
+    assert.match((await local.emit(B, "gimmick-paint", {})).error, /friendly/);
+    await local.emit(A, "start-game", { turnSeconds: 60, rounds: 2, friendly: false });
+    await local.wait(150);
+    // a live stroke goes out: seat identity, clamped points, junk color falls back
+    B.emit("gimmick-stroke", { cursor: [0.3, 7], stroke: { color: "javascript:alert(1)", size: 999, pts: [[0.2, 0.2], [2, -1]] }, live: true });
+    await local.wait(100);
+    assert.equal(seen.length, 1);
+    assert.equal(seen[0].userId, will.user.id);
+    assert.equal(seen[0].name, "voidwill");
+    assert.deepEqual(seen[0].cursor, [0.3, 1], "cursor clamped");
+    assert.equal(seen[0].stroke.color, "#6c8cff", "junk color falls back to the seat's own");
+    assert.equal(seen[0].stroke.size, 40, "size clamped");
+    assert.deepEqual(seen[0].stroke.pts, [[0.2, 0.2], [1, 0]], "points clamped");
+    assert.equal(seen[0].live, true);
+    // a picker color survives; committing (live:false) files the stroke
+    B.emit("gimmick-stroke", { stroke: { color: "#AB12CD", pts: [[0.4, 0.4]] }, live: false });
+    await local.wait(100);
+    assert.equal(seen.at(-1).stroke.color, "#ab12cd", "picker hex normalized, kept");
+    assert.equal(seen.at(-1).live, false);
+    // an eraser stroke keeps its flag; junk erase values don't
+    B.emit("gimmick-stroke", { stroke: { color: "#ab12cd", pts: [[0.5, 0.5]], erase: true }, live: false });
+    await local.wait(100);
+    assert.equal(seen.at(-1).stroke.erase, true, "the eraser rides the relay");
+    B.emit("gimmick-stroke", { stroke: { color: "#ab12cd", pts: [[0.6, 0.6]], erase: "yes" }, live: false });
+    await local.wait(100);
+    assert.equal(seen.at(-1).stroke.erase, undefined, "only a true boolean erases");
+    // an over-long stroke is trimmed to the cap
+    const long = Array.from({ length: PAINT_MAX_PTS + 50 }, (_, i) => [i / 300, 0.5]);
+    B.emit("gimmick-stroke", { stroke: { color: "#112233", pts: long }, live: false });
+    await local.wait(100);
+    assert.equal(seen.at(-1).stroke.pts.length, PAINT_MAX_PTS, "points capped");
+    // the brush call: announced once, no chime, then the cooldown holds
+    const p1 = await local.emit(B, "gimmick-paint", {});
+    assert.equal(p1.ok, true);
+    await local.wait(100);
+    const call = chat.find((m) => m.sys && /voidwill/.test(m.name) && /painting all over the game 🎨/.test(m.text));
+    assert.ok(call, "the brush is called in chat");
+    assert.notEqual(call.chime, true, "no chime — pure distraction");
+    assert.match((await local.emit(B, "gimmick-paint", {})).error, /wet/, "cooldown");
+    // the brush goes away — the PAINT STAYS
+    B.emit("gimmick-stroke", { on: false });
+    await local.wait(100);
+    assert.equal(seen.at(-1).on, false);
+    assert.notEqual(seen.at(-1).wipe, true, "brush away is not a wipe");
+    // a spectator arriving now still gets the painting
+    const S = await local.conn();
+    const list = new Promise((r) => S.on("gimmick-paints", r));
+    await local.emit(S, "spectate-session", { code: c.code });
+    const paints = await list;
+    assert.equal(paints.length, 1);
+    assert.equal(paints[0].userId, will.user.id);
+    assert.equal(paints[0].strokes.length, 4, "committed strokes ride the snapshot");
+    // and has no seat: no brush, no strokes
+    assert.equal((await local.emit(S, "gimmick-paint", {})).ok, false);
+    // a wipe clears the strokes but keeps the painter
+    B.emit("gimmick-stroke", { wipe: true });
+    await local.wait(100);
+    assert.equal(seen.at(-1).wipe, true);
+    // the paint leaves with its painter
+    const gone = new Promise((r) => A.on("gimmick-stroke", (d) => d.on === false && d.wipe === true && r(d)));
+    B.disconnect();
+    assert.equal((await gone).userId, will.user.id);
+  } finally {
+    await local.stop();
+  }
+});
+
+test("gimmick-stroke: an unranked table's strokes are ignored", async () => {
+  const g = await startedGame(ctx, { friendly: false });
+  const seen = [];
+  g.B.on("gimmick-stroke", (d) => seen.push(d));
+  g.A.emit("gimmick-stroke", { stroke: { color: "#112233", pts: [[0.5, 0.5]] }, live: false });
+  await ctx.wait(150);
+  assert.equal(seen.length, 0, "the stroke IS the visible effect, so the rank gate holds on it too");
 });
 
 test("gimmick-ball / gimmick-spin: the ball is relayed (clamped), the spin is called in chat on a cooldown, and the ball leaves with its owner", async () => {

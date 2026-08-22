@@ -7,8 +7,8 @@ import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import { bumpStreak } from "../lib/streak.js";
 import { badgeName, badgeDesc, usageMatches, awardWordBadges, rewardsForTiers, describeRewards, unlockedThemes, unlockedGimmicks, canUseGimmick } from "../lib/achievements.js";
-import { cleanGimmickId, rollOutcome, describeRoll, galagaOutcome, describeGalaga, GALAGA_MAX_SCORE, ROLL_COOLDOWN_MS, SPIN_MS, DIE_SIDES } from "../lib/gimmicks.js";
-import { PALETTE, cleanColor, sanitizeRich, stripTags, httpUrl, sanitizeDoc, CID_RE } from "./sanitize.js";
+import { cleanGimmickId, rollOutcome, describeRoll, galagaOutcome, describeGalaga, GALAGA_MAX_SCORE, ROLL_COOLDOWN_MS, SPIN_MS, DIE_SIDES, PAINT_MAX_STROKES, PAINT_MAX_PTS } from "../lib/gimmicks.js";
+import { PALETTE, cleanColor, cleanHex, sanitizeRich, stripTags, httpUrl, sanitizeDoc, CID_RE } from "./sanitize.js";
 import { store, saveStore, userByToken, makeMsg, isAdmin } from "./store.js";
 import { mirror, mirrorDelete } from "./persist.js";
 import { generateSimplePrompt, generateIntermediatePrompt, INTENSITIES, MODES } from "../lib/prompt-gen.js";
@@ -214,6 +214,7 @@ export function createGame(io) {
     if (s.ships?.size) sock.emit("gimmick-ships", shipsList(s));
     if (s.cups?.size) sock.emit("gimmick-cups", cupsList(s));
     if (s.balls?.size) sock.emit("gimmick-balls", ballsList(s));
+    if (s.paint?.size) sock.emit("gimmick-paints", paintsList(s));
   }
   const SPEC_CHAT_LIMIT = 50;
   // spectator name colors: stable per name, never attacker-controlled (PALETTE only)
@@ -288,6 +289,18 @@ export function createGame(io) {
     if (!s.balls?.has(userId)) return;
     s.balls.delete(userId);
     io.to(s.code).emit("gimmick-ball", { userId, on: false });
+  }
+  // The art room's paint (Will's Art Room gimmick): userId -> {name, color,
+  // on, strokes, live, cursor}. Strokes are point lists in screen fractions —
+  // every viewer redraws them on their own canvas, so no pixel ever crosses
+  // the wire. Paint STAYS when the brush is put away (`on` flips false) and
+  // leaves only on a wipe, the painter leaving, or the game going friendly.
+  // In memory only — a painting never survives a restart.
+  const paintsList = (s) => [...(s.paint?.entries() ?? [])].map(([userId, p]) => ({ userId, ...p }));
+  function dropPaint(s, userId) {
+    if (!s.paint?.has(userId)) return;
+    s.paint.delete(userId);
+    io.to(s.code).emit("gimmick-stroke", { userId, on: false, wipe: true });
   }
 
   // Every writer is a signed-in account: name, color, and badge come from the
@@ -368,6 +381,7 @@ export function createGame(io) {
     dropShip(s, w.userId); // and so does a Galaga battle
     dropCup(s, w.userId); //  ...and a milkshake
     dropBall(s, w.userId); //  ...and a disco ball
+    dropPaint(s, w.userId); //  ...and a painting with no painter
     // The host leaving (closed tab, routed away) pauses a running game — the
     // clock freezes until they return or the stand-in host resumes.
     if (s.hostId === id && s.phase === "writing" && !s.paused) {
@@ -549,6 +563,7 @@ export function createGame(io) {
     for (const uid of [...(s.ships?.keys() ?? [])]) dropShip(s, uid);
     for (const uid of [...(s.cups?.keys() ?? [])]) dropCup(s, uid);
     for (const uid of [...(s.balls?.keys() ?? [])]) dropBall(s, uid);
+    for (const uid of [...(s.paint?.keys() ?? [])]) dropPaint(s, uid);
     sessions.delete(s.code);
     return true;
   }
@@ -656,6 +671,7 @@ export function createGame(io) {
     dropShip(s, s.writers.get(id)?.userId);
     dropCup(s, s.writers.get(id)?.userId);
     dropBall(s, s.writers.get(id)?.userId);
+    dropPaint(s, s.writers.get(id)?.userId);
     s.writers.delete(id);
     s.votes.delete(id);
 
@@ -1086,6 +1102,7 @@ export function createGame(io) {
         for (const uid of [...(s.ships?.keys() ?? [])]) dropShip(s, uid); // and the arcade closes
         for (const uid of [...(s.cups?.keys() ?? [])]) dropCup(s, uid); // and Scoops Ahoy shuts
         for (const uid of [...(s.balls?.keys() ?? [])]) dropBall(s, uid); // and the rink goes dark
+        for (const uid of [...(s.paint?.keys() ?? [])]) dropPaint(s, uid); // and the art room closes
       }
       if (endless) s.maxTurns = null; // ♾ the story loses its finish line
       const wantsUntimed = turnSeconds === 0 || turnSeconds === "0";
@@ -1386,6 +1403,88 @@ export function createGame(io) {
       io.to(s.code).emit("gimmick-spin", { userId: w.userId, name: w.name, color: w.color, duration: SPIN_MS });
       ack?.({ ok: true });
     });
+    // Paint on the table (components/art-room.js): the painter streams their
+    // brush cursor and the stroke IN PROGRESS (whole so far, replaced each
+    // update; `live: false` commits it) as screen fractions, throttled
+    // client-side. The server validates the color (#rrggbb or the seat's
+    // own), clamps every point, caps points per stroke and strokes per
+    // painter (oldest gives way), and relays — every viewer redraws the paint
+    // on their own canvas, so no pixel ever crosses the wire. `on: false`
+    // puts the brush away and the PAINT STAYS; `wipe: true` clears the
+    // painter's own paint everywhere and keeps the brush out.
+    socket.on("gimmick-stroke", ({ on, wipe, cursor, stroke, live } = {}) => {
+      const s = mySession();
+      const w = s?.writers.get(socket.id);
+      if (!s || !w) return;
+      if (on === false) {
+        const p = s.paint?.get(w.userId);
+        if (!p) return;
+        p.on = false;
+        p.live = null;
+        io.to(s.code).emit("gimmick-stroke", { userId: w.userId, on: false });
+        return;
+      }
+      if (wipe === true) {
+        const p = s.paint?.get(w.userId);
+        if (!p) return;
+        p.strokes = [];
+        p.live = null;
+        io.to(s.code).emit("gimmick-stroke", { userId: w.userId, wipe: true, on: p.on !== false });
+        return;
+      }
+      if (s.friendly !== false) return;
+      // unlike a die's position, the stroke IS the visible effect — so the
+      // rank gate holds here too (checked once, when the paint entry begins)
+      if (!s.paint?.has(w.userId) && !tableHasGimmick(s, "artroom")) return;
+      const fr = (v) => Math.max(0, Math.min(1, Number(v) || 0));
+      s.paint ??= new Map();
+      const p = s.paint.get(w.userId) ?? { strokes: [], live: null };
+      p.name = w.name;
+      p.color = w.color;
+      p.on = true;
+      s.paint.set(w.userId, p);
+      const out = { userId: w.userId, name: w.name, color: w.color, on: true };
+      if (Array.isArray(cursor)) {
+        p.cursor = [fr(cursor[0]), fr(cursor[1])];
+        out.cursor = p.cursor;
+      }
+      if (stroke && Array.isArray(stroke.pts) && stroke.pts.length) {
+        const clean = {
+          color: cleanHex(stroke.color) ?? w.color,
+          size: Math.max(2, Math.min(40, Number(stroke.size) || 6)),
+          pts: stroke.pts.slice(0, PAINT_MAX_PTS).map((pt) => [fr(pt?.[0]), fr(pt?.[1])]),
+          ...(stroke.erase === true ? { erase: true } : {}),
+        };
+        if (live === false) {
+          p.live = null;
+          p.strokes.push(clean);
+          while (p.strokes.length > PAINT_MAX_STROKES) p.strokes.shift();
+        } else {
+          p.live = clean;
+        }
+        out.stroke = clean;
+        out.live = live !== false;
+      }
+      io.to(s.code).emit("gimmick-stroke", out);
+    });
+    // Taking the brush out is worth calling in the chat — once per cooldown,
+    // so re-opening the art room can't flood it. No steal, no chime: the
+    // paint is pure distraction, like the milkshake and the disco ball.
+    socket.on("gimmick-paint", (_payload, ack) => {
+      const s = mySession();
+      const w = s?.writers.get(socket.id);
+      if (!s || !w) return ack?.({ ok: false, error: "You're not seated in a game." });
+      if (s.friendly !== false) return ack?.({ ok: false, error: "This is a friendly game — gimmicks are off." });
+      if (!tableHasGimmick(s, "artroom")) return ack?.({ ok: false, error: "Nobody at this table has unlocked that gimmick yet." });
+      const now = Date.now();
+      s.gimmickPaints ??= new Map();
+      if (now - (s.gimmickPaints.get(w.userId) ?? 0) < ROLL_MS) return ack?.({ ok: false, error: "The paint is still wet…" });
+      s.gimmickPaints.set(w.userId, now);
+      touch(s);
+      announce(s, w, "is painting all over the game 🎨");
+      io.to(s.code).emit("gimmick-paint", { userId: w.userId, name: w.name, color: w.color });
+      ack?.({ ok: true });
+    });
     // A finished Galaga run (components/galaga-game.js): the run itself plays
     // on the player's own screen, only the final score comes here. Same gates
     // as a die roll, and beating GALAGA_TARGET steals the turn exactly like a
@@ -1431,6 +1530,7 @@ export function createGame(io) {
       if (s.ships?.size) socket.emit("gimmick-ships", shipsList(s));
       if (s.cups?.size) socket.emit("gimmick-cups", cupsList(s));
       if (s.balls?.size) socket.emit("gimmick-balls", ballsList(s));
+      if (s.paint?.size) socket.emit("gimmick-paints", paintsList(s));
       if (s.phase === "over") socket.emit("game-over", { prompt: s.prompt, story: s.story });
       else if (s.phase === "waiting") broadcastRoster(s);
       else broadcastGame(s);

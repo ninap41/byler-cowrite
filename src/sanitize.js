@@ -6,6 +6,11 @@ import { randomBytes } from "node:crypto";
 export const PALETTE = ["#e63946", "#6c8cff", "#3ddc84", "#f4a261", "#e879c9", "#38bdf8", "#facc15", "#c084fc"];
 export const cleanColor = (c) => (PALETTE.includes(c) ? c : PALETTE[Math.floor(Math.random() * PALETTE.length)]);
 
+// Free-choice colors (the art room's picker) are a closed FORMAT instead of a
+// closed list: exactly #rrggbb or nothing. The value is only ever used as a
+// canvas strokeStyle client-side, but nothing off the wire goes unvalidated.
+export const cleanHex = (c) => (typeof c === "string" && /^#[0-9a-f]{6}$/i.test(c) ? c.toLowerCase() : null);
+
 // Font sizes are a FIXED LADDER rendered as classes (fs-18), never as an
 // inline style. A free-form `style="font-size:…"` would mean letting an
 // attribute through the boundary and parsing a css value; a closed set of

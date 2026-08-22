@@ -272,6 +272,8 @@
 			import { mountGalaga } from "/js/components/galaga-game.js"
 			import { mountMilkshake } from "/js/components/milkshake-spill.js"
 			import { mountDiscoBall } from "/js/components/disco-ball.js"
+			import { mountArtRoom } from "/js/components/art-room.js"
+			import { mountGimmickDock } from "/js/components/gimmick-dock.js"
 			import { requireAuth } from "/js/auth-guard.js"
 			import { statusDot, refreshStatusDots, updateLiveStatus, presenceHtml } from "/js/status.js"
 			import { cleanHtml } from "/js/components/editor.js"
@@ -380,6 +382,12 @@
 				getMyName: () => me?.username || "",
 				getTableColors: () => tableColors,
 			})
+			const artroom = mountArtRoom({
+				socket,
+				getMyUserId: () => me?.id ?? null,
+				getMyColor: () => safeColor(me?.color),
+				getMyName: () => me?.username || "",
+			})
 			const gimmicks = mountGimmickDice({
 				socket,
 				getMyUserId: () => me?.id ?? null,
@@ -387,7 +395,18 @@
 				isSeated: () => !!myId && !spectateCode,
 				isFriendly: () => sessFriendlyFlag,
 				onRoll: () => playSound("dierolling"), // any die tumbling, mine or theirs (gimmick pref)
-				launchers: { galaga: () => galaga.start(), milkshake: () => milkshake.start(), disco: () => disco.start() }, // not dice: their own games take it from here
+				launchers: { galaga: () => galaga.start(), milkshake: () => milkshake.start(), disco: () => disco.start(), artroom: () => artroom.start() }, // not dice: their own games take it from here
+			})
+			// gimmicks stack: every open HUD can minimize to an icon tab on the left edge
+			mountGimmickDock({
+				document,
+				items: [
+					{ id: "d20", icon: "🎲", title: "Hellfire d20", hud: "#gdHud" },
+					{ id: "galaga", icon: "👾", title: "Palace Arcade Galaga", hud: "#ggHud" },
+					{ id: "milkshake", icon: "🥤", title: "Starcourt Milkshake", hud: "#msHud" },
+					{ id: "disco", icon: "🪩", title: "Rink-O-Mania Disco Ball", hud: "#dbHud" },
+					{ id: "artroom", icon: "🎨", title: "Will's Art Room", hud: "#arHud" },
+				],
 			})
 			// what this account may START; re-gated live by a rank-up toast below
 			if (me?.gimmicks) gimmicks.setGate({ unlocked: me.gimmicks })
@@ -719,7 +738,7 @@
 				// The game just went friendly: whatever gimmicks were out fade
 				// away (each mount handles its own), and the table is told why.
 				if (sessFriendlyFlag && !wasFriendly) {
-					const had = [gimmicks.gimmicksOff(), galaga.gimmicksOff(), milkshake.gimmicksOff(), disco.gimmicksOff()].some(Boolean)
+					const had = [gimmicks.gimmicksOff(), galaga.gimmicksOff(), milkshake.gimmicksOff(), disco.gimmicksOff(), artroom.gimmicksOff()].some(Boolean)
 					if (had) gimmickOffToast()
 				}
 				syncCover(st.cover)
