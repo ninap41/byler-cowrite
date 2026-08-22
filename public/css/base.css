@@ -539,11 +539,24 @@ body {
 	display: flex;
 	align-items: center;
 	gap: 10px;
-	border: 1px solid var(--line);
+	position: relative; /* anchors the .solo-date corner chip */
 	border-radius: 12px;
-	padding: 10px 12px;
+	padding: 22px 12px 10px; /* room up top for the date chip */
 	margin-bottom: 8px;
 	background: var(--panel-2);
+}
+/* the last-updated date rides the top of every solo write, card or row */
+.doc-card .doc-date,
+.solo-row .solo-date {
+	position: absolute;
+	top: 6px;
+	right: 10px;
+	font-size: 0.68rem;
+	line-height: 1;
+	padding: 3px 7px;
+	border-radius: 8px;
+	background: rgba(0, 0, 0, 0.35);
+	color: var(--muted);
 }
 .solo-row.locked {
 	opacity: 0.6;
@@ -5647,7 +5660,7 @@ body.ui-peek .turn-toast {
 }
 .doc-card {
 	background: var(--panel);
-	border: 1px solid var(--panel-brd);
+	position: relative; /* anchors the .doc-date corner chip */
 	border-radius: 18px;
 	padding: 16px;
 	box-shadow: var(--panel-glow);

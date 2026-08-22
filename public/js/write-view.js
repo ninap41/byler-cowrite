@@ -110,8 +110,9 @@ export function docCardHtml(d) {
 	const v = d.visibility || "private"
 	return (
 		`<article class="doc-card" data-id="${esc(d.id)}">` +
+		`<span class="doc-date">${esc(fmtWhen(d.updatedAt))}</span>` +
 		`<h3 class="doc-card-title">${esc(d.title)}</h3>` +
-		`<p class="doc-card-meta">${esc(wordsLabel(d.wordCount))} · ${esc(fmtWhen(d.updatedAt))}` +
+		`<p class="doc-card-meta">${esc(wordsLabel(d.wordCount))}` +
 		(d.mine ? "" : ` · by ${esc(d.owner)}`) +
 		`</p>` +
 		`<p class="doc-card-tags">` +
@@ -280,7 +281,7 @@ export const readerChipsHtml = (readers, canManage) =>
 export function soloRowHtml(d) {
 	const v = d.visibility || "private"
 	const title = esc(d.title || "Untitled")
-	const meta = `${esc(wordsLabel(d.wordCount))} · ${esc(fmtWhen(d.updatedAt))}`
+	const meta = `${esc(wordsLabel(d.wordCount))}`
 	const pill = `<span class="doc-pill ${v === "private" ? "" : "on"}">${visLabel(v)}</span>`
 	const open = `/write?id=${encodeURIComponent(d.id)}`
 	let acts
@@ -293,6 +294,7 @@ export function soloRowHtml(d) {
 	const head = d.mine || d.viewable ? `<a class="solo-title" href="${open}">${title}</a>` : `<span class="solo-title locked">${title}</span>`
 	return (
 		`<div class="solo-row${d.mine || d.viewable ? "" : " locked"}" data-id="${esc(d.id)}">` +
+		`<span class="solo-date">${esc(fmtWhen(d.updatedAt))}</span>` +
 		`<span class="solo-info">${head}<span class="solo-meta">${meta} ${pill}</span></span>` +
 		`<span class="solo-acts">${acts}</span>` +
 		`</div>`
