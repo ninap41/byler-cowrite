@@ -1078,8 +1078,8 @@ a.solo-title:hover {
 	min-width: 0;
 	padding: 10px 16px;
 }
+/* The current page is marked by ink alone — no ring around the row. */
 .nav-drawer a[aria-current="page"] {
-	border-color: var(--accent-2);
 	color: var(--accent-2);
 }
 
