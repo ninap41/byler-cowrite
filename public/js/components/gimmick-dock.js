@@ -1,17 +1,18 @@
-// The gimmick dock: every gimmick can be out at once, but their HUD panels
-// all live bottom-left — so each panel gets a minimize control, and a
-// minimized panel becomes an icon tab stacked on the LEFT EDGE of the screen.
-// Clicking the tab brings the panel back. The dock never touches a gimmick's
+// The gimmick dock: every gimmick can be out at once, but only ONE panel is
+// ever open — each open gimmick gets an edge tab on the LEFT of the screen
+// (the host drawer's .doc-side-tab, mirrored) and clicking a tab opens that
+// gimmick's HUD, folding whichever was open. Clicking the open one folds it
+// too, leaving the whole table visible. The dock never touches a gimmick's
 // state: the toy (die, cup, brush…) stays out while its panel is tabbed away.
 //
 // It works on the HUDs the components already own: each entry names a HUD
-// element, the dock folds a minimize button into it and mirrors its
-// open/closed state (the component toggling `.hidden` on exit) through a
-// MutationObserver — so a gimmick leaving takes its tab with it, no wiring
-// inside the components themselves.
+// element and the dock mirrors its open/closed state (the component toggling
+// `.hidden` on start/exit) through a MutationObserver — a gimmick opening
+// takes the stage, a gimmick leaving takes its tab with it, and no wiring
+// lives inside the components themselves.
 import { esc } from "../util.js"
 
-export const dockHtml = () => `<div class="gk-tabs" id="gkTabs" aria-label="Minimized gimmicks"></div>`
+export const dockHtml = () => `<div class="gk-tabs" id="gkTabs" aria-label="Gimmick panels"></div>`
 
 // opts: { document, items: [{ id, icon, title, hud }] } — hud is a selector
 // or element for that gimmick's panel.
@@ -19,52 +20,62 @@ export function mountGimmickDock(opts = {}) {
 	const doc = opts.document || document
 	doc.body.insertAdjacentHTML("beforeend", dockHtml())
 	const tabsBox = doc.getElementById("gkTabs")
-	const entries = new Map() // id -> { hudEl, tab, minned }
+	const entries = new Map() // id -> { hudEl, tab, wasOpen }
 
+	const isOut = (e) => !e.hudEl.classList.contains("hidden")
+	function paint() {
+		for (const [, e] of entries) {
+			const out = isOut(e)
+			e.hudEl.classList.toggle("gk-minned", out && !e.onStage)
+			e.tab.classList.toggle("hidden", !out)
+			e.tab.classList.toggle("on", out && e.onStage)
+		}
+	}
+	// one panel on stage at a time (or none): opening one folds the rest
+	function stage(id) {
+		for (const [k, e] of entries) e.onStage = k === id
+		paint()
+	}
 	function sync(id) {
 		const e = entries.get(id)
 		if (!e) return
-		const gimmickOpen = !e.hudEl.classList.contains("hidden")
-		if (!gimmickOpen) e.minned = false // the gimmick left — its tab goes too
-		e.hudEl.classList.toggle("gk-minned", e.minned)
-		e.tab.classList.toggle("hidden", !(gimmickOpen && e.minned))
-	}
-	function setMin(id, min) {
-		const e = entries.get(id)
-		if (!e) return
-		e.minned = min
-		sync(id)
+		const out = isOut(e)
+		if (out && !e.wasOpen) stage(id) // a gimmick just opened: it takes the stage
+		if (!out) e.onStage = false // a gimmick left: its tab goes, the stage empties
+		e.wasOpen = out
+		paint()
 	}
 
 	for (const item of opts.items || []) {
 		const hudEl = typeof item.hud === "string" ? doc.querySelector(item.hud) : item.hud
 		if (!hudEl) continue
-		hudEl.insertAdjacentHTML(
-			"afterbegin",
-			`<button type="button" class="gk-min" data-gk-min="${esc(item.id)}" title="Minimize to the edge" aria-label="Minimize ${esc(item.title || item.id)}">▁</button>`
-		)
 		const tab = doc.createElement("button")
 		tab.type = "button"
 		tab.className = "gk-tab hidden"
-		tab.textContent = item.icon || "🎲"
+		tab.innerHTML = `${esc(item.icon || "🎲")}`
 		tab.title = item.title || item.id
-		tab.addEventListener("click", () => setMin(item.id, false))
-		tabsBox.appendChild(tab)
-		entries.set(item.id, { hudEl, tab, minned: false })
-		hudEl.addEventListener("click", (ev) => {
-			if (ev.target.closest(`[data-gk-min="${item.id}"]`)) setMin(item.id, true)
+		tab.setAttribute("data-tip", item.title || item.id)
+		tab.addEventListener("click", () => {
+			const e = entries.get(item.id)
+			if (!e || !isOut(e)) return
+			// the open panel's own tab folds it; any other tab takes the stage
+			stage(e.onStage ? null : item.id)
 		})
-		// the component hides/shows its own hud (exit, friendly switch, restart):
-		// mirror that into the tab so a closed gimmick never leaves one behind
+		tabsBox.appendChild(tab)
+		entries.set(item.id, { hudEl, tab, wasOpen: !hudEl.classList.contains("hidden"), onStage: false })
 		const win = doc.defaultView
 		if (win?.MutationObserver) {
 			new win.MutationObserver(() => sync(item.id)).observe(hudEl, { attributes: true, attributeFilter: ["class"] })
 		}
+		sync(item.id)
 	}
 
 	return {
-		minimize: (id) => setMin(id, true),
-		restore: (id) => setMin(id, false),
+		open: (id) => stage(id),
+		fold: () => stage(null),
+		get onStage() {
+			return [...entries.entries()].find(([, e]) => e.onStage)?.[0] ?? null
+		},
 		get tabs() {
 			return [...entries.entries()].filter(([, e]) => !e.tab.classList.contains("hidden")).map(([id]) => id)
 		},

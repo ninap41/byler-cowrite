@@ -1,6 +1,7 @@
-// The gimmick dock (components/gimmick-dock.js) on jsdom: every open gimmick
-// HUD gains a minimize control, a minimized panel becomes an icon tab on the
-// left edge, and a gimmick leaving takes its tab with it.
+// The gimmick dock (components/gimmick-dock.js) on jsdom: every OPEN gimmick
+// gets a left-edge tab (the host drawer's tab, mirrored) and only one panel
+// is ever on stage — opening one folds the rest, the open tab folds its own,
+// and a gimmick leaving takes its tab with it.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { installDom } from "./dom.mjs";
@@ -24,42 +25,59 @@ function mountWithHuds() {
   return dock;
 }
 
-test("dockHtml + mount: a minimize button folds into each HUD, tabs start hidden", () => {
+test("dockHtml + mount: one edge tab per gimmick, all hidden while nothing is out", () => {
   assert.match(dockHtml(), /id="gkTabs"/);
-  mountWithHuds();
-  assert.ok(document.querySelector('#dbHud [data-gk-min="disco"]'), "the disco HUD grew a minimize control");
-  assert.ok(document.querySelector('#arHud [data-gk-min="artroom"]'), "so did the art room's");
-  assert.equal(document.querySelectorAll("#gkTabs .gk-tab").length, 2);
-  assert.equal(document.querySelectorAll("#gkTabs .gk-tab:not(.hidden)").length, 0, "no tab until something minimizes");
-});
-
-test("minimize folds the panel to a left-edge tab; the tab click brings it back", async () => {
   const dock = mountWithHuds();
-  const hud = document.getElementById("dbHud");
-  hud.classList.remove("hidden"); // the gimmick opened
-  await flush();
-  hud.querySelector('[data-gk-min="disco"]').dispatchEvent(new window.Event("click", { bubbles: true }));
-  assert.ok(hud.classList.contains("gk-minned"), "the panel folds away");
-  assert.deepEqual(dock.tabs, ["disco"], "its tab stands on the edge");
-  const tab = document.querySelector("#gkTabs .gk-tab:not(.hidden)");
-  assert.equal(tab.textContent, "🪩");
-  tab.dispatchEvent(new window.Event("click", { bubbles: true }));
-  assert.ok(!hud.classList.contains("gk-minned"), "the tab brings the panel back");
-  assert.deepEqual(dock.tabs, []);
+  assert.equal(document.querySelectorAll("#gkTabs .gk-tab").length, 2);
+  assert.equal(dock.tabs.length, 0, "no tab until a gimmick opens");
+  assert.equal(dock.onStage, null);
 });
 
-test("two gimmicks stack: both minimized tabs stand together; a gimmick leaving takes its tab", async () => {
+test("an opening gimmick takes the stage; a second one folds the first — only one panel is ever open", async () => {
+  const dock = mountWithHuds();
+  const db = document.getElementById("dbHud");
+  const ar = document.getElementById("arHud");
+  db.classList.remove("hidden"); // the disco opened
+  await flush();
+  assert.deepEqual(dock.tabs, ["disco"], "its tab stands on the edge");
+  assert.equal(dock.onStage, "disco");
+  assert.ok(!db.classList.contains("gk-minned"), "its panel is the open one");
+  ar.classList.remove("hidden"); // the art room opens too
+  await flush();
+  assert.deepEqual(dock.tabs.sort(), ["artroom", "disco"], "both tabs stand");
+  assert.equal(dock.onStage, "artroom", "the newest gimmick takes the stage");
+  assert.ok(db.classList.contains("gk-minned"), "…folding the other panel");
+  assert.ok(!ar.classList.contains("gk-minned"));
+});
+
+test("tab clicks swap the stage, and the open tab folds its own panel", async () => {
   const dock = mountWithHuds();
   const db = document.getElementById("dbHud");
   const ar = document.getElementById("arHud");
   db.classList.remove("hidden");
   ar.classList.remove("hidden");
-  dock.minimize("disco");
-  dock.minimize("artroom");
-  assert.deepEqual(dock.tabs.sort(), ["artroom", "disco"], "the panels stack as tabs");
-  // the disco gimmick exits: its component hides the HUD, the tab must follow
-  db.classList.add("hidden");
   await flush();
-  assert.deepEqual(dock.tabs, ["artroom"], "a closed gimmick never leaves a tab behind");
-  assert.ok(!db.classList.contains("gk-minned"), "and reopens un-minimized");
+  const [dbTab, arTab] = document.querySelectorAll("#gkTabs .gk-tab");
+  dbTab.dispatchEvent(new window.Event("click", { bubbles: true }));
+  assert.equal(dock.onStage, "disco", "the other tab swaps the stage");
+  assert.ok(ar.classList.contains("gk-minned") && !db.classList.contains("gk-minned"));
+  assert.ok(dbTab.classList.contains("on"), "the open tab is marked");
+  dbTab.dispatchEvent(new window.Event("click", { bubbles: true }));
+  assert.equal(dock.onStage, null, "the open tab folds its own panel");
+  assert.ok(db.classList.contains("gk-minned") && ar.classList.contains("gk-minned"), "everything folded, the table clear");
+  arTab.dispatchEvent(new window.Event("click", { bubbles: true }));
+  assert.equal(dock.onStage, "artroom");
+});
+
+test("a gimmick leaving takes its tab and frees the stage", async () => {
+  const dock = mountWithHuds();
+  const db = document.getElementById("dbHud");
+  db.classList.remove("hidden");
+  await flush();
+  assert.equal(dock.onStage, "disco");
+  db.classList.add("hidden"); // the component closed it (exit / friendly)
+  await flush();
+  assert.deepEqual(dock.tabs, [], "a closed gimmick never leaves a tab behind");
+  assert.equal(dock.onStage, null);
+  assert.ok(!db.classList.contains("gk-minned"), "and reopens unfolded");
 });

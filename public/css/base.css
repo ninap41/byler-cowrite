@@ -8767,63 +8767,44 @@ body.game-page .session-bar .sess-name {
 	display: none;
 }
 
-/* ---- The gimmick dock (components/gimmick-dock.js): every open gimmick's
-   HUD gains a minimize control, and a minimized panel becomes an icon tab
-   stacked on the left edge — the toy stays out, only the panel folds away. */
+/* ---- The gimmick dock (components/gimmick-dock.js): every OPEN gimmick
+   gets an edge tab on the left of the screen — the host drawer's
+   .doc-side-tab, mirrored — and only one panel is ever open: a tab click
+   brings its HUD to the stage and folds the rest; the open tab folds its
+   own. The toys stay out either way. */
 .gk-tabs {
 	position: fixed;
 	left: 0;
-	top: 38%;
+	top: 50%;
+	transform: translateY(-50%);
 	z-index: 61;
 	display: flex;
 	flex-direction: column;
-	gap: 6px;
+	gap: 8px;
 	pointer-events: none;
 }
 .gk-tab {
 	pointer-events: auto;
-	width: 42px;
-	height: 42px;
-	padding: 0;
-	font-size: 20px;
-	line-height: 1;
-	border-radius: 0 12px 12px 0;
-	border: 1px solid color-mix(in srgb, var(--panel-brd) 70%, transparent);
+	border: 1px solid var(--panel-brd);
 	border-left: 0;
-	background: color-mix(in srgb, var(--panel) 55%, transparent);
-	backdrop-filter: blur(6px) saturate(1.1);
-	-webkit-backdrop-filter: blur(6px) saturate(1.1);
-	box-shadow: var(--panel-glow);
+	background: var(--panel);
+	color: var(--ink);
+	border-radius: 0 var(--r-md) 12px 0;
+	padding: 12px 10px;
 	cursor: pointer;
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
+	box-shadow: var(--panel-glow);
+	font-size: 0.95rem;
+	line-height: 1;
 }
 .gk-tab:hover {
-	background: color-mix(in srgb, var(--panel) 80%, transparent);
+	background: var(--chip);
 }
-.gk-min {
-	position: absolute;
-	top: 6px;
-	right: 6px;
-	width: 22px;
-	height: 22px;
-	min-width: 0;
-	padding: 0;
-	line-height: 1;
-	font-size: 12px;
-	border: 0;
-	border-radius: 6px;
-	background: none;
-	color: var(--muted);
-	cursor: pointer;
-}
-.gk-min:hover {
-	color: var(--ink);
-	background: color-mix(in srgb, var(--panel-brd) 40%, transparent);
+.gk-tab.on {
+	background: var(--chip);
+	border-color: color-mix(in srgb, var(--accent) 55%, var(--panel-brd));
 }
 /* both set display:* above, so (the .hidden source-order rule) hidden and
-   minimized states are re-declared AFTER them, here */
+   folded states are re-declared AFTER them, here */
 .gk-tab.hidden,
 .gd-hud.gk-minned,
 .gg-hud.gk-minned,
