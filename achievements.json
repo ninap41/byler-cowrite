@@ -1,183 +1,183 @@
 {
-	"_readme": "Edit badge names/descriptions freely — the server reads this at startup. wordTiers award by total words written (min). usage badges award ONCE the first time a committed story line matches: 'triggers' fires on ANY listed word/phrase; 'combos' fires when EVERY word of one listed combination appears in the same line, in any order. A badge may carry either or both (case-insensitive, whole words; a trailing ? or ! in a trigger is required literally). Unlocks announce in session chat and toast every connected player. Keep ids stable — they're stored on user accounts. usageOpen badges work exactly like usage ones but are NOT secret: their descriptions show before they're earned.",
-	"wordTiers": [
-		{
-			"id": "outloud",
-			"name": "🔫 There. Out Loud.",
-			"min": 0,
-			"desc": "Made an account. Said it — there, out loud."
-		},
-		{
-			"id": "puppymike",
-			"name": "🐶 Puppy Mike",
-			"min": 5000,
-			"desc": "Write 5,000 words."
-		},
-		{
-			"id": "practice",
-			"name": "🪄 Practice",
-			"min": 10000,
-			"desc": "Write 10,000 words. Practice makes canon."
-		},
-		{
-			"id": "practicewithme",
-			"name": "🫶 You can practice with me.",
-			"min": 15000,
-			"desc": "Write 15,000 words. You can practice with me."
-		},
-		{
-			"id": "sorcerer",
-			"name": "🧙 Sorcerer",
-			"min": 20000,
-			"desc": "Write 20,000 words."
-		},
-		{
-			"id": "soldiers",
-			"name": "🪖 Like the soldiers",
-			"min": 25000,
-			"desc": "Write 25,000 words. Like the soldiers."
-		},
-		{
-			"id": "innate",
-			"name": "⚡ Innate Powers",
-			"min": 30000,
-			"desc": "Write 30,000 words."
-		},
-		{
-			"id": "clouds",
-			"name": "☁️ I miss clouds I miss you",
-			"min": 40000,
-			"desc": "Write 40,000 words. I miss clouds. I miss you."
-		},
-		{
-			"id": "explorer",
-			"name": "🧭 Explorer",
-			"min": 50000,
-			"desc": "Write 50,000 words."
-		},
-		{
-			"id": "notmyfault",
-			"name": "😤 It's not my fault you don't like girls!",
-			"min": 75000,
-			"desc": "Write 75,000 words. It's not my fault!"
-		},
-		{
-			"id": "bestfriend",
-			"name": "💛 A Best \"Friend\"",
-			"min": 100000,
-			"desc": "Write 100,000 words. A best 'friend' indeed."
-		},
-		{
-			"id": "crazytogether",
-			"name": "🌀 Crazy Together",
-			"min": 150000,
-			"desc": "Write 150,000 words. If we're both going crazy, we'll go crazy together."
-		}
-	],
-	"usage": [
-		{
-			"id": "omega",
-			"name": "🐺 Omega Badge",
-			"triggers": [
-				"puppy"
-			],
-			"desc": "Write “puppy” into a story line. Good boy."
-		},
-		{
-			"id": "justthetip",
-			"name": "🐓 Just the tip.",
-			"triggers": [
-				"cock"
-			],
-			"desc": "Write it into a story line. Just the tip, though."
-		},
-		{
-			"id": "smuttybuddy",
-			"name": "😏 Smutty Buddy",
-			"triggers": [
-				"moan",
-				"moaning"
-			],
-			"desc": "Get a moan into the story."
-		},
-		{
-			"id": "ughmike",
-			"name": "🙄 Ugh, Mike...",
-			"triggers": [
-				"michael?"
-			],
-			"desc": "Write “Michael?” — question mark and all."
-		},
-		{
-			"id": "onelasttime",
-			"name": "One Last Time.",
-			"combos": [
-				"William",
-				"Henry",
-				""
-			],
-			"comboNumeration": [
-				{
-					"name": "William",
-					"count": 5
-				}
-			],
-			"desc": "Get “crazy” and “together” into the same story line."
-		},
-		{
-			"id": "crazycombo",
-			"name": "🌀 If We're Both Going Crazy",
-			"combos": [
-				[
-					"crazy",
-					"together"
-				]
-			],
-			"desc": "Get “crazy” and “together” into the same story line."
-		},
-		{
-			"id": "resumeitstupid",
-			"name": "💩 Resume it, Stupid",
-			"triggers": [],
-			"desc": "Try to write while the game is paused. Resume it, stupid."
-		}
-	],
-	"usageOpen": [
-		{
-			"id": "openingline",
-			"name": "🖋 Opening Line",
-			"triggers": [
-				"once upon a time"
-			],
-			"desc": "Start something classic: write “once upon a time” into a story line."
-		},
-		{
-			"id": "cliffhanger",
-			"name": "⛰ Cliffhanger",
-			"triggers": [
-				"to be continued"
-			],
-			"desc": "End on a “to be continued…”."
-		}
-	],
-	"themeUnlocks": {
-		"wall": "outloud",
-		"snowball": "outloud",
-		"upside": "puppymike",
-		"starcourt": "practice",
-		"arcade": "practicewithme",
-		"cerebro": "notmyfault",
-		"hawkinslab": "soldiers",
-		"castlebyers": "innate",
-		"vecna": "clouds",
-		"void": "explorer",
-		"video": "notmyfault",
-		"hellfire": "sorcerer",
-		"rink": "bestfriend",
-		"cleradin": "bestfriend",
-		"bunker": "crazytogether",
-		"clouds": "crazytogether"
-	},
-	"_gimmickReadme": "Gimmicks are not mapped here: each gimmick belongs to a THEME (the `theme` field on its GIMMICKS entry in lib/gimmicks.js) and unlocks with that theme's tier in themeUnlocks above — retier the theme and its gimmick moves with it. A gimmick whose theme is unlisted (free) is free. test/gimmicks.test.mjs pins the derivation.",
-	"_themeReadme": "themeUnlocks maps a theme id (see THEMES in public/js/theme.js) to the wordTiers id that unlocks it. A theme NOT listed here is free for everyone. An unknown tier id also reads as free. Admins see every theme regardless. Hand-edit freely — test/themes.test.mjs fails if a key is not a real theme."
+ "_readme": "Edit badge names/descriptions freely — the server reads this at startup. wordTiers award by total words written (min). usage badges award ONCE the first time a committed story line matches: 'triggers' fires on ANY listed word/phrase; 'combos' fires when EVERY word of one listed combination appears in the same line, in any order. A badge may carry either or both (case-insensitive, whole words; a trailing ? or ! in a trigger is required literally). Unlocks announce in session chat and toast every connected player. Keep ids stable — they're stored on user accounts. usageOpen badges work exactly like usage ones but are NOT secret: their descriptions show before they're earned.",
+ "wordTiers": [
+  {
+   "id": "outloud",
+   "name": "🔫 There. Out Loud.",
+   "min": 0,
+   "desc": "Made an account. Said it — there, out loud."
+  },
+  {
+   "id": "puppymike",
+   "name": "🐶 Puppy Mike",
+   "min": 5000,
+   "desc": "Write 5,000 words."
+  },
+  {
+   "id": "practice",
+   "name": "🪄 Practice",
+   "min": 10000,
+   "desc": "Write 10,000 words. Practice makes canon."
+  },
+  {
+   "id": "explorer",
+   "name": "🫶 You have explored (like Mike, offscreen)",
+   "min": 15000,
+   "desc": "Write 15,000 words. You have explored — like Mike, offscreen."
+  },
+  {
+   "id": "sorcerer",
+   "name": "🧙 Sorcerer",
+   "min": 20000,
+   "desc": "Write 20,000 words."
+  },
+  {
+   "id": "soldiers",
+   "name": "🪖 Like the soldiers",
+   "min": 25000,
+   "desc": "Write 25,000 words. Like the soldiers."
+  },
+  {
+   "id": "innate",
+   "name": "⚡ Innate Powers",
+   "min": 30000,
+   "desc": "Write 30,000 words."
+  },
+  {
+   "id": "clouds",
+   "name": "☁️ I miss clouds I miss you",
+   "min": 35000,
+   "desc": "Write 35,000 words. I miss clouds. I miss you."
+  },
+  {
+   "id": "artist",
+   "name": "🧭 Artist",
+   "min": 50000,
+   "desc": "Write 50,000 words."
+  },
+  {
+   "id": "notmyfault",
+   "name": "😤 It's not my fault you don't like girls!",
+   "min": 75000,
+   "desc": "Write 75,000 words. It's not my fault!"
+  },
+  {
+   "id": "bestfriend",
+   "name": "💛 A Best \"Friend\"",
+   "min": 100000,
+   "desc": "Write 100,000 words. A best 'friend' indeed."
+  },
+  {
+   "id": "crazytogether",
+   "name": "🌀 Crazy Together",
+   "min": 150000,
+   "desc": "Write 150,000 words. If we're both going crazy, we'll go crazy together."
+  }
+ ],
+ "usage": [
+  {
+   "id": "omega",
+   "name": "🐺 Omega Badge",
+   "triggers": [
+    "puppy"
+   ],
+   "desc": "Write “puppy” into a story line. Good boy."
+  },
+  {
+   "id": "justthetip",
+   "name": "🐓 Just the tip.",
+   "triggers": [
+    "cock"
+   ],
+   "desc": "Write it into a story line. Just the tip, though."
+  },
+  {
+   "id": "smuttybuddy",
+   "name": "😏 Smutty Buddy",
+   "triggers": [
+    "moan",
+    "moaning"
+   ],
+   "desc": "Get a moan into the story."
+  },
+  {
+   "id": "ughmike",
+   "name": "🙄 Ugh, Mike...",
+   "triggers": [
+    "michael?"
+   ],
+   "desc": "Write “Michael?” — question mark and all."
+  },
+  {
+   "id": "onelasttime",
+   "name": "One Last Time.",
+   "combos": [
+    "William",
+    "Henry",
+    ""
+   ],
+   "comboNumeration": [
+    {
+     "name": "William",
+     "count": 5
+    }
+   ],
+   "desc": "Get “crazy” and “together” into the same story line."
+  },
+  {
+   "id": "crazycombo",
+   "name": "🌀 If We're Both Going Crazy",
+   "combos": [
+    [
+     "crazy",
+     "together"
+    ]
+   ],
+   "desc": "Get “crazy” and “together” into the same story line."
+  },
+  {
+   "id": "resumeitstupid",
+   "name": "💩 Resume it, Stupid",
+   "triggers": [],
+   "desc": "Try to write while the game is paused. Resume it, stupid."
+  }
+ ],
+ "usageOpen": [
+  {
+   "id": "openingline",
+   "name": "🖋 Opening Line",
+   "triggers": [
+    "once upon a time"
+   ],
+   "desc": "Start something classic: write “once upon a time” into a story line."
+  },
+  {
+   "id": "cliffhanger",
+   "name": "⛰ Cliffhanger",
+   "triggers": [
+    "to be continued"
+   ],
+   "desc": "End on a “to be continued…”."
+  }
+ ],
+ "themeUnlocks": {
+  "ink": "outloud",
+  "wall": "outloud",
+  "rink": "puppymike",
+  "snowball": "puppymike",
+  "starcourt": "practice",
+  "arcade": "explorer",
+  "hellfire": "sorcerer",
+  "hawkinslab": "soldiers",
+  "bunker": "soldiers",
+  "castlebyers": "innate",
+  "vecna": "clouds",
+  "void": "artist",
+  "cerebro": "notmyfault",
+  "video": "notmyfault",
+  "cleradin": "bestfriend",
+  "clouds": "crazytogether"
+ },
+ "_gimmickReadme": "Gimmicks are not mapped here: each gimmick belongs to a THEME (the `theme` field on its GIMMICKS entry in lib/gimmicks.js) and unlocks with that theme's tier in themeUnlocks above — retier the theme and its gimmick moves with it. A gimmick whose theme is unlisted (free) is free. test/gimmicks.test.mjs pins the derivation.",
+ "_themeReadme": "themeUnlocks maps a theme id (see THEMES in public/js/theme.js) to the wordTiers id that unlocks it. A theme NOT listed here is free for everyone. An unknown tier id also reads as free. Admins see every theme regardless. Hand-edit freely — test/themes.test.mjs fails if a key is not a real theme."
 }

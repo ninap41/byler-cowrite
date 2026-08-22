@@ -84,13 +84,13 @@ test("cleaners + outcomes: ids off the wire, nat 20 wants the turn, nat 1 fumble
 
 // ---- the Galaga run (pure) ----
 
-test("the Galaga gimmick unlocks with the Palace Arcade theme at practicewithme", () => {
-  assert.equal(THEME_UNLOCKS.arcade, "practicewithme");
+test("the Galaga gimmick unlocks with the Palace Arcade theme at explorer", () => {
+  assert.equal(THEME_UNLOCKS.arcade, "explorer");
   assert.equal(tierForGimmick("galaga"), THEME_UNLOCKS.arcade);
-  const r = rewardsForTier("practicewithme");
+  const r = rewardsForTier("explorer");
   assert.ok(r.themes.some((t) => t.id === "arcade"));
   assert.deepEqual(r.gimmicks, [{ id: "galaga", name: "Palace Arcade Galaga" }]);
-  assert.equal(canUseGimmick({ badges: ["practicewithme"] }, "galaga"), true);
+  assert.equal(canUseGimmick({ badges: ["explorer"] }, "galaga"), true);
   assert.equal(canUseGimmick({ badges: ["practice"] }, "galaga"), false);
 });
 
@@ -425,14 +425,14 @@ test("the Starcourt Milkshake unlocks with the Starcourt theme at practice", () 
   assert.equal(canUseGimmick({ badges: ["puppymike"] }, "milkshake"), false);
 });
 
-test("the Disco Ball unlocks with the Rink-O-Mania theme at bestfriend", () => {
-  assert.equal(THEME_UNLOCKS.rink, "bestfriend");
+test("the Disco Ball unlocks with the Rink-O-Mania theme at puppymike", () => {
+  assert.equal(THEME_UNLOCKS.rink, "puppymike");
   assert.equal(tierForGimmick("disco"), THEME_UNLOCKS.rink);
-  const r = rewardsForTier("bestfriend");
+  const r = rewardsForTier("puppymike");
   assert.ok(r.themes.some((t) => t.id === "rink"));
   assert.ok(r.gimmicks.some((g) => g.id === "disco" && g.name === "Rink-O-Mania Disco Ball"));
-  assert.equal(canUseGimmick({ badges: ["bestfriend"] }, "disco"), true);
-  assert.equal(canUseGimmick({ badges: ["practice"] }, "disco"), false);
+  assert.equal(canUseGimmick({ badges: ["puppymike"] }, "disco"), true);
+  assert.equal(canUseGimmick({ badges: ["outloud"] }, "disco"), false);
 });
 
 test("gimmick-ball / gimmick-spin: the ball is relayed (clamped), the spin is called in chat on a cooldown, and the ball leaves with its owner", async () => {

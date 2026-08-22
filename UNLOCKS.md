@@ -14,13 +14,13 @@ A hand-editable reference of which themes unlock at which word-count ranks, and 
 | #   | Tier id         | Badge                                       |   Words |
 | --- | --------------- | ------------------------------------------- | ------: |
 | 1   | `outloud`       | 🔫 There. Out Loud.                         |       0 |
-| 5   | `sorcerer`      | 🧙 Sorcerer                                 |   5,000 |
+| 2   | `puppymike`     | 🐶 Puppy Mike                               |   5,000 |
 | 3   | `practice`      | 🪄 Practice                                 |  10,000 |
 | 4   | `explorer`      | 🫶 You have explored (like Mike, offscreen) |  15,000 |
-| 2   | `puppymike`     | 🐶 Puppy Mike                               |  20,000 |
+| 5   | `sorcerer`      | 🧙 Sorcerer                                 |  20,000 |
 | 6   | `soldiers`      | 🪖 Like the soldiers                        |  25,000 |
 | 7   | `innate`        | ⚡ Innate Powers                            |  30,000 |
-| 8   | `clouds`        | ☁️ I miss clouds I miss you                 |  40,000 |
+| 8   | `clouds`        | ☁️ I miss clouds I miss you                 |  35,000 |
 | 9   | `artist`        | 🧭 Artist                                   |  50,000 |
 | 10  | `notmyfault`    | 😤 It's not my fault you don't like girls!  |  75,000 |
 | 11  | `bestfriend`    | 💛 A Best "Friend"                          | 100,000 |
@@ -30,26 +30,26 @@ A hand-editable reference of which themes unlock at which word-count ranks, and 
 
 | Rank (tier id) | Words | Themes (theme id) | Gimmick that rides along |
 | --- | --: | --- | --- |
-| `outloud` | 0 | Upside Down (`upside`) | 🔫 SuperSoaker (`supersoaker`) |
-| `sorcerer` | 5,000 | Hellfire Club (`hellfire`) | 🎲 Hellfire d20 (`d20`) |
+| `outloud` | 0 | Inkwell (`ink`), The Wall (`wall`) | 🔫 SuperSoaker (`supersoaker`) |
+| `puppymike` | 5,000 | Rink-O-Mania (`rink`), Snow Ball Dance (`snowball`) | 🪩 Rink-O-Mania Disco Ball (`disco`) |
 | `practice` | 10,000 | Starcourt (`starcourt`) | 🥤 Starcourt Milkshake (`milkshake`) |
 | `explorer` | 15,000 | Palace Arcade (`arcade`) | 👾 Palace Arcade Galaga (`galaga`) |
-| `puppymike` | 20,000 | Snow Ball (`snowball`) |
-| `soldiers` | 25,000 | Hawkins Lab (`hawkinslab`) | — |
+| `sorcerer` | 20,000 | Hellfire Club (`hellfire`) | 🎲 Hellfire d20 (`d20`) |
+| `soldiers` | 25,000 | Hawkins Lab (`hawkinslab`), Russian Bunker (`bunker`) | — |
 | `innate` | 30,000 | Castle Byers (`castlebyers`) | — |
-| `clouds` | 40,000 | Vecna's Clock (`vecna`) | — Vecna's Curse (`vecnascurse`) |
+| `clouds` | 35,000 | Vecna's Clock (`vecna`) | — Vecna's Curse (`vecnascurse`) |
 | `artist` | 50,000 | The Void (`void`) | — Will's art room (`artroom`) |
 | `notmyfault` | 75,000 | Cerebro (`cerebro`), Family Video (`video`) | — |
-| `bestfriend` | 100,000 | Rink-O-Mania (`rink`), Cleradin (`cleradin`) | — |
-| `crazytogether` | 150,000 | Russian Bunker (`bunker`), I Miss the Clouds (`clouds`) | — |
+| `bestfriend` | 100,000 | Cleradin (`cleradin`) | — |
+| `crazytogether` | 150,000 | I Miss the Clouds (`clouds`) | — |
 
 ## Free themes (not in `themeUnlocks`)
 
 - Neon Dusk (`neon`) — the default theme
 - Aurora (`aurora`)
-- Inkwell (`ink`)
+- Upside Down (`upside`)
 
-Note: `wall` and `snowball` sit at the 0-word tier, so any signed-in account has them; signed-out visitors get only the three free themes.
+Note: `ink` and `wall` sit at the 0-word tier, so any signed-in account has them; signed-out visitors get only the three free themes. `test/unlocks-doc.test.mjs` re-derives the two tables above from `achievements.json` + `lib/gimmicks.js` and fails if this file drifts.
 
 ## How to edit
 
