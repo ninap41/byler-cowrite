@@ -271,6 +271,7 @@
 			import { mountGimmickDice } from "/js/components/gimmick-dice.js"
 			import { mountGalaga } from "/js/components/galaga-game.js"
 			import { mountMilkshake } from "/js/components/milkshake-spill.js"
+			import { mountDiscoBall } from "/js/components/disco-ball.js"
 			import { requireAuth } from "/js/auth-guard.js"
 			import { statusDot, refreshStatusDots, updateLiveStatus, presenceHtml } from "/js/status.js"
 			import { cleanHtml } from "/js/components/editor.js"
@@ -371,6 +372,14 @@
 				getMyColor: () => safeColor(me?.color),
 				getMyName: () => me?.username || "",
 			})
+			let tableColors = [] // the seated writers' palette colours (the disco lights)
+			const disco = mountDiscoBall({
+				socket,
+				getMyUserId: () => me?.id ?? null,
+				getMyColor: () => safeColor(me?.color),
+				getMyName: () => me?.username || "",
+				getTableColors: () => tableColors,
+			})
 			const gimmicks = mountGimmickDice({
 				socket,
 				getMyUserId: () => me?.id ?? null,
@@ -378,7 +387,7 @@
 				isSeated: () => !!myId && !spectateCode,
 				isFriendly: () => sessFriendlyFlag,
 				onRoll: () => playSound("dierolling"), // any die tumbling, mine or theirs (gimmick pref)
-				launchers: { galaga: () => galaga.start(), milkshake: () => milkshake.start() }, // not dice: their own games take it from here
+				launchers: { galaga: () => galaga.start(), milkshake: () => milkshake.start(), disco: () => disco.start() }, // not dice: their own games take it from here
 			})
 			// what this account may START; re-gated live by a rank-up toast below
 			if (me?.gimmicks) gimmicks.setGate({ unlocked: me.gimmicks })
@@ -700,6 +709,7 @@
 			socket.on("game-state", (st) => {
 				lastPaused = !!st.paused
 				updateLiveStatus(st.writers)
+				if (Array.isArray(st.writers)) tableColors = st.writers.map((w) => safeColor(w.color))
 				hostId = st.hostId ?? hostId
 				if (st.code) myCode = st.code
 				if (st.name != null) sessName = st.name
@@ -709,7 +719,7 @@
 				// The game just went friendly: whatever gimmicks were out fade
 				// away (each mount handles its own), and the table is told why.
 				if (sessFriendlyFlag && !wasFriendly) {
-					const had = [gimmicks.gimmicksOff(), galaga.gimmicksOff(), milkshake.gimmicksOff()].some(Boolean)
+					const had = [gimmicks.gimmicksOff(), galaga.gimmicksOff(), milkshake.gimmicksOff(), disco.gimmicksOff()].some(Boolean)
 					if (had) gimmickOffToast()
 				}
 				syncCover(st.cover)

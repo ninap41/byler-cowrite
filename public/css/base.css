@@ -8098,6 +8098,124 @@ button.ms-cup:active {
 	flex: 0 0 auto;
 }
 
+/* ---------- Rink-O-Mania Disco Ball (components/disco-ball.js) ----------
+   A mirrored ball per player, hung by a chain to the top edge, dragged
+   anywhere over the live game; a spin sweeps colored light spots across the
+   whole page for one show. Same layer contract as the dice and the cups:
+   fixed at z 60, pointer events only on MY ball and the HUD glass. */
+.db-layer {
+	position: fixed;
+	inset: 0 0 var(--footbar-h) 0;
+	z-index: 60;
+	pointer-events: none;
+	display: block;
+}
+.db-spot {
+	position: absolute;
+	left: 0;
+	top: 0;
+	width: 300px;
+	height: 300px;
+	border-radius: 50%;
+	opacity: 0;
+	pointer-events: none;
+	will-change: transform, opacity;
+	mix-blend-mode: screen;
+}
+.db-ball {
+	position: absolute;
+	width: 76px;
+	height: 76px;
+	margin: -38px 0 0 -38px; /* positioned by its CENTER (the chain hangs from it) */
+	border: 0;
+	padding: 0;
+	background: none;
+	box-shadow: none;
+	outline: none;
+	min-width: 0;
+	cursor: grab;
+	pointer-events: auto;
+	touch-action: none;
+	-webkit-tap-highlight-color: transparent;
+	filter: drop-shadow(0 10px 14px rgba(0, 0, 0, 0.35));
+}
+button.db-ball:hover,
+button.db-ball:active {
+	transform: none; /* the ball hangs still — no button hover lift */
+}
+.db-ball.grabbing {
+	cursor: grabbing;
+}
+.db-ball svg {
+	display: block;
+	width: 100%;
+	height: 100%;
+	overflow: visible;
+}
+.db-ball svg.spinning .db-facets {
+	animation: db-rotate 2.4s linear infinite;
+	transform-origin: 50% 50%;
+}
+@keyframes db-rotate {
+	to {
+		transform: rotate(360deg);
+	}
+}
+.db-chain {
+	position: absolute;
+	left: 50%;
+	bottom: 100%;
+	width: 2px;
+	transform: translateX(-50%);
+	background: repeating-linear-gradient(to bottom, #8a92a6 0 5px, transparent 5px 8px);
+	pointer-events: none;
+}
+.db-ball.remote {
+	pointer-events: none;
+	transition: left 0.09s linear, top 0.09s linear;
+}
+.db-tag {
+	position: absolute;
+	left: 50%;
+	bottom: -16px;
+	transform: translateX(-50%);
+	font: 600 0.68rem/1 var(--font-body);
+	text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+	white-space: nowrap;
+}
+.db-hud {
+	position: absolute;
+	bottom: 12px;
+	left: 16px;
+	pointer-events: auto;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding: 10px 14px;
+	max-width: min(380px, calc(100vw - 32px));
+	border-radius: 14px;
+	background: color-mix(in srgb, var(--panel) 42%, transparent);
+	border: 1px solid color-mix(in srgb, var(--panel-brd) 70%, transparent);
+	backdrop-filter: blur(6px) saturate(1.1);
+	-webkit-backdrop-filter: blur(6px) saturate(1.1);
+	box-shadow: var(--panel-glow);
+	font: 500 0.8rem/1.3 var(--font-body);
+	color: var(--muted);
+}
+.db-title {
+	font: 700 1rem/1.2 var(--font-display);
+	color: var(--ink);
+}
+.db-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+.db-row button {
+	flex: 0 0 auto;
+}
+
 /* The notice when a friendly switch sweeps the gimmicks off the table */
 .gimmick-off-toast {
 	position: fixed;
@@ -8132,6 +8250,9 @@ button.ms-cup:active {
 .gg-over.hidden,
 .ms-layer.hidden,
 .ms-cup.hidden,
-.ms-hud.hidden {
+.ms-hud.hidden,
+.db-layer.hidden,
+.db-ball.hidden,
+.db-hud.hidden {
 	display: none;
 }

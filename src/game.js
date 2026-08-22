@@ -7,7 +7,7 @@ import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import { bumpStreak } from "../lib/streak.js";
 import { badgeName, badgeDesc, usageMatches, awardWordBadges, rewardsForTiers, describeRewards, unlockedThemes, unlockedGimmicks, canUseGimmick } from "../lib/achievements.js";
-import { cleanGimmickId, rollOutcome, describeRoll, galagaOutcome, describeGalaga, GALAGA_MAX_SCORE, ROLL_COOLDOWN_MS, DIE_SIDES } from "../lib/gimmicks.js";
+import { cleanGimmickId, rollOutcome, describeRoll, galagaOutcome, describeGalaga, GALAGA_MAX_SCORE, ROLL_COOLDOWN_MS, SPIN_MS, DIE_SIDES } from "../lib/gimmicks.js";
 import { PALETTE, cleanColor, sanitizeRich, stripTags, httpUrl, sanitizeDoc, CID_RE } from "./sanitize.js";
 import { store, saveStore, userByToken, makeMsg, isAdmin } from "./store.js";
 import { mirror, mirrorDelete } from "./persist.js";
@@ -213,6 +213,7 @@ export function createGame(io) {
     if (s.dice?.size) sock.emit("gimmick-dice", diceList(s));
     if (s.ships?.size) sock.emit("gimmick-ships", shipsList(s));
     if (s.cups?.size) sock.emit("gimmick-cups", cupsList(s));
+    if (s.balls?.size) sock.emit("gimmick-balls", ballsList(s));
   }
   const SPEC_CHAT_LIMIT = 50;
   // spectator name colors: stable per name, never attacker-controlled (PALETTE only)
@@ -234,6 +235,9 @@ export function createGame(io) {
   // ---- Gimmicks (lib/gimmicks.js) ----
   // Roll cooldown: COWRITE_ROLL_COOLDOWN_MS overrides (the tests shrink it).
   const ROLL_MS = Number(process.env.COWRITE_ROLL_COOLDOWN_MS || ROLL_COOLDOWN_MS);
+  // The disco ball's spin cooldown is the show's own length; the same test
+  // override shrinks it so the suite never waits out a real 8s show.
+  const SPIN_COOLDOWN_MS = Number(process.env.COWRITE_ROLL_COOLDOWN_MS || SPIN_MS);
   // Tests only: COWRITE_DICE_FIXED="20,1,7" makes the die land those values
   // in order (then random again) so a natural 20 can be produced on demand.
   const fixedDice = (process.env.COWRITE_DICE_FIXED || "").split(",").map((n) => Number(n)).filter((n) => n >= 1 && n <= DIE_SIDES);
@@ -274,6 +278,16 @@ export function createGame(io) {
     if (!s.cups?.has(userId)) return;
     s.cups.delete(userId);
     io.to(s.code).emit("gimmick-cup", { userId, on: false });
+  }
+  // The disco balls hanging over the table (Rink-O-Mania gimmick), same
+  // contract again: userId -> {name, color, x, y}. The light show itself is
+  // simulated on every viewer's screen from the `gimmick-spin` event — the
+  // server relays the ball, never a light spot. In memory only.
+  const ballsList = (s) => [...(s.balls?.entries() ?? [])].map(([userId, b]) => ({ userId, ...b }));
+  function dropBall(s, userId) {
+    if (!s.balls?.has(userId)) return;
+    s.balls.delete(userId);
+    io.to(s.code).emit("gimmick-ball", { userId, on: false });
   }
 
   // Every writer is a signed-in account: name, color, and badge come from the
@@ -353,6 +367,7 @@ export function createGame(io) {
     dropDie(s, w.userId); // a die with nobody behind it leaves the table
     dropShip(s, w.userId); // and so does a Galaga battle
     dropCup(s, w.userId); //  ...and a milkshake
+    dropBall(s, w.userId); //  ...and a disco ball
     // The host leaving (closed tab, routed away) pauses a running game — the
     // clock freezes until they return or the stand-in host resumes.
     if (s.hostId === id && s.phase === "writing" && !s.paused) {
@@ -533,6 +548,7 @@ export function createGame(io) {
     for (const uid of [...(s.dice?.keys() ?? [])]) dropDie(s, uid);
     for (const uid of [...(s.ships?.keys() ?? [])]) dropShip(s, uid);
     for (const uid of [...(s.cups?.keys() ?? [])]) dropCup(s, uid);
+    for (const uid of [...(s.balls?.keys() ?? [])]) dropBall(s, uid);
     sessions.delete(s.code);
     return true;
   }
@@ -639,6 +655,7 @@ export function createGame(io) {
     dropDie(s, s.writers.get(id)?.userId);
     dropShip(s, s.writers.get(id)?.userId);
     dropCup(s, s.writers.get(id)?.userId);
+    dropBall(s, s.writers.get(id)?.userId);
     s.writers.delete(id);
     s.votes.delete(id);
 
@@ -1068,6 +1085,7 @@ export function createGame(io) {
         for (const uid of [...(s.dice?.keys() ?? [])]) dropDie(s, uid); // friendly again: dice away
         for (const uid of [...(s.ships?.keys() ?? [])]) dropShip(s, uid); // and the arcade closes
         for (const uid of [...(s.cups?.keys() ?? [])]) dropCup(s, uid); // and Scoops Ahoy shuts
+        for (const uid of [...(s.balls?.keys() ?? [])]) dropBall(s, uid); // and the rink goes dark
       }
       if (endless) s.maxTurns = null; // ♾ the story loses its finish line
       const wantsUntimed = turnSeconds === 0 || turnSeconds === "0";
@@ -1334,6 +1352,40 @@ export function createGame(io) {
       io.to(s.code).emit("gimmick-pour", { userId: w.userId, name: w.name, color: w.color });
       ack?.({ ok: true });
     });
+    // A disco ball over the table (components/disco-ball.js): the owner
+    // reports where their ball hangs as fractions, throttled client-side; the
+    // server clamps and relays. The light show never touches the wire — it
+    // starts from `gimmick-spin` and every viewer runs it locally.
+    socket.on("gimmick-ball", ({ on, x, y } = {}) => {
+      const s = mySession();
+      const w = s?.writers.get(socket.id);
+      if (!s || !w) return;
+      if (on === false) return dropBall(s, w.userId);
+      if (s.friendly !== false) return;
+      const fr = (v) => Math.max(0, Math.min(1, Number(v) || 0));
+      const ball = { name: w.name, color: w.color, x: fr(x), y: fr(y) };
+      s.balls ??= new Map();
+      s.balls.set(w.userId, ball);
+      io.to(s.code).emit("gimmick-ball", { userId: w.userId, ...ball, on: true });
+    });
+    // Spinning the ball is worth calling in the chat — once per show (the
+    // cooldown IS the show's length, so it can't restart mid-sweep). No steal,
+    // no chime: the disco ball is pure distraction, like the milkshake.
+    socket.on("gimmick-spin", (_payload, ack) => {
+      const s = mySession();
+      const w = s?.writers.get(socket.id);
+      if (!s || !w) return ack?.({ ok: false, error: "You're not seated in a game." });
+      if (s.friendly !== false) return ack?.({ ok: false, error: "This is a friendly game — gimmicks are off." });
+      if (!tableHasGimmick(s, "disco")) return ack?.({ ok: false, error: "Nobody at this table has unlocked that gimmick yet." });
+      const now = Date.now();
+      s.gimmickSpins ??= new Map();
+      if (now - (s.gimmickSpins.get(w.userId) ?? 0) < SPIN_COOLDOWN_MS) return ack?.({ ok: false, error: "The ball is still spinning…" });
+      s.gimmickSpins.set(w.userId, now);
+      touch(s);
+      announce(s, w, "turned on the disco ball 🪩");
+      io.to(s.code).emit("gimmick-spin", { userId: w.userId, name: w.name, color: w.color, duration: SPIN_MS });
+      ack?.({ ok: true });
+    });
     // A finished Galaga run (components/galaga-game.js): the run itself plays
     // on the player's own screen, only the final score comes here. Same gates
     // as a die roll, and beating GALAGA_TARGET steals the turn exactly like a
@@ -1378,6 +1430,7 @@ export function createGame(io) {
       if (s.dice?.size) socket.emit("gimmick-dice", diceList(s));
       if (s.ships?.size) socket.emit("gimmick-ships", shipsList(s));
       if (s.cups?.size) socket.emit("gimmick-cups", cupsList(s));
+      if (s.balls?.size) socket.emit("gimmick-balls", ballsList(s));
       if (s.phase === "over") socket.emit("game-over", { prompt: s.prompt, story: s.story });
       else if (s.phase === "waiting") broadcastRoster(s);
       else broadcastGame(s);

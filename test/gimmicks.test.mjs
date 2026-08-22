@@ -125,7 +125,7 @@ test("/api/gimmicks: catalogue + locks for everyone, unlocked per rank, all for 
   const admin = await signup(ctx, "diceadmin", ADMIN_EMAIL);
   const a = await ctx.api("/api/gimmicks", undefined, admin.token);
   assert.equal(a.data.admin, true);
-  assert.deepEqual(a.data.unlocked.sort(), ["d20", "galaga", "milkshake"]);
+  assert.deepEqual(a.data.unlocked.sort(), ["d20", "disco", "galaga", "milkshake"]);
 });
 
 // ---- the socket flow ----
@@ -423,6 +423,76 @@ test("the Starcourt Milkshake unlocks with the Starcourt theme at practice", () 
   assert.deepEqual(r.gimmicks, [{ id: "milkshake", name: "Starcourt Milkshake" }]);
   assert.equal(canUseGimmick({ badges: ["practice"] }, "milkshake"), true);
   assert.equal(canUseGimmick({ badges: ["puppymike"] }, "milkshake"), false);
+});
+
+test("the Disco Ball unlocks with the Rink-O-Mania theme at bestfriend", () => {
+  assert.equal(THEME_UNLOCKS.rink, "bestfriend");
+  assert.equal(tierForGimmick("disco"), THEME_UNLOCKS.rink);
+  const r = rewardsForTier("bestfriend");
+  assert.ok(r.themes.some((t) => t.id === "rink"));
+  assert.ok(r.gimmicks.some((g) => g.id === "disco" && g.name === "Rink-O-Mania Disco Ball"));
+  assert.equal(canUseGimmick({ badges: ["bestfriend"] }, "disco"), true);
+  assert.equal(canUseGimmick({ badges: ["practice"] }, "disco"), false);
+});
+
+test("gimmick-ball / gimmick-spin: the ball is relayed (clamped), the spin is called in chat on a cooldown, and the ball leaves with its owner", async () => {
+  const local = await startServer({ COWRITE_ROLL_COOLDOWN_MS: "200" });
+  try {
+    const admin = await signup(local, "diceadmin", ADMIN_EMAIL);
+    const mike = await signup(local, "rinkmike", "rinkmike@x.com", "#e63946");
+    const A = await local.conn();
+    const B = await local.conn();
+    const seen = [];
+    const spins = [];
+    const chat = [];
+    A.on("gimmick-ball", (d) => seen.push(d));
+    A.on("gimmick-spin", (d) => spins.push(d));
+    A.on("chat", (m) => chat.push(m));
+    const c = await local.emit(A, "create-session", { auth: admin.token });
+    await local.emit(B, "join-session", { code: c.code, auth: mike.token });
+    // friendly game: no ball, no spin
+    B.emit("gimmick-ball", { on: true, x: 0.5, y: 0.5 });
+    await local.wait(100);
+    assert.equal(seen.length, 0, "a friendly game takes no ball");
+    assert.match((await local.emit(B, "gimmick-spin", {})).error, /friendly/);
+    await local.emit(A, "start-game", { turnSeconds: 60, rounds: 2, friendly: false });
+    await local.wait(150);
+    // the ball goes out, clamped
+    B.emit("gimmick-ball", { on: true, x: 0.7, y: 9 });
+    await local.wait(100);
+    assert.equal(seen.length, 1);
+    assert.equal(seen[0].userId, mike.user.id);
+    assert.equal(seen[0].name, "rinkmike");
+    assert.equal(seen[0].color, "#e63946");
+    assert.equal(seen[0].x, 0.7);
+    assert.equal(seen[0].y, 1, "clamped");
+    // the spin: announced once with a duration, no chime, then the cooldown holds
+    const s1 = await local.emit(B, "gimmick-spin", {});
+    assert.equal(s1.ok, true);
+    await local.wait(100);
+    const call = chat.find((m) => m.sys && /rinkmike/.test(m.name) && /turned on the disco ball 🪩/.test(m.text));
+    assert.ok(call, "the spin is called in chat");
+    assert.notEqual(call.chime, true, "no chime — pure distraction");
+    assert.equal(spins.at(-1).userId, mike.user.id);
+    assert.equal(spins.at(-1).color, "#e63946");
+    assert.ok(spins.at(-1).duration > 0, "the relay carries the show's length");
+    assert.match((await local.emit(B, "gimmick-spin", {})).error, /spinning/, "cooldown");
+    // a spectator arriving now gets the balls already out
+    const S = await local.conn();
+    const list = new Promise((r) => S.on("gimmick-balls", r));
+    await local.emit(S, "spectate-session", { code: c.code });
+    const balls = await list;
+    assert.equal(balls.length, 1);
+    assert.equal(balls[0].userId, mike.user.id);
+    // and has no seat: no spin
+    assert.equal((await local.emit(S, "gimmick-spin", {})).ok, false);
+    // the ball leaves with its owner
+    const gone = new Promise((r) => A.on("gimmick-ball", (d) => d.on === false && r(d)));
+    B.disconnect();
+    assert.equal((await gone).userId, mike.user.id);
+  } finally {
+    await local.stop();
+  }
 });
 
 test("gimmick-cup / gimmick-pour: the cup is relayed (clamped), the pour is called in chat on a cooldown, and the cup leaves with its owner", async () => {
