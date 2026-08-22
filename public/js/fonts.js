@@ -18,6 +18,7 @@ export const LOADED_FONTS = [
 	// (fonts.json's `extraFamilies`), because a pixel font is a drafting mood,
 	// not a site-wide voice.
 	{ key: "tiny5", label: "Tiny5", stack: '"Tiny5", system-ui, sans-serif' },
+	{ key: "jersey15", label: "Jersey 15", stack: '"Jersey 15", system-ui, sans-serif' },
 ]
 
 export const SYSTEM_FONTS = [

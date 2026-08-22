@@ -5358,6 +5358,11 @@ html[data-font="tiny5"] {
 	--font-story: "Tiny5", system-ui, sans-serif;
 	--font-display: "Tiny5", system-ui, sans-serif;
 }
+html[data-font="jersey15"] {
+	--font-body: "Jersey 15", system-ui, sans-serif;
+	--font-story: "Jersey 15", system-ui, sans-serif;
+	--font-display: "Jersey 15", system-ui, sans-serif;
+}
 html[data-font="georgia"] {
 	--font-body: Georgia, serif;
 	--font-story: Georgia, serif;
