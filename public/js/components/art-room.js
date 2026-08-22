@@ -19,7 +19,15 @@
 import { esc, safeColor } from "../util.js"
 
 const MOVE_MS = 80 // how often my stroke-so-far goes out (cups use the same)
-const BRUSH_SIZE = 6 // stroke width, px on a 1000px-wide screen (scales with width)
+const BRUSH_SIZE = 6 // the default stroke width, px on a 1000px-wide screen (scales with width)
+// The brush sizes on offer (the server clamps 2..40, so all of these ride
+// the wire untouched). Ids keep the HUD readable; the dot preview is CSS.
+export const BRUSH_SIZES = [
+	{ id: "fine", size: 3 },
+	{ id: "brush", size: 6 },
+	{ id: "broad", size: 14 },
+	{ id: "roller", size: 28 },
+]
 const MAX_PTS = 200 // a stroke past this auto-commits and a fresh one begins
 const SWATCHES = ["#e63946", "#f4a261", "#facc15", "#3ddc84", "#38bdf8", "#c084fc", "#f5f0e8", "#16161d"]
 
@@ -35,6 +43,15 @@ export function swatchRowHtml(myColor) {
 	return `<span class="ar-swatches">${dots}<input type="color" id="arPick" value="#e63946" aria-label="Pick any color"><button type="button" class="ar-swatch ar-eraser" data-erase="1" aria-label="Eraser" title="Eraser">🧽</button></span>`
 }
 
+// The size row: one dot per brush width, the dot drawn at (a scaled-down
+// version of) its own size so the row previews itself.
+export function sizeRowHtml(selected = BRUSH_SIZE) {
+	return `<span class="ar-sizes">${BRUSH_SIZES.map(
+		(b) =>
+			`<button type="button" class="ar-size${b.size === selected ? " on" : ""}" data-size="${b.size}" aria-label="Brush size ${b.id}" title="${b.id}"><i style="width:${Math.min(18, b.size)}px;height:${Math.min(18, b.size)}px"></i></button>`
+	).join("")}</span>`
+}
+
 export const layerHtml = () => `<div class="ar-layer hidden" id="arLayer" aria-label="Art room">
 	<canvas id="arCanvas"></canvas>
 	<div id="arOthers"></div>
@@ -43,6 +60,7 @@ export const layerHtml = () => `<div class="ar-layer hidden" id="arLayer" aria-l
 		<b class="ar-title">🎨 Will's Art Room</b>
 		<span class="ar-hint" id="arHint">Drag anywhere to paint</span>
 		<div class="ar-row" id="arColors"></div>
+		<div class="ar-row" id="arSizes"></div>
 		<div class="ar-row">
 			<button type="button" data-act="ar-wipe">Wipe my paint</button>
 			<button type="button" class="ghost" data-act="ar-exit">↩ Put the brush away</button>
@@ -63,6 +81,7 @@ export function mountArtRoom(opts) {
 	const hud = doc.getElementById("arHud")
 	const hint = doc.getElementById("arHint")
 	const colorsRow = doc.getElementById("arColors")
+	const sizesRow = doc.getElementById("arSizes")
 	const myUserId = () => opts.getMyUserId?.() ?? null
 
 	const vw = () => win?.innerWidth || 1200
@@ -125,6 +144,7 @@ export function mountArtRoom(opts) {
 	let open = false
 	let curColor = safeColor(opts.getMyColor?.())
 	let curErase = false // 🧽 selected: strokes take paint away
+	let curSize = BRUSH_SIZE
 	let stroke = null // the stroke being painted right now
 	const remote = new Map() // userId -> cursor el (their brush position)
 	const syncLayer = () => {
@@ -160,7 +180,7 @@ export function mountArtRoom(opts) {
 	}
 
 	function beginStroke(px, py) {
-		stroke = { color: curColor, size: BRUSH_SIZE, pts: [[fr(px / vw()), fr(py / vh())]], ...(curErase ? { erase: true } : {}) }
+		stroke = { color: curColor, size: curSize, pts: [[fr(px / vw()), fr(py / vh())]], ...(curErase ? { erase: true } : {}) }
 		const p = painterOf(myUserId())
 		p.live = stroke
 		redraw()
@@ -214,6 +234,12 @@ export function mountArtRoom(opts) {
 
 	// ---- HUD ----
 	layer.addEventListener("click", (e) => {
+		const sz = e.target.closest(".ar-size")
+		if (sz) {
+			curSize = Math.max(2, Math.min(40, Number(sz.dataset.size) || BRUSH_SIZE))
+			for (const b of sizesRow.querySelectorAll(".ar-size")) b.classList.toggle("on", b === sz)
+			return
+		}
 		const sw = e.target.closest(".ar-swatch")
 		if (sw) {
 			curErase = sw.dataset.erase === "1"
@@ -252,6 +278,7 @@ export function mountArtRoom(opts) {
 		sizeCanvas()
 		redraw()
 		colorsRow.innerHTML = swatchRowHtml(opts.getMyColor?.())
+		sizesRow.innerHTML = sizeRowHtml(curSize)
 		curColor = safeColor(opts.getMyColor?.())
 		curErase = false
 		catcher.classList.remove("hidden")
@@ -398,6 +425,9 @@ export function mountArtRoom(opts) {
 		},
 		get color() {
 			return curColor
+		},
+		get size() {
+			return curSize
 		},
 	}
 }

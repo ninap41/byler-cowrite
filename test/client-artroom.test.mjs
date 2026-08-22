@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 import { installDom } from "./dom.mjs";
 
 installDom();
-const { layerHtml, swatchRowHtml, mountArtRoom } =
+const { layerHtml, swatchRowHtml, sizeRowHtml, BRUSH_SIZES, mountArtRoom } =
   await import("../public/js/components/art-room.js");
 
 test("layerHtml: canvas, others' box, the catcher, HUD with wipe/way out", () => {
@@ -23,6 +23,27 @@ test("swatchRowHtml: my colour leads and starts selected, presets follow, the pi
   assert.match(h, /id="arPick"/, "the free picker is there");
   assert.match(h, /data-erase="1"/, "the eraser closes the row");
   assert.ok(!swatchRowHtml("red;url(x)").includes("url(x)"), "junk colours fall back");
+});
+
+test("sizeRowHtml: one self-previewing dot per brush size, the default selected", () => {
+  const h = sizeRowHtml(6);
+  assert.equal((h.match(/ar-size/g) || []).length >= BRUSH_SIZES.length, true, "a dot per size");
+  for (const b of BRUSH_SIZES) assert.match(h, new RegExp(`data-size="${b.size}"`), b.id + " on offer");
+  assert.match(h, /class="ar-size on" data-size="6"/, "the default wears the ring");
+});
+
+test("picking a size changes the brush: the next stroke goes out at that width", () => {
+  document.body.innerHTML = "";
+  const socket = fakeSocket(() => ({ ok: true }));
+  const m = mountArtRoom({ socket, getMyUserId: () => "u1", getMyColor: () => "#6c8cff", document });
+  m.start();
+  assert.equal(m.size, 6, "the default brush");
+  const broad = document.querySelector('#arSizes [data-size="14"]');
+  broad.dispatchEvent(new window.Event("click", { bubbles: true }));
+  assert.equal(m.size, 14, "the pick sticks");
+  assert.ok(broad.classList.contains("on"), "and wears the ring");
+  assert.equal(document.querySelectorAll("#arSizes .ar-size.on").length, 1, "one size at a time");
+  m.exit();
 });
 
 function fakeSocket(reply = () => ({ ok: true })) {
