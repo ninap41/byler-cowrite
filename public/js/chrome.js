@@ -57,7 +57,7 @@ const BG = `
 			<div class="hazmat h1 drift"></div><div class="hazmat h2 drift"></div><div class="rift"></div>
 		</div>
 		<div class="bg-set castlebyers">
-			${treesBackHtml()}<div class="cbground"></div><div class="cbmound" data-depth="0.72"></div><div class="fortpic" data-depth="0.75"></div>${treesFrontHtml()}
+			${treesBackHtml()}<div class="cbground"></div><div class="cbmound" data-depth="0.72"></div><div class="cbspot" data-depth="0.73"></div><div class="fortpic" data-depth="0.75"></div>${treesFrontHtml()}
 		</div>
 		<div class="bg-set vecna">
 			<div class="clockface"></div><div class="cvines"></div>

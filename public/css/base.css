@@ -4244,6 +4244,30 @@ button.danger,
 	transition: transform 0.35s cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 
+/* A pool of light on the ground under the fort, in the furthest tree line's
+   ink (--cb-l4): an ellipse hugging the bottom, centred on the fort's own
+   offset, screened over the mound so it lights the earth instead of
+   painting over it. It leans between the mound and the fort so it stays
+   under the castle as the scene shifts. */
+.bg-set.castlebyers .cbspot {
+	position: absolute;
+	left: 50%;
+	bottom: 0;
+	width: min(1700px, 108vw);
+	height: 22%;
+	background: radial-gradient(48% 88% at 50% 100%,
+		rgba(157, 169, 118, 0.5),
+		rgba(157, 169, 118, 0.16) 55%,
+		transparent 76%);
+	mix-blend-mode: screen;
+	transform: translateX(calc(-50% + 200px)) var(--cb-par, translate3d(0, 0, 0));
+	will-change: transform;
+	transition: transform 0.35s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+.bg-set.castlebyers.live .cbspot {
+	transition: transform 0.12s linear;
+}
+
 /* Castle Byers itself: the fort vector, front and center at the bottom,
    BEHIND the darkest tree layer (DOM order in chrome.js) so the nearest
    pines pass in front of it. It leans with the pointer like the trees —

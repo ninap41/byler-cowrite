@@ -1008,3 +1008,30 @@ a.rg-row {
 .dash-nav {
 	padding: 0;
 }
+
+/* The two scenery-heavy themes get a translucent sheet back under the
+   editorial columns — Vecna's clock and the Castle Byers forest run right
+   behind the type, so each column sits on its theme's panel glass while
+   every other theme keeps the bare editorial page. */
+[data-theme="vecna"] .dash-col,
+[data-theme="vecna"] .dash-rail,
+[data-theme="castlebyers"] .dash-col,
+[data-theme="castlebyers"] .dash-rail {
+	background: var(--panel);
+	border: 1px solid var(--panel-brd);
+	border-radius: var(--r-md);
+	padding: 22px;
+	backdrop-filter: blur(16px);
+	-webkit-backdrop-filter: blur(16px);
+}
+
+/* The Void's lightning strikes right behind the profile header, so just the
+   welcome card gets its glass back there — the rest of the page stays bare. */
+[data-theme="void"] .dash-col > .card:has(.welcome) {
+	background: var(--panel);
+	border: 1px solid var(--panel-brd);
+	border-radius: var(--r-md);
+	padding: 22px;
+	backdrop-filter: blur(16px);
+	-webkit-backdrop-filter: blur(16px);
+}
