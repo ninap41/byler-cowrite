@@ -348,13 +348,13 @@ export function createGame(io) {
       const what = describeRewards(unlocks);
       announce(s, writer, `earned the ${writer.badge} badge!${what ? ` That unlocks ${what}.` : ""}`);
       notifyEarned(u.currentBadge, unlocks);
-      if (what) {
-        if (!Array.isArray(u.inbox)) u.inbox = [];
-        u.inbox.unshift(makeMsg("system", null,
-          `🎉 You reached ${writer.badge} — that unlocks ${what}.` +
-          (unlocks.themes.length ? " Find your new theme in the 🎨 menu at the foot of any page." : ""),
-          { unlocks }));
-      }
+      // Every rank-up lands in the inbox — with the unlocks when it hands
+      // any out, as a plain congratulation when it doesn't.
+      if (!Array.isArray(u.inbox)) u.inbox = [];
+      u.inbox.unshift(makeMsg("system", null,
+        `🎉 You reached ${writer.badge}` + (what ? ` — that unlocks ${what}.` : `! ${badgeDesc(u.currentBadge) || ""}`.trimEnd()) +
+        (unlocks.themes.length ? " Find your new theme in the 🎨 menu at the foot of any page." : ""),
+        { unlocks }));
     }
     saveStore();
   }
