@@ -87,6 +87,9 @@ export function mountVecnaCurse(opts) {
 		if (mineNow()) {
 			veil.classList.remove("hidden")
 			word.textContent = "WRITE."
+			// the victim's whole page runs backwards — mirrored text, the
+			// Upside Down's way (cosmetic: clicks still land, nothing blocked)
+			doc.documentElement.classList.add("vcx-taken")
 			opts.playChime?.()
 		}
 		layer.classList.remove("hidden")
@@ -99,6 +102,7 @@ export function mountVecnaCurse(opts) {
 		cursed = null
 		typed = 0
 		doc.documentElement.classList.remove("vcx-live")
+		doc.documentElement.classList.remove("vcx-taken")
 		markChips(false)
 		if (!veil.classList.contains("hidden")) fadeOut(veil, () => veil.classList.add("hidden"))
 		syncLayer()

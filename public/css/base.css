@@ -9034,8 +9034,40 @@ body.game-page .session-bar .sess-name {
 	gap: 8px;
 	flex-wrap: wrap;
 }
+/* the target picker is a LIST: one writer per row, full width */
+#vcxTargets {
+	flex-direction: column;
+	align-items: stretch;
+	gap: 4px;
+	max-height: 40vh;
+	overflow-y: auto;
+}
 .vcx-target {
 	font-weight: 700;
+	text-align: left;
+	width: 100%;
+	padding: 8px 12px;
+	border: 1px solid var(--line);
+	border-radius: 8px;
+	background: color-mix(in srgb, var(--panel-2) 60%, transparent);
+}
+.vcx-target:not(:disabled):hover {
+	border-color: rgba(220, 40, 40, 0.6);
+	background: rgba(120, 12, 16, 0.25);
+}
+.vcx-target:disabled {
+	opacity: 0.45;
+	cursor: default;
+}
+/* the TAKEN page runs backwards: the whole document mirrors, text and all —
+   the Upside Down's own reading order. Cosmetic: hit-testing follows the
+   transform, so every click still lands where it looks like it should. */
+html.vcx-taken body {
+	transform: scaleX(-1);
+}
+/* the veil's own instruction stays readable — it's the way out */
+html.vcx-taken .vcx-word {
+	transform: translateX(-50%) scaleX(-1);
 }
 /* the victim, seen from outside: their chips pulse red on every screen
    (doubled class names outrank .player-chip.now's border) */
