@@ -30,6 +30,15 @@ test("every gated theme names a real theme and a real tier", () => {
   assert.ok(THEMES.some((t) => !THEME_UNLOCKS[t]), "at least one theme costs nothing");
 });
 
+test("the theme registry lists themes in unlock order: free first, then rung by rung up the ladder", () => {
+  const cost = (id) => {
+    const tier = WORD_TIERS.find((t) => t.id === THEME_UNLOCKS[id]);
+    return THEME_UNLOCKS[id] ? tier.min : -1; // free sorts before the 0-word rung
+  };
+  const costs = THEMES.map(cost);
+  assert.deepEqual(costs, [...costs].sort((a, b) => a - b), "the menu reads as the reward track: " + THEMES.map((t) => `${t}:${cost(t)}`).join(" "));
+});
+
 test("an unlisted theme — or one pointing at a tier that no longer exists — is free", () => {
   assert.equal(tierForTheme("neon"), null);
   assert.equal(tierForTheme("a-theme-nobody-made"), null);
