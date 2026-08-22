@@ -117,15 +117,33 @@
 							Embed images inline with <code>&lt;img src="https://…"&gt;</code> — other html shows as plain text.
 						</p>
 						<label style="margin-top: 10px">Links (up to three)</label>
-						<div class="chat-row"><input id="link1Label" placeholder="Label" maxlength="40" /><input id="link1Url" placeholder="https://…" /></div>
-						<div class="chat-row" style="margin-top: 8px"><input id="link2Label" placeholder="Label" maxlength="40" /><input id="link2Url" placeholder="https://…" /></div>
-						<div class="chat-row" style="margin-top: 8px"><input id="link3Label" placeholder="Label" maxlength="40" /><input id="link3Url" placeholder="https://…" /></div>
+						<div id="linkChips" class="tag-chips"></div>
+						<div class="row" style="justify-content: flex-start; margin-top: 8px">
+							<button type="button" class="ghost" id="addLinkBtn">Add link +</button>
+							<span class="subtle hidden" id="linkMax" style="font-size: 0.78rem">3 links max — remove one to add another.</span>
+						</div>
 						<!-- the save button ends the profile form -->
 						<div class="row"><button class="primary" id="saveProfile">Save profile</button></div>
 					</div>
 
 					<div class="err" id="setErr"></div>
 					<p class="ok-msg" id="setOk"></p>
+				</div>
+			</div>
+		</div>
+
+		<!-- Add-link modal: the site's .confirm-modal shape (see confirm-delete.js) -->
+		<div class="confirm-modal hidden" id="linkModal" role="dialog" aria-modal="true" aria-labelledby="linkModalTitle">
+			<div class="confirm-card">
+				<h3 id="linkModalTitle">Add a link</h3>
+				<label for="linkLabel">Label</label>
+				<input id="linkLabel" placeholder="My AO3" maxlength="40" style="width: 100%" />
+				<label for="linkUrl" style="margin-top: 10px">URL</label>
+				<input id="linkUrl" placeholder="https://…" style="width: 100%" />
+				<div class="err" id="linkErr"></div>
+				<div class="row" style="justify-content: flex-end; margin-top: 12px">
+					<button type="button" class="ghost" id="linkCancel">Cancel</button>
+					<button type="button" class="primary" id="linkAdd">Add link</button>
 				</div>
 			</div>
 		</div>
@@ -172,6 +190,65 @@
 					.replace(/&quot;/g, '"')
 					.replace(/&#39;/g, "'")
 					.replace(/&amp;/g, "&")
+			// Profile links live in this array; chips render from it and the ✕
+			// splices it (the tag-chips pattern). Save profile persists the array.
+			let links = []
+			function renderLinks() {
+				const box = $("linkChips")
+				box.innerHTML = ""
+				links.forEach((l, i) => {
+					const chip = document.createElement("span")
+					chip.className = "tag-chip"
+					chip.append("🔗 " + (l.label || l.url))
+					chip.title = l.url
+					const x = document.createElement("button")
+					x.type = "button"
+					x.textContent = "✕"
+					x.setAttribute("aria-label", "Remove link " + (l.label || l.url))
+					x.onclick = () => {
+						links.splice(i, 1)
+						renderLinks()
+					}
+					chip.appendChild(x)
+					box.appendChild(chip)
+				})
+				const full = links.length >= 3
+				$("addLinkBtn").classList.toggle("hidden", full)
+				$("linkMax").classList.toggle("hidden", !full)
+			}
+
+			// The add-link modal (the site's .confirm-modal shape).
+			const linkModal = $("linkModal")
+			const openLinkModal = () => {
+				$("linkLabel").value = $("linkUrl").value = ""
+				$("linkErr").textContent = ""
+				linkModal.classList.remove("hidden")
+				$("linkLabel").focus()
+			}
+			const closeLinkModal = () => linkModal.classList.add("hidden")
+			$("addLinkBtn").onclick = openLinkModal
+			$("linkCancel").onclick = closeLinkModal
+			linkModal.addEventListener("click", (e) => {
+				if (e.target === linkModal) closeLinkModal()
+			})
+			linkModal.addEventListener("keydown", (e) => {
+				if (e.key === "Escape") closeLinkModal()
+				if (e.key === "Enter") $("linkAdd").click()
+			})
+			$("linkAdd").onclick = () => {
+				const label = $("linkLabel").value.trim()
+				const url = $("linkUrl").value.trim()
+				if (!/^https?:\/\//i.test(url)) {
+					$("linkErr").textContent = "Links must start with http:// or https://."
+					return
+				}
+				if (links.length >= 3) return closeLinkModal()
+				links.push({ label: label || url.slice(0, 40), url })
+				renderLinks()
+				closeLinkModal()
+				say(true, "Link added — hit Save profile to keep it.")
+			}
+
 			function fill() {
 				if (!me) return
 				setUserChip(me)
@@ -185,10 +262,8 @@
 				$("sndStory").checked = snd.story !== false
 				$("sndClock").checked = snd.clock !== false
 				$("sndGimmick").checked = snd.gimmick !== false
-				;[1, 2, 3].forEach((n) => {
-					$("link" + n + "Label").value = me.links?.[n - 1]?.label || ""
-					$("link" + n + "Url").value = me.links?.[n - 1]?.url || ""
-				})
+				links = (me.links || []).map((l) => ({ label: l.label || "", url: l.url || "" }))
+				renderLinks()
 				document.querySelectorAll(".swatch").forEach((x) => x.classList.toggle("sel", x.dataset.color === safeColor(me.color)))
 			}
 
@@ -238,9 +313,6 @@
 			}
 			$("saveProfile").onclick = async () => {
 				try {
-					const links = [1, 2, 3]
-						.map((n) => ({ label: $("link" + n + "Label").value.trim(), url: $("link" + n + "Url").value.trim() }))
-						.filter((l) => l.url)
 					const r = await api("/api/account/profile", {
 						about: $("setAbout").value,
 						links,

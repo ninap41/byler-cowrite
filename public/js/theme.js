@@ -145,6 +145,57 @@ export function initTheme() {
 		}
 	}
 
+	// ---- Castle Byers: the forest leans away from the pointer -------------
+	// Four traced tree layers plus the fort, each with a data-depth; the
+	// pointer's offset from screen centre (normalised to -1..1) pushes every
+	// layer the opposite way, deeper layers further, so the forest reads as a
+	// diorama you're peering into. Vertical travel is damped to 45% — trees
+	// are taller than they are deep. The pointer leaving the window recentres
+	// everything on the slow eased transition (the .live class swaps in a fast
+	// linear one while the pointer moves).
+	let stopMouse = null
+	const MOUSE_AMT = 26
+	function startMouseParallax(theme) {
+		if (stopMouse) stopMouse()
+		stopMouse = null
+		if (theme !== "castlebyers" || reduce) return
+		const set = document.querySelector(".bg-set.castlebyers")
+		const layers = set ? [...set.querySelectorAll("[data-depth]")] : []
+		if (!layers.length) return
+		const depths = layers.map((l) => parseFloat(l.dataset.depth) || 0)
+		let x = 0,
+			y = 0,
+			raf = 0
+		const draw = () => {
+			raf = 0
+			layers.forEach((l, i) => {
+				const tx = (-x * MOUSE_AMT * depths[i]).toFixed(2)
+				const ty = (-y * MOUSE_AMT * depths[i] * 0.45).toFixed(2)
+				l.style.setProperty("--cb-par", `translate3d(${tx}px, ${ty}px, 0)`)
+			})
+		}
+		const onMove = (e) => {
+			set.classList.add("live")
+			x = (e.clientX / window.innerWidth) * 2 - 1
+			y = (e.clientY / window.innerHeight) * 2 - 1
+			if (!raf) raf = requestAnimationFrame(draw)
+		}
+		const onLeave = () => {
+			set.classList.remove("live")
+			x = y = 0
+			if (!raf) raf = requestAnimationFrame(draw)
+		}
+		window.addEventListener("pointermove", onMove, { passive: true })
+		document.documentElement.addEventListener("pointerleave", onLeave)
+		stopMouse = () => {
+			window.removeEventListener("pointermove", onMove)
+			document.documentElement.removeEventListener("pointerleave", onLeave)
+			if (raf) cancelAnimationFrame(raf)
+			set.classList.remove("live")
+			for (const l of layers) l.style.removeProperty("--cb-par")
+		}
+	}
+
 	// ---- I Miss the Clouds: layered clouds on sine paths ------------------
 	// Depth is the whole effect: the palest, slowest, blurriest formations are
 	// BEHIND (first in the DOM), the darkest and fastest in front. Every layer
@@ -284,6 +335,7 @@ export function initTheme() {
 		if (curLabel) curLabel.textContent = LABELS[theme] || theme
 		startFloat(theme)
 		startParallax(theme)
+		startMouseParallax(theme)
 		startClouds(theme)
 		if (hasGsap) gsap.fromTo(".bg-layers", { opacity: 0.35 }, { opacity: 1, duration: 0.6, ease: "power2.out" })
 	}

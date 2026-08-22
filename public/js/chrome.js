@@ -3,6 +3,7 @@
 // by every page so the markup lives in exactly one place.
 import { towerSvg } from "./components/cleradin-tower.js"
 import { clockSvg } from "./components/vecna-clock.js"
+import { treesBackHtml, treesFrontHtml } from "./components/castle-trees.js"
 import { initTheme, THEMES, THEME_LABELS } from "./theme.js"
 import { logoHtml, quillHtml } from "./logo.js"
 import { initNav } from "./nav.js"
@@ -56,7 +57,7 @@ const BG = `
 			<div class="hazmat h1 drift"></div><div class="hazmat h2 drift"></div><div class="rift"></div>
 		</div>
 		<div class="bg-set castlebyers">
-			<div class="trees"></div><div class="cbground"></div><div class="fortpic"></div><div class="beam drift"></div>
+			${treesBackHtml()}<div class="cbground"></div><div class="cbmound" data-depth="0.72"></div><div class="fortpic" data-depth="0.75"></div>${treesFrontHtml()}
 		</div>
 		<div class="bg-set vecna">
 			<div class="clockface"></div><div class="cvines"></div>
@@ -248,20 +249,6 @@ let themeLocks = {}
 
 export function mountChrome({ page = "", nav = true, kofi = true } = {}) {
 	document.body.insertAdjacentHTML("afterbegin", BG + (nav ? NAV(page) : "") + TOPBAR)
-	// Castle Byers parallax: expose the scroll offset as a unitless CSS var;
-	// the theme's tree/fort layers translate from it at different rates.
-	const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches
-	if (!reduceMotion) {
-		let raf = 0
-		const onScroll = () => {
-			if (raf) return
-			raf = requestAnimationFrame(() => {
-				raf = 0
-				document.documentElement.style.setProperty("--cb-scroll", window.scrollY)
-			})
-		}
-		window.addEventListener("scroll", onScroll, { passive: true })
-	}
 	// Sun-spiral logo before the "Byler Cowrite" page title, quill after it.
 	// The whole header is a link home (signed-in visitors bounce on to /dashboard).
 	const h1 = document.querySelector(".wrap h1")

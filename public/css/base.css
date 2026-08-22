@@ -4103,15 +4103,38 @@ button.danger,
 	--font-story: "Newsreader", serif;
 	--font-mono: "Inconsolata", ui-monospace, monospace;
 }
-[data-theme="castlebyers"] .bg-set.castlebyers { opacity: 1; }
-/* the forest: the layered pine-silhouette vector, oversized so it can drift
-   upward on scroll (parallax via the unitless --cb-scroll var from chrome.js) */
-.bg-set.castlebyers .trees {
+[data-theme="castlebyers"] .bg-set.castlebyers {
+	opacity: 1;
+	/* the four tree layers' inks, back (lightest) to front (darkest) — the SVGs
+	   in components/castle-trees.js read these, so recolouring the forest is
+	   editing these four lines */
+	--cb-l4: #9da976;
+	--cb-l3: #5f795d;
+	--cb-l2: #2a5246;
+	--cb-l1: #101010;
+	background: linear-gradient(to bottom, #142415, #0a1810 70%, #06140f);
+}
+/* The forest: four traced pine layers (components/castle-trees.js), each
+   leaning away from the pointer at its own data-depth (startMouseParallax in
+   theme.js writes --cb-par per layer). The -12% inset is the bleed that lets a
+   layer drift its full 26px without exposing an edge. The slow eased
+   transition is the recentre when the pointer leaves; .live swaps in a fast
+   linear one while it moves. */
+.bg-set.castlebyers .cb-layer {
 	position: absolute;
-	inset: 0 0 -18%;
-	background: url("/img/castle-trees.svg") center bottom / cover no-repeat;
-	transform: translateY(clamp(-18vh, calc(var(--cb-scroll, 0) * -0.08px), 0px));
+	inset: -12%;
+	transform: var(--cb-par, none);
 	will-change: transform;
+	transition: transform 0.35s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+.bg-set.castlebyers.live .cb-layer,
+.bg-set.castlebyers.live .fortpic {
+	transition: transform 0.12s linear;
+}
+.bg-set.castlebyers .cb-layer svg {
+	width: 100%;
+	height: 100%;
+	display: block;
 }
 /* The forest floor. Without it the trees and the fort ended on nothing and the
    page's own background ran up under them; this is the brown-black leaf litter
@@ -4130,31 +4153,53 @@ button.danger,
 		linear-gradient(to top, #120c07 0%, #1a1209 42%, rgba(22, 16, 10, 0.82) 72%, transparent 100%);
 }
 
-/* Castle Byers itself: the fort vector, front and center at the bottom.
-   The fort is PLANTED in the treeline, so its drift is bounded three ways —
-   it never travels more than 100px, never outruns the trees it stands in
-   (same 0.08 rate, same -18vh ceiling), and never drifts downward. An
-   unbounded translate here let it climb off the top of a long page and
-   detach from the forest floor. */
+/* The mound the fort rests on (img/ground.svg, inked the forest-floor brown):
+   centred on the same offset as the fort, a touch wider, its top rising just
+   under the fort's base. Leans with the pointer at a depth a hair behind the
+   fort's, so the fort stays planted on it as the scene shifts. */
+.bg-set.castlebyers .cbmound {
+	position: absolute;
+	left: 50%;
+	bottom: 0;
+	width: min(1900px, 120vw);
+	height: calc(30% + 200px);
+	background: url("/img/ground.svg") center top / 100% 100% no-repeat;
+	transform: translateX(calc(-50% + 200px)) var(--cb-par, translate3d(0, 0, 0));
+	will-change: transform;
+	transition: transform 0.35s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+/* Castle Byers itself: the fort vector, front and center at the bottom,
+   BEHIND the darkest tree layer (DOM order in chrome.js) so the nearest
+   pines pass in front of it. It leans with the pointer like the trees —
+   its data-depth sits between the two front layers — composed after its
+   own centring translate. */
 .bg-set.castlebyers .fortpic {
 	position: absolute;
 	left: 50%;
-	bottom: -4%;
-	width: min(620px, 74vw);
+	bottom: calc(-4% + 300px);
+	width: min(1550px, 96vw);
 	aspect-ratio: 1920 / 1072;
 	background: url("/img/castle-byers.svg") center bottom / contain no-repeat;
-	transform: translateX(-50%) translateY(min(0px, max(-100px, -18vh, calc(var(--cb-scroll, 0) * -0.08px))));
+	transform: translateX(calc(-50% + 200px)) var(--cb-par, translate3d(0, 0, 0));
 	will-change: transform;
+	transition: transform 0.35s cubic-bezier(0.22, 0.61, 0.36, 1);
 	filter: drop-shadow(0 12px 24px rgba(0, 42, 38, 0.45));
+	/* keeps the ::after tint blending with the fort alone, not the layers behind */
+	isolation: isolate;
 }
-.bg-set.castlebyers .beam {
+/* The fort sits in green light: a wash of the trees' own ink, masked to the
+   fort's silhouette (same SVG as a mask) and blended hue-only, so the art
+   keeps its values but takes the forest's shade. */
+.bg-set.castlebyers .fortpic::after {
+	content: "";
 	position: absolute;
-	left: 4%;
-	bottom: -6%;
-	width: 52vw;
-	height: 52vw;
-	background: conic-gradient(from -20deg at 0% 100%, transparent 0deg, rgba(255, 214, 140, 0.14) 12deg, transparent 30deg);
-	filter: blur(2px);
+	inset: 0;
+	background: var(--cb-l2, #2a5246);
+	opacity: 0.45;
+	mix-blend-mode: color;
+	-webkit-mask: url("/img/castle-byers.svg") center bottom / contain no-repeat;
+	mask: url("/img/castle-byers.svg") center bottom / contain no-repeat;
 }
 
 /* ---- Vecna's Clock: crimson dark, brass, a huge slow clock ---- */
