@@ -532,3 +532,18 @@ test("host controls are the comments drawer, on the game page", async () => {
   assert.match(css, /\.game-cols \{[^}]*var\(--doc-side-w/, "the drawer's width is the rail's own variable");
   assert.match(css, /\.game-cols\.side-closed \{/, "closing it gives the width back");
 });
+
+// The app's name comes from the content pack (content/site.json): the server
+// renders every page's {{SITE_NAME}}/{{FANDOM}} tokens and injects a
+// <meta name="site-name"> the client modules read.
+test("pages are rendered from site.json: no raw tokens, name in title, meta injected", async () => {
+  for (const path of ["/", "/index.html", "/dashboard", "/game", "/reset.html"]) {
+    const r = await page(path);
+    assert.equal(r.status, 200, path);
+    assert.ok(!r.body.includes("{{"), path + " has no unrendered token");
+    assert.ok(r.body.includes("Byler Cowrite"), path + " carries the default pack's name");
+    assert.ok(r.body.includes('<meta name="site-name" content="Byler Cowrite"'), path + " injects the meta");
+  }
+  const home = await page("/");
+  assert.ok(home.body.includes('id="heroWord1" class="hero-word-svg" x="450" y="110">Byler<'), "the hero's first word is the fandom");
+});

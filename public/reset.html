@@ -7,7 +7,7 @@
 			// Apply the saved theme before first paint (initTheme() re-validates it later)
 			try { var _t = localStorage.getItem("cowriteTheme"); if (_t) document.documentElement.setAttribute("data-theme", _t); var _f = localStorage.getItem("cowriteFont"); if (_f) document.documentElement.setAttribute("data-font", _f) } catch (e) {}
 		</script>
-		<title>Reset password — Byler Cowrite</title>
+		<title>Reset password — {{SITE_NAME}}</title>
 		<link rel="icon" type="image/x-icon" href="./favicon.ico?v=2" />
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link
@@ -116,7 +116,7 @@
 	<body>
 		<div class="card">
 			<h1>Reset your password</h1>
-			<p class="sub">Byler Cowrite</p>
+			<p class="sub">{{SITE_NAME}}</p>
 			<div id="form">
 				<label for="pw">New password (min 4 characters)</label>
 				<input id="pw" type="password" minlength="4" autocomplete="new-password" />
@@ -127,7 +127,7 @@
 			</div>
 			<div id="done" style="display: none">
 				<p class="ok">Password updated! You've been signed out everywhere.</p>
-				<p><a href="/">← Back to Byler Cowrite to log in</a></p>
+				<p><a href="/">← Back to {{SITE_NAME}} to log in</a></p>
 			</div>
 		</div>
 		<script>

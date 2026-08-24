@@ -1,31 +1,81 @@
-# The content pack
+# The content pack — how to re-fandom the app
 
 This directory IS the fandom. Everything hand-editable that says *which* fandom
-the game is about lives here, and the server reads it via `src/content.js`:
+the game is about lives here, and the server reads it via `src/content.js`
+(`contentPath()`) and `src/site.js`. Nothing in `public/` or `src/` needs to be
+touched to run the app for another fandom — only this directory.
+
+## The four files
 
 | file | holds |
 |---|---|
-| `prompts.json` | `prompts` — the curated scenario pool (one string each); `intermediate` — the guided-mode component pools (universes, periods, locations, relationship contexts, tensions, catalysts, tones, templates). See `docs/PROMPT_GENERATION.md`. |
-| `achievements.json` | `wordTiers` — the rank ladder; `usageOpen` — word badges with visible descriptions; `usage` — the SECRET word badges (triggers and descriptions hidden until earned); `themeUnlocks` — which rank earns which theme (and, through it, which gimmick). See `UNLOCKS.md`. |
-| `quotes.json` | Taglines for the homepage hero and dashboard (one string each, re-read on every request). |
+| `site.json` | The app's identity: `fandom` (the hero's first word — "Byler"), `name` (the full app name in every page title, the header, exports, emails, the welcome inbox note — "Byler Cowrite"), `tagline` (under the homepage heading), `blurb` (the first line of the features modal). Each is a plain string, ≤200 chars. Missing keys fall back to a generic "Cowrite". |
+| `prompts.json` | `prompts` — the curated scenario pool (one string each, dealt untouched in Simple mode); `intermediate` — the guided-mode component pools (universes, timePeriods, locations, relationshipContexts, tensions, catalysts, tones, templates, categoryLabels). See `docs/PROMPT_GENERATION.md` for the schema and compatibility rules. |
+| `achievements.json` | `wordTiers` — the rank ladder (id, name, min words, emoji); `usageOpen` — word badges whose descriptions are always visible; `usage` — the SECRET word badges (trigger words and descriptions hidden until earned); `themeUnlocks` — which rank earns which theme (and, through the theme, which gimmick). See `UNLOCKS.md`. |
+| `quotes.json` | Taglines for the homepage hero and the dashboard (an array of strings, re-read on every request, so edits show without a restart). |
 
-## Swapping packs
+## Step by step: making a pack for another fandom
 
-Point `COWRITE_CONTENT_DIR` at another directory holding the same three files:
+1. **Copy this directory** somewhere outside the repo (or to a sibling folder):
+   ```bash
+   cp -r content /path/to/drarry-pack
+   ```
+2. **Edit `site.json`** — set `fandom`, `name`, `tagline`, `blurb`. This alone
+   renames the app everywhere the name appears.
+3. **Rewrite `quotes.json`** — any number of strings.
+4. **Rewrite `prompts.json`**:
+   - `prompts`: replace the curated scenarios (any count, one string each).
+   - `intermediate`: keep the SHAPE (same top-level keys, same fields per
+     entry) and replace the content. The rules that matter: every
+     `compatiblePeriods` / `compatibleUniverses` id must exist; every
+     `timePeriods` entry needs an `ageGroup` (`minor` | `adult`); tensions need
+     all three `low`/`medium`/`high` variants; every universe must be admitted
+     by at least one period. Or delete the `intermediate` key entirely and the
+     game runs Simple mode only.
+5. **Rewrite `achievements.json`**:
+   - `wordTiers`: rename the ranks (keep `id`s stable if accounts already exist —
+     a user's `currentBadge` stores the id).
+   - `usage` / `usageOpen`: new trigger words and names.
+   - `themeUnlocks`: keys must be theme ids from `THEMES` in
+     `public/js/theme.js`, values must be `wordTiers` ids. Delete a key to make
+     that theme free.
+6. **Validate it** — the suite checks a pack's shape:
+   ```bash
+   COWRITE_CONTENT_DIR=/path/to/drarry-pack npm test
+   ```
+   `test/prompt-gen.test.mjs` validates the prompt library, `test/themes.test.mjs`
+   the theme unlocks, `test/pages.test.mjs` the rendered site name. (A few tests
+   assert the DEFAULT pack's literal strings — "Byler Cowrite", the Byler
+   quotes — and will fail on another pack; that is expected and is the only
+   noise.)
+7. **Run it**:
+   ```bash
+   COWRITE_CONTENT_DIR=/path/to/drarry-pack npm start
+   ```
+   On Replit, set `COWRITE_CONTENT_DIR` in Secrets, or simply replace the files
+   in `content/` in that deployment's copy of the repo.
 
-```bash
-COWRITE_CONTENT_DIR=/path/to/other-fandom npm start
-```
+## How the wiring works (for the curious)
 
-`npm test` validates a pack's shape (`test/prompt-gen.test.mjs`, `test/themes.test.mjs`,
-`test/unlocks-doc.test.mjs`), so run it against a new pack before shipping it.
+- `src/content.js` resolves the directory: `COWRITE_CONTENT_DIR` or `<repo>/content`.
+- `src/site.js` loads `site.json` once at boot. `server.js` serves every page
+  through `renderPage()`, which fills `{{SITE_NAME}}`, `{{FANDOM}}`, `{{TAGLINE}}`
+  and `{{BLURB}}` in the HTML and injects `<meta name="site-name">`; client
+  modules read that meta via `siteName()` in `public/js/util.js`. Server-side
+  strings (emails, the welcome note, the boot log) use `SITE.name`.
+- `prompts.json` and `achievements.json` are read once at startup (restart
+  after editing); `quotes.json` is re-read per request.
 
 ## What is still fandom-bound in code
 
-A pack changes the data, not the skin. A full "other fandom" build also needs:
+A pack changes the data and the name, not the skin. A full re-theme also needs:
 
-- theme ids/labels in `public/js/theme.js` and their CSS blocks + decorations in `public/css/base.css` (and `public/img/themes/*.jpg` screenshots)
-- gimmick names/descriptions in `lib/gimmicks.js` and the fandom-art components under `public/js/components/`
+- theme ids/labels in `public/js/theme.js`, their CSS blocks and decorations in
+  `public/css/base.css`, and the screenshots in `public/img/themes/*.jpg`
+- gimmick names/descriptions in `lib/gimmicks.js` and their fandom-art
+  components under `public/js/components/`
 - the spectator name pool in `public/js/spectator-names.js`
-- page `<title>`s and hero copy in `public/*.html`, `public/js/chrome.js`, `public/js/logo.js`
-- the fallback quote in `src/routes.js` (`readQuotes`)
+- the features-modal bullet list in `public/index.html` (it names themes,
+  badges and gimmicks)
+- the fallback quote in `src/routes.js` (`readQuotes`) — only shown if
+  `quotes.json` is missing or empty

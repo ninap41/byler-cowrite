@@ -7,6 +7,11 @@ export const esc = (s) =>
 
 export const safeColor = (c) => (PALETTE.includes(c) ? c : PALETTE[0])
 
+// The app's name, from the <meta name="site-name"> the server renders into
+// every page out of content/site.json (a jsdom test page has none → fallback).
+export const siteName = () =>
+	(typeof document !== "undefined" && document.querySelector('meta[name="site-name"]')?.content) || "Cowrite"
+
 // "(host)" marker, placed AFTER a name everywhere it appears.
 export const whoMarks = (o) => (o?.host || o?.isHost ? '<span class="host-tag">(host)</span>' : "")
 

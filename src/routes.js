@@ -4,6 +4,7 @@ import { readFileSync, readdirSync } from "fs";
 import { randomUUID } from "crypto";
 import { join } from "path";
 import { contentPath } from "./content.js";
+import { SITE } from "./site.js";
 import { WORD_TIERS, USAGE, USAGE_OPEN, badgeName, awardWordBadges, themeLocks, unlockedThemes, gimmickLocks, unlockedGimmicks } from "../lib/achievements.js";
 import { GIMMICKS } from "../lib/gimmicks.js";
 import { cleanColor, stripTags, httpUrl, sanitizeAbout, sanitizeDoc } from "./sanitize.js";
@@ -44,8 +45,8 @@ async function sendResetEmail(to, link) {
   await transport.sendMail({
     from: SMTP_FROM || SMTP_USER,
     to,
-    subject: "Byler Cowrite — reset your password",
-    text: `Someone (hopefully you) asked to reset your Byler Cowrite password.\n\nReset it here: ${link}\n\nThis link expires in 30 minutes. If you didn't ask, ignore this email.`,
+    subject: `${SITE.name} — reset your password`,
+    text: `Someone (hopefully you) asked to reset your ${SITE.name} password.\n\nReset it here: ${link}\n\nThis link expires in 30 minutes. If you didn't ask, ignore this email.`,
   });
 }
 

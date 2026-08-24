@@ -9,7 +9,7 @@ import { logoHtml, quillHtml } from "./logo.js"
 import { initNav } from "./nav.js"
 import { initBadgeTips } from "./badge-tips.js"
 import { initTooltips } from "./tooltip.js"
-import { safeColor, miniAvatar } from "./util.js"
+import { safeColor, miniAvatar, siteName } from "./util.js"
 import { mountTurnAlert } from "./turn-alert.js"
 import { api, getToken, setToken } from "./api.js"
 
@@ -166,7 +166,7 @@ export const FOOT_BAR = `<div class="foot-bar" id="footBar">
 		<span class="foot-dot hidden" id="gimmickDot" aria-hidden="true">·</span>
 		<button type="button" class="foot-btn hidden" id="gimmickBtn" aria-haspopup="menu" aria-expanded="false" title="Play a gimmick with the table">🎲 Play gimmick</button>
 		<span class="foot-dot" aria-hidden="true">·</span>
-		<button type="button" class="foot-btn" id="kofiBtn" title="Support Byler Cowrite on Ko-fi">☕ Support</button>
+		<button type="button" class="foot-btn" id="kofiBtn" title="Support ${siteName()} on Ko-fi">☕ Support</button>
 	</div>`
 
 // Ko-fi. The floating widget script is gone: it drew its own iframe button
@@ -180,7 +180,7 @@ export const KOFI_EMBED = `${KOFI_PAGE}/?hidefeed=true&widget=true&embed=true&pr
 export const KOFI_MODAL = `<div class="confirm-modal hidden" id="kofiModal">
 		<div class="confirm-card kofi-card">
 			<div class="kofi-head">
-				<h3>☕ Support Byler Cowrite</h3>
+				<h3>☕ Support ${siteName()}</h3>
 				<button type="button" class="ghost kofi-x" id="kofiClose" aria-label="Close">✕</button>
 			</div>
 			<iframe id="kofiFrame" title="Ko-fi" loading="lazy"></iframe>
@@ -261,7 +261,7 @@ export function mountChrome({ page = "", nav = true, kofi = true } = {}) {
 		h1.classList.add("brand-link")
 		h1.setAttribute("role", "link")
 		h1.setAttribute("tabindex", "0")
-		h1.title = "Byler Cowrite — home"
+		h1.title = siteName() + " — home"
 		const go = () => (location.href = "/")
 		h1.addEventListener("click", go)
 		h1.addEventListener("keydown", (e) => {

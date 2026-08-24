@@ -1,6 +1,6 @@
 // Build both a formatted-HTML and a plain-text version of the story —
 // prose only, with formatting preserved and NO usernames or colors.
-import { esc } from "./util.js"
+import { esc, siteName } from "./util.js"
 
 export function buildExports(prompt, story, doc = document) {
 	// block-formatted lines stand on their own; inline-only lines get a <p>
@@ -23,7 +23,7 @@ export function buildExports(prompt, story, doc = document) {
 // Self-contained, styled HTML document for download.
 export function exportDocument(html) {
 	return (
-		`<!doctype html><html><head><meta charset="utf-8"><title>Byler Cowrite</title>` +
+		`<!doctype html><html><head><meta charset="utf-8"><title>${esc(siteName())}</title>` +
 		`<style>body{font-family:Georgia,'Times New Roman',serif;max-width:640px;margin:48px auto;` +
 		`padding:0 20px;line-height:1.75;font-size:18px;color:#1a1a1a}` +
 		`h3.prompt{font-style:italic;color:#666;font-weight:normal;margin-bottom:1.5em;white-space:pre-line}p{margin:0 0 1em}` +

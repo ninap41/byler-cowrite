@@ -7,7 +7,7 @@
 			// Apply the saved theme before first paint (initTheme() re-validates it later)
 			try { var _t = localStorage.getItem("cowriteTheme"); if (_t) document.documentElement.setAttribute("data-theme", _t); var _f = localStorage.getItem("cowriteFont"); if (_f) document.documentElement.setAttribute("data-font", _f) } catch (e) {}
 		</script>
-		<title>Byler Cowrite</title>
+		<title>{{SITE_NAME}}</title>
 		<link rel="icon" type="image/x-icon" href="./favicon.ico?v=2" />
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link
@@ -26,7 +26,7 @@
 		<div class="hero" id="hero">
 			<div class="hero-inner">
 				<div class="hero-logo" id="heroLogo"></div>
-				<svg class="hero-svg" id="heroSvg" viewBox="0 0 900 300" aria-label="Byler Cowrite" role="img">
+				<svg class="hero-svg" id="heroSvg" viewBox="0 0 900 300" aria-label="{{SITE_NAME}}" role="img">
 					<defs>
 						<linearGradient id="heroGrad" x1="0" y1="0" x2="1" y2="0.35">
 							<stop offset="0" class="hg1"></stop>
@@ -34,7 +34,7 @@
 							<stop offset="1" class="hg3"></stop>
 						</linearGradient>
 					</defs>
-					<text id="heroWord1" class="hero-word-svg" x="450" y="110">Byler</text>
+					<text id="heroWord1" class="hero-word-svg" x="450" y="110">{{FANDOM}}</text>
 					<text id="heroWord2" class="hero-word-svg" x="450" y="230">Cowrite</text>
 					<path
 						id="heroUnderline"
@@ -57,11 +57,11 @@
 		<!-- FEATURES RUNDOWN (opens from the hero tagline) -->
 		<div class="features-modal hidden" id="featuresModal">
 			<div class="features-card">
-				<h2>What is Byler Cowrite?</h2>
-				<p class="feat-sub">A real-time, round-robin writing game for Byler fanfiction. Everyone holds the pen.</p>
+				<h2>What is {{SITE_NAME}}?</h2>
+				<p class="feat-sub">{{BLURB}}</p>
 				<ul class="feat-list">
 					<li>✍️ <b>Round-robin writing</b> — take turns adding one line each under a ticking countdown. The server owns the clock: when time's up, whatever you were typing is committed and play moves on.</li>
-					<li>🗳️ <b>Scenario votes</b> — every game opens with a group vote on curated Byler prompts, and anyone can add their own scenario to the ballot.</li>
+					<li>🗳️ <b>Scenario votes</b> — every game opens with a group vote on curated {{FANDOM}} prompts, and anyone can add their own scenario to the ballot.</li>
 					<li>⌨️ <b>Live typing</b> — watch the current writer's line appear as they type it, with rich text (bold / italic / underline).</li>
 					<li>💬 <b>Docked chat</b> — a collapsible chat panel with unread counts and message sounds, plus incoming/outgoing line sounds. Two channels: a private writers chat, and a spectator chat everyone shares — spectators get random Stranger Things names and their chatter is never saved.</li>
 					<li>👤 <b>Accounts</b> — sign up with email + username + password to play: your profile keeps your color, word count, badges, and every game you've written in.</li>
@@ -84,8 +84,8 @@
 		</div>
 
 		<div class="wrap">
-			<h1>Byler Cowrite</h1>
-			<p class="tag">A round-robin writing game. Write byler fan fiction together</p>
+			<h1>{{SITE_NAME}}</h1>
+			<p class="tag">{{TAGLINE}}</p>
 
 			<div class="main">
 				<!-- HOMEPAGE AUTH (choice -> login/signup/forgot pane) -->

@@ -1,5 +1,5 @@
 // Dashboard render helpers (pure string builders — testable without a page).
-import { esc, safeColor, PALETTE, miniAvatar, oneLinePrompt } from "./util.js"
+import { esc, safeColor, PALETTE, miniAvatar, oneLinePrompt, siteName } from "./util.js"
 
 export function onlineUsersHtml(users) {
 	return (
@@ -81,7 +81,7 @@ export function friendRowHtml(u) {
 export function inboxMsgHtml(m, { reply = true, chain = [], replyTo = m, fold = false } = {}) {
 	const from = m.from
 		? miniAvatar(m.from) + `<b style="color:${safeColor(m.from.color)}">${esc(m.from.username)}</b>`
-		: `<b>Byler Cowrite</b>`
+		: `<b>${esc(siteName())}</b>`
 	const when = m.ts ? new Date(m.ts).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : ""
 	return (
 		`<span class="ib-dot${m.read ? "" : " unread"}" title="${m.read ? "Read" : "Unread"}"></span>` +
@@ -119,7 +119,7 @@ export function chainMsgHtml(m) {
 		? `<b>You</b>`
 		: m.from
 			? miniAvatar(m.from) + `<b style="color:${safeColor(m.from.color)}">${esc(m.from.username)}</b>`
-			: `<b>Byler Cowrite</b>`
+			: `<b>${esc(siteName())}</b>`
 	const when = m.ts ? new Date(m.ts).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : ""
 	return (
 		`<span class="ib-chain-msg${m.mine ? " mine" : ""}${m.read ? "" : " unread"}">` +

@@ -7,6 +7,7 @@ import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import { badgeName, badgeDesc, isUsageId, isOpenUsageId, nextTierFor, migrateBadges, unlockedThemes, unlockedGimmicks } from "../lib/achievements.js";
 import { mirror } from "./persist.js";
+import { SITE } from "./site.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -62,7 +63,7 @@ export const makeMsg = (type, fromId, text, extra = {}) =>
   ({ id: randomUUID(), type, fromId: fromId || null, text: String(text || ""), read: false, ts: Date.now(), ...extra });
 
 export const welcomeMsg = () =>
-  makeMsg("system", null, "Welcome to Byler Cowrite! This is your inbox — friend requests and notes land here. 📬");
+  makeMsg("system", null, `Welcome to ${SITE.name}! This is your inbox — friend requests and notes land here. 📬`);
 
 // Init arrays on legacy accounts + seed sample messages: the welcome note,
 // plus a hello from an admin account when one exists (a "from a real user"
