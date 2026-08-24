@@ -44,7 +44,7 @@ test("an unlisted theme — or one pointing at a tier that no longer exists — 
   assert.equal(tierForTheme("a-theme-nobody-made"), null);
   assert.equal(canUseTheme({ badges: [] }, "neon"), true);
   // THEME_UNLOCKS is filtered at load, so a typo'd tier id can't lock a theme away
-  const raw = JSON.parse(readFileSync(new URL("../achievements.json", import.meta.url), "utf-8"));
+  const raw = JSON.parse(readFileSync(new URL("../content/achievements.json", import.meta.url), "utf-8"));
   const tierIds = new Set(WORD_TIERS.map((t) => t.id));
   for (const [theme, tierId] of Object.entries(raw.themeUnlocks || {}))
     if (!tierIds.has(tierId)) assert.equal(tierForTheme(theme), null, theme + " falls back to free");

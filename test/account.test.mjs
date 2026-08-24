@@ -44,7 +44,7 @@ test("achievements metadata is public: ladder + usage count only", async () => {
   assert.equal(r.data.wordTiers[0].name, "🔫 There. Out Loud.");
   assert.equal(r.data.wordTiers[0].min, 0);
   assert.equal(r.data.wordTiers[1].min, 5000);
-  const cfg = JSON.parse(readFileSync(new URL("../achievements.json", import.meta.url), "utf-8"));
+  const cfg = JSON.parse(readFileSync(new URL("../content/achievements.json", import.meta.url), "utf-8"));
   assert.equal(r.data.usageCount, cfg.usage.length, "usage count mirrors the hand-editable catalogue");
   assert.ok(r.data.wordTiers[1].desc.includes("5,000"), "ladder descs are public");
   // secret badges ship name-only (their descs arrive per-user once earned);

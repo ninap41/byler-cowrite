@@ -242,7 +242,7 @@ line contains a trigger word/phrase):
 | "Michael?" | 🙄 Ugh, Mike... |
 
 **Design:**
-- One `ACHIEVEMENTS` config (or `achievements.json`, like `prompts.json`) —
+- One `ACHIEVEMENTS` config (or `content/achievements.json`, like `content/prompts.json`) —
   entries are `{ id, emoji, name, type: "words"|"usage", min?|triggers? }`.
   Adding a new achievement = adding one entry, no code.
 - Matching runs in `creditLine()` on the **stripped text of the sanitized

@@ -17,7 +17,7 @@ import {
 } from "../lib/achievements.js";
 
 const ADMIN_EMAIL = "admin@cowrite.test";
-const CFG = JSON.parse(readFileSync(new URL("../achievements.json", import.meta.url), "utf-8"));
+const CFG = JSON.parse(readFileSync(new URL("../content/achievements.json", import.meta.url), "utf-8"));
 
 let ctx;
 // The die is fixed for the steal test (20 first, then a 1, then random) and

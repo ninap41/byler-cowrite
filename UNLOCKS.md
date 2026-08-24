@@ -2,7 +2,7 @@
 
 A hand-editable reference of which themes unlock at which word-count ranks, and which gimmick rides each theme.
 
-**This file is documentation only.** The real data lives in `achievements.json`:
+**This file is documentation only.** The real data lives in `content/achievements.json`:
 
 - Ranks are the `wordTiers` ladder (id, name, `min` words).
 - Theme gating is the `themeUnlocks` map: `theme id → tier id`. A theme not listed is free for everyone; a theme pointing at a tier id that doesn't exist falls back to free.
@@ -49,11 +49,11 @@ A hand-editable reference of which themes unlock at which word-count ranks, and 
 - Aurora (`aurora`)
 - Upside Down (`upside`)
 
-Note: `ink` and `wall` sit at the 0-word tier, so any signed-in account has them; signed-out visitors get only the three free themes. `test/unlocks-doc.test.mjs` re-derives the two tables above from `achievements.json` + `lib/gimmicks.js` and fails if this file drifts.
+Note: `ink` and `wall` sit at the 0-word tier, so any signed-in account has them; signed-out visitors get only the three free themes. `test/unlocks-doc.test.mjs` re-derives the two tables above from `content/achievements.json` + `lib/gimmicks.js` and fails if this file drifts.
 
 ## How to edit
 
-Change `themeUnlocks` in `achievements.json` — keys are theme ids from `THEMES` in `public/js/theme.js`, values are tier ids from `wordTiers` above. `test/themes.test.mjs` pins every key to a real theme and every value to a real tier, so run `npm test` after editing. Update this file to match.
+Change `themeUnlocks` in `content/achievements.json` — keys are theme ids from `THEMES` in `public/js/theme.js`, values are tier ids from `wordTiers` above. `test/themes.test.mjs` pins every key to a real theme and every value to a real tier, so run `npm test` after editing. Update this file to match.
 
 ## Table rules for every gimmick
 

@@ -12,15 +12,14 @@ import { PALETTE, cleanColor, cleanHex, sanitizeRich, stripTags, httpUrl, saniti
 import { store, saveStore, userByToken, makeMsg, isAdmin } from "./store.js";
 import { mirror, mirrorDelete } from "./persist.js";
 import { generateSimplePrompt, generateIntermediatePrompt, INTENSITIES, MODES } from "../lib/prompt-gen.js";
+import { contentPath } from "./content.js";
 import { readDoc, writeDoc, canView, canEdit, canComment, anchorCids, anchorText, stripAnchor, applySuggestion } from "./docs.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-// Curated Byler scenario prompts + the guided-mode component pools (edit
-// prompts.json freely — no code changes). See docs/PROMPT_GENERATION.md.
-const PROMPT_DATA = JSON.parse(
-  readFileSync(join(__dirname, "..", "prompts.json"), "utf-8")
-);
+// Curated scenario prompts + the guided-mode component pools (edit
+// content/prompts.json freely — no code changes). See docs/PROMPT_GENERATION.md.
+const PROMPT_DATA = JSON.parse(readFileSync(contentPath("prompts.json"), "utf-8"));
 const PROMPT_BANK = PROMPT_DATA.prompts;
 const INTERMEDIATE = PROMPT_DATA.intermediate || null;
 

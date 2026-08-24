@@ -2,8 +2,8 @@
 // dashboard payload, and the private previous-games archive.
 import { readFileSync, readdirSync } from "fs";
 import { randomUUID } from "crypto";
-import { fileURLToPath } from "url";
-import { dirname, join } from "path";
+import { join } from "path";
+import { contentPath } from "./content.js";
 import { WORD_TIERS, USAGE, USAGE_OPEN, badgeName, awardWordBadges, themeLocks, unlockedThemes, gimmickLocks, unlockedGimmicks } from "../lib/achievements.js";
 import { GIMMICKS } from "../lib/gimmicks.js";
 import { cleanColor, stripTags, httpUrl, sanitizeAbout, sanitizeDoc } from "./sanitize.js";
@@ -52,10 +52,10 @@ async function sendResetEmail(to, link) {
 export function registerRoutes(app, game) {
   const { sessions, onlineSockets, SAVE_DIR, gameSummary, freshStory, inGame, myGamesFor, recentGamesFor, deleteGame, endGameByCode, sleepGameByCode, inviteToGame, renameUser, setTags, commentRows, closeDocFor, closeDocReaders } = game;
 
-  // Random tagline quote for the homepage hero. quotes.json (repo root, one
+  // Random tagline quote for the homepage hero. content/quotes.json (one
   // string per entry) is hand-editable and re-read on every request, so new
   // quotes appear without a restart. Public — the homepage has no auth.
-  const QUOTES_PATH = join(dirname(fileURLToPath(import.meta.url)), "..", "quotes.json");
+  const QUOTES_PATH = contentPath("quotes.json");
   const readQuotes = () => {
     let quotes = [];
     try {
@@ -74,7 +74,7 @@ export function registerRoutes(app, game) {
 
   // The guided-prompt menus: ids + labels only, so the vote card can build its
   // dropdowns without shipping every clause of the component library.
-  const PROMPT_PATH = join(dirname(fileURLToPath(import.meta.url)), "..", "prompts.json");
+  const PROMPT_PATH = contentPath("prompts.json");
   app.get("/api/prompt-options", (_req, res) => {
     let data = null;
     try { data = JSON.parse(readFileSync(PROMPT_PATH, "utf-8")).intermediate; } catch { }

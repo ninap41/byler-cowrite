@@ -11,7 +11,7 @@ turns adding one line each under a ticking clock.
 - **Round-robin writing** — one line per turn under a per-turn countdown. The
   server owns the clock: when time runs out, whatever the writer had typed is
   committed and play advances.
-- **Scenario votes** — curated Byler prompts (`prompts.json`) plus anyone's
+- **Scenario votes** — curated Byler prompts (`content/prompts.json`) plus anyone's
   custom scenarios, decided by group vote.
 - **Rich text** — bold/italic/underline, headings, alignment, and horizontal
   rules, with live typing visible to the whole room.
@@ -126,7 +126,7 @@ at this scale (a few MB, a write per committed line) is pennies per month.
 
 ## Editing the prompt bank
 
-Edit `prompts.json` — one scenario string per array entry. No code changes.
+Edit `content/prompts.json` — one scenario string per array entry. No code changes.
 The `/` palette in solo writes reads `writers-reference/` the same way.
 
 ## Development notes

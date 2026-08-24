@@ -9,7 +9,7 @@ let ctx;
 before(async () => (ctx = await startServer()));
 after(async () => ctx.stop());
 
-const CURATED = JSON.parse(readFileSync(new URL("../prompts.json", import.meta.url), "utf-8")).prompts;
+const CURATED = JSON.parse(readFileSync(new URL("../content/prompts.json", import.meta.url), "utf-8")).prompts;
 
 // A session parked in `choosing`, with the host's socket tracking game-state.
 async function choosing(extra = {}) {

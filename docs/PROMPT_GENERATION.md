@@ -321,7 +321,7 @@ Possible categories:
 When set to `Random`, it should not constrain the result.
 
 As built: the menu is the set of `category` values the tensions use, and each
-one is named in `intermediate.categoryLabels` (prompts.json) with a label that
+one is named in `intermediate.categoryLabels` (content/prompts.json) with a label that
 says what the scene IS — "Forced proximity (stuck together, one bed)", not a
 bare id. `validateIntermediateData()` fails on an unlabelled category, and
 `/api/prompt-options` ships `categories` as `{id, label}` rows.

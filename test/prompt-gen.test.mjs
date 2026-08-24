@@ -11,7 +11,7 @@ import {
 } from "../lib/prompt-gen.js";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-const DATA = JSON.parse(readFileSync(join(ROOT, "prompts.json"), "utf-8"));
+const DATA = JSON.parse(readFileSync(join(ROOT, "content", "prompts.json"), "utf-8"));
 const INT = DATA.intermediate;
 
 test("the curated array still generates on its own", () => {

@@ -54,7 +54,7 @@ test("GET /api/quote returns a quote from quotes.json", async () => {
   assert.equal(r.status, 200);
   const { quote } = await r.json();
   const { readFileSync } = await import("node:fs");
-  const bank = JSON.parse(readFileSync(new URL("../quotes.json", import.meta.url), "utf-8"));
+  const bank = JSON.parse(readFileSync(new URL("../content/quotes.json", import.meta.url), "utf-8"));
   assert.ok(bank.includes(quote), "quote comes from the bank: " + quote);
 });
 
