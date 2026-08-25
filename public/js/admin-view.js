@@ -193,7 +193,11 @@ export function readPromptEditor(root, base) {
 			const val = (f) => tr.querySelector(`[data-field="${f}"]`)?.value ?? ""
 			const label = val("label").trim()
 			if (!label) continue
-			const item = { id: tr.dataset.id || slugId(label), label, text: label.toLowerCase() }
+			// an existing row whose label didn't change keeps its own clause text
+			// (a few entries phrase it differently from the label); otherwise the
+			// clause is the label, lowercased
+			const prev = tr.dataset.id ? (getIn(base, path) || []).find((x) => x.id === tr.dataset.id) : null
+			const item = { id: tr.dataset.id || slugId(label), label, text: prev && prev.label === label && prev.text ? prev.text : label.toLowerCase() }
 			const w = Number(val("weight"))
 			if (val("weight").trim() && w > 0) item.weight = w
 			for (const f of pool?.fields || []) if (val(f).trim()) item[f] = val(f).trim()

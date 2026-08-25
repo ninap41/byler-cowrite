@@ -187,7 +187,7 @@ test("no clashes: a world is the place, and tropes agree with the relationship",
     // one place per prompt: the world OR the place axis, never both
     assert.equal(!!world, !r.selections.placeId, r.prompt);
     assert.equal(!!r.labels.place, !world);
-    const tags = new Set(tagsOf(r.selections.relationshipId));
+    const tags = new Set([...tagsOf(r.selections.relationshipId), ...(world?.tags || []), ...(r.explicitLevel === "explicit" ? ["explicit"] : [])]);
     const check = (it) => {
       for (const t of it.incompatibleTags || []) assert.ok(!tags.has(t), `${it.id} with ${r.selections.relationshipId}`);
       for (const t of it.requiresTags || []) assert.ok(tags.has(t), `${it.id} needs ${t}, got ${r.selections.relationshipId}`);
@@ -270,6 +270,52 @@ test("a role lands on a character: power bottom names Mike or Will", () => {
   }
   assert.deepEqual([...seen].sort(), ["Mike", "Will"]);
   assert.ok(INT.explicit.dynamics.filter((d) => d.who).length >= 12);
+});
+
+test("Cleradin: sorcerer Will, paladin Mike — its own tropes, and nothing modern ever reaches it", () => {
+  const world = idOf(INT.tropes, "cleradin");
+  assert.equal(world.group, "setting-au");
+  assert.ok(world.tags.includes("fantasy") && world.tags.includes("cleradin"));
+  const own = INT.tropes.filter((t) => t.group === "cleradin");
+  assert.ok(own.length >= 12 && own.every((t) => t.requiresTags?.includes("cleradin")));
+  const modern = (it) => it.incompatibleTags?.includes("fantasy");
+  assert.ok(INT.tropes.filter(modern).length >= 15, "the modern tropes are marked");
+  let ownSeen = 0;
+  for (let i = 0; i < 300; i++) {
+    const r = generateIntermediatePrompt(INT, { seed: "cler" + i, canonId: "au", locked: { worldId: "cleradin" }, explicitLevel: "explicit" });
+    assert.equal(r.selections.worldId, "cleradin");
+    assert.ok(r.prompt.includes("Canon: alternate universe · Cleradin: Will the sorcerer, Mike the paladin"), r.prompt);
+    const trope = idOf(INT.tropes, r.selections.tropeIds[0]);
+    assert.ok(!modern(trope), `${trope.id} is modern`);
+    if (trope.group === "cleradin") ownSeen++;
+    const ex = r.selections.explicit;
+    for (const id of ex.actIds) assert.ok(!modern(idOf(INT.explicit.acts, id)), id);
+    for (const id of ex.kinkIds) assert.ok(!modern(idOf(INT.explicit.kinks, id)), id);
+  }
+  assert.ok(ownSeen > 60, "Cleradin's own tropes come up often: " + ownSeen);
+  // and never anywhere else
+  for (let i = 0; i < 300; i++) {
+    const r = generateIntermediatePrompt(INT, { seed: "else" + i });
+    if (r.selections.worldId !== "cleradin") assert.notEqual(idOf(INT.tropes, r.selections.tropeIds[0]).group, "cleradin");
+  }
+});
+
+test("fluff is never explicit, and explicit is never fluff", () => {
+  const soft = new Set(INT.tones.filter((t) => t.tags?.includes("no-explicit")).map((t) => t.id));
+  assert.ok(soft.has("fluff") && soft.has("crack"));
+  for (let i = 0; i < 200; i++) {
+    const r = generateIntermediatePrompt(INT, { seed: "fl" + i, explicitLevel: "explicit" });
+    assert.ok(!soft.has(r.selections.toneId), `${r.selections.toneId} dealt explicit`);
+    assert.equal(r.explicitLevel, "explicit");
+  }
+  // the host chose fluff AND explicit: fluff wins, the rating steps down
+  const r = generateIntermediatePrompt(INT, { seed: "ff", toneId: "fluff", explicitLevel: "explicit", seasonId: "post-canon" });
+  assert.equal(r.selections.toneId, "fluff");
+  assert.equal(r.explicitLevel, "suggestive");
+  assert.equal(r.selections.explicit, undefined);
+  assert.ok(r.prompt.includes("Rating: suggestive") && !r.prompt.includes("Kinks:"));
+  // suggestive fluff is fine
+  assert.equal(generateIntermediatePrompt(INT, { seed: "sf", toneId: "fluff", explicitLevel: "suggestive" }).explicitLevel, "suggestive");
 });
 
 test("a bulleted prompt collapses back to one line for titles", () => {

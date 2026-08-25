@@ -527,7 +527,13 @@
 				"id": "fluff",
 				"label": "Fluff",
 				"text": "fluff",
-				"weight": 5
+				"weight": 5,
+				"tags": [
+					"no-explicit"
+				],
+				"incompatibleTags": [
+					"explicit"
+				]
 			},
 			{
 				"id": "angst",
@@ -545,7 +551,13 @@
 				"id": "crack",
 				"label": "Crack",
 				"text": "crack",
-				"weight": 2
+				"weight": 2,
+				"tags": [
+					"no-explicit"
+				],
+				"incompatibleTags": [
+					"explicit"
+				]
 			},
 			{
 				"id": "slow-burn",
@@ -564,6 +576,7 @@
 			"milestones": "Confession & milestone beats",
 			"structure": "Structure / POV toys",
 			"setting-au": "Setting AUs",
+			"cleradin": "Cleradin (sorcerer Will · paladin Mike)",
 			"angst": "Angst levers"
 		},
 		"tropes": [
@@ -637,13 +650,19 @@
 				"id": "lab-partners",
 				"label": "lab partners",
 				"text": "lab partners",
-				"group": "proximity"
+				"group": "proximity",
+				"incompatibleTags": [
+					"fantasy"
+				]
 			},
 			{
 				"id": "project-partners",
 				"label": "project partners",
 				"text": "project partners",
-				"group": "proximity"
+				"group": "proximity",
+				"incompatibleTags": [
+					"fantasy"
+				]
 			},
 			{
 				"id": "huddling-for-warmth",
@@ -1070,6 +1089,9 @@
 				"compatibleAgeGroups": [
 					"adult"
 				],
+				"incompatibleTags": [
+					"fantasy"
+				],
 				"requiresTags": [
 					"together"
 				]
@@ -1079,6 +1101,9 @@
 				"label": "pet acquisition",
 				"text": "pet acquisition",
 				"group": "domestic",
+				"incompatibleTags": [
+					"fantasy"
+				],
 				"requiresTags": [
 					"together"
 				]
@@ -1091,6 +1116,9 @@
 				"compatibleAgeGroups": [
 					"adult"
 				],
+				"incompatibleTags": [
+					"fantasy"
+				],
 				"requiresTags": [
 					"together"
 				]
@@ -1099,13 +1127,19 @@
 				"id": "holiday-fic",
 				"label": "holiday fic",
 				"text": "holiday fic",
-				"group": "domestic"
+				"group": "domestic",
+				"incompatibleTags": [
+					"fantasy"
+				]
 			},
 			{
 				"id": "birthday-fic",
 				"label": "birthday fic",
 				"text": "birthday fic",
-				"group": "domestic"
+				"group": "domestic",
+				"incompatibleTags": [
+					"fantasy"
+				]
 			},
 			{
 				"id": "slow-morning",
@@ -1120,13 +1154,19 @@
 				"id": "grocery-run-as-a-love-scene",
 				"label": "grocery run as a love scene",
 				"text": "grocery run as a love scene",
-				"group": "domestic"
+				"group": "domestic",
+				"incompatibleTags": [
+					"fantasy"
+				]
 			},
 			{
 				"id": "dancing-in-the-kitchen",
 				"label": "dancing in the kitchen",
 				"text": "dancing in the kitchen",
 				"group": "domestic",
+				"incompatibleTags": [
+					"fantasy"
+				],
 				"requiresTags": [
 					"together"
 				]
@@ -1135,7 +1175,10 @@
 				"id": "learning-their-coffee-order",
 				"label": "learning their coffee order",
 				"text": "learning their coffee order",
-				"group": "domestic"
+				"group": "domestic",
+				"incompatibleTags": [
+					"fantasy"
+				]
 			},
 			{
 				"id": "cuddling",
@@ -1183,19 +1226,28 @@
 				"id": "prom",
 				"label": "prom",
 				"text": "prom",
-				"group": "domestic"
+				"group": "domestic",
+				"incompatibleTags": [
+					"fantasy"
+				]
 			},
 			{
 				"id": "sharing-headphones",
 				"label": "sharing headphones",
 				"text": "sharing headphones",
-				"group": "domestic"
+				"group": "domestic",
+				"incompatibleTags": [
+					"fantasy"
+				]
 			},
 			{
 				"id": "late-night-phone-calls",
 				"label": "late night phone calls",
 				"text": "late night phone calls",
-				"group": "domestic"
+				"group": "domestic",
+				"incompatibleTags": [
+					"fantasy"
+				]
 			},
 			{
 				"id": "accidental-confession",
@@ -1256,6 +1308,9 @@
 				"label": "meeting the family",
 				"text": "meeting the family",
 				"group": "milestones",
+				"incompatibleTags": [
+					"fantasy"
+				],
 				"requiresTags": [
 					"together"
 				]
@@ -1265,6 +1320,9 @@
 				"label": "going public",
 				"text": "going public",
 				"group": "milestones",
+				"incompatibleTags": [
+					"fantasy"
+				],
 				"requiresTags": [
 					"together"
 				]
@@ -1285,13 +1343,19 @@
 				"id": "time-loop",
 				"label": "time loop",
 				"text": "time loop",
-				"group": "structure"
+				"group": "structure",
+				"incompatibleTags": [
+					"fantasy"
+				]
 			},
 			{
 				"id": "groundhog-day-confession",
 				"label": "groundhog day confession",
 				"text": "groundhog day confession",
-				"group": "structure"
+				"group": "structure",
+				"incompatibleTags": [
+					"fantasy"
+				]
 			},
 			{
 				"id": "epistolary",
@@ -1303,7 +1367,10 @@
 				"id": "outsider-pov",
 				"label": "outsider POV",
 				"text": "outsider pov",
-				"group": "structure"
+				"group": "structure",
+				"incompatibleTags": [
+					"fantasy"
+				]
 			},
 			{
 				"id": "time-skip-years-later",
@@ -1570,7 +1637,24 @@
 				"group": "setting-au",
 				"compatibleCanon": [
 					"au"
+				],
+				"tags": [
+					"fantasy"
 				]
+			},
+			{
+				"id": "cleradin",
+				"label": "Cleradin — sorcerer Will, paladin Mike",
+				"text": "Cleradin: Will the sorcerer, Mike the paladin",
+				"group": "setting-au",
+				"compatibleCanon": [
+					"au"
+				],
+				"tags": [
+					"fantasy",
+					"cleradin"
+				],
+				"weight": 3
 			},
 			{
 				"id": "mermaid-selkie",
@@ -1702,6 +1786,166 @@
 				]
 			},
 			{
+				"id": "the-healing-runs-out-mid-quest",
+				"label": "the healing runs out mid-quest",
+				"text": "the healing runs out mid-quest",
+				"group": "cleradin",
+				"requiresTags": [
+					"cleradin"
+				],
+				"weight": 5
+			},
+			{
+				"id": "the-paladin-s-oath-vs-the-sorcerer-s-magic",
+				"label": "the paladin's oath vs the sorcerer's magic",
+				"text": "the paladin's oath vs the sorcerer's magic",
+				"group": "cleradin",
+				"requiresTags": [
+					"cleradin"
+				],
+				"weight": 5
+			},
+			{
+				"id": "sworn-to-guard-him-from-the-people-who-want-his-magic",
+				"label": "sworn to guard him from the people who want his magic",
+				"text": "sworn to guard him from the people who want his magic",
+				"group": "cleradin",
+				"requiresTags": [
+					"cleradin"
+				],
+				"weight": 5
+			},
+			{
+				"id": "one-tent-on-the-road-to-the-keep",
+				"label": "one tent on the road to the keep",
+				"text": "one tent on the road to the keep",
+				"group": "cleradin",
+				"requiresTags": [
+					"cleradin"
+				],
+				"weight": 5
+			},
+			{
+				"id": "the-spell-goes-wrong-and-points-at-mike",
+				"label": "the spell goes wrong and points at Mike",
+				"text": "the spell goes wrong and points at mike",
+				"group": "cleradin",
+				"requiresTags": [
+					"cleradin"
+				],
+				"weight": 5
+			},
+			{
+				"id": "will-s-magic-flares-when-mike-is-hurt",
+				"label": "Will's magic flares when Mike is hurt",
+				"text": "will's magic flares when mike is hurt",
+				"group": "cleradin",
+				"requiresTags": [
+					"cleradin"
+				],
+				"weight": 5
+			},
+			{
+				"id": "the-oath-forbids-it",
+				"label": "the oath forbids it",
+				"text": "the oath forbids it",
+				"group": "cleradin",
+				"requiresTags": [
+					"cleradin"
+				],
+				"weight": 5
+			},
+			{
+				"id": "a-curse-only-the-other-can-break",
+				"label": "a curse only the other can break",
+				"text": "a curse only the other can break",
+				"group": "cleradin",
+				"requiresTags": [
+					"cleradin"
+				],
+				"weight": 5
+			},
+			{
+				"id": "the-campaign-made-real",
+				"label": "the campaign made real",
+				"text": "the campaign made real",
+				"group": "cleradin",
+				"requiresTags": [
+					"cleradin"
+				],
+				"weight": 5
+			},
+			{
+				"id": "the-tower-at-cleradin-the-last-night-before-the-siege",
+				"label": "the tower at Cleradin, the last night before the siege",
+				"text": "the tower at cleradin, the last night before the siege",
+				"group": "cleradin",
+				"requiresTags": [
+					"cleradin"
+				],
+				"weight": 5
+			},
+			{
+				"id": "the-party-splits-and-it-s-just-them",
+				"label": "the party splits and it's just them",
+				"text": "the party splits and it's just them",
+				"group": "cleradin",
+				"requiresTags": [
+					"cleradin"
+				],
+				"weight": 5
+			},
+			{
+				"id": "a-healer-s-hands-a-knight-s-scars",
+				"label": "a healer's hands, a knight's scars",
+				"text": "a healer's hands, a knight's scars",
+				"group": "cleradin",
+				"requiresTags": [
+					"cleradin"
+				],
+				"weight": 5
+			},
+			{
+				"id": "the-sorcerer-is-feared-the-paladin-doesn-t-care",
+				"label": "the sorcerer is feared, the paladin doesn't care",
+				"text": "the sorcerer is feared, the paladin doesn't care",
+				"group": "cleradin",
+				"requiresTags": [
+					"cleradin"
+				],
+				"weight": 5
+			},
+			{
+				"id": "carried-off-the-battlefield",
+				"label": "carried off the battlefield",
+				"text": "carried off the battlefield",
+				"group": "cleradin",
+				"requiresTags": [
+					"cleradin"
+				],
+				"weight": 5
+			},
+			{
+				"id": "the-blessing-that-only-works-if-he-means-it",
+				"label": "the blessing that only works if he means it",
+				"text": "the blessing that only works if he means it",
+				"group": "cleradin",
+				"requiresTags": [
+					"cleradin"
+				],
+				"weight": 5
+			},
+			{
+				"id": "a-vow-spoken-in-the-wrong-language",
+				"label": "a vow spoken in the wrong language",
+				"text": "a vow spoken in the wrong language",
+				"group": "cleradin",
+				"requiresTags": [
+					"cleradin"
+				],
+				"weight": 5
+			},
+			{
 				"id": "pining-across-distance",
 				"label": "pining across distance",
 				"text": "pining across distance",
@@ -1714,7 +1958,10 @@
 				"id": "closeted-in-a-small-town",
 				"label": "closeted in a small town",
 				"text": "closeted in a small town",
-				"group": "angst"
+				"group": "angst",
+				"incompatibleTags": [
+					"fantasy"
+				]
 			},
 			{
 				"id": "disapproving-parents",
@@ -1735,6 +1982,9 @@
 				"group": "angst",
 				"compatibleAgeGroups": [
 					"adult"
+				],
+				"incompatibleTags": [
+					"fantasy"
 				]
 			},
 			{
@@ -2136,7 +2386,10 @@
 				{
 					"id": "shower-sex",
 					"label": "shower sex",
-					"text": "shower sex"
+					"text": "shower sex",
+					"incompatibleTags": [
+						"fantasy"
+					]
 				},
 				{
 					"id": "bathtub",
@@ -2146,7 +2399,10 @@
 				{
 					"id": "car-sex",
 					"label": "car sex",
-					"text": "car sex"
+					"text": "car sex",
+					"incompatibleTags": [
+						"fantasy"
+					]
 				},
 				{
 					"id": "against-a-wall",
@@ -2156,12 +2412,18 @@
 				{
 					"id": "on-a-desk",
 					"label": "on a desk",
-					"text": "on a desk"
+					"text": "on a desk",
+					"incompatibleTags": [
+						"fantasy"
+					]
 				},
 				{
 					"id": "mirror-sex",
 					"label": "mirror sex",
-					"text": "mirror sex"
+					"text": "mirror sex",
+					"incompatibleTags": [
+						"fantasy"
+					]
 				},
 				{
 					"id": "lap-sitting",
@@ -2235,7 +2497,10 @@
 					"id": "lingerie",
 					"label": "lingerie",
 					"text": "lingerie",
-					"weight": 2
+					"weight": 2,
+					"incompatibleTags": [
+						"fantasy"
+					]
 				},
 				{
 					"id": "crossdressing",
@@ -2247,7 +2512,10 @@
 					"id": "uniform-costume",
 					"label": "uniform / costume",
 					"text": "uniform / costume",
-					"weight": 2
+					"weight": 2,
+					"incompatibleTags": [
+						"fantasy"
+					]
 				},
 				{
 					"id": "collar",
@@ -2373,13 +2641,19 @@
 					"id": "mirror",
 					"label": "mirror",
 					"text": "mirror",
-					"weight": 2
+					"weight": 2,
+					"incompatibleTags": [
+						"fantasy"
+					]
 				},
 				{
 					"id": "filming",
 					"label": "filming",
 					"text": "filming",
-					"weight": 1
+					"weight": 1,
+					"incompatibleTags": [
+						"fantasy"
+					]
 				},
 				{
 					"id": "dirty-talk",
@@ -2391,7 +2665,10 @@
 					"id": "phone-sex",
 					"label": "phone sex",
 					"text": "phone sex",
-					"weight": 2
+					"weight": 2,
+					"incompatibleTags": [
+						"fantasy"
+					]
 				},
 				{
 					"id": "somnophilia",
