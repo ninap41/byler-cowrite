@@ -11,7 +11,7 @@ import { cleanGimmickId, rollOutcome, describeRoll, galagaOutcome, describeGalag
 import { PALETTE, cleanColor, cleanHex, sanitizeRich, stripTags, httpUrl, sanitizeDoc, CID_RE } from "./sanitize.js";
 import { store, saveStore, userByToken, makeMsg, isAdmin } from "./store.js";
 import { mirror, mirrorDelete } from "./persist.js";
-import { generateSimplePrompt, generateIntermediatePrompt, INTENSITIES, MODES } from "../lib/prompt-gen.js";
+import { generateSimplePrompt, generateIntermediatePrompt, validateIntermediateData, EXPLICIT_LEVELS, MODES } from "../lib/prompt-gen.js";
 import { contentPath } from "./content.js";
 import { readDoc, writeDoc, canView, canEdit, canComment, anchorCids, anchorText, stripAnchor, applySuggestion } from "./docs.js";
 
@@ -19,9 +19,28 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // Curated scenario prompts + the guided-mode component pools (edit
 // content/prompts.json freely — no code changes). See docs/PROMPT_GENERATION.md.
-const PROMPT_DATA = JSON.parse(readFileSync(contentPath("prompts.json"), "utf-8"));
-const PROMPT_BANK = PROMPT_DATA.prompts;
-const INTERMEDIATE = PROMPT_DATA.intermediate || null;
+let PROMPT_DATA = JSON.parse(readFileSync(contentPath("prompts.json"), "utf-8"));
+let PROMPT_BANK = PROMPT_DATA.prompts;
+let INTERMEDIATE = PROMPT_DATA.intermediate || null;
+export const getPromptData = () => PROMPT_DATA;
+// The admin editor's write path: validate the whole document, write it to
+// the pack, then swap it in — every ballot dealt from here on uses it.
+// Returns the validation errors (empty = saved).
+export function setPromptData(next) {
+  const errors = [];
+  if (!Array.isArray(next?.prompts) || !next.prompts.length) errors.push("prompts: need at least one curated scenario");
+  else if (!next.prompts.every((p) => typeof p === "string" && p.trim())) errors.push("prompts: every entry is a non-empty string");
+  if (next?.intermediate) errors.push(...validateIntermediateData(next.intermediate));
+  if (errors.length) return errors;
+  const doc = { prompts: next.prompts.map((p) => p.trim()), ...(next.intermediate ? { intermediate: next.intermediate } : {}) };
+  const text = JSON.stringify(doc, null, "\t") + "\n";
+  writeFileSync(contentPath("prompts.json"), text);
+  mirror("content", "prompts", text); // survives a Replit deploy like users/saves do
+  PROMPT_DATA = doc;
+  PROMPT_BANK = doc.prompts;
+  INTERMEDIATE = doc.intermediate || null;
+  return [];
+}
 
 // The host-facing knobs of guided mode, normalized so nothing off the wire
 // reaches the generator raw.
@@ -31,13 +50,15 @@ function cleanPromptControls(c = {}) {
     return /^[a-z0-9-]+$/.test(x) ? x : "random";
   };
   return {
-    universeId: id(c.universeId),
-    timePeriodId: id(c.timePeriodId),
-    relationshipContextId: id(c.relationshipContextId),
+    seasonId: id(c.seasonId),
+    canonId: id(c.canonId),
+    placeId: id(c.placeId),
+    situationId: id(c.situationId),
+    relationshipId: id(c.relationshipId),
     toneId: id(c.toneId),
-    scenarioCategory: id(c.scenarioCategory),
-    tensionIntensity: INTENSITIES.includes(c.tensionIntensity) ? c.tensionIntensity : "medium",
-    includeCatalyst: !!c.includeCatalyst,
+    // The explicit level defaults to none, never to random: nobody gets an
+    // explicit ballot they didn't ask for.
+    explicitLevel: EXPLICIT_LEVELS.includes(c.explicitLevel) ? c.explicitLevel : "none",
   };
 }
 const cleanPromptMode = (m) => (MODES.includes(m) && (m !== "intermediate" || INTERMEDIATE) ? m : "simple");
@@ -456,16 +477,16 @@ export function createGame(io) {
     if (s.promptMode === "intermediate" && INTERMEDIATE) {
       const out = [];
       const recent = [];
-      // Two tries per slot: a repeated location+tension combo gets one reroll.
+      // Two tries per slot: a repeated place+situation+tropes combo gets one reroll.
       for (let i = 0; i < n; i++) {
         let r = null;
         for (let attempt = 0; attempt < 2; attempt++) {
           r = generateIntermediatePrompt(INTERMEDIATE, { ...s.promptControls, recentIds: recent });
-          const combo = r.selections.locationId + "|" + r.selections.tensionId;
+          const combo = [r.selections.placeId, r.selections.situationId, ...r.selections.tropeIds].join("|");
           if (!out.some((x) => x.combo === combo)) { r.combo = combo; break; }
         }
         if (out.some((x) => x.prompt === r.prompt)) continue;
-        recent.push(...Object.values(r.selections));
+        recent.push(...Object.values(r.selections).flat().filter((v) => typeof v === "string"));
         out.push(r);
       }
       s.options = out.map((r) => r.prompt);

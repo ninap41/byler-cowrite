@@ -23,6 +23,8 @@ await initPersistence({
   dataDir: DATA_DIR,
   saveDir: process.env.COWRITE_SAVE_DIR || join(__dirname, "saves"),
   docDir: process.env.COWRITE_DOC_DIR || join(DATA_DIR, "docs"),
+  // the admin's prompt-library edits are mirrored too (restored, never seeded)
+  contentDir: process.env.COWRITE_CONTENT_DIR || join(__dirname, "content"),
 });
 const { createGame } = await import("./src/game.js");
 const { registerRoutes } = await import("./src/routes.js");
@@ -54,7 +56,7 @@ for (const page of PAGES) {
 }
 app.use(express.static(join(__dirname, "public")));
 app.use("/sounds", express.static(join(__dirname, "sounds"), { maxAge: "7d" }));
-app.use(express.json());
+app.use(express.json({ limit: "2mb" })); // the admin prompt editor PUTs the whole library
 
 const game = createGame(io); // owns sessions, presence, saves/, socket handlers
 registerRoutes(app, game);

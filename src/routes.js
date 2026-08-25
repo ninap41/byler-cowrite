@@ -5,6 +5,7 @@ import { randomUUID } from "crypto";
 import { join } from "path";
 import { contentPath } from "./content.js";
 import { SITE } from "./site.js";
+import { getPromptData, setPromptData } from "./game.js";
 import { WORD_TIERS, USAGE, USAGE_OPEN, badgeName, awardWordBadges, themeLocks, unlockedThemes, gimmickLocks, unlockedGimmicks } from "../lib/achievements.js";
 import { GIMMICKS } from "../lib/gimmicks.js";
 import { cleanColor, stripTags, httpUrl, sanitizeAbout, sanitizeDoc } from "./sanitize.js";
@@ -75,30 +76,24 @@ export function registerRoutes(app, game) {
 
   // The guided-prompt menus: ids + labels only, so the vote card can build its
   // dropdowns without shipping every clause of the component library.
-  const PROMPT_PATH = contentPath("prompts.json");
   app.get("/api/prompt-options", (_req, res) => {
-    let data = null;
-    try { data = JSON.parse(readFileSync(PROMPT_PATH, "utf-8")).intermediate; } catch { }
+    const data = getPromptData().intermediate || null;
     if (!data) return res.json({ modes: ["simple"], intermediate: null });
-    const menu = (list) => list.map((x) => ({ id: x.id, label: x.label }));
+    const menu = (list) => (list || []).map((x) => ({ id: x.id, label: x.label }));
     res.json({
       modes: ["simple", "intermediate"],
       intermediate: {
-        universes: menu(data.universes || []),
-        // periods carry the universes that admit them, so the Time period menu
-        // can narrow itself to the chosen universe instead of offering a
-        // century the generator would have to overrule
-        timePeriods: data.timePeriods.map((p) => ({
-          id: p.id, label: p.label, ageGroup: p.ageGroup, universes: p.compatibleUniverses || [],
-        })),
-        relationshipContexts: menu(data.relationshipContexts),
+        // seasons carry their age group, so the Explicit menu can narrow
+        // itself to what a minor season admits instead of offering a level
+        // the generator would have to force down
+        seasons: (data.seasons || []).map((x) => ({ id: x.id, label: x.label, ageGroup: x.ageGroup })),
+        canon: menu(data.canon),
+        places: menu(data.places),
+        situations: menu(data.situations),
+        relationships: menu(data.relationships),
         tones: menu(data.tones),
-        // scenario types are the tensions' categories; prompts.json names each
-        // one explicitly (categoryLabels) so the menu says what the scene IS
-        // rather than a bare id
-        categories: [...new Set(data.tensions.map((t) => t.category))].sort().map((id) => ({
-          id, label: data.categoryLabels?.[id] || id,
-        })),
+        explicitLevels: (data.explicit?.levels || []).map((x) => ({ id: x.id, label: x.label, adultOnly: !!x.adultOnly })),
+        tropeGroups: Object.entries(data.tropeGroups || {}).map(([id, label]) => ({ id, label })),
       },
     });
   });
@@ -918,6 +913,21 @@ export function registerRoutes(app, game) {
         createdAt: g.createdAt ?? null,
       })),
     });
+  });
+
+  // The prompt library, whole: every axis, the trope bank, the explicit
+  // layer and the curated scenarios. The editor round-trips the document —
+  // PUT validates it as one piece (lib/prompt-gen validateIntermediateData)
+  // and nothing is written unless all of it passes.
+  app.get("/api/admin/prompts", (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    res.json({ data: getPromptData() });
+  });
+  app.put("/api/admin/prompts", (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    const errors = setPromptData(req.body?.data);
+    if (errors.length) return res.status(400).json({ error: "The library didn't validate.", errors });
+    res.json({ ok: true });
   });
 
   // End a game in progress without taking a seat in it. Players see the

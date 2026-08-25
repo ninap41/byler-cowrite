@@ -39,6 +39,14 @@
 					everywhere; the lines it wrote stay in their stories. Admin accounts can't be removed.
 				</p>
 				<div id="adminUsers"></div>
+
+				<h3 style="margin: 26px 0 8px">Prompt library</h3>
+				<p class="subtle" style="text-align: left; margin: 0 0 10px">
+					Everything the ballot is dealt from: the Simple-mode scenarios, every Guided axis, the trope bank and
+					the explicit layer. Edits apply to the next ballot dealt; the whole library is validated before
+					anything is saved.
+				</p>
+				<div id="adminPrompts"></div>
 			</div>
 		</div>
 
@@ -46,7 +54,7 @@
 			import { api } from "/js/api.js"
 			import { mountChrome, setUserChip } from "/js/chrome.js"
 			import { requireAuth } from "/js/auth-guard.js"
-			import { adminGamesHtml, adminUsersHtml } from "/js/admin-view.js"
+			import { adminGamesHtml, adminUsersHtml, promptEditorHtml, promptRowHtml, readPromptEditor, PROMPT_POOLS } from "/js/admin-view.js"
 
 			mountChrome({ page: "admin" })
 			const me = await requireAuth("/")
@@ -60,9 +68,43 @@
 				$("adminSub").textContent = "This page is for admins."
 				$("adminGames").innerHTML = ""
 				$("adminUsers").innerHTML = ""
+				$("adminPrompts").innerHTML = ""
 			} else {
 				await refresh()
+				await loadPrompts()
 			}
+
+			// ---- Prompt library editor ----
+			// Built once from the server's document, read back whole on Save.
+			let promptDoc = null
+			async function loadPrompts() {
+				promptDoc = (await api("/api/admin/prompts")).data
+				$("adminPrompts").innerHTML = promptEditorHtml(promptDoc)
+			}
+			$("adminPrompts").addEventListener("click", async (e) => {
+				const del = e.target.closest(".pe-del")
+				if (del) return del.closest("tr").remove()
+				const add = e.target.closest(".pe-add")
+				if (add) {
+					const pool = PROMPT_POOLS.find((p) => p.path.join(".") === add.closest(".pe-pool").dataset.pool)
+					add.previousElementSibling.querySelector("tbody").insertAdjacentHTML("beforeend", promptRowHtml({}, pool, promptDoc.intermediate?.tropeGroups || {}))
+					return
+				}
+				if (e.target.id !== "promptSave") return
+				const status = $("promptStatus")
+				const { doc, errors } = readPromptEditor($("promptEditor"), promptDoc)
+				if (errors.length) return (status.textContent = "⚠ " + errors.join(" · "))
+				e.target.disabled = true
+				status.textContent = "Saving…"
+				try {
+					await api("/api/admin/prompts", { data: doc }, "PUT")
+					status.textContent = "✓ Saved — the next ballot uses it."
+					promptDoc = doc
+				} catch (err) {
+					status.textContent = "⚠ " + (err.data?.errors?.join(" · ") || err.message || "That didn't save.")
+				}
+				e.target.disabled = false
+			})
 
 			async function refresh() {
 				const [g, u] = await Promise.all([api("/api/admin/games"), api("/api/admin/users")])

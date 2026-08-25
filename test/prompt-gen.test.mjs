@@ -1,18 +1,23 @@
 // The pure prompt-generation rules (lib/prompt-gen.js) plus a validation pass
-// over the hand-edited component library in prompts.json.
+// over the hand-edited axes + trope bank in prompts.json.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
-  generateSimplePrompt, generateIntermediatePrompt, generatePrompt, BULLET, unbullet,
-  createSeededRandom, pickWeighted, isCompatible, validateIntermediateData, INTENSITIES,
+  generateSimplePrompt, generateIntermediatePrompt, generatePrompt, BULLET, unbullet, TAG_SEP,
+  createSeededRandom, pickWeighted, isCompatible, gateExplicit, validateIntermediateData,
+  EXPLICIT_LEVELS, withWho,
 } from "../lib/prompt-gen.js";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const DATA = JSON.parse(readFileSync(join(ROOT, "content", "prompts.json"), "utf-8"));
 const INT = DATA.intermediate;
+const idOf = (list, id) => list.find((x) => x.id === id);
+const season = (r) => idOf(INT.seasons, r.selections.seasonId);
+const MINOR = INT.seasons.filter((s) => s.ageGroup === "minor").map((s) => s.id);
+const ADULT = INT.seasons.filter((s) => s.ageGroup === "adult").map((s) => s.id);
 
 test("the curated array still generates on its own", () => {
   const r = generateSimplePrompt(DATA.prompts);
@@ -30,13 +35,26 @@ test("simple mode avoids what it just dealt", () => {
   assert.equal(generateSimplePrompt([DATA.prompts[0]], { recent }).prompt, DATA.prompts[0]);
 });
 
-test("prompts.json's intermediate library validates", () => {
+test("the curated pool carries the new scenarios and no double spaces", () => {
+  const all = DATA.prompts.join("\n");
+  for (const needle of ["Parent Trap", "July 4th", "Spider-Man", "pin Mike down", "Hawkins Paranormal", "science fair", "pastor's son"])
+    assert.ok(all.includes(needle), needle);
+  for (const p of DATA.prompts) {
+    assert.equal(p, p.trim());
+    assert.ok(!/\s{2,}/.test(p), "no double spaces: " + p);
+  }
+  assert.equal(new Set(DATA.prompts).size, DATA.prompts.length);
+});
+
+test("prompts.json's guided library validates", () => {
   assert.deepEqual(validateIntermediateData(INT), []);
-  assert.ok(INT.timePeriods.length >= 8 && INT.locations.length >= 20 && INT.tensions.length >= 25);
+  assert.ok(INT.seasons.length >= 7 && INT.places.length >= 10 && INT.tropes.length >= 100);
+  assert.ok(INT.explicit.kinks.length >= 40 && INT.explicit.acts.length >= 20);
+  assert.ok(MINOR.length >= 6 && ADULT.length >= 1);
 });
 
 test("the same seed and options rebuild the same prompt", () => {
-  const opts = { seed: "abc123", tensionIntensity: "high", includeCatalyst: true };
+  const opts = { seed: "abc123", explicitLevel: "explicit" };
   const a = generateIntermediatePrompt(INT, opts);
   const b = generateIntermediatePrompt(INT, opts);
   assert.equal(a.prompt, b.prompt);
@@ -46,93 +64,223 @@ test("the same seed and options rebuild the same prompt", () => {
 
 test("explicit and locked ids are honored, everything else is random", () => {
   const r = generateIntermediatePrompt(INT, {
-    timePeriodId: "post-vecna",
-    toneId: "nostalgic",
-    locked: { locationId: "wheeler-basement" },
-    tensionIntensity: "medium",
+    seasonId: "s4", toneId: "angst", canonId: "canon-divergent",
+    locked: { placeId: "wheeler-basement", tropeId: "only-one-bed" },
   });
-  assert.equal(r.selections.timePeriodId, "post-vecna");
-  assert.equal(r.selections.toneId, "nostalgic");
-  assert.equal(r.selections.locationId, "wheeler-basement");
-  assert.ok(r.prompt.includes(INT.locations.find((l) => l.id === "wheeler-basement").text));
-  assert.equal(r.labels.location, "Wheeler basement");
+  assert.equal(r.selections.seasonId, "s4");
+  assert.equal(r.selections.toneId, "angst");
+  assert.equal(r.selections.canonId, "canon-divergent");
+  assert.equal(r.selections.placeId, "wheeler-basement");
+  assert.ok(r.selections.tropeIds.includes("only-one-bed"));
+  assert.ok(r.prompt.includes(idOf(INT.places, "wheeler-basement").text));
+  assert.equal(r.labels.place, "Wheeler basement");
+  assert.ok(r.labels.tropes.includes("only one bed"));
 });
 
-test("the chosen intensity variant is the one rendered", () => {
-  for (const level of INTENSITIES) {
-    const r = generateIntermediatePrompt(INT, { seed: "s1", locked: { tensionId: "hidden-drawing" }, tensionIntensity: level });
-    assert.ok(r.prompt.includes(INT.tensions.find((t) => t.id === "hidden-drawing").variants[level]));
+test("the explicit gate: a minor season forces the level down and hides the kink layer", () => {
+  for (const id of MINOR) {
+    const r = generateIntermediatePrompt(INT, { seed: "gate-" + id, seasonId: id, explicitLevel: "explicit" });
+    assert.equal(r.selections.seasonId, id, "a chosen minor season is honoured, not overruled");
+    assert.equal(r.explicitLevel, "suggestive");
+    assert.equal(r.selections.explicit, undefined);
+    assert.ok(!r.prompt.includes("Rating: explicit") && !r.prompt.includes("Kinks:"));
+    assert.ok(r.prompt.includes("Rating: suggestive"));
+    assert.equal(r.labels.explicit, "Suggestive");
   }
-  // An unknown level falls back to medium rather than rendering nothing.
-  const bad = generateIntermediatePrompt(INT, { locked: { tensionId: "hidden-drawing" }, tensionIntensity: "extreme" });
-  assert.equal(bad.intensity, "medium");
+  // none stays none, suggestive stays suggestive, everywhere
+  for (const id of [...MINOR, ...ADULT]) {
+    assert.equal(generateIntermediatePrompt(INT, { seasonId: id, explicitLevel: "none" }).explicitLevel, "none");
+    assert.equal(generateIntermediatePrompt(INT, { seasonId: id, explicitLevel: "suggestive" }).explicitLevel, "suggestive");
+  }
+  // an unknown level is none
+  assert.equal(generateIntermediatePrompt(INT, { explicitLevel: "nuclear" }).explicitLevel, "none");
+  assert.equal(gateExplicit("explicit", { ageGroup: "minor" }), "suggestive");
+  assert.equal(gateExplicit("explicit", { ageGroup: "adult" }), "explicit");
+  assert.equal(gateExplicit("bogus", { ageGroup: "adult" }), "none");
 });
 
-test("period compatibility and age safety hold over many draws", () => {
-  const period = (id) => INT.timePeriods.find((p) => p.id === id);
+test("explicit on a random season narrows the draw to adult seasons and deals the layer as tags", () => {
+  for (let i = 0; i < 60; i++) {
+    const r = generateIntermediatePrompt(INT, { seed: "ex" + i, explicitLevel: "explicit" });
+    assert.equal(season(r).ageGroup, "adult");
+    assert.equal(r.explicitLevel, "explicit");
+    const ex = r.selections.explicit;
+    assert.ok(ex.setupId && ex.dynamicId && ex.registerId);
+    assert.ok(ex.actIds.length >= 1 && ex.actIds.length <= 2 && ex.kinkIds.length >= 1 && ex.kinkIds.length <= 2);
+    assert.equal(new Set(ex.kinkIds).size, ex.kinkIds.length);
+    const lines = r.prompt.split("\n");
+    assert.ok(lines.includes(BULLET + "Rating: explicit"), r.prompt);
+    for (const cat of ["Kinks"])
+      assert.ok(lines.some((l) => l.startsWith(`${BULLET}${cat}: `)), cat);
+    const kinks = lines.find((l) => l.startsWith(BULLET + "Kinks: "));
+    assert.ok(kinks.includes(idOf(INT.explicit.kinks, ex.kinkIds[0]).text));
+    assert.ok(kinks.includes(TAG_SEP), "acts and kinks share the line");
+    assert.ok(kinks.includes(idOf(INT.explicit.acts, ex.actIds[0]).text));
+    assert.ok(!lines.some((l) => l.startsWith(BULLET + "Acts:")));
+  }
+  // and never leaks: over many unfiltered draws, an explicit layer only ever
+  // rides an adult season
   for (let i = 0; i < 300; i++) {
-    const r = generateIntermediatePrompt(INT, { seed: "run" + i });
-    const p = period(r.selections.timePeriodId);
-    const loc = INT.locations.find((l) => l.id === r.selections.locationId);
-    const rel = INT.relationshipContexts.find((x) => x.id === r.selections.relationshipContextId);
-    const ten = INT.tensions.find((t) => t.id === r.selections.tensionId);
-    for (const item of [loc, rel, ten]) {
-      if (item.compatiblePeriods) assert.ok(item.compatiblePeriods.includes(p.id), `${item.id} vs ${p.id}`);
-      if (item.compatibleAgeGroups) assert.ok(item.compatibleAgeGroups.includes(p.ageGroup));
-      if (item.adultOnly) assert.equal(p.ageGroup, "adult");
-    }
-    assert.ok(r.prompt.split(" ").length > 30);
+    const r = generateIntermediatePrompt(INT, { seed: "any" + i, explicitLevel: ["none", "suggestive", "explicit"][i % 3] });
+    if (r.selections.explicit) assert.equal(season(r).ageGroup, "adult");
   }
+});
+
+test("the weighted kink tags bias without guaranteeing", () => {
+  const counts = {};
+  for (let i = 0; i < 600; i++) {
+    const r = generateIntermediatePrompt(INT, { seed: "k" + i, explicitLevel: "explicit" });
+    for (const k of r.selections.explicit.kinkIds) counts[k] = (counts[k] || 0) + 1;
+  }
+  const heavy = (counts["breath-play"] || 0) + (counts["piss-kink"] || 0);
+  const light = (counts["feet"] || 0) + (counts["wax"] || 0);
+  assert.ok(heavy > light * 2, `weighted: ${heavy} vs ${light}`);
+});
+
+test("age safety holds over many draws: adult-only tropes and places never reach a minor season", () => {
+  for (let i = 0; i < 400; i++) {
+    const r = generateIntermediatePrompt(INT, { seed: "run" + i });
+    const s = season(r);
+    const chosen = [
+      idOf(INT.places, r.selections.placeId), idOf(INT.relationships, r.selections.relationshipId),
+      idOf(INT.tropes, r.selections.worldId), ...r.selections.tropeIds.map((id) => idOf(INT.tropes, id)),
+    ].filter(Boolean);
+    for (const item of chosen) {
+      if (item.compatibleAgeGroups) assert.ok(item.compatibleAgeGroups.includes(s.ageGroup), `${item.id} vs ${s.id}`);
+      if (item.adultOnly) assert.equal(s.ageGroup, "adult");
+    }
+    assert.equal(r.selections.tropeIds.length, 1);
+  }
+});
+
+test("canon frames the world: an AU always names one on the Canon line, nothing else ever does", () => {
+  for (let i = 0; i < 200; i++) {
+    const r = generateIntermediatePrompt(INT, { seed: "canon" + i });
+    const trope = idOf(INT.tropes, r.selections.tropeIds[0]);
+    assert.notEqual(trope.group, "setting-au", "the trope slot never holds a world");
+    if (r.selections.canonId === "au") {
+      const world = idOf(INT.tropes, r.selections.worldId);
+      assert.equal(world.group, "setting-au");
+      assert.ok(r.prompt.includes(`Canon: alternate universe${TAG_SEP}${world.text}`), r.prompt);
+      assert.equal(r.labels.world, world.label);
+    } else {
+      assert.equal(r.selections.worldId, undefined);
+      assert.equal(r.labels.world, undefined);
+    }
+    if (trope.compatibleCanon) assert.ok(trope.compatibleCanon.includes(r.selections.canonId), `${trope.id} vs ${r.selections.canonId}`);
+  }
+});
+
+test("exactly one trope per prompt", () => {
+  for (let i = 0; i < 60; i++) assert.equal(generateIntermediatePrompt(INT, { seed: "one" + i }).selections.tropeIds.length, 1);
+  const locked = generateIntermediatePrompt(INT, { seed: "l", locked: { tropeId: "only-one-bed" } });
+  assert.deepEqual(locked.selections.tropeIds, ["only-one-bed"]);
+  assert.equal(locked.prompt.split("\n").filter((l) => l.startsWith(BULLET + "Trope: ")).length, 1);
+});
+
+test("no clashes: a world is the place, and tropes agree with the relationship", () => {
+  const tagsOf = (rel) => idOf(INT.relationships, rel).tags;
+  for (let i = 0; i < 500; i++) {
+    const r = generateIntermediatePrompt(INT, { seed: "clash" + i, explicitLevel: i % 2 ? "explicit" : "none" });
+    const tropes = [r.selections.worldId, ...r.selections.tropeIds].filter(Boolean).map((id) => idOf(INT.tropes, id));
+    const world = tropes.find((t) => t.group === "setting-au");
+    // one place per prompt: the world OR the place axis, never both
+    assert.equal(!!world, !r.selections.placeId, r.prompt);
+    assert.equal(!!r.labels.place, !world);
+    const tags = new Set(tagsOf(r.selections.relationshipId));
+    const check = (it) => {
+      for (const t of it.incompatibleTags || []) assert.ok(!tags.has(t), `${it.id} with ${r.selections.relationshipId}`);
+      for (const t of it.requiresTags || []) assert.ok(tags.has(t), `${it.id} needs ${t}, got ${r.selections.relationshipId}`);
+    };
+    tropes.forEach(check);
+    if (r.selections.explicit) check(idOf(INT.explicit.setups, r.selections.explicit.setupId));
+  }
+  // the bank doesn't duplicate an axis
+  for (const dup of ["road-trip", "slow-burn", "mutual-pining", "secret-relationship", "reunion"])
+    assert.ok(!idOf(INT.tropes, dup), dup + " is an axis, not a trope");
+  assert.ok(!idOf(INT.relationships, "strangers"), "first meeting is a situation");
+  // and no trope is a place — places are the Place axis
+  for (const dup of ["stakeout", "camping-trip", "trapped-in-an-elevator", "sleepover", "stuck-in-detention", "summer-job-together"])
+    assert.ok(!idOf(INT.tropes, dup), dup + " is a place, not a trope");
+  assert.ok(idOf(INT.places, "camping-trip") && idOf(INT.places, "sleepover"));
 });
 
 test("a guided prompt is a bulleted clause per line, not a paragraph", () => {
-  const r = generateIntermediatePrompt(INT, { seed: "lines", tensionIntensity: "medium" });
+  const r = generateIntermediatePrompt(INT, { seed: "lines", explicitLevel: "none", canonId: "canon-compliant" });
   const lines = r.prompt.split("\n");
-  assert.equal(lines.length, 6); // universe, period, location, relationship, tension, tone
+  assert.equal(lines.length, 7); // season, canon, place, relationship, situation, trope, tone
   for (const ln of lines) {
     assert.ok(ln.startsWith(BULLET), "every section is bulleted: " + ln);
     const text = ln.slice(BULLET.length);
     assert.equal(text, text.trim(), "no stray padding around a clause");
-    assert.ok(text.length > 10);
+    assert.ok(text.length > 2);
     assert.ok(!text.includes(BULLET.trim()), "one bullet per line, not one per sentence");
   }
-  // the sections are the components' own text, in scene order
-  assert.equal(lines[0].slice(2), INT.universes.find((x) => x.id === r.selections.universeId).text);
-  assert.equal(lines[1].slice(2), INT.timePeriods.find((x) => x.id === r.selections.timePeriodId).text);
-  assert.equal(lines.at(-1).slice(2), INT.tones.find((x) => x.id === r.selections.toneId).text);
-  // a catalyst adds its own bullet rather than crowding another
-  const withCat = generateIntermediatePrompt(INT, { seed: "lines", tensionIntensity: "medium", includeCatalyst: true });
-  assert.equal(withCat.prompt.split("\n").length, 7);
+  // every clause is "Category: choice", the components' own text, in scene order
+  for (const ln of lines) assert.match(ln, /^• (Season|Canon|Place|Relationship|Situation|Trope|Tone): /);
+  assert.equal(lines[0].slice(2), "Season: " + season(r).text);
+  assert.equal(lines[1].slice(2), "Canon: " + idOf(INT.canon, r.selections.canonId).text);
+  assert.equal(lines.at(-1).slice(2), "Tone: " + idOf(INT.tones, r.selections.toneId).text);
+  // suggestive adds its own line; explicit adds a tag line
+  const sug = generateIntermediatePrompt(INT, { seed: "lines", explicitLevel: "suggestive", seasonId: "s3", canonId: "canon-compliant" });
+  assert.equal(sug.prompt.split("\n").length, 8);
   // and a curated prompt is still a single untouched line, never bulleted
   const simple = generateSimplePrompt(DATA.prompts).prompt;
   assert.ok(!simple.includes("\n") && !simple.includes(BULLET.trim()));
 });
 
+test("the explicit layer carries every tag from the design doc", () => {
+  const want = {
+    setups: ["first time", "losing virginity", "experienced/inexperienced", "friends with benefits", "fuck buddies to lovers", "one night stand → more", "hate sex", "angry sex", "make-up sex", "goodbye sex", "comfort sex", "morning after (sober consent)", "accidental stimulation", "caught in the act", "pretend hookup for cover", "sex pollen", "fuck or die", "heat / rut (A/B/O)", "aphrodisiac"],
+    dynamics: ["dom/sub", "service top", "power bottom", "switching", "praise kink", "degradation", "brat taming", "gentle dom", "soft dom", "aftercare", "possessive / marking", "jealous sex", "size difference", "height difference", "manhandling", "pinning down", "restrained (hands, tie, cuffs)", "begging", "edging", "denial", "overstimulation", "orgasm control", "teasing in public", "under the table"],
+    acts: ["oral", "face-riding", "fingering", "frottage", "thigh-riding", "handjob", "mutual masturbation", "rimming", "anal", "double penetration", "69", "dry humping", "clothed getting off", "shower sex", "bathtub", "car sex", "against a wall", "on a desk", "mirror sex", "lap sitting", "morning sex", "sleepy sex", "lazy sex", "marathon", "quickie"],
+    kinks: ["praise", "degradation", "breath play", "piss kink", "breeding", "pregnancy kink", "lingerie", "crossdressing", "uniform / costume", "collar", "leash", "blindfold", "sensory deprivation", "gag", "rope / shibari", "spanking / impact", "biting / marking", "hickeys", "knife play (safe)", "temperature play", "wax", "food play", "body worship", "feet", "hands", "voice", "scent", "exhibitionism", "voyeurism", "mirror", "filming", "dirty talk", "phone sex", "somnophilia (pre-negotiated)", "cockwarming", "edging", "pet play", "daddy / sir kink", "omega / alpha dynamics", "knotting", "tentacles", "monster fucking", "telekinetic / powers play"],
+    registers: ["tender", "desperate", "frantic", "reverent", "filthy", "funny / awkward", "crying during", "emotional first time", "sex as apology", "sex as reassurance", "love confession mid-act", "unspoken feelings made obvious"],
+  };
+  for (const [pool, labels] of Object.entries(want)) {
+    const have = new Set(INT.explicit[pool].map((x) => x.label.toLowerCase()));
+    for (const l of labels) assert.ok(have.has(l.toLowerCase()), `${pool}: ${l}`);
+    assert.equal(INT.explicit[pool].length, labels.length, pool);
+  }
+  // and each pool renders as its own labelled line
+  for (let i = 0; i < 40; i++) {
+    const r = generateIntermediatePrompt(INT, { seed: "doc" + i, explicitLevel: "explicit", seasonId: "post-canon" });
+    const ex = r.selections.explicit;
+    const lines = r.prompt.split("\n");
+    const setup = idOf(INT.explicit.setups, ex.setupId).text, dyn = idOf(INT.explicit.dynamics, ex.dynamicId).text, reg = idOf(INT.explicit.registers, ex.registerId).text;
+    const acts = ex.actIds.map((id) => idOf(INT.explicit.acts, id).text), kinks = ex.kinkIds.map((id) => idOf(INT.explicit.kinks, id).text);
+    const w = (id, pool) => withWho(idOf(INT.explicit[pool], id), ex.who);
+    assert.ok(lines.includes(`${BULLET}Kinks: ${[w(ex.setupId, "setups"), w(ex.dynamicId, "dynamics"), ...acts, ...kinks, reg].join(TAG_SEP)}`), r.prompt);
+    assert.ok(!lines.some((l) => /^• (Catalyst|Register|Setup|Dynamic|Acts):/.test(l)), "one explicit line");
+  }
+});
+
+test("a role lands on a character: power bottom names Mike or Will", () => {
+  assert.deepEqual(INT.characters, ["Mike", "Will"]);
+  assert.equal(withWho({ text: "power bottom", who: "{name}" }, "Will"), "power bottom (Will)");
+  assert.equal(withWho({ text: "brat taming", who: "{name} is the brat" }, "Mike"), "brat taming (Mike is the brat)");
+  assert.equal(withWho({ text: "switching" }, "Mike"), "switching");
+  assert.equal(withWho({ text: "power bottom", who: "{name}" }, null), "power bottom");
+  const seen = new Set();
+  for (let i = 0; i < 80; i++) {
+    const r = generateIntermediatePrompt(INT, { seed: "who" + i, explicitLevel: "explicit", seasonId: "post-canon" });
+    seen.add(r.selections.explicit.who);
+    const dyn = idOf(INT.explicit.dynamics, r.selections.explicit.dynamicId);
+    if (dyn.who) assert.match(r.prompt, /\((Mike|Will)[^)]*\)/);
+  }
+  assert.deepEqual([...seen].sort(), ["Mike", "Will"]);
+  assert.ok(INT.explicit.dynamics.filter((d) => d.who).length >= 12);
+});
+
 test("a bulleted prompt collapses back to one line for titles", () => {
-  const r = generateIntermediatePrompt(INT, { seed: "flat", includeCatalyst: true });
+  const r = generateIntermediatePrompt(INT, { seed: "flat", explicitLevel: "explicit" });
   const flat = unbullet(r.prompt);
   assert.ok(!flat.includes("\n") && !flat.includes(BULLET.trim()));
   for (const ln of r.prompt.split("\n")) assert.ok(flat.includes(ln.slice(2)), "no clause is lost");
-  // it is a no-op on a curated prompt and safe on nothing at all
   const simple = generateSimplePrompt(DATA.prompts).prompt;
   assert.equal(unbullet(simple), simple);
   assert.equal(unbullet(""), "");
   assert.equal(unbullet(null), "");
-});
-
-test("a catalyst is opt-in", () => {
-  assert.equal(generateIntermediatePrompt(INT, { seed: "x" }).selections.catalystId, undefined);
-  const on = generateIntermediatePrompt(INT, { seed: "x", includeCatalyst: true });
-  assert.ok(on.selections.catalystId);
-  assert.ok(on.prompt.includes(INT.catalysts.find((c) => c.id === on.selections.catalystId).text));
-});
-
-test("a scenario category steers the tension", () => {
-  for (let i = 0; i < 20; i++) {
-    const r = generateIntermediatePrompt(INT, { seed: "c" + i, scenarioCategory: "confession" });
-    const t = INT.tensions.find((x) => x.id === r.selections.tensionId);
-    assert.ok(t.category === "confession" || t.tags.includes("confession"));
-  }
 });
 
 test("selection helpers: weights bias without guaranteeing, filters can be exhausted", () => {
@@ -142,11 +290,13 @@ test("selection helpers: weights bias without guaranteeing, filters can be exhau
   for (let i = 0; i < 500; i++) counts[pickWeighted(items, rng).id]++;
   assert.ok(counts.a > counts.b && counts.b > 0);
   assert.equal(pickWeighted([], rng), null);
-  const minor = { timePeriod: { id: "post-vecna", ageGroup: "minor" }, activeTags: new Set(["canon"]) };
+  const minor = { season: { id: "s4", ageGroup: "minor" }, canon: { id: "canon-compliant" }, activeTags: new Set(["canon"]) };
   assert.equal(isCompatible({ id: "x", adultOnly: true }, minor), false);
   assert.equal(isCompatible({ id: "x", incompatibleTags: ["canon"] }, minor), false);
-  assert.equal(isCompatible({ id: "x", compatiblePeriods: ["modern-au"] }, minor), false);
+  assert.equal(isCompatible({ id: "x", compatibleAgeGroups: ["adult"] }, minor), false);
+  assert.equal(isCompatible({ id: "x", compatibleCanon: ["au"] }, minor), false);
   assert.equal(isCompatible({ id: "x", tags: [] }, minor), true);
+  assert.deepEqual(EXPLICIT_LEVELS, ["none", "suggestive", "explicit"]);
 });
 
 test("generatePrompt dispatches by mode and refuses missing pools", () => {
@@ -155,45 +305,30 @@ test("generatePrompt dispatches by mode and refuses missing pools", () => {
   assert.throws(() => generatePrompt("intermediate", { prompts: DATA.prompts }), /unavailable/);
 });
 
-test("a universe frames the scene: nothing canon-shaped wanders into an AU", () => {
-  const idOf = (list, id) => list.find((x) => x.id === id);
-  for (const u of INT.universes) {
-    for (let i = 0; i < 40; i++) {
-      const r = generateIntermediatePrompt(INT, { seed: `${u.id}-${i}`, universeId: u.id, includeCatalyst: i % 2 === 0 });
-      assert.equal(r.selections.universeId, u.id);
-      const period = idOf(INT.timePeriods, r.selections.timePeriodId);
-      const loc = idOf(INT.locations, r.selections.locationId);
-      // the period admits this universe, and the place belongs to it
-      if (period.compatibleUniverses?.length) assert.ok(period.compatibleUniverses.includes(u.id), `${period.id} vs ${u.id}`);
-      if (loc.compatibleUniverses?.length) assert.ok(loc.compatibleUniverses.includes(u.id), `${loc.id} vs ${u.id}`);
-      // an AU never gets a component that opted out of AUs
-      const chosen = [loc, idOf(INT.tensions, r.selections.tensionId), idOf(INT.catalysts, r.selections.catalystId)].filter(Boolean);
-      for (const c of chosen)
-        for (const bad of c.incompatibleTags || [])
-          assert.ok(!(u.tags || []).includes(bad), `${c.id} carries ${bad} into ${u.id}`);
-      assert.equal(r.prompt.split("\n")[0].slice(2), u.text);
-    }
+test("every season and every place is reachable", () => {
+  const seasons = new Set(), places = new Set();
+  for (let i = 0; i < 600; i++) {
+    const r = generateIntermediatePrompt(INT, { seed: "reach" + i });
+    seasons.add(r.selections.seasonId);
+    places.add(r.selections.placeId);
   }
+  assert.equal(seasons.size, INT.seasons.length);
+  assert.ok(places.size >= INT.places.length - 2, [...places].join(","));
 });
 
-test("every universe is reachable, and the canon one is not the only one dealt", () => {
-  assert.deepEqual(validateIntermediateData(INT), []);
-  const seen = new Set();
-  for (let i = 0; i < 300; i++) seen.add(generateIntermediatePrompt(INT, { seed: "u" + i }).selections.universeId);
-  assert.ok(seen.size > 5, "the ballot roams the multiverse: " + [...seen].join(","));
-  assert.ok(seen.has("hawkins-canon"));
-});
-
-test("a universe with no periods behind it is a data error, not a silent dud", () => {
-  const broken = { ...INT, universes: [...INT.universes, { id: "nowhere", label: "Nowhere", text: "x" }] };
-  assert.ok(validateIntermediateData(broken).some((e) => /nowhere: no time period/.test(e)));
-  const dangling = { ...INT, locations: [{ ...INT.locations[0], compatibleUniverses: ["not-a-universe"] }] };
-  assert.ok(validateIntermediateData(dangling).some((e) => /unknown universe/.test(e)));
-});
-
-test("a prompts.json with no universes pool still generates", () => {
-  const { universes, ...noU } = INT;
-  const r = generateIntermediatePrompt(noU, { seed: "old" });
-  assert.equal(r.selections.universeId, undefined);
-  assert.ok(r.prompt.split("\n").length >= 5);
+test("a broken library is a data error, not a silent dud", () => {
+  const dup = { ...INT, tropes: [...INT.tropes, { ...INT.tropes[0] }] };
+  assert.ok(validateIntermediateData(dup).some((e) => /duplicate id/.test(e)));
+  const orphan = { ...INT, tropes: [...INT.tropes, { id: "x", label: "x", text: "x", group: "nowhere" }] };
+  assert.ok(validateIntermediateData(orphan).some((e) => /group nowhere/.test(e)));
+  const noAdult = { ...INT, seasons: INT.seasons.filter((s) => s.ageGroup !== "adult") };
+  assert.ok(validateIntermediateData(noAdult).some((e) => /no adult season/.test(e)));
+  const unguarded = {
+    ...INT,
+    explicit: { ...INT.explicit, levels: INT.explicit.levels.map((l) => (l.id === "explicit" ? { ...l, adultOnly: false } : l)) },
+  };
+  assert.ok(validateIntermediateData(unguarded).some((e) => /must be adultOnly/.test(e)));
+  const badCanon = { ...INT, places: [{ ...INT.places[0], compatibleCanon: ["not-a-canon"] }] };
+  assert.ok(validateIntermediateData(badCanon).some((e) => /unknown canon/.test(e)));
+  assert.deepEqual(validateIntermediateData(null), ["missing intermediate data"]);
 });

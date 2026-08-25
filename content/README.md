@@ -10,7 +10,7 @@ touched to run the app for another fandom — only this directory.
 | file | holds |
 |---|---|
 | `site.json` | The app's identity: `fandom` (the hero's first word — "Byler"), `name` (the full app name in every page title, the header, exports, emails, the welcome inbox note — "Byler Cowrite"), `tagline` (under the homepage heading), `blurb` (the first line of the features modal). Each is a plain string, ≤200 chars. Missing keys fall back to a generic "Cowrite". |
-| `prompts.json` | `prompts` — the curated scenario pool (one string each, dealt untouched in Simple mode); `intermediate` — the guided-mode component pools (universes, timePeriods, locations, relationshipContexts, tensions, catalysts, tones, templates, categoryLabels). See `docs/PROMPT_GENERATION.md` for the schema and compatibility rules. |
+| `prompts.json` | `prompts` — the curated scenario pool (one string each, dealt untouched in Simple mode); `intermediate` — the guided-mode axes (seasons, canon, places, situations, relationships, tones), the grouped `tropes` bank (`tropeGroups` names the groups) and the `explicit` layer (levels, setups, dynamics, acts, weighted kinks, registers — adult seasons only). See `docs/PROMPT_GENERATION.md` for the schema and compatibility rules. |
 | `achievements.json` | `wordTiers` — the rank ladder (id, name, min words, emoji); `usageOpen` — word badges whose descriptions are always visible; `usage` — the SECRET word badges (trigger words and descriptions hidden until earned); `themeUnlocks` — which rank earns which theme (and, through the theme, which gimmick). See `UNLOCKS.md`. |
 | `quotes.json` | Taglines for the homepage hero and the dashboard (an array of strings, re-read on every request, so edits show without a restart). |
 
@@ -23,15 +23,19 @@ touched to run the app for another fandom — only this directory.
 2. **Edit `site.json`** — set `fandom`, `name`, `tagline`, `blurb`. This alone
    renames the app everywhere the name appears.
 3. **Rewrite `quotes.json`** — any number of strings.
-4. **Rewrite `prompts.json`**:
+4. **Rewrite `prompts.json`** (or do it in the app: the "Prompt library" section of `/admin`
+   edits every pool and validates before saving — it writes this same file):
    - `prompts`: replace the curated scenarios (any count, one string each).
    - `intermediate`: keep the SHAPE (same top-level keys, same fields per
-     entry) and replace the content. The rules that matter: every
-     `compatiblePeriods` / `compatibleUniverses` id must exist; every
-     `timePeriods` entry needs an `ageGroup` (`minor` | `adult`); tensions need
-     all three `low`/`medium`/`high` variants; every universe must be admitted
-     by at least one period. Or delete the `intermediate` key entirely and the
-     game runs Simple mode only.
+     entry) and replace the content. The rules that matter: ids are unique
+     lowercase slugs; every `seasons` entry needs an `ageGroup` (`minor` |
+     `adult`) and at least one must be adult, or the explicit layer can never
+     be dealt; every `compatibleCanon` id must exist in `canon`; every trope's
+     `group` must be named in `tropeGroups`, and at least one group must be
+     `setting-au` (an AU draws its world from it); `explicit.levels` must carry
+     `none`/`suggestive`/`explicit` with `explicit` marked `adultOnly`. Anything
+     that must not reach minors gets `compatibleAgeGroups: ["adult"]`. Or
+     delete the `intermediate` key entirely and the game runs Simple mode only.
 5. **Rewrite `achievements.json`**:
    - `wordTiers`: rename the ranks (keep `id`s stable if accounts already exist —
      a user's `currentBadge` stores the id).

@@ -50,3 +50,62 @@ test("agoLabel reads as a gap, and says so when there is no sign-in at all", () 
   assert.equal(agoLabel(NOW - 400 * DAY, NOW), "1y ago");
   assert.equal(agoLabel(null, NOW), "never signed in");
 });
+
+// ---- The prompt library editor ----
+const { promptEditorHtml, promptRowHtml, readPromptEditor, slugId, PROMPT_POOLS } = await import("../public/js/admin-view.js");
+const { mount } = await import("./dom.mjs");
+const { readFileSync } = await import("node:fs");
+const LIB = JSON.parse(readFileSync(new URL("../content/prompts.json", import.meta.url), "utf-8"));
+
+test("every pool of the library is an editable section, simple scenarios first", () => {
+  const html = promptEditorHtml(LIB);
+  const pools = [...html.matchAll(/data-pool="([^"]+)"/g)].map((m) => m[1]);
+  assert.equal(pools[0], "prompts");
+  for (const p of PROMPT_POOLS) assert.ok(pools.includes(p.path.join(".")), p.title);
+  assert.ok(pools.includes("intermediate.tropeGroups"));
+  assert.ok(html.includes(`(${LIB.prompts.length})`), "the simple pool shows its count");
+  assert.equal((html.match(/class="pe-row"/g) || []).length,
+    PROMPT_POOLS.filter((p) => p.kind === "items").reduce((n, p) => n + p.path.reduce((o, k) => o[k], LIB).length, 0));
+  assert.match(html, /id="promptSave"/);
+  // a trope row picks its group from the named groups; a season its age
+  assert.match(html, /<select data-field="group">[\s\S]*value="setting-au"/);
+  assert.match(html, /<select data-field="ageGroup">/);
+  // labels are data, always escaped
+  assert.match(promptRowHtml({ id: "x", label: "<b>" }, PROMPT_POOLS[3]), /&lt;b&gt;/);
+});
+
+test("the editor round-trips the library byte-for-byte, and edits read back", () => {
+  const root = mount(promptEditorHtml(LIB));
+  const { doc, errors } = readPromptEditor(root, LIB);
+  assert.deepEqual(errors, []);
+  assert.deepEqual(doc, LIB, "an untouched editor reads back the document it was built from");
+
+  // edit a label, a weight, a rule, a simple line; add and remove rows
+  const tropes = root.querySelector('[data-pool="intermediate.tropes"]');
+  const first = tropes.querySelector(".pe-row");
+  first.querySelector('[data-field="label"]').value = "Forced Proximity!";
+  first.querySelector('[data-field="weight"]').value = "9";
+  first.querySelector('[data-field="rules"]').value = '{"tags":["close"],"requiresTags":["together"]}';
+  tropes.querySelector(".pe-row:last-child").remove();
+  tropes.querySelector("tbody").insertAdjacentHTML("beforeend", promptRowHtml({}, PROMPT_POOLS.find((p) => p.title === "Tropes"), LIB.intermediate.tropeGroups));
+  const added = tropes.querySelector(".pe-row:last-child");
+  added.querySelector('[data-field="label"]').value = "Practice kissing, again";
+  added.querySelector('[data-field="group"]').value = "practice";
+  root.querySelector('[data-pool="prompts"] .pe-lines').value = "One.\n\n  Two.  \n";
+  const out = readPromptEditor(root, LIB);
+  assert.deepEqual(out.errors, []);
+  const t0 = out.doc.intermediate.tropes[0];
+  assert.equal(t0.id, LIB.intermediate.tropes[0].id, "an existing row keeps its id");
+  assert.deepEqual(t0, { id: t0.id, label: "Forced Proximity!", text: "forced proximity!", weight: 9, group: t0.group, tags: ["close"], requiresTags: ["together"] });
+  assert.equal(out.doc.intermediate.tropes.length, LIB.intermediate.tropes.length);
+  assert.deepEqual(out.doc.intermediate.tropes.at(-1), { id: "practice-kissing-again", label: "Practice kissing, again", text: "practice kissing, again", group: "practice" });
+  assert.deepEqual(out.doc.prompts, ["One.", "Two."]);
+  assert.equal(slugId("Heat / rut (A/B/O)"), "heat-rut-a-b-o");
+
+  // a rules cell that isn't a JSON object is an error, not a silent drop
+  first.querySelector('[data-field="rules"]').value = "tags: close";
+  assert.match(readPromptEditor(root, LIB).errors[0], /rules must be a JSON object/);
+  first.querySelector('[data-field="rules"]').value = "";
+  root.querySelector('[data-pool="intermediate.tropeGroups"] .pe-lines').value = "practice = Practice\nbogus line";
+  assert.match(readPromptEditor(root, LIB).errors[0], /isn't "id = Name"/);
+});

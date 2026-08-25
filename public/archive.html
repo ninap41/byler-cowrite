@@ -75,7 +75,7 @@
 			import { requireAuth } from "/js/auth-guard.js"
 			import { gameCardHtml, archiveStoryHtml, fmtWhen, canContinue } from "/js/archive-view.js"
 			import { mountViewPicker, applyGrid } from "/js/components/view-picker.js"
-			import { safeColor, oneLinePrompt } from "/js/util.js"
+			import { safeColor, oneLinePrompt, promptHtml } from "/js/util.js"
 			import { buildExports, exportDocument } from "/js/export.js"
 			import { mountTagEditor } from "/js/components/tag-chips.js"
 
@@ -178,7 +178,7 @@
 					authors.appendChild(a)
 				})
 				$("archMeta").textContent = `code: ${g.code} · last played · ${fmtWhen(g.savedAt)}`
-				$("archPrompt").textContent = g.prompt || "(no prompt)"
+				$("archPrompt").innerHTML = promptHtml(g.prompt || "(no prompt)")
 				// tags: everyone with a seat here may edit; each change saves itself
 				mountTagEditor($("archTags"), {
 					tags: g.tags || [],

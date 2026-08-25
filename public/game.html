@@ -263,7 +263,7 @@
 
 		<script src="/socket.io/socket.io.js"></script>
 		<script type="module">
-			import { PALETTE, esc, safeColor, whoMarks, miniAvatar } from "/js/util.js"
+			import { PALETTE, esc, safeColor, whoMarks, miniAvatar, promptHtml } from "/js/util.js"
 			import { api as authApi, getToken, setToken } from "/js/api.js"
 			import { loadRejoin, saveRejoin, clearRejoin } from "/js/socket-client.js"
 			import { createSounds, createLineChime, shouldChimeChat, shouldChime } from "/js/sounds.js"
@@ -787,7 +787,7 @@
 				st.options.forEach((p, i) => {
 					const b = document.createElement("button")
 					b.className = "option" + (myVote === p ? " mine" : "")
-					b.innerHTML = `${esc(p)}${optionChipsHtml(st.optionMeta?.[i])}<span class="votecount">${
+					b.innerHTML = `${promptHtml(p)}${optionChipsHtml(st.optionMeta?.[i])}<span class="votecount">${
 						st.tally?.[i] || 0
 					} ▲</span>`
 					b.onclick = () => {
@@ -860,7 +860,7 @@
 				lastTurnKey = null // detects real turn changes vs mid-turn re-broadcasts (e.g. rule updates)
 			function renderWriting(st) {
 				onlyShow("game")
-				$("gamePrompt").textContent = st.prompt
+				$("gamePrompt").innerHTML = promptHtml(st.prompt)
 				lineChime.note(st.story, myId)
 				lineChime.setPrev(st.currentId)
 				renderStory($("storyBox"), st.story, true)
@@ -1139,7 +1139,7 @@ $("pauseBtn").onclick = () =>
 				turnAlert(false)
 				lineChime.note(story, myId)
 				onlyShow("over")
-				$("overPrompt").textContent = prompt
+				$("overPrompt").innerHTML = promptHtml(prompt)
 				renderStory($("overStory"), story, false)
 				rebuildExports(prompt, story)
 				updateHostView()

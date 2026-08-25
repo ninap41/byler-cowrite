@@ -57,3 +57,160 @@ export function adminUsersHtml(users, now) {
 		)
 		.join("")
 }
+
+// ---- The prompt library editor ------------------------------------------
+// Every pool of content/prompts.json as an editable table, and the reverse:
+// read the tables back into the document the server validates as one piece.
+// Pure string builders + one DOM reader, so jsdom can round-trip them.
+
+// What each pool is, in the order the editor shows them. `path` walks the
+// document; `kind` decides the row shape: "strings" is one per line in a
+// textarea, "items" is a table of {id,label,weight,…}.
+export const PROMPT_POOLS = [
+	{ path: ["prompts"], title: "Curated scenarios (Simple mode)", kind: "strings", hint: "One scenario per line, dealt untouched." },
+	{ path: ["intermediate", "characters"], title: "Characters", kind: "strings", hint: "Who a role can land on (\"power bottom (Will)\")." },
+	{ path: ["intermediate", "seasons"], title: "Seasons", kind: "items", fields: ["ageGroup"] },
+	{ path: ["intermediate", "canon"], title: "Canon", kind: "items" },
+	{ path: ["intermediate", "places"], title: "Places", kind: "items" },
+	{ path: ["intermediate", "situations"], title: "Situations", kind: "items" },
+	{ path: ["intermediate", "relationships"], title: "Relationships", kind: "items" },
+	{ path: ["intermediate", "tones"], title: "Tones", kind: "items" },
+	{ path: ["intermediate", "tropes"], title: "Tropes", kind: "items", fields: ["group"] },
+	{ path: ["intermediate", "explicit", "levels"], title: "Explicit · levels", kind: "items" },
+	{ path: ["intermediate", "explicit", "setups"], title: "Explicit · setups", kind: "items", fields: ["who"] },
+	{ path: ["intermediate", "explicit", "dynamics"], title: "Explicit · dynamics", kind: "items", fields: ["who"] },
+	{ path: ["intermediate", "explicit", "acts"], title: "Explicit · acts", kind: "items" },
+	{ path: ["intermediate", "explicit", "kinks"], title: "Explicit · kinks (weighted)", kind: "items" },
+	{ path: ["intermediate", "explicit", "registers"], title: "Explicit · registers", kind: "items" },
+]
+// The columns every item row carries; everything else an entry holds
+// (tags, compatibleAgeGroups, compatibleCanon, requiresTags…) is edited as
+// a JSON "rules" cell so no rule is lost for want of a column.
+const ROW_KEYS = ["id", "label", "text", "weight"]
+const poolKey = (pool) => pool.path.join(".")
+const getIn = (doc, path) => path.reduce((o, k) => (o == null ? undefined : o[k]), doc)
+const setIn = (doc, path, v) => {
+	let o = doc
+	for (const k of path.slice(0, -1)) o = o[k] ??= {}
+	o[path.at(-1)] = v
+}
+
+// "Power bottom" -> "power-bottom": a new row's id, from its label.
+export function slugId(label) {
+	return String(label || "")
+		.toLowerCase()
+		.replace(/&/g, "and")
+		.replace(/[^a-z0-9]+/g, "-")
+		.replace(/^-+|-+$/g, "")
+}
+
+function rulesOf(item, pool) {
+	const skip = new Set([...ROW_KEYS, ...(pool.fields || [])])
+	const rest = Object.fromEntries(Object.entries(item).filter(([k]) => !skip.has(k)))
+	return Object.keys(rest).length ? JSON.stringify(rest) : ""
+}
+
+export function promptRowHtml(item, pool, groups = {}) {
+	const extra = (pool.fields || [])
+		.map((f) => {
+			if (f === "group")
+				return `<td><select data-field="group">${Object.entries(groups)
+					.map(([id, label]) => `<option value="${esc(id)}"${id === item.group ? " selected" : ""}>${esc(label)}</option>`)
+					.join("")}</select></td>`
+			if (f === "ageGroup")
+				return `<td><select data-field="ageGroup">${["minor", "adult"]
+					.map((g) => `<option value="${g}"${g === item.ageGroup ? " selected" : ""}>${g}</option>`)
+					.join("")}</select></td>`
+			return `<td><input data-field="${esc(f)}" value="${esc(item[f] ?? "")}" placeholder="{name} is…" /></td>`
+		})
+		.join("")
+	return `<tr class="pe-row" data-id="${esc(item.id || "")}">
+	<td><input data-field="label" value="${esc(item.label ?? "")}" required /></td>
+	<td><input data-field="weight" type="number" min="0.05" step="0.5" value="${esc(item.weight ?? "")}" placeholder="1" /></td>
+	${extra}
+	<td><input data-field="rules" class="pe-rules" value="${esc(rulesOf(item, pool))}" placeholder='{"tags":[…]}' /></td>
+	<td><button type="button" class="ghost pe-del" title="Remove">✕</button></td>
+</tr>`
+}
+
+export function promptPoolHtml(pool, doc) {
+	const key = poolKey(pool)
+	const list = getIn(doc, pool.path) || []
+	if (pool.kind === "strings")
+		return `<details class="pe-pool" data-pool="${esc(key)}"><summary>${esc(pool.title)} <span class="subtle">(${list.length})</span></summary>
+	<p class="subtle">${esc(pool.hint || "")}</p>
+	<textarea class="pe-lines" rows="${Math.min(14, Math.max(3, list.length + 1))}">${esc(list.join("\n"))}</textarea>
+</details>`
+	const groups = doc.intermediate?.tropeGroups || {}
+	const heads = ["Label", "Weight", ...(pool.fields || []).map((f) => ({ group: "Group", ageGroup: "Age", who: "Role (who)" })[f] || f), "Rules (JSON)", ""]
+	return `<details class="pe-pool" data-pool="${esc(key)}"><summary>${esc(pool.title)} <span class="subtle">(${list.length})</span></summary>
+	<p class="subtle">${esc(pool.hint || "Label is what the menus and prompt show; weight biases the draw (blank = 1); rules is the entry's other fields as JSON — tags, compatibleAgeGroups, compatibleCanon, requiresTags, incompatibleTags, adultOnly.")}</p>
+	<table class="pe-table"><thead><tr>${heads.map((h) => `<th>${esc(h)}</th>`).join("")}</tr></thead>
+	<tbody>${list.map((it) => promptRowHtml(it, pool, groups)).join("")}</tbody></table>
+	<button type="button" class="ghost pe-add">+ Add</button>
+</details>`
+}
+
+export function promptEditorHtml(doc) {
+	const groups = doc.intermediate?.tropeGroups || {}
+	return `<div class="pe" id="promptEditor">
+	${PROMPT_POOLS.filter((p) => getIn(doc, p.path) !== undefined || p.path[0] === "prompts").map((p) => promptPoolHtml(p, doc)).join("")}
+	<details class="pe-pool" data-pool="intermediate.tropeGroups"><summary>Trope groups <span class="subtle">(${Object.keys(groups).length})</span></summary>
+	<p class="subtle">id = name, one per line. A trope's group must be named here; the "setting-au" group is the worlds an AU draws from.</p>
+	<textarea class="pe-lines" rows="${Object.keys(groups).length + 1}">${esc(Object.entries(groups).map(([k, v]) => `${k} = ${v}`).join("\n"))}</textarea>
+</details>
+	<div class="pe-foot"><button type="button" class="primary" id="promptSave">Save library</button><span class="subtle" id="promptStatus"></span></div>
+</div>`
+}
+
+// Read the editor back into a document. `base` is the document the editor
+// was built from: pools the editor doesn't show (nothing, today) carry over,
+// and an existing row keeps its id so nothing that references it breaks.
+export function readPromptEditor(root, base) {
+	const doc = JSON.parse(JSON.stringify(base || {}))
+	const errors = []
+	for (const el of root.querySelectorAll(".pe-pool")) {
+		const key = el.dataset.pool
+		const path = key.split(".")
+		const ta = el.querySelector(".pe-lines")
+		if (key === "intermediate.tropeGroups") {
+			const groups = {}
+			for (const line of ta.value.split("\n")) {
+				const m = line.match(/^\s*([a-z0-9-]+)\s*=\s*(.+?)\s*$/)
+				if (m) groups[m[1]] = m[2]
+				else if (line.trim()) errors.push(`trope groups: "${line.trim()}" isn't "id = Name"`)
+			}
+			setIn(doc, path, groups)
+			continue
+		}
+		if (ta) {
+			setIn(doc, path, ta.value.split("\n").map((l) => l.trim()).filter(Boolean))
+			continue
+		}
+		const pool = PROMPT_POOLS.find((p) => poolKey(p) === key)
+		const items = []
+		for (const tr of el.querySelectorAll(".pe-row")) {
+			const val = (f) => tr.querySelector(`[data-field="${f}"]`)?.value ?? ""
+			const label = val("label").trim()
+			if (!label) continue
+			const item = { id: tr.dataset.id || slugId(label), label, text: label.toLowerCase() }
+			const w = Number(val("weight"))
+			if (val("weight").trim() && w > 0) item.weight = w
+			for (const f of pool?.fields || []) if (val(f).trim()) item[f] = val(f).trim()
+			const rules = val("rules").trim()
+			if (rules) {
+				try {
+					const parsed = JSON.parse(rules)
+					if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("not an object")
+					for (const k of ROW_KEYS) delete parsed[k]
+					Object.assign(item, parsed)
+				} catch {
+					errors.push(`${key} / ${label}: rules must be a JSON object`)
+				}
+			}
+			items.push(item)
+		}
+		setIn(doc, path, items)
+	}
+	return { doc, errors }
+}

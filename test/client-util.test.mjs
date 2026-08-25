@@ -51,3 +51,22 @@ test("oneLinePrompt collapses a bulleted guided prompt for card titles", () => {
   assert.equal(oneLinePrompt("\u2022 a \u2022 b\n\u2022 c"), "a \u2022 b c");
   assert.equal(oneLinePrompt("\n\n\u2022 only\n\n"), "only");
 });
+
+test("promptHtml lays a guided prompt out as coloured category | choice rows, and leaves a curated one plain", async () => {
+  const { promptHtml } = await import("../public/js/util.js");
+  const html = promptHtml("• Season: season 5 (1987)\n• Trope: only one bed\n• Kinks: hands · voice");
+  assert.match(html, /^<span class="prompt-grid">/);
+  assert.match(html, /<span class="pc pc-season" title="[^"]+">Season<\/span><span class="pc-val">season 5 \(1987\)<\/span>/);
+  assert.match(html, /pc-trope/);
+  assert.match(html, /pc-kinks/);
+  // every category name carries its tooltip
+  const { PROMPT_CAT_TIPS } = await import("../public/js/util.js");
+  assert.match(html, /class="pc pc-season" title="When it/);
+  for (const cat of ["Season", "Canon", "Place", "Relationship", "Situation", "Trope", "Tone", "Rating", "Kinks"])
+    assert.ok(PROMPT_CAT_TIPS[cat], cat + " has a tooltip");
+  assert.ok(!html.includes("•"), "the bullet is the grid now");
+  // a curated prompt (or anything a player typed) is escaped text, never markup
+  assert.equal(promptHtml("Mike <b>finds</b> the drawing."), "Mike &lt;b&gt;finds&lt;/b&gt; the drawing.");
+  assert.equal(promptHtml("• Season: x\n• Nope: <i>y</i>"), "• Season: x\n• Nope: &lt;i&gt;y&lt;/i&gt;");
+  assert.equal(promptHtml(""), "");
+});

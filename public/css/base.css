@@ -9247,3 +9247,49 @@ html.vcx-live[data-theme="vecna"] #vc-pend {
 .rk-signin {
 	text-align: left;
 }
+
+/* Guided-prompt clauses open "Category: choice"; promptHtml (util.js) wraps
+   the category name so each one wears the same colour everywhere a prompt is
+   shown — banner, ballot, archive. */
+.prompt-grid {
+	display: grid;
+	grid-template-columns: max-content 1fr;
+	gap: 2px 10px;
+	align-items: baseline;
+	text-align: left;
+	white-space: normal;
+	text-indent: 0;
+	padding-left: 0;
+}
+/* a wide card carries the choices in two column pairs */
+@media (min-width: 720px) {
+	.option .prompt-grid, .prompt-banner .prompt-grid {
+		grid-template-columns: max-content 1fr max-content 1fr;
+	}
+}
+.pc { font-weight: 700; cursor: help; font-size: 0.82em; letter-spacing: 0.02em; text-transform: uppercase; }
+.pc-val { min-width: 0; }
+.pc-season { color: #e0a84a; }
+.pc-canon { color: #7fb3ff; }
+.pc-place { color: #6fd39a; }
+.pc-relationship { color: #ff8fb1; }
+.pc-situation { color: #c9a0ff; }
+.pc-trope { color: #5fd0d6; }
+.pc-tone { color: #ffd166; }
+.pc-rating { color: #ff6b6b; }
+.pc-kinks { color: #ff9e7a; }
+
+/* The admin prompt-library editor: one <details> per pool, rows of inputs. */
+.pe-pool { border: 1px solid var(--line); border-radius: var(--r-md); padding: 8px 12px; margin: 0 0 8px; background: var(--panel-2); text-align: left; }
+.pe-pool summary { cursor: pointer; font-weight: 700; }
+.pe-pool .subtle { margin: 6px 0 8px; font-size: 0.8rem; }
+.pe-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.pe-table th { text-align: left; font-weight: 600; color: var(--muted); padding: 2px 6px 6px; }
+.pe-table td { padding: 2px 4px; vertical-align: middle; }
+.pe-table input, .pe-table select { width: 100%; font: inherit; font-size: 0.85rem; padding: 4px 6px; }
+.pe-table td:nth-child(2) { width: 72px; }
+.pe-table td:last-child { width: 36px; }
+.pe-rules { font-family: var(--font-mono); font-size: 0.78rem !important; }
+.pe-lines { width: 100%; font: inherit; font-size: 0.85rem; line-height: 1.45; }
+.pe-add { margin-top: 8px; }
+.pe-foot { display: flex; align-items: center; gap: 12px; margin: 12px 0 0; }

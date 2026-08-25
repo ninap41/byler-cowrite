@@ -309,3 +309,56 @@ test("the inbox reply composer is inline markup on the page, not a browser promp
   const dash = await fetch(ctx.url + "/dashboard").then((r) => r.text());
   assert.ok(!dash.includes("inbox-panel.js"), "the dashboard does not render messages at all");
 });
+
+// ---- The prompt library editor ----
+test("admins read and rewrite the prompt library; the next ballot deals from it; a normal account can't", async () => {
+  const c = await startServer();
+  try {
+    const admin = await makeAdmin(c, "promptadmin");
+    const normie = await signup(c, "promptnormie", "pn@x.com");
+    const denied = await c.api("/api/admin/prompts", undefined, normie.token);
+    assert.equal(denied.status, 403);
+    const put = await c.api("/api/admin/prompts", { data: { prompts: ["x"] } }, normie.token, "PUT");
+    assert.equal(put.status, 403, "a normal account can't rewrite it either");
+
+    const got = await c.api("/api/admin/prompts", undefined, admin.token);
+    assert.equal(got.status, 200);
+    const doc = got.data.data;
+    assert.ok(doc.prompts.length > 10 && doc.intermediate.seasons.length >= 7 && doc.intermediate.explicit.kinks.length);
+
+    // a broken library is refused as a whole, with the reasons
+    const broken = JSON.parse(JSON.stringify(doc));
+    broken.intermediate.tropes.push({ id: "x", label: "x", text: "x", group: "nowhere" });
+    const bad = await c.api("/api/admin/prompts", { data: broken }, admin.token, "PUT");
+    assert.equal(bad.status, 400);
+    assert.ok(bad.data.errors.some((e) => /group nowhere/.test(e)));
+    const noPrompts = await c.api("/api/admin/prompts", { data: { ...doc, prompts: [] } }, admin.token, "PUT");
+    assert.equal(noPrompts.status, 400);
+
+    // a good one is saved and dealt from at once — Simple AND Guided
+    const next = JSON.parse(JSON.stringify(doc));
+    next.prompts = ["Only this scenario now."];
+    next.intermediate.tones = [{ id: "test-tone", label: "Test tone", text: "the test tone", weight: 1 }];
+    const ok = await c.api("/api/admin/prompts", { data: next }, admin.token, "PUT");
+    assert.equal(ok.status, 200);
+    const again = await c.api("/api/admin/prompts", undefined, admin.token);
+    assert.equal(again.data.data.prompts[0], "Only this scenario now.");
+    const menus = await c.api("/api/prompt-options");
+    assert.deepEqual(menus.data.intermediate.tones, [{ id: "test-tone", label: "Test tone" }], "the menus follow the edit");
+
+    const mate = await signup(c, "promptmate", "pm@x.com");
+    const A = await c.conn(); const B = await c.conn();
+    const state = { current: null };
+    A.on("game-state", (st) => (state.current = st));
+    const s = await c.emit(A, "create-session", { auth: admin.token });
+    await c.emit(B, "join-session", { code: s.code, auth: mate.token });
+    await c.emit(A, "start-game", { turnSeconds: 60, rounds: 1 });
+    await c.wait(150);
+    assert.deepEqual(state.current.options, ["Only this scenario now."]);
+    await c.emit(A, "set-prompt-mode", { mode: "intermediate" });
+    await c.wait(150);
+    for (const p of state.current.options) assert.ok(p.includes("Tone: the test tone"), p);
+  } finally {
+    await c.stop();
+  }
+});

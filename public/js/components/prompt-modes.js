@@ -2,55 +2,57 @@
 // the game starts) and the vote card (while it's running) mount the same
 // control and can't drift. Two modes ship: "simple" deals curated scenarios
 // from prompts.json untouched, "intermediate" (Guided) assembles one from
-// compatible clauses. See docs/PROMPT_GENERATION.md.
+// axes — season, canon, place, situation, relationship, tone — plus one weighted
+// trope and, past the age gate, the explicit layer. See docs/PROMPT_GENERATION.md.
 import { esc } from "../util.js"
 
 export const PROMPT_MODES = [
 	{ id: "simple", label: "Simple", hint: "Hand-written scenarios, ready to write" },
-	{ id: "intermediate", label: "Guided", hint: "Build the scene from parts you choose" },
+	{ id: "intermediate", label: "Guided", hint: "Build the scene from axes and tropes you choose" },
 ]
 
-// Every guided knob: the id suffix its control gets, its label, and where its
+// Every guided axis: the id suffix its control gets, its label, and where its
 // choices come from. `menu` names a pool from /api/prompt-options.
 export const GUIDED_FIELDS = [
-	{ key: "universeId", suffix: "Universe", label: "Universe", menu: "universes" },
-	{ key: "timePeriodId", suffix: "Period", label: "Time period", menu: "timePeriods" },
-	{ key: "relationshipContextId", suffix: "Rel", label: "Relationship", menu: "relationshipContexts" },
+	{ key: "seasonId", suffix: "Season", label: "Season", menu: "seasons" },
+	{ key: "canonId", suffix: "Canon", label: "Canon", menu: "canon" },
+	{ key: "placeId", suffix: "Place", label: "Place", menu: "places" },
+	{ key: "situationId", suffix: "Situation", label: "Situation", menu: "situations" },
+	{ key: "relationshipId", suffix: "Rel", label: "Relationship", menu: "relationships" },
 	{ key: "toneId", suffix: "Tone", label: "Tone", menu: "tones" },
-	{ key: "scenarioCategory", suffix: "Category", label: "Scenario type", menu: "categories" },
 ]
-export const INTENSITIES = [
-	{ id: "low", label: "Low" },
-	{ id: "medium", label: "Medium" },
-	{ id: "high", label: "High" },
+// The fallback when /api/prompt-options carries no levels; the wire copy wins.
+export const EXPLICIT_LEVELS = [
+	{ id: "none", label: "None" },
+	{ id: "suggestive", label: "Suggestive" },
+	{ id: "explicit", label: "Explicit", adultOnly: true },
 ]
 export const DEFAULT_CONTROLS = {
-	universeId: "random",
-	timePeriodId: "random",
-	relationshipContextId: "random",
+	seasonId: "random",
+	canonId: "random",
+	placeId: "random",
+	situationId: "random",
+	relationshipId: "random",
 	toneId: "random",
-	scenarioCategory: "random",
-	tensionIntensity: "medium",
-	includeCatalyst: false,
+	explicitLevel: "none",
 }
 
-// "forced-proximity" -> "Forced proximity". Tension categories are authored as
-// bare ids in prompts.json, so the menu derives its labels rather than
-// duplicating them.
+// "forced-proximity" -> "Forced proximity", for any pool authored as bare ids.
 export function labelize(id) {
 	const s = String(id || "").replace(/-/g, " ")
 	return s ? s[0].toUpperCase() + s.slice(1) : ""
 }
 
 // A <select>'s children: a Random entry plus one per component.
-export function menuHtml(items, selected) {
-	const rows = [{ id: "random", label: "Random" }, ...(items || [])].map((it) =>
+export function menuHtml(items, selected, { random = true } = {}) {
+	const rows = [...(random ? [{ id: "random", label: "Random" }] : []), ...(items || [])].map((it) =>
 		typeof it === "string" ? { id: it, label: labelize(it) } : it,
 	)
+	const current = selected || (random ? "random" : rows[0]?.id)
 	return rows
 		.map(
 			(it) =>
-				`<option value="${esc(it.id)}"${it.id === (selected || "random") ? " selected" : ""}>${esc(
+				`<option value="${esc(it.id)}"${it.id === current ? " selected" : ""}>${esc(
 					it.label || labelize(it.id),
 				)}</option>`,
 		)
@@ -59,23 +61,23 @@ export function menuHtml(items, selected) {
 
 // The component chips under a guided option — what scene it was assembled
 // from. A curated or hand-written scenario has no meta and gets nothing.
+export const CHIP_ORDER = ["season", "canon", "world", "place", "relationship", "situation", "tropes", "tone", "explicit"]
 export function optionChipsHtml(meta) {
 	const labels = meta?.labels
 	if (!labels) return ""
-	const chips = ["universe", "timePeriod", "location", "relationshipContext", "tension", "catalyst", "tone"]
-		.map((k) => labels[k])
-		.filter(Boolean)
+	const chips = CHIP_ORDER.flatMap((k) => (Array.isArray(labels[k]) ? labels[k] : [labels[k]])).filter(Boolean)
 	if (!chips.length) return ""
 	return `<span class="opt-chips">${chips.map((c) => `<span class="opt-chip">${esc(c)}</span>`).join("")}</span>`
 }
 
-// The periods a universe admits. A period lists the universes it belongs to
-// (the server ships that list with the menu), so choosing "the high seas"
-// leaves the Time period menu offering the age of sail and not the Wheeler
-// basement's decade. A period that lists nothing belongs everywhere.
-export function periodsIn(periods = [], universeId) {
-	if (!universeId || universeId === "random") return periods
-	return periods.filter((p) => !p.universes?.length || p.universes.includes(universeId))
+// The explicit levels a season admits. Explicit is adult-only, and age comes
+// from the season: a minor season leaves only None and Suggestive on the
+// menu. Random offers everything — asking for explicit then narrows the
+// season draw to the adult ones server-side.
+export function levelsFor(levels = [], seasons = [], seasonId) {
+	const season = seasons.find((s) => s.id === seasonId)
+	if (!season || season.ageGroup === "adult") return levels
+	return levels.filter((l) => !l.adultOnly)
 }
 
 // One page can hold two of these (lobby + vote card), so every id is prefixed.
@@ -94,10 +96,7 @@ export function promptModeHtml(prefix) {
 </div>
 <div class="guided-controls hidden" id="${p}Controls">
 	${fields}
-	<label for="${p}Intensity">Tension<select id="${p}Intensity">${INTENSITIES.map(
-		(i) => `<option value="${i.id}"${i.id === "medium" ? " selected" : ""}>${i.label}</option>`,
-	).join("")}</select></label>
-	<label class="gc-check" for="${p}Catalyst"><input type="checkbox" id="${p}Catalyst" /> Add a catalyst</label>
+	<label for="${p}Explicit">Explicit<select id="${p}Explicit">${menuHtml(EXPLICIT_LEVELS, "none", { random: false })}</select></label>
 </div>`
 }
 
@@ -113,8 +112,7 @@ export function mountPromptModes(root, { prefix = "pm", onChange } = {}) {
 
 	const readControls = () => ({
 		...Object.fromEntries(GUIDED_FIELDS.map((f) => [f.key, el(f.suffix).value || "random"])),
-		tensionIntensity: el("Intensity").value,
-		includeCatalyst: el("Catalyst").checked,
+		explicitLevel: el("Explicit").value || "none",
 	})
 	function paint() {
 		// Guided is only offerable once we know the component pools exist.
@@ -135,22 +133,21 @@ export function mountPromptModes(root, { prefix = "pm", onChange } = {}) {
 			paint()
 			fire()
 		})
-	// Narrowing the period menu is not a change of anything the server needs to
-	// hear about — it just stops the menu offering a century this universe has
-	// no room for. A period that falls out of the list falls back to Random.
-	function paintPeriods() {
+	// Narrowing the Explicit menu is not a change of anything the server needs
+	// to hear about — it just stops the menu offering a level this season has
+	// no room for. A level that falls out of the list falls back to None.
+	function paintLevels() {
 		const d = menus?.intermediate
-		if (!d?.timePeriods) return
-		const u = el("Universe")?.value || "random"
-		const allowed = periodsIn(d.timePeriods, u)
-		const want = allowed.some((p) => p.id === controls.timePeriodId) ? controls.timePeriodId : "random"
-		el("Period").innerHTML = menuHtml(allowed, want)
-		controls.timePeriodId = want
+		const levels = d?.explicitLevels?.length ? d.explicitLevels : EXPLICIT_LEVELS
+		const allowed = levelsFor(levels, d?.seasons || [], el("Season")?.value || "random")
+		const want = allowed.some((l) => l.id === controls.explicitLevel) ? controls.explicitLevel : "none"
+		el("Explicit").innerHTML = menuHtml(allowed, want, { random: false })
+		controls.explicitLevel = want
 	}
 	el("Controls").addEventListener("change", (e) => {
-		if (e.target === el("Universe")) {
+		if (e.target === el("Season")) {
 			controls = readControls()
-			paintPeriods()
+			paintLevels()
 		}
 		fire()
 	})
@@ -161,7 +158,7 @@ export function mountPromptModes(root, { prefix = "pm", onChange } = {}) {
 			menus = next
 			const d = next?.intermediate
 			if (d) for (const f of GUIDED_FIELDS) el(f.suffix).innerHTML = menuHtml(d[f.menu], controls[f.key])
-			paintPeriods()
+			paintLevels()
 			paint()
 			return api
 		},
@@ -169,10 +166,8 @@ export function mountPromptModes(root, { prefix = "pm", onChange } = {}) {
 			if (nextMode) mode = nextMode
 			if (nextControls) {
 				controls = { ...controls, ...nextControls }
-				paintPeriods()
 				for (const f of GUIDED_FIELDS) if (el(f.suffix).options.length) el(f.suffix).value = controls[f.key]
-				el("Intensity").value = controls.tensionIntensity || "medium"
-				el("Catalyst").checked = !!controls.includeCatalyst
+				paintLevels()
 			}
 			paint()
 			return api

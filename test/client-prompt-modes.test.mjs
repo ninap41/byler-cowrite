@@ -15,15 +15,22 @@ const {
 const MENUS = {
   modes: ["simple", "intermediate"],
   intermediate: {
-    universes: [{ id: "hawkins-canon", label: "Hawkins, as it happened" }, { id: "high-seas", label: "The high seas" }],
-    timePeriods: [
-      { id: "post-vecna", label: "Post-Vecna", ageGroup: "minor", universes: ["hawkins-canon"] },
-      { id: "modern-au", label: "Modern AU", ageGroup: "adult", universes: ["hawkins-canon"] },
-      { id: "age-of-sail", label: "The age of sail", ageGroup: "adult", universes: ["high-seas"] },
+    seasons: [
+      { id: "s4", label: "Season 4", ageGroup: "minor" },
+      { id: "s5", label: "Season 5", ageGroup: "minor" },
+      { id: "post-canon", label: "Post-canon", ageGroup: "adult" },
     ],
-    relationshipContexts: [{ id: "mutual-unspoken", label: "Mutual but unspoken" }],
-    tones: [{ id: "nostalgic", label: "Nostalgic" }],
-    categories: [{ id: "confession", label: "Confession" }, "forced-proximity"],
+    canon: [{ id: "au", label: "Alternate universe" }],
+    places: [{ id: "church", label: "Church" }, { id: "nyc", label: "New York City" }],
+    situations: [{ id: "reunion", label: "Reunion" }],
+    relationships: [{ id: "pining", label: "Pining" }],
+    tones: [{ id: "angst", label: "Angst" }],
+    explicitLevels: [
+      { id: "none", label: "None", adultOnly: false },
+      { id: "suggestive", label: "Suggestive", adultOnly: false },
+      { id: "explicit", label: "Explicit", adultOnly: true },
+    ],
+    tropeGroups: [{ id: "proximity", label: "Proximity & circumstance" }],
   },
 };
 const fire = (el, type = "click") => el.dispatchEvent(new window.Event(type, { bubbles: true }));
@@ -39,27 +46,30 @@ test("labelize turns authored ids into menu labels", () => {
 });
 
 test("menuHtml always offers Random, marks the current choice, escapes labels", () => {
-  const html = menuHtml(MENUS.intermediate.timePeriods, "modern-au");
+  const html = menuHtml(MENUS.intermediate.seasons, "post-canon");
   assert.match(html, /<option value="random">Random<\/option>/);
-  assert.match(html, /<option value="modern-au" selected>Modern AU<\/option>/);
+  assert.match(html, /<option value="post-canon" selected>Post-canon<\/option>/);
   assert.equal(html.match(/selected/g).length, 1);
   assert.match(menuHtml([{ id: "a", label: "A" }]), /value="random" selected/);
   assert.match(menuHtml(null), /Random/);
   // A bare-string pool (tension categories) gets derived labels.
   assert.match(menuHtml(["forced-proximity"]), /value="forced-proximity">Forced proximity</);
   assert.match(menuHtml([{ id: "x", label: "<script>" }]), /&lt;script&gt;/);
+  // a menu with no Random (explicit level, trope count) selects its first row
+  const fixed = menuHtml(MENUS.intermediate.explicitLevels, null, { random: false });
+  assert.ok(!fixed.includes("random") && /value="none" selected/.test(fixed));
 });
 
 test("optionChipsHtml: guided options get chips in scene order, curated get none", () => {
   assert.equal(optionChipsHtml(null), "");
   assert.equal(optionChipsHtml({ selections: {} }), "");
   const html = optionChipsHtml({
-    labels: { timePeriod: "Post-Vecna", location: "Wheeler basement", tension: "<b>", tone: "Nostalgic" },
+    labels: { season: "Season 4", world: "coffee shop", place: "Church", tropes: ["<b>"], tone: "Angst", explicit: "Suggestive" },
   });
   assert.match(html, /class="opt-chips"/);
-  assert.equal(html.match(/class="opt-chip"/g).length, 4);
+  assert.equal(html.match(/class="opt-chip"/g).length, 6); // each trope is its own chip
   assert.match(html, /&lt;b&gt;/); // labels are data, always escaped
-  assert.ok(html.indexOf("Post-Vecna") < html.indexOf("Wheeler basement"));
+  assert.ok(html.indexOf("Season 4") < html.indexOf("Church") && html.indexOf("Angst") < html.indexOf("Suggestive"));
 });
 
 test("two mounts on one page never share an id", () => {
@@ -71,7 +81,7 @@ test("two mounts on one page never share an id", () => {
   assert.equal(a.filter((x) => b.includes(x)).length, 0);
   // every guided knob is present
   for (const f of GUIDED_FIELDS) assert.ok(a.includes("lobbyPm" + f.suffix), f.suffix);
-  assert.ok(a.includes("lobbyPmIntensity") && a.includes("lobbyPmCatalyst"));
+  assert.ok(a.includes("lobbyPmExplicit") && !a.includes("lobbyPmTropes"), "one trope per prompt: no count to pick");
 });
 
 test("guided is off until the component pools are known", () => {
@@ -85,9 +95,10 @@ test("guided is off until the component pools are known", () => {
 
   pm.setMenus(MENUS);
   assert.equal(guidedBtn.disabled, false);
-  assert.equal(root.querySelector("#t1Period").options.length, 4); // Random + 3
-  assert.equal(root.querySelector("#t1Universe").options.length, 3); // Random + 2
-  assert.equal(root.querySelector("#t1Category").options[1].textContent, "Confession");
+  assert.equal(root.querySelector("#t1Season").options.length, 4); // Random + 3
+  assert.equal(root.querySelector("#t1Place").options.length, 3); // Random + 2
+  assert.equal(root.querySelector("#t1Explicit").options.length, 3); // Random season: every level
+  assert.equal(root.querySelector("#t1Explicit").value, "none", "explicit defaults to none, never random");
 });
 
 test("switching to guided reveals the knobs and reports the mode", () => {
@@ -113,14 +124,12 @@ test("changing any knob reports the whole control set", () => {
   const seen = [];
   const pm = mountPromptModes(root, { prefix: "t3", onChange: (v) => seen.push(v) }).setMenus(MENUS);
   fire(root.querySelector("#t3Mode-intermediate"));
-  root.querySelector("#t3Period").value = "post-vecna";
-  fire(root.querySelector("#t3Period"), "change");
-  root.querySelector("#t3Intensity").value = "high";
-  fire(root.querySelector("#t3Intensity"), "change");
-  root.querySelector("#t3Catalyst").checked = true;
-  fire(root.querySelector("#t3Catalyst"), "change");
+  root.querySelector("#t3Season").value = "post-canon";
+  fire(root.querySelector("#t3Season"), "change");
+  root.querySelector("#t3Explicit").value = "explicit";
+  fire(root.querySelector("#t3Explicit"), "change");
   assert.deepEqual(seen.at(-1).controls, {
-    ...DEFAULT_CONTROLS, timePeriodId: "post-vecna", tensionIntensity: "high", includeCatalyst: true,
+    ...DEFAULT_CONTROLS, seasonId: "post-canon", explicitLevel: "explicit",
   });
   // values() is what start-game sends from the lobby
   assert.deepEqual(pm.values(), { promptMode: "intermediate", promptControls: seen.at(-1).controls });
@@ -130,11 +139,10 @@ test("setState paints the server's state without firing a change back", () => {
   const root = mount("");
   const seen = [];
   const pm = mountPromptModes(root, { prefix: "t4", onChange: (v) => seen.push(v) }).setMenus(MENUS);
-  pm.setState("intermediate", { timePeriodId: "modern-au", tensionIntensity: "low", includeCatalyst: true });
+  pm.setState("intermediate", { seasonId: "post-canon", explicitLevel: "explicit" });
   assert.equal(seen.length, 0); // echoing the broadcast must not re-emit it
-  assert.equal(root.querySelector("#t4Period").value, "modern-au");
-  assert.equal(root.querySelector("#t4Intensity").value, "low");
-  assert.equal(root.querySelector("#t4Catalyst").checked, true);
+  assert.equal(root.querySelector("#t4Season").value, "post-canon");
+  assert.equal(root.querySelector("#t4Explicit").value, "explicit");
   assert.equal(root.querySelector("#t4Controls").classList.contains("hidden"), false);
 });
 
@@ -159,26 +167,29 @@ test("game.html mounts the picker in both the lobby and the vote card", () => {
   assert.match(html, /id="chatCard" class="chat-dock hidden collapsed"/);
 });
 
-test("periodsIn narrows the time periods to the chosen universe", async () => {
-  const { periodsIn } = await import("../public/js/components/prompt-modes.js");
-  const all = MENUS.intermediate.timePeriods;
-  assert.equal(periodsIn(all, "random").length, 3, "Random universe offers every period");
-  assert.deepEqual(periodsIn(all, "high-seas").map((p) => p.id), ["age-of-sail"]);
-  // a period that belongs to no universe in particular belongs everywhere
-  assert.ok(periodsIn([{ id: "any", label: "Any" }], "high-seas").length);
+test("levelsFor narrows the explicit levels to what a season admits", async () => {
+  const { levelsFor } = await import("../public/js/components/prompt-modes.js");
+  const { seasons, explicitLevels } = MENUS.intermediate;
+  assert.equal(levelsFor(explicitLevels, seasons, "random").length, 3, "Random season offers every level");
+  assert.deepEqual(levelsFor(explicitLevels, seasons, "s4").map((l) => l.id), ["none", "suggestive"]);
+  assert.equal(levelsFor(explicitLevels, seasons, "post-canon").length, 3);
 });
 
-test("choosing a universe reshapes the period menu and drops an impossible period", () => {
+test("choosing a minor season drops Explicit from the menu and falls back to None", () => {
   const root = mount('<div id="pm"></div>');
   const api = mountPromptModes(root, { prefix: "t" });
-  api.setMenus(MENUS).setState("intermediate", { timePeriodId: "post-vecna" });
-  const uni = root.querySelector("#tUniverse");
-  const per = root.querySelector("#tPeriod");
-  assert.equal(per.value, "post-vecna");
-  uni.value = "high-seas";
-  fire(uni, "change");
-  assert.deepEqual([...per.options].map((o) => o.value), ["random", "age-of-sail"]);
-  assert.equal(per.value, "random", "a period this universe has no room for falls back to Random");
+  api.setMenus(MENUS).setState("intermediate", { seasonId: "post-canon", explicitLevel: "explicit" });
+  const season = root.querySelector("#tSeason");
+  const level = root.querySelector("#tExplicit");
+  assert.equal(level.value, "explicit");
+  season.value = "s4";
+  fire(season, "change");
+  assert.deepEqual([...level.options].map((o) => o.value), ["none", "suggestive"]);
+  assert.equal(level.value, "none", "a level this season has no room for falls back to None");
+  assert.equal(api.values().promptControls.explicitLevel, "none");
+  // the server's echo of a minor season + explicit paints the same narrowing
+  api.setState("intermediate", { seasonId: "s5", explicitLevel: "explicit" });
+  assert.equal(level.value, "none");
 });
 
 test("Simple mode shows no guided knobs — and the stylesheet agrees", async () => {

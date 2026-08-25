@@ -1,1930 +1,2522 @@
 {
-  "prompts": [
-    "Mike finds the drawing Will made of the party — the one where the wizard looks a little too much like Mike. It's tucked in a book Will lent him. Neither of them mentions it, but the air changes.",
-    "Snowball dance, alternate ending. Will doesn't run to the bathroom this time. He asks Mike to dance, and to his own shock, the words actually come out.",
-    "It's the summer after Vecna. Will and Mike are the only two awake at 3 a.m. in the Byers' new house in California, sitting on the floor because neither can sleep.",
-    "Mike drives to Lenora to visit for spring break. Will meant to act normal. He does not act normal.",
-    "A thunderstorm knocks the power out during a campaign. Everyone else goes home. Will and Mike are left with a single candle and a conversation they've been avoiding for years.",
-    "Will overhears Mike on the phone with El, saying the words 'I don't think it was ever really about her.' He shouldn't have heard that. He can't un-hear it.",
-    "The painting. Will finally tells Mike the truth about who really commissioned it. Set it right after the van scene in season 4 — or wherever you want.",
-    "Post-canon: they're moving into a tiny apartment together 'as roommates.' There is one bed. There has always, somehow, been one bed.",
-    "Mike keeps the walkie-talkie under his pillow long after they should've outgrown it. One night, static — then Will's voice, calling him like it's 1983 again.",
-    "Will teaches Mike how to paint. Mike is terrible at it. Neither of them cares, because Will keeps having to lean in to fix Mike's grip on the brush.",
-    "Truth or dare with the party, but Max is merciless and she has known about both of them for years.",
-    "It's Will's birthday and Mike shows up with a gift that says, without saying, everything he's never had the courage to.",
-    "They fight. A real one, years in the making. Say something you can't take back — then figure out how they find their way back to each other.",
-    "The Upside Down took something from Will that only Mike ever noticed was missing. Post-recovery, Mike is determined to help him find it again.",
-    "College. Will and Mike end up at the same school by a coincidence that is absolutely not a coincidence, and share a dorm hallway.",
-    "A rainy road trip. One motel. Mike falls asleep on Will's shoulder in the car and Will doesn't dare move for two hundred miles.",
-    "El and Will have a quiet conversation about Mike. It goes gentler, and braver, than either of them expected.",
-    "Mike memorized the sound of Will's laugh sometime around 1984 and only just realized it. He's realizing a lot of things lately.",
-    "The party graduates high school. Everyone's talking about the future. Will can only think about one specific part of his.",
-    "Will draws Mike, in secret, for the hundredth time. This time Mike walks in before he can hide the sketchbook.",
-    "A slow dance in an empty gym while cleaning up after a school event nobody else stayed for.",
-    "Mike writes a letter he never intends to send. Will finds it. Take it from there.",
-    "Christmas at the Wheelers'. Mistletoe is involved, and Nancy is enjoying this far too much.",
-    "They're both grown now — late twenties — and reunite at a party reunion after years apart. Everything they never said is still sitting right there between them.",
-    "The Void. Will is pulled somewhere into the upside down. ",
-    "Mike gets jealous of someone new in Will's life in California, and gets jealous",
-    "Cleradin. Will is the cleric, Mike is the paladin sworn to the party. When the healing runs out mid-quest, Mike is the one kneeling in the dirt refusing to let him go.",
-    "Will is a sorcerer who never asked for his magic, and Mike is the knight assigned to guard him from the people who want it. Neither of them is very good at keeping their distance.",
-    "A witch and his familiar. Will's spells have gone strange lately, and every single one of them keeps pointing at the boy who was supposed to just be a black cat on his windowsill.",
-    "Hogwarts AU. Mike is the Gryffindor who shouldn't be in the Hufflepuff common room at midnight, and Will is the one who keeps leaving the door unlocked anyway.",
-    "Mike is a pirate captain with a bad reputation and worse manners. Will is the thing tangled in his nets that is very much not a fish, and very much not letting go of his wrist.",
-    "Vampire AU. Will has been nineteen since 1986 and Mike has just recognized him across a crowded bar, forty years too late and not aged a day in his memory.",
-    "Ghost story: Mike buys a crumbling house in Hawkins and the boy who's been haunting it since the eighties knows things about him he never told anyone alive.",
-    "Angel and demon, both stationed in the same nothing town, both bad at their jobs, both filing reports that leave out the important parts about each other.",
-    "Rockstar Mike is playing the biggest show of his life and the tattoo artist he keeps flying across three states to see is standing in the wings again.",
-    "Two teachers, one staff room. Mike teaches English, Will teaches art, and the kids figured it out approximately a year before either of them did.",
-    "Will is a figure skater and Mike plays hockey and they share the same terrible 5 a.m. ice time. It starts as a turf war.",
-    "Summer job AU: Mike is stuck in the Scoops Ahoy sailor hat and Will is delivering for Surfer Boy Pizza. Both of them keep inventing reasons to be at the other's counter.",
-    "The Hawkins arcade, closing shift, 1985. Mike has one quarter left and Will is the only person who's ever beaten his high score.",
-    "Coffee shop, present day. Will has written the same wrong name on the cup for a month and Mike has stopped correcting him.",
-    "Regency AU: a painter of no particular fortune and the heir who keeps commissioning portraits he does not need.",
-    "Ancient Greece — a soldier and the oracle who keeps seeing the same ending and refuses to say it out loud.",
-    "1800s expedition, somewhere cold and unmapped. Two men, one tent, and a journal that stops being about the survey around week six.",
-    "Soulmate AU where the mark shows up the first time the other person says your name like it matters. Will's arrived when he was eight. Mike's took a lot longer.",
-    "Goth Will and punk Mike, sharing a cigarette neither of them wants behind a venue in 1989.",
-    "Single-parent AU: Will is raising a kid alone and Mike is the neighbor who keeps showing up with groceries nobody asked for and doesn't leave.",
-    "Beauty and the Beast, roughly: a monster in a locked house who is desperate to be seen as a person, and the boy who keeps coming back to the library anyway.",
-    "Superhero AU. Mike's powers are loud and public; Will's are quiet and dangerous. The city has picked a favorite and it's the wrong one.",
-    "Both of them are nineteen and broke, driving a car that shouldn't make it out of Indiana, with no plan past the next state line.",
-    "Zombie apocalypse. Will has been bitten, or thinks he has, and won't let Mike near him. Mike, being Mike, does not respect this at all.",
-    "Werewolf AU: the full moon has never scared Will. What scares him is who keeps waiting up in the woods for him to come back.",
-    "Modern-day, no monsters, no powers: they're just two boys at the same high school, and the hardest thing in the world is a hand held under a lunch table."
-  ],
-  "intermediate": {
-    "universes": [
-      {
-        "id": "hawkins-canon",
-        "label": "Canon Hawkins — Upside Down and all",
-        "text": "canon Hawkins, the party, the thing under the town",
-        "tags": [
-          "canon",
-          "hawkins",
-          "supernatural"
-        ],
-        "weight": 6
-      },
-      {
-        "id": "no-monsters",
-        "label": "Hawkins, but no Upside Down",
-        "text": "same town, same people, no upside down",
-        "tags": [
-          "mundane",
-          "hawkins"
-        ],
-        "weight": 4
-      },
-      {
-        "id": "Cleradin",
-        "label": "D&D AU — the campaign is real (cleric & paladin)",
-        "text": "the campaign is real, Will a cleric, Mike a paladin",
-        "tags": [
-          "au",
-          "fantasy",
-          "magic",
-          "quest"
-        ],
-        "weight": 3
-      },
-      {
-        "id": "Vampire",
-        "label": "Vampire Byler AU",
-        "text": "a school of magic, a castle that rearranges itself",
-        "tags": [
-          "au",
-          "fantasy",
-          "magic",
-          "school"
-        ],
-        "weight": 3
-      },
-      {
-        "id": "high-seas",
-        "label": "Pirate captain & merman AU",
-        "text": "Mike captains a ship, Will came out of the sea",
-        "tags": [
-          "au",
-          "fantasy",
-          "sea",
-          "danger"
-        ],
-        "weight": 3
-      },
-      {
-        "id": "long-night",
-        "label": "Immortal AU — one of them stopped aging",
-        "text": "one of them stopped aging decades ago, still waiting",
-        "tags": [
-          "au",
-          "supernatural",
-          "immortal",
-          "night"
-        ],
-        "weight": 3
-      },
-      {
-        "id": "haunted",
-        "label": "Ghost AU — one of them is dead",
-        "text": "one of them is dead, the other just moved in",
-        "tags": [
-          "au",
-          "supernatural",
-          "ghost",
-          "house"
-        ],
-        "weight": 3
-      },
-      {
-        "id": "stage-lights",
-        "label": "Rock star & tattoo artist AU",
-        "text": "Mike's band got big, Will tattoos.",
-        "tags": [
-          "au",
-          "music",
-          "art",
-          "fame"
-        ],
-        "weight": 3
-      },
-      {
-        "id": "staff-room",
-        "label": "Teachers AU — English & art",
-        "text": " English and art teacher Byler.",
-        "tags": [
-          "au",
-          "work",
-          "school",
-          "adult-life"
-        ],
-        "weight": 3
-      },
-      {
-        "id": "cold-rink",
-        "label": "Figure skater & hockey player AU",
-        "text": "figure skater and hockey player Byler.",
-        "tags": [
-          "au",
-          "sport",
-          "rivalry",
-          "ice"
-        ],
-        "weight": 3
-      },
-      {
-        "id": "after-the-end",
-        "label": "Post-apocalypse AU",
-        "text": "the world ended, a road, one rifle between them",
-        "tags": [
-          "au",
-          "apocalypse",
-          "danger",
-          "survival"
-        ],
-        "weight": 6
-      }
-    ],
-    "timePeriods": [
-      {
-        "id": "1980s-canon",
-        "label": "1980s, mid-canon (still kids)",
-        "text": "middle of the Hawkins years, basement campaigns, nobody gone yet",
-        "ageGroup": "minor",
-        "tags": [
-          "canon",
-          "hawkins",
-          "supernatural",
-          "school"
-        ],
-        "weight": 5,
-        "compatibleUniverses": [
-          "hawkins-canon",
-          "no-monsters"
-        ]
-      },
-      {
-        "id": "post-vecna",
-        "label": "After Vecna (season 4 aftermath)",
-        "text": "the months after Vecna, everyone pretending to be fine",
-        "ageGroup": "minor",
-        "tags": [
-          "canon",
-          "hawkins",
-          "post-season-4",
-          "supernatural"
-        ],
-        "weight": 5,
-        "compatibleUniverses": [
-          "hawkins-canon",
-          "no-monsters"
-        ]
-      },
-      {
-        "id": "california-split",
-        "label": "Will in California, Mike in Hawkins",
-        "text": "the Lenora year, letters and phone calls",
-        "ageGroup": "minor",
-        "tags": [
-          "canon",
-          "california",
-          "distance",
-          "supernatural"
-        ],
-        "weight": 4,
-        "compatibleUniverses": [
-          "hawkins-canon",
-          "no-monsters"
-        ]
-      },
-      {
-        "id": "senior-year",
-        "label": "Senior year of high school",
-        "text": "senior year, graduation close, every plan feels permanent",
-        "ageGroup": "minor",
-        "tags": [
-          "canon",
-          "hawkins",
-          "school",
-          "future"
-        ],
-        "weight": 4,
-        "compatibleUniverses": [
-          "hawkins-canon",
-          "no-monsters"
-        ]
-      },
-      {
-        "id": "early-1990s",
-        "label": "Early 1990s, just out of high school",
-        "text": "first years out of high school, nothing settled",
-        "ageGroup": "adult",
-        "tags": [
-          "adult",
-          "post-canon",
-          "future"
-        ],
-        "weight": 3,
-        "compatibleUniverses": [
-          "hawkins-canon",
-          "no-monsters"
-        ]
-      },
-      {
-        "id": "adult-post-canon",
-        "label": "Adults, years after canon",
-        "text": "adults now, years of unfinished history",
-        "ageGroup": "adult",
-        "tags": [
-          "adult",
-          "post-canon",
-          "reunion"
-        ],
-        "weight": 3,
-        "compatibleUniverses": [
-          "hawkins-canon",
-          "no-monsters"
-        ]
-      },
-      {
-        "id": "college-au",
-        "label": "College years",
-        "text": "college, nobody knows who they were to each other",
-        "ageGroup": "adult",
-        "tags": [
-          "adult",
-          "au",
-          "mundane",
-          "school"
-        ],
-        "weight": 3,
-        "compatibleUniverses": [
-          "hawkins-canon",
-          "no-monsters",
-          "cold-rink",
-          "stage-lights",
-          "Vampire"
-        ]
-      },
-      {
-        "id": "modern-au",
-        "label": "Present day, adults",
-        "text": "no upside down, no monsters",
-        "ageGroup": "adult",
-        "tags": [
-          "adult",
-          "au",
-          "mundane"
-        ],
-        "weight": 3,
-        "compatibleUniverses": [
-          "hawkins-canon",
-          "no-monsters",
-          "stage-lights",
-          "staff-room",
-          "cold-rink",
-          "haunted",
-          "long-night",
-          "after-the-end"
-        ]
-      },
-      {
-        "id": "high-fantasy-age",
-        "label": "Fantasy age (D&D world)",
-        "text": "an age of long roads, bad kings, worse gods",
-        "ageGroup": "adult",
-        "compatibleUniverses": [
-          "Cleradin"
-        ],
-        "tags": [
-          "fantasy",
-          "quest",
-          "danger"
-        ],
-        "weight": 4
-      },
-      {
-        "id": "school-years-au",
-        "label": "School age, in the AU",
-        "text": "still students, basement age, a life without Hawkins",
-        "ageGroup": "minor",
-        "compatibleUniverses": [
-          "Vampire",
-          "cold-rink",
-          "no-monsters"
-        ],
-        "tags": [
-          "school",
-          "young"
-        ],
-        "weight": 4
-      },
-      {
-        "id": "age-of-sail",
-        "label": "Age of sail (1700s)",
-        "text": "open water, charts and superstition, the map runs out",
-        "ageGroup": "adult",
-        "compatibleUniverses": [
-          "high-seas"
-        ],
-        "tags": [
-          "historical",
-          "sea",
-          "danger"
-        ],
-        "weight": 4
-      },
-      {
-        "id": "endless-night",
-        "label": "Present day, one of them immortal/dead",
-        "text": "a present that never reaches morning",
-        "ageGroup": "adult",
-        "compatibleUniverses": [
-          "long-night",
-          "haunted"
-        ],
-        "tags": [
-          "night",
-          "supernatural"
-        ],
-        "weight": 4
-      },
-      {
-        "id": "first-year-after",
-        "label": "First year after the apocalypse",
-        "text": "the first year after it all fell over",
-        "ageGroup": "adult",
-        "compatibleUniverses": [
-          "after-the-end"
-        ],
-        "tags": [
-          "apocalypse",
-          "survival"
-        ],
-        "weight": 4
-      }
-    ],
-    "relationshipContexts": [
-      {
-        "id": "best-friends-unspoken",
-        "label": "Best friends, feelings unexamined",
-        "text": "best friends, neither looking too closely at the rest",
-        "tags": [
-          "unspoken",
-          "friends"
-        ],
-        "compatibleAgeGroups": null,
-        "weight": 5
-      },
-      {
-        "id": "one-sided-realized",
-        "label": "Will knows he's in love, Mike doesn't yet",
-        "text": "Will has known for years, Mike won't finish the thought",
-        "tags": [
-          "one-sided",
-          "unspoken"
-        ],
-        "compatibleAgeGroups": null,
-        "weight": 5
-      },
-      {
-        "id": "mutual-unspoken",
-        "label": "Both know, neither has said it",
-        "text": "both know it stopped being simple, neither says it",
-        "tags": [
-          "mutual-feelings",
-          "unspoken"
-        ],
-        "compatibleAgeGroups": null,
-        "weight": 5
-      },
-      {
-        "id": "recently-confessed",
-        "label": "Just confessed, figuring out what's next",
-        "text": "one of them said it recently, still learning the days after",
-        "tags": [
-          "confessed",
-          "new"
-        ],
-        "compatibleAgeGroups": null,
-        "weight": 4
-      },
-      {
-        "id": "secretly-dating",
-        "label": "Secretly dating",
-        "text": "together a while, nobody knows",
-        "tags": [
-          "together",
-          "secret"
-        ],
-        "compatibleAgeGroups": null,
-        "weight": 4
-      },
-      {
-        "id": "established",
-        "label": "Established couple, out to friends",
-        "text": "together, past the terrified part, people know",
-        "tags": [
-          "together",
-          "domestic"
-        ],
-        "compatibleAgeGroups": null,
-        "weight": 3
-      },
-      {
-        "id": "estranged-reunion",
-        "label": "Estranged for years, reunited",
-        "text": "not close in years, old feelings back fast",
-        "tags": [
-          "reunion",
-          "estranged",
-          "adult"
-        ],
-        "compatibleAgeGroups": [
-          "adult"
-        ],
-        "weight": 3
-      },
-      {
-        "id": "almost-was",
-        "label": "Almost happened once, never spoken of",
-        "text": "something nearly happened once, both call it nothing",
-        "tags": [
-          "regret",
-          "adult",
-          "unspoken"
-        ],
-        "compatibleAgeGroups": [
-          "adult"
-        ],
-        "weight": 2
-      }
-    ],
-    "tones": [
-      {
-        "id": "tender",
-        "label": "Tender and slow",
-        "text": "tender, unhurried, small gestures carry it",
-        "tags": [
-          "quiet",
-          "emotional"
-        ],
-        "weight": 4
-      },
-      {
-        "id": "awkward",
-        "label": "Awkward and fumbling",
-        "text": "awkward, half-finished sentences, nobody smooth",
-        "tags": [
-          "comedic",
-          "honest"
-        ],
-        "weight": 3
-      },
-      {
-        "id": "nostalgic",
-        "label": "Nostalgic",
-        "text": "nostalgic, all that history in the room",
-        "tags": [
-          "quiet",
-          "emotional"
-        ],
-        "weight": 4
-      },
-      {
-        "id": "angsty",
-        "label": "Angsty — let it hurt",
-        "text": "let it hurt, no easy version of anything",
-        "tags": [
-          "heavy",
-          "emotional"
-        ],
-        "weight": 4
-      },
-      {
-        "id": "playful",
-        "label": "Playful and teasing",
-        "text": "light and teasing, the real thing under the joke",
-        "tags": [
-          "light",
-          "comedic"
-        ],
-        "weight": 3
-      },
-      {
-        "id": "suspenseful",
-        "label": "Suspenseful — something's about to go wrong",
-        "text": "taut, something about to go wrong",
-        "tags": [
-          "heavy",
-          "danger"
-        ],
-        "weight": 3
-      },
-      {
-        "id": "bittersweet",
-        "label": "Bittersweet",
-        "text": "bittersweet, they don't get to keep all of it",
-        "tags": [
-          "quiet",
-          "emotional"
-        ],
-        "weight": 3
-      },
-      {
-        "id": "chaotic",
-        "label": "Chaotic and loud",
-        "text": "loud and messy, said at exactly the wrong moment",
-        "tags": [
-          "light",
-          "comedic"
-        ],
-        "weight": 2
-      },
-      {
-        "id": "quiet-domestic",
-        "label": "Quiet and domestic",
-        "text": "small and domestic, the drama in what goes unsaid",
-        "tags": [
-          "quiet",
-          "domestic"
-        ],
-        "weight": 3
-      },
-      {
-        "id": "hopeful",
-        "label": "Hopeful ending",
-        "text": "ends more open than it began, nothing resolved",
-        "tags": [
-          "light",
-          "emotional"
-        ],
-        "weight": 3
-      }
-    ],
-    "locations": [
-      {
-        "id": "wheeler-basement",
-        "label": "Wheeler basement",
-        "text": "wheeler basement, alone, campaign left unfinished",
-        "category": "home",
-        "privacy": "semi-private",
-        "tags": [
-          "hawkins",
-          "canon-friendly",
-          "nostalgic",
-          "campaign"
-        ],
-        "categoryStrict": false,
-        "compatiblePeriods": [
-          "1980s-canon",
-          "post-vecna",
-          "senior-year",
-          "early-1990s"
-        ],
-        "weight": 5,
-        "compatibleUniverses": [
-          "hawkins-canon",
-          "no-monsters"
-        ]
-      },
-      {
-        "id": "castle-byers-rain",
-        "label": "Castle Byers in the rain",
-        "text": "castle byers, rain through the roof, too close",
-        "category": "outdoors",
-        "privacy": "isolated",
-        "tags": [
-          "hawkins",
-          "canon-friendly",
-          "forced-proximity",
-          "rain"
-        ],
-        "categoryStrict": false,
-        "compatiblePeriods": [
-          "1980s-canon",
-          "post-vecna",
-          "senior-year"
-        ],
-        "weight": 4,
-        "compatibleUniverses": [
-          "hawkins-canon",
-          "no-monsters"
-        ]
-      },
-      {
-        "id": "byers-kitchen-3am",
-        "label": "The Byers kitchen at 3 a.m.",
-        "text": "byers kitchen, 3am, neither can sleep",
-        "category": "home",
-        "privacy": "private",
-        "tags": [
-          "quiet",
-          "night",
-          "canon-friendly"
-        ],
-        "categoryStrict": false,
-        "weight": 5,
-        "compatibleUniverses": [
-          "hawkins-canon",
-          "no-monsters"
-        ]
-      },
-      {
-        "id": "mikes-bedroom",
-        "label": "Mike's bedroom",
-        "text": "Mike's room, sleepover, talking in the dark",
-        "category": "home",
-        "privacy": "private",
-        "tags": [
-          "hawkins",
-          "night",
-          "canon-friendly"
-        ],
-        "categoryStrict": false,
-        "compatiblePeriods": [
-          "1980s-canon",
-          "post-vecna",
-          "senior-year",
-          "california-split"
-        ],
-        "weight": 4,
-        "compatibleUniverses": [
-          "hawkins-canon",
-          "no-monsters"
-        ]
-      },
-      {
-        "id": "empty-gym",
-        "label": "The empty school gym",
-        "text": "empty gym after the dance, chairs being stacked",
-        "category": "school",
-        "privacy": "semi-private",
-        "tags": [
-          "school",
-          "dance",
-          "canon-friendly"
-        ],
-        "categoryStrict": false,
-        "compatiblePeriods": [
-          "1980s-canon",
-          "post-vecna",
-          "senior-year",
-          "college-au"
-        ],
-        "weight": 3,
-        "compatibleUniverses": [
-          "hawkins-canon",
-          "no-monsters"
-        ]
-      },
-      {
-        "id": "record-store",
-        "label": "The back of a record store",
-        "text": "back of a record store, same crate, third time through",
-        "category": "public",
-        "privacy": "semi-private",
-        "tags": [
-          "music",
-          "town"
-        ],
-        "categoryStrict": false,
-        "weight": 3,
-        "compatibleUniverses": [
-          "hawkins-canon",
-          "no-monsters"
-        ]
-      },
-      {
-        "id": "stalled-car",
-        "label": "A stalled car",
-        "text": "dead car, empty road, hours from anywhere",
-        "category": "travel",
-        "privacy": "isolated",
-        "tags": [
-          "forced-proximity",
-          "night",
-          "road"
-        ],
-        "categoryStrict": false,
-        "weight": 4,
-        "compatibleUniverses": [
-          "hawkins-canon",
-          "no-monsters"
-        ]
-      },
-      {
-        "id": "motel-room",
-        "label": "A motel room",
-        "text": "motel room, one working lamp, too much quiet",
-        "category": "travel",
-        "privacy": "private",
-        "tags": [
-          "road",
-          "forced-proximity"
-        ],
-        "categoryStrict": false,
-        "weight": 3,
-        "compatibleUniverses": [
-          "hawkins-canon",
-          "no-monsters"
-        ]
-      },
-      {
-        "id": "dorm-hallway",
-        "label": "A dorm hallway",
-        "text": "dorm hallway, 2am, neither going back inside",
-        "category": "school",
-        "privacy": "semi-private",
-        "tags": [
-          "college",
-          "night"
-        ],
-        "categoryStrict": false,
-        "compatiblePeriods": [
-          "college-au",
-          "modern-au",
-          "early-1990s"
-        ],
-        "weight": 3,
-        "compatibleUniverses": [
-          "hawkins-canon",
-          "no-monsters"
-        ]
-      },
-      {
-        "id": "shared-apartment",
-        "label": "A tiny shared apartment",
-        "text": "their small shared apartment, an ordinary evening",
-        "category": "home",
-        "privacy": "private",
-        "tags": [
-          "domestic",
-          "adult"
-        ],
-        "categoryStrict": false,
-        "compatiblePeriods": [
-          "early-1990s",
-          "adult-post-canon",
-          "college-au",
-          "modern-au"
-        ],
-        "weight": 3,
-        "compatibleUniverses": [
-          "hawkins-canon",
-          "no-monsters"
-        ]
-      },
-      {
-        "id": "reunion-porch",
-        "label": "A reunion porch",
-        "text": "back porch at a reunion, years since they talked",
-        "category": "reunion",
-        "privacy": "semi-private",
-        "tags": [
-          "adult",
-          "reunion",
-          "party"
-        ],
-        "categoryStrict": false,
-        "compatiblePeriods": [
-          "early-1990s",
-          "adult-post-canon",
-          "college-au",
-          "modern-au"
-        ],
-        "weight": 3,
-        "compatibleUniverses": [
-          "hawkins-canon",
-          "no-monsters"
-        ]
-      },
-      {
-        "id": "hospital-waiting",
-        "label": "A hospital waiting room",
-        "text": "hospital waiting room, last two left, refusing to leave",
-        "category": "public",
-        "privacy": "public",
-        "tags": [
-          "fear",
-          "hurt-comfort"
-        ],
-        "categoryStrict": false,
-        "weight": 3,
-        "compatibleUniverses": [
-          "hawkins-canon",
-          "no-monsters"
-        ]
-      },
-      {
-        "id": "graduation-party",
-        "label": "Outside a graduation party",
-        "text": "graduation party behind them, same dark patch of yard",
-        "category": "party",
-        "privacy": "semi-private",
-        "tags": [
-          "school",
-          "future",
-          "party"
-        ],
-        "categoryStrict": false,
-        "compatiblePeriods": [
-          "senior-year",
-          "early-1990s"
-        ],
-        "weight": 3,
-        "compatibleUniverses": [
-          "hawkins-canon",
-          "no-monsters"
-        ]
-      },
-      {
-        "id": "long-drive-van",
-        "label": "The van on a long drive",
-        "text": "front of the van, everyone else asleep, hours to go",
-        "category": "travel",
-        "privacy": "semi-private",
-        "tags": [
-          "road",
-          "night",
-          "quiet"
-        ],
-        "categoryStrict": false,
-        "weight": 4,
-        "compatibleUniverses": [
-          "hawkins-canon",
-          "no-monsters"
-        ]
-      },
-      {
-        "id": "cabin-storm",
-        "label": "A cabin in a storm",
-        "text": "borrowed cabin, storm, one blanket",
-        "category": "outdoors",
-        "privacy": "isolated",
-        "tags": [
-          "forced-proximity",
-          "storm",
-          "rain"
-        ],
-        "categoryStrict": false,
-        "weight": 3,
-        "compatibleUniverses": [
-          "hawkins-canon",
-          "no-monsters"
-        ]
-      },
-      {
-        "id": "upside-down-echo",
-        "label": "A wrong version of somewhere familiar",
-        "text": "a place they know by heart, everything subtly wrong",
-        "category": "supernatural",
-        "privacy": "isolated",
-        "tags": [
-          "supernatural",
-          "danger",
-          "canon-friendly"
-        ],
-        "categoryStrict": false,
-        "compatiblePeriods": [
-          "1980s-canon",
-          "post-vecna",
-          "california-split",
-          "senior-year"
-        ],
-        "weight": 3,
-        "compatibleUniverses": [
-          "hawkins-canon",
-          "no-monsters"
-        ]
-      },
-      {
-        "id": "arcade-closing",
-        "label": "The arcade at closing",
-        "text": "arcade closing around them, nobody moving to leave",
-        "category": "public",
-        "privacy": "public",
-        "tags": [
-          "hawkins",
-          "nostalgic",
-          "canon-friendly"
-        ],
-        "categoryStrict": false,
-        "compatiblePeriods": [
-          "1980s-canon",
-          "post-vecna",
-          "senior-year",
-          "california-split"
-        ],
-        "weight": 3,
-        "compatibleUniverses": [
-          "hawkins-canon",
-          "no-monsters"
-        ]
-      },
-      {
-        "id": "phone-line",
-        "label": "Opposite ends of a phone line",
-        "text": "a phone call run far past what either can afford",
-        "category": "distance",
-        "privacy": "private",
-        "tags": [
-          "distance",
-          "night",
-          "letters"
-        ],
-        "categoryStrict": false,
-        "compatiblePeriods": [
-          "california-split",
-          "college-au",
-          "modern-au",
-          "early-1990s"
-        ],
-        "weight": 3,
-        "compatibleUniverses": [
-          "hawkins-canon",
-          "no-monsters"
-        ]
-      },
-      {
-        "id": "byers-attic-boxes",
-        "label": "Packing up a house",
-        "text": "packing the house into boxes, every third thing a memory",
-        "category": "home",
-        "privacy": "private",
-        "tags": [
-          "moving",
-          "nostalgic"
-        ],
-        "categoryStrict": false,
-        "weight": 3,
-        "compatibleUniverses": [
-          "hawkins-canon",
-          "no-monsters"
-        ]
-      },
-      {
-        "id": "diner-booth",
-        "label": "A late-night diner booth",
-        "text": "back booth, diner closing, last of the coffee",
-        "category": "public",
-        "privacy": "semi-private",
-        "tags": [
-          "night",
-          "quiet",
-          "town"
-        ],
-        "categoryStrict": false,
-        "weight": 4,
-        "compatibleUniverses": [
-          "hawkins-canon",
-          "no-monsters"
-        ]
-      },
-      {
-        "id": "temple-ruin-camp",
-        "label": "Camp in a ruined temple",
-        "text": "ruined temple, the same watch again, party asleep",
-        "category": "quiet",
-        "privacy": "semi-private",
-        "compatibleUniverses": [
-          "Cleradin"
-        ],
-        "tags": [
-          "fantasy",
-          "night",
-          "quest"
-        ],
-        "categoryStrict": false,
-        "weight": 5
-      },
-      {
-        "id": "after-the-healing",
-        "label": "After the healing spell",
-        "text": "after the fight, Will's hands still shaking, nobody back yet",
-        "category": "hurt-comfort",
-        "privacy": "private",
-        "compatibleUniverses": [
-          "Cleradin"
-        ],
-        "tags": [
-          "fantasy",
-          "magic",
-          "hurt"
-        ],
-        "categoryStrict": false,
-        "weight": 5
-      },
-      {
-        "id": "astronomy-tower",
-        "label": "The top of the tower",
-        "text": "highest window in the castle, long after curfew",
-        "category": "quiet",
-        "privacy": "private",
-        "compatibleUniverses": [
-          "Vampire"
-        ],
-        "tags": [
-          "magic",
-          "school",
-          "night"
-        ],
-        "categoryStrict": false,
-        "weight": 5
-      },
-      {
-        "id": "detention-together",
-        "label": "Detention, together",
-        "text": "detention, same empty classroom, two hours left",
-        "category": "forced-proximity",
-        "privacy": "semi-private",
-        "compatibleUniverses": [
-          "Vampire",
-          "no-monsters",
-          "cold-rink"
-        ],
-        "tags": [
-          "school",
-          "forced-proximity"
-        ],
-        "categoryStrict": false,
-        "weight": 5
-      },
-      {
-        "id": "crows-nest",
-        "label": "The crow's nest",
-        "text": "crow's nest, crew asleep below, only two awake",
-        "category": "quiet",
-        "privacy": "private",
-        "compatibleUniverses": [
-          "high-seas"
-        ],
-        "tags": [
-          "sea",
-          "night"
-        ],
-        "categoryStrict": false,
-        "weight": 5
-      },
-      {
-        "id": "tidepool-cove",
-        "label": "A cove nobody charted",
-        "text": "a cove on no map, one of them can't follow home",
-        "category": "longing",
-        "privacy": "private",
-        "compatibleUniverses": [
-          "high-seas"
-        ],
-        "tags": [
-          "sea",
-          "fantasy",
-          "longing"
-        ],
-        "categoryStrict": false,
-        "weight": 5
-      },
-      {
-        "id": "bar-that-doesnt-close",
-        "label": "The bar that never closes",
-        "text": "a bar at the sober-people-gone hour, same seat for years",
-        "category": "reunion",
-        "privacy": "public",
-        "compatibleUniverses": [
-          "long-night"
-        ],
-        "tags": [
-          "night",
-          "immortal"
-        ],
-        "categoryStrict": false,
-        "weight": 5
-      },
-      {
-        "id": "rooftop-before-dawn",
-        "label": "A rooftop, before dawn",
-        "text": "rooftop, forty minutes of dark left",
-        "category": "longing",
-        "privacy": "private",
-        "compatibleUniverses": [
-          "long-night",
-          "after-the-end",
-          "haunted"
-        ],
-        "tags": [
-          "night",
-          "longing"
-        ],
-        "categoryStrict": false,
-        "weight": 5
-      },
-      {
-        "id": "house-that-remembers",
-        "label": "The house that remembers him",
-        "text": "front room, empty forty years, obviously not empty",
-        "category": "supernatural",
-        "privacy": "private",
-        "compatibleUniverses": [
-          "haunted"
-        ],
-        "tags": [
-          "ghost",
-          "house",
-          "night"
-        ],
-        "categoryStrict": false,
-        "weight": 5
-      },
-      {
-        "id": "boxes-of-a-dead-boy",
-        "label": "Boxes in the attic",
-        "text": "an attic of his unfinished life, him watching it sorted",
-        "category": "shared-memory",
-        "privacy": "private",
-        "compatibleUniverses": [
-          "haunted"
-        ],
-        "tags": [
-          "ghost",
-          "memory"
-        ],
-        "categoryStrict": false,
-        "weight": 5
-      },
-      {
-        "id": "dressing-room-after",
-        "label": "The dressing room, after",
-        "text": "dressing room after the encore, ears ringing",
-        "category": "reunion",
-        "privacy": "private",
-        "compatibleUniverses": [
-          "stage-lights"
-        ],
-        "tags": [
-          "music",
-          "fame",
-          "reunion"
-        ],
-        "categoryStrict": false,
-        "weight": 5
-      },
-      {
-        "id": "tattoo-chair",
-        "label": "The chair at closing",
-        "text": "shop shut, needle off, an hour of holding still",
-        "category": "tension",
-        "privacy": "private",
-        "compatibleUniverses": [
-          "stage-lights"
-        ],
-        "tags": [
-          "art",
-          "touch"
-        ],
-        "categoryStrict": false,
-        "weight": 5
-      },
-      {
-        "id": "staff-room-late",
-        "label": "The staff room at six",
-        "text": "staff room after the buses, two piles of marking",
-        "category": "quiet",
-        "privacy": "semi-private",
-        "compatibleUniverses": [
-          "staff-room"
-        ],
-        "tags": [
-          "work",
-          "school"
-        ],
-        "categoryStrict": false,
-        "weight": 5
-      },
-      {
-        "id": "art-room-after-bell",
-        "label": "The art room after the bell",
-        "text": "art room after the bell, paint drying, no reason to be here",
-        "category": "quiet",
-        "privacy": "private",
-        "compatibleUniverses": [
-          "staff-room"
-        ],
-        "tags": [
-          "art",
-          "work"
-        ],
-        "categoryStrict": false,
-        "weight": 5
-      },
-      {
-        "id": "five-am-ice",
-        "label": "Five in the morning, shared ice",
-        "text": "empty rink, five a.m., figures on one half, a net on the other",
-        "category": "tension",
-        "privacy": "semi-private",
-        "compatibleUniverses": [
-          "cold-rink"
-        ],
-        "tags": [
-          "sport",
-          "ice",
-          "rivalry"
-        ],
-        "categoryStrict": false,
-        "weight": 5
-      },
-      {
-        "id": "locker-room-tape",
-        "label": "The locker room, taping up",
-        "text": "empty locker room, taping the other's wrist",
-        "category": "hurt-comfort",
-        "privacy": "private",
-        "compatibleUniverses": [
-          "cold-rink"
-        ],
-        "tags": [
-          "sport",
-          "touch",
-          "hurt"
-        ],
-        "categoryStrict": false,
-        "weight": 5
-      },
-      {
-        "id": "barricaded-station",
-        "label": "A gas station, barricaded",
-        "text": "barricaded gas station, one night, something outside",
-        "category": "forced-proximity",
-        "privacy": "private",
-        "compatibleUniverses": [
-          "after-the-end"
-        ],
-        "tags": [
-          "apocalypse",
-          "danger",
-          "forced-proximity"
-        ],
-        "categoryStrict": false,
-        "weight": 5
-      },
-      {
-        "id": "quiet-mile",
-        "label": "A quiet mile of road",
-        "text": "a quiet mile of highway, the closest thing to safe",
-        "category": "quiet",
-        "privacy": "private",
-        "compatibleUniverses": [
-          "after-the-end"
-        ],
-        "tags": [
-          "apocalypse",
-          "road"
-        ],
-        "categoryStrict": false,
-        "weight": 5
-      },
-      {
-        "id": "lunch-table-under",
-        "label": "Under the lunch table",
-        "text": "crowded cafeteria, four-year table, a hand under it",
-        "category": "secret",
-        "privacy": "public",
-        "compatibleUniverses": [
-          "no-monsters",
-          "Vampire",
-          "cold-rink"
-        ],
-        "tags": [
-          "school",
-          "secret",
-          "touch"
-        ],
-        "categoryStrict": false,
-        "weight": 5
-      }
-    ],
-    "tensions": [
-      {
-        "id": "hidden-drawing",
-        "label": "A hidden drawing is discovered",
-        "category": "secret",
-        "variants": {
-          "low": "Mike notices Will sketching him, tries not to make a thing of it",
-          "medium": "Mike finds a drawing he was never meant to see",
-          "high": "Mike finds a whole sketchbook of himself, the pages that can't be explained away"
-        },
-        "tags": [
-          "canon-friendly",
-          "secret",
-          "art",
-          "emotional"
-        ],
-        "weight": 5
-      },
-      {
-        "id": "future-separation",
-        "label": "One of them may leave",
-        "category": "abandonment",
-        "variants": {
-          "low": "next-year talk, very different lives imagined",
-          "medium": "Mike learns Will might leave without telling him",
-          "high": "Will already said yes to somewhere far, everyone else knew first"
-        },
-        "tags": [
-          "future",
-          "separation",
-          "angst"
-        ],
-        "weight": 5
-      },
-      {
-        "id": "jealous-of-someone",
-        "label": "Someone else is in the picture",
-        "category": "jealousy",
-        "variants": {
-          "low": "someone flirts, the other hates it more than expected",
-          "medium": "one is seeing someone, the other is aggressively supportive",
-          "high": "one brings a date, a whole night of pretending that's fine"
-        },
-        "tags": [
-          "jealousy",
-          "emotional"
-        ],
-        "weight": 5
-      },
-      {
-        "id": "unfinished-fight",
-        "label": "A fight nobody finished",
-        "category": "resentment",
-        "variants": {
-          "low": "an old argument surfaces in a joke that lands wrong",
-          "medium": "the fight they never finished, immediately about something else",
-          "high": "years of swallowed things, all at once, worst possible order"
-        },
-        "tags": [
-          "conflict",
-          "angst"
-        ],
-        "weight": 4
-      },
-      {
-        "id": "mistaken-for-couple",
-        "label": "Someone assumes they're together",
-        "category": "misunderstanding",
-        "variants": {
-          "low": "a stranger assumes they're together, nobody corrects it fast enough",
-          "medium": "someone they know says it, in front of people, silence too long",
-          "high": "the assumption reaches someone who matters, it has to be answered"
-        },
-        "tags": [
-          "misunderstanding",
-          "public",
-          "comedic"
-        ],
-        "weight": 4
-      },
-      {
-        "id": "almost-said-it",
-        "label": "One of them nearly says it",
-        "category": "confession",
-        "variants": {
-          "low": "a sentence he can't finish, pretends it was something else",
-          "medium": "something that can't pass as a joke, not taken back",
-          "high": "he says it outright, the other doesn't answer for a long moment"
-        },
-        "tags": [
-          "confession",
-          "emotional"
-        ],
-        "weight": 5
-      },
-      {
-        "id": "stuck-together",
-        "label": "They cannot leave",
-        "category": "forced-proximity",
-        "variants": {
-          "low": "stuck in a small space with the thing they were avoiding",
-          "medium": "stuck for the night, no version where they don't talk",
-          "high": "stuck, one of them hurt or shaking, neither can pretend"
-        },
-        "tags": [
-          "forced-proximity",
-          "hurt-comfort"
-        ],
-        "weight": 4
-      },
-      {
-        "id": "old-promise",
-        "label": "An old promise resurfaces",
-        "category": "shared-memory",
-        "variants": {
-          "low": "one remembers a promise the other thought forgotten",
-          "medium": "a kids' promise that meant different things to each of them",
-          "high": "the other has kept that promise all along, at real cost"
-        },
-        "tags": [
-          "shared-memory",
-          "nostalgic",
-          "emotional"
-        ],
-        "weight": 4
-      },
-      {
-        "id": "nightmare-aftermath",
-        "label": "Something followed them home",
-        "category": "supernatural",
-        "variants": {
-          "low": "waking the other from a nightmare neither will describe",
-          "medium": "the cold on the neck is back, only one admits feeling it",
-          "high": "it's happening again, to one of them, the other can't fix it"
-        },
-        "tags": [
-          "supernatural",
-          "hurt-comfort",
-          "danger"
-        ],
-        "weight": 4,
-        "compatiblePeriods": [
-          "1980s-canon",
-          "post-vecna",
-          "california-split",
-          "senior-year"
-        ],
-        "incompatibleTags": [
-          "au"
-        ]
-      },
-      {
-        "id": "hurt-and-hiding-it",
-        "label": "One of them is hurt and hiding it",
-        "category": "hurt-comfort",
-        "variants": {
-          "low": "one of them not okay, hiding it badly",
-          "medium": "hurt for days, hiding it, found out by accident",
-          "high": "the hiding stops working, nothing to fix it but his hands"
-        },
-        "tags": [
-          "hurt-comfort",
-          "emotional"
-        ],
-        "weight": 4
-      },
-      {
-        "id": "interrupted",
-        "label": "The moment gets interrupted",
-        "category": "interrupted-intimacy",
-        "variants": {
-          "low": "something almost happens, then a question about dinner",
-          "medium": "interrupted at the wrong second, no way back to it",
-          "high": "interrupted by someone who saw enough, now a second problem"
-        },
-        "tags": [
-          "interrupted-intimacy",
-          "comedic"
-        ],
-        "weight": 3
-      },
-      {
-        "id": "letter-never-sent",
-        "label": "A letter that was never sent",
-        "category": "secret",
-        "variants": {
-          "low": "a letter started and abandoned",
-          "medium": "an unsent letter, read far enough to regret starting",
-          "high": "the unsent letter says all of it, held while its author watches"
-        },
-        "tags": [
-          "secret",
-          "letters",
-          "emotional"
-        ],
-        "weight": 4
-      },
-      {
-        "id": "everyone-else-knows",
-        "label": "Everybody else already knew",
-        "category": "misunderstanding",
-        "variants": {
-          "low": "a friend hints it's been obvious for years",
-          "medium": "the party has been quietly waiting for them to catch up",
-          "high": "everyone knew, told the other, left him to figure it out alone"
-        },
-        "tags": [
-          "misunderstanding",
-          "party",
-          "comedic"
-        ],
-        "weight": 3,
-        "incompatibleTags": [
-          "au"
-        ]
-      },
-      {
-        "id": "protective-overreach",
-        "label": "One of them goes too far protecting the other",
-        "category": "protectiveness",
-        "variants": {
-          "low": "one steps in for the other, not entirely welcome",
-          "medium": "one decides for the other, for his own good, and is caught",
-          "high": "something dangerous to keep the other safe, no apology"
-        },
-        "tags": [
-          "protectiveness",
-          "conflict",
-          "danger"
-        ],
-        "weight": 3
-      },
-      {
-        "id": "who-you-became",
-        "label": "They are not who they were",
-        "category": "identity",
-        "variants": {
-          "low": "small changes the other keeps noticing, not mentioning",
-          "medium": "a person the other doesn't recognize, missing the old one out loud",
-          "high": "he's been performing a life he doesn't want, and says so"
-        },
-        "tags": [
-          "identity",
-          "emotional"
-        ],
-        "weight": 4
-      },
-      {
-        "id": "saying-goodbye-badly",
-        "label": "A goodbye done wrong",
-        "category": "abandonment",
-        "variants": {
-          "low": "a goodbye comes out clipped and wrong",
-          "medium": "leaves without saying it, comes back to someone he didn't expect",
-          "high": "last chance to say it before it ends, still not saying it"
-        },
-        "tags": [
-          "separation",
-          "angst"
-        ],
-        "weight": 3
-      },
-      {
-        "id": "shared-bed",
-        "label": "One bed, no discussion",
-        "category": "forced-proximity",
-        "variants": {
-          "low": "one place to sleep, both pretending not to care",
-          "medium": "one bed, the arrangement of limbs is its own conversation",
-          "high": "one bed, one already asleep against the other, all night to think"
-        },
-        "tags": [
-          "forced-proximity",
-          "quiet"
-        ],
-        "weight": 4
-      },
-      {
-        "id": "photograph",
-        "label": "An old photograph",
-        "category": "shared-memory",
-        "variants": {
-          "low": "a photo one of them has clearly kept a long time",
-          "medium": "a photo neither can explain casually, someone asks",
-          "high": "the photo shows how long this has been going on, both looking"
-        },
-        "tags": [
-          "shared-memory",
-          "nostalgic"
-        ],
-        "weight": 3
-      },
-      {
-        "id": "drunk-honesty",
-        "label": "Honesty at the wrong hour",
-        "category": "confession",
-        "variants": {
-          "low": "far too late, one of them more honest than he means",
-          "medium": "the true thing at 3am, not sure the other will remember",
-          "high": "everything said in one exhausted rush, no pretending in the morning"
-        },
-        "tags": [
-          "confession",
-          "night",
-          "emotional"
-        ],
-        "weight": 4
-      },
-      {
-        "id": "plans-without-him",
-        "label": "Plans made without him",
-        "category": "abandonment",
-        "variants": {
-          "low": "a small weekend plan that quietly left the other out",
-          "medium": "a future the other isn't in, said without meaning to",
-          "high": "he's been the backup plan in every version of the other's life"
-        },
-        "tags": [
-          "future",
-          "angst"
-        ],
-        "weight": 3
-      },
-      {
-        "id": "touch-that-lingers",
-        "label": "A touch that goes on too long",
-        "category": "confession",
-        "variants": {
-          "low": "a hand stays a second longer than a friend's would",
-          "medium": "one doesn't let go, and that becomes the conversation",
-          "high": "neither moves away, the years-old excuse stops working"
-        },
-        "tags": [
-          "quiet",
-          "emotional"
-        ],
-        "weight": 4
-      },
-      {
-        "id": "song-that-means-something",
-        "label": "A song that means something",
-        "category": "shared-memory",
-        "variants": {
-          "low": "a song one of them clearly has feelings about",
-          "medium": "a song from a night they've never discussed",
-          "high": "he taped that song for the other years ago, never handed it over"
-        },
-        "tags": [
-          "music",
-          "nostalgic",
-          "emotional"
-        ],
-        "weight": 3
-      },
-      {
-        "id": "dnd-metaphor",
-        "label": "The campaign says it for them",
-        "category": "canon-divergence",
-        "variants": {
-          "low": "the campaign gets too close to home, Mike keeps narrating",
-          "medium": "Will's character says it, Mike answers in character without thinking",
-          "high": "the game stops being a game mid-sentence, dice left down"
-        },
-        "tags": [
-          "campaign",
-          "canon-friendly",
-          "emotional"
-        ],
-        "weight": 4,
-        "compatiblePeriods": [
-          "1980s-canon",
-          "post-vecna",
-          "senior-year",
-          "early-1990s"
-        ],
-        "incompatibleTags": [
-          "au"
-        ]
-      },
-      {
-        "id": "came-back-for-him",
-        "label": "One of them came back",
-        "category": "reunion",
-        "variants": {
-          "low": "turned up unannounced, won't fully say why",
-          "medium": "came a long way for this, says it was for no reason",
-          "high": "dropped a whole life to be here, the other works it out mid-sentence"
-        },
-        "tags": [
-          "reunion",
-          "emotional"
-        ],
-        "weight": 3
-      },
-      {
-        "id": "out-to-someone",
-        "label": "Saying it to somebody else first",
-        "category": "identity",
-        "variants": {
-          "low": "trying to tell his family, can't get the words in order",
-          "medium": "came out to someone else first, the other wasn't first to know",
-          "high": "about to say it to a room that may not take it, the other must pick a side"
-        },
-        "tags": [
-          "identity",
-          "emotional",
-          "adult"
-        ],
-        "weight": 3
-      }
-    ],
-    "catalysts": [
-      {
-        "id": "power-outage",
-        "label": "The power goes out",
-        "text": "the power goes out",
-        "tags": [
-          "storm",
-          "forced-proximity",
-          "canon-friendly"
-        ],
-        "weight": 4
-      },
-      {
-        "id": "song-starts",
-        "label": "A song starts",
-        "text": "a song starts they can't talk over",
-        "tags": [
-          "music"
-        ],
-        "weight": 3
-      },
-      {
-        "id": "door-locks",
-        "label": "The door locks",
-        "text": "the door shuts and won't open",
-        "tags": [
-          "forced-proximity",
-          "comedic"
-        ],
-        "weight": 3
-      },
-      {
-        "id": "walkie-crackles",
-        "label": "The walkie crackles",
-        "text": "the walkie crackles, a voice neither expected",
-        "tags": [
-          "canon-friendly",
-          "supernatural"
-        ],
-        "compatiblePeriods": [
-          "1980s-canon",
-          "post-vecna",
-          "senior-year",
-          "california-split"
-        ],
-        "weight": 3,
-        "incompatibleTags": [
-          "au"
-        ]
-      },
-      {
-        "id": "someone-walks-in",
-        "label": "Someone walks in",
-        "text": "someone walks in, understands too much",
-        "tags": [
-          "interrupted-intimacy"
-        ],
-        "weight": 3
-      },
-      {
-        "id": "phone-rings",
-        "label": "The phone rings",
-        "text": "the phone rings and changes the night",
-        "tags": [
-          "news"
-        ],
-        "weight": 3
-      },
-      {
-        "id": "it-starts-raining",
-        "label": "It starts raining",
-        "text": "hard rain, nowhere to go",
-        "tags": [
-          "rain",
-          "forced-proximity"
-        ],
-        "weight": 3
-      },
-      {
-        "id": "old-thing-found",
-        "label": "Something old turns up",
-        "text": "something from years ago turns up",
-        "tags": [
-          "nostalgic",
-          "shared-memory"
-        ],
-        "weight": 3
-      },
-      {
-        "id": "the-feeling-returns",
-        "label": "The feeling comes back",
-        "text": "that cold on the neck, the room changes",
-        "tags": [
-          "supernatural",
-          "danger"
-        ],
-        "compatiblePeriods": [
-          "1980s-canon",
-          "post-vecna",
-          "california-split",
-          "senior-year"
-        ],
-        "weight": 2,
-        "incompatibleTags": [
-          "au"
-        ]
-      },
-      {
-        "id": "last-call",
-        "label": "They run out of time",
-        "text": "somebody says they have to go",
-        "tags": [
-          "separation"
-        ],
-        "weight": 3
-      }
-    ],
-    "templates": [
-      {
-        "id": "standard-five-part",
-        "parts": [
-          "universe",
-          "timePeriod",
-          "location",
-          "relationshipContext",
-          "tension",
-          "tone"
-        ],
-        "weight": 5
-      },
-      {
-        "id": "with-catalyst",
-        "parts": [
-          "universe",
-          "timePeriod",
-          "location",
-          "relationshipContext",
-          "tension",
-          "catalyst",
-          "tone"
-        ],
-        "weight": 5
-      },
-      {
-        "id": "tension-first",
-        "parts": [
-          "universe",
-          "timePeriod",
-          "relationshipContext",
-          "location",
-          "tension",
-          "tone"
-        ],
-        "weight": 3
-      }
-    ],
-    "categoryLabels": {
-      "abandonment": "Someone is leaving / left behind",
-      "canon-divergence": "D&D game gets too real",
-      "confession": "Confession — almost said, or said",
-      "forced-proximity": "Forced proximity (stuck together, one bed)",
-      "hurt-comfort": "Hurt/comfort — one of them is hurt",
-      "identity": "Identity — coming out, who he's become",
-      "interrupted-intimacy": "Interrupted at the wrong moment",
-      "jealousy": "Jealousy — someone else is in the picture",
-      "misunderstanding": "Mistaken for a couple / everyone already knows",
-      "protectiveness": "Protectiveness gone too far",
-      "resentment": "An old fight resurfaces",
-      "reunion": "He came back for him",
-      "secret": "A secret is found (drawing, letter)",
-      "shared-memory": "A shared memory (promise, photo, song)",
-      "supernatural": "The Upside Down comes back"
-    }
-  }
+	"prompts": [
+		"Mike finds the drawing Will made of the party — the one where the Paladin looks a little too much like Mike. It's tucked in a book Will lent him.",
+		"Snowball dance, alternate ending. Will doesn't run to the bathroom this time.",
+		"It's the summer after Vecna. Will and Mike are the only two awake at 3 a.m. in the Byers' house sitting on the floor because neither can sleep.",
+		"Mike drives to Lenora to visit for spring break.",
+		"A thunderstorm knocks the power out during a campaign. Everyone else goes home. Will and Mike.",
+		"Will overhears Mike on the phone with El, saying the words 'I don't think it was ever really about her.' He shouldn't have heard that. He can't un-hear it.",
+		"The painting. Will finally tells Mike the truth about who really commissioned it. Set it right after the van scene in season 4 — or wherever you want.",
+		"Post-canon: they're moving into a tiny apartment together 'as roommates.' There is one bed.",
+		"Mike keeps the walkie-talkie under his pillow long after they should've outgrown it. One night, static — then Will's voice, calling him like it's 1983 again.",
+		"Will teaches Mike how to paint. Mike is terrible at it. Neither of them cares, because Will keeps having to lean in to fix Mike's grip on the brush.",
+		"Truth or dare with the party, but Max is merciless and she has known about both of them for years.",
+		"It's Will's birthday and Mike shows up with a gift that says, without saying, everything he's never had the courage to.",
+		"They fight. A real one, years in the making. Say something you can't take back — then figure out how they find their way back to each other.",
+		"The Upside Down took something from Will that only Mike ever noticed was missing. Post-recovery, Mike is determined to help him find it again.",
+		"College. Will and Mike end up at the same school by a coincidence that is absolutely not a coincidence, and share a dorm hallway.",
+		"A rainy road trip. One motel. Mike falls asleep on Will's shoulder in the car and Will doesn't dare move for two hundred miles.",
+		"El and Will have a quiet conversation about Mike. It goes gentler, and braver, than either of them expected.",
+		"Mike memorized the sound of Will's laugh sometime around 1984 and only just realized it. He's realizing a lot of things lately.",
+		"The party graduates high school. Everyone's talking about the future. Will can only think about one specific part of his.",
+		"Will draws Mike, in secret, for the hundredth time. This time Mike walks in before he can hide the sketchbook.",
+		"A slow dance in an empty gym while cleaning up after a school event nobody else stayed for.",
+		"Mike writes a letter he never intends to send. Will finds it. Take it from there.",
+		"Christmas at the Wheelers'. Mistletoe.",
+		"They're both grown now — late twenties — and reunite at a party reunion after years apart. Everything they never said is still sitting right there between them.",
+		"The Void. Will is pulled somewhere into the Upside Down, and Mike is the only one who can hear him.",
+		"Mike gets jealous of someone new in Will's life in California.",
+		"Cleradin. Will is the cleric, Mike is the paladin sworn to the party. When the healing runs out mid-quest, Mike is the one kneeling in the dirt refusing to let him go.",
+		"Will is a sorcerer who never asked for his magic, and Mike is the knight assigned to guard him from the people who want it. Neither of them is very good at keeping their distance.",
+		"A witch and his familiar. Will's spells have gone strange lately, and every single one of them keeps pointing at the boy who was supposed to just be a black cat on his windowsill.",
+		"Hogwarts AU. Mike is the Gryffindor who shouldn't be in the Hufflepuff common room at midnight, and Will is the one who keeps leaving the door unlocked anyway.",
+		"Mike is a pirate captain with a bad reputation and worse manners. Will is the thing tangled in his nets that is very much not a fish, and very much not letting go of his wrist.",
+		"Vampire AU. Will has been nineteen since 1986 and Mike has just recognized him across a crowded bar, forty years too late and not aged a day in his memory.",
+		"Ghost story: Mike buys a crumbling house in Hawkins and the boy who's been haunting it since the eighties knows things about him he never told anyone alive.",
+		"Angel and demon, both stationed in the same nothing town, both bad at their jobs, both filing reports that leave out the important parts about each other.",
+		"Rockstar Mike is playing the biggest show of his life and the tattoo artist he keeps flying across three states to see is standing in the wings again.",
+		"Two teachers, one staff room. Mike teaches English, Will teaches art, and the kids figured it out approximately a year before either of them did.",
+		"Will is a figure skater and Mike plays hockey and they share the same terrible 5 a.m. ice time. It starts as a turf war.",
+		"Summer job AU: Mike is stuck in the Scoops Ahoy sailor hat and Will is delivering for Surfer Boy Pizza. Both of them keep inventing reasons to be at the other's counter.",
+		"The Hawkins arcade, closing shift, 1985. Mike has one quarter left and Will is the only person who's ever beaten his high score.",
+		"Coffee shop, present day. Will has written the same wrong name on the cup for a month and Mike has stopped correcting him.",
+		"Regency AU: a painter of no particular fortune and the heir who keeps commissioning portraits he does not need.",
+		"Ancient Greece — a soldier and the oracle who keeps seeing the same ending and refuses to say it out loud.",
+		"1800s expedition, somewhere cold and unmapped. Two men, one tent, and a journal that stops being about the survey around week six.",
+		"Season 5, Will teaches Mike how to shoot a gun.",
+		"Soulmate AU where the mark shows up the first time the other person says your name like it matters. Will's arrived when he was eight. Mike's took a lot longer.",
+		"Goth Will and punk Mike, sharing a cigarette behind a venue in 1989.",
+		"Single-parent AU: Mike is raising a kid alone and Will is the neighbor who keeps showing up with groceries nobody asked for and doesn't leave.",
+		"Beauty and the Beast, roughly: a monster in a locked house who is desperate to be seen as a person, and the boy who keeps coming back to the library anyway.",
+		"Superhero AU. Mike's powers are loud and public; Will's are quiet and dangerous. The city has picked a favorite and it's the wrong one.",
+		"Both of them are nineteen and broke, driving a car that shouldn't make it out of Indiana, with no plan past the next state line.",
+		"Zombie apocalypse. Will has been bitten, or thinks he has, and won't let Mike near him.",
+		"Werewolf AU: the full moon has never scared Will. What scares him is who keeps waiting up in the woods for him to come back.",
+		"Modern-day, no monsters, no powers: they're just two boys at the same high school.",
+		"Parent Trap AU: Eddie Munson and Robin Buckley are the split-up parents, and Mike and Will are the kids scheming to get them back together. The plan requires a lot of time alone.",
+		"No-Demogorgon AU: the whole party spends the day at the Hawkins July 4th festival, and Will and Mike keep losing everyone else on purpose.",
+		"Spider-Man AU: Will Byers swings over New York City by night, and Mike Wheeler is his Mary Jane — the one on the fire escape who has almost figured it out.",
+		"AU where Will has powers of his own, and uses them to pin Mike down. Mike lets him.",
+		"Ghost-hunting AU: both boys work for Hawkins Paranormal, Murray is the tech guy in the van, and the house tonight is not the only thing that's haunted.",
+		"Erica enters the science fair and needs the help of her brother and his friends. Will and Mike get competitive about it.",
+		"Non-canon AU: Will Byers is the pastor's son, and he and Mike meet in church."
+	],
+	"intermediate": {
+		"_readme": "The guided-mode axes. Each pool is a list of {id, label, text, weight?, tags?, compatibleAgeGroups?, compatibleCanon?}. Season is chosen FIRST and fixes the age; canon second and fixes whether AUs are possible. Text is the clause the prompt renders.",
+		"characters": [
+			"Mike",
+			"Will"
+		],
+		"seasons": [
+			{
+				"id": "pre-canon",
+				"label": "Pre-canon (before 1983)",
+				"text": "pre-canon (before 1983)",
+				"ageGroup": "minor",
+				"tags": [
+					"canon-era",
+					"kids"
+				],
+				"weight": 2
+			},
+			{
+				"id": "s1",
+				"label": "Season 1 (1983)",
+				"text": "season 1 (1983)",
+				"ageGroup": "minor",
+				"tags": [
+					"canon-era",
+					"kids"
+				],
+				"weight": 3
+			},
+			{
+				"id": "s2",
+				"label": "Season 2 (1984)",
+				"text": "season 2 (1984)",
+				"ageGroup": "minor",
+				"tags": [
+					"canon-era",
+					"kids"
+				],
+				"weight": 4
+			},
+			{
+				"id": "s3",
+				"label": "Season 3 (1985)",
+				"text": "season 3 (1985)",
+				"ageGroup": "minor",
+				"tags": [
+					"canon-era",
+					"kids"
+				],
+				"weight": 4
+			},
+			{
+				"id": "s4",
+				"label": "Season 4 (1986)",
+				"text": "season 4 (1986)",
+				"ageGroup": "minor",
+				"tags": [
+					"canon-era",
+					"teens"
+				],
+				"weight": 6
+			},
+			{
+				"id": "s5",
+				"label": "Season 5 (1987)",
+				"text": "season 5 (1987)",
+				"ageGroup": "minor",
+				"tags": [
+					"canon-era",
+					"teens"
+				],
+				"weight": 5
+			},
+			{
+				"id": "post-canon",
+				"label": "Post-canon / future-fic (adults)",
+				"text": "post-canon / future-fic (adults)",
+				"ageGroup": "adult",
+				"tags": [
+					"future",
+					"adults"
+				],
+				"weight": 6
+			}
+		],
+		"canon": [
+			{
+				"id": "canon-compliant",
+				"label": "Canon-compliant",
+				"text": "canon-compliant",
+				"tags": [
+					"canon"
+				],
+				"weight": 3
+			},
+			{
+				"id": "canon-divergent",
+				"label": "Canon-divergent",
+				"text": "canon-divergent",
+				"tags": [
+					"canon",
+					"divergent"
+				],
+				"weight": 4
+			},
+			{
+				"id": "au",
+				"label": "Alternate universe",
+				"text": "alternate universe",
+				"tags": [
+					"au"
+				],
+				"weight": 4
+			}
+		],
+		"places": [
+			{
+				"id": "road-trip",
+				"label": "Road trip",
+				"text": "road trip",
+				"tags": [
+					"travel"
+				],
+				"weight": 4
+			},
+			{
+				"id": "july-4th-festival",
+				"label": "July 4th festival",
+				"text": "july 4th festival",
+				"tags": [
+					"hawkins",
+					"summer"
+				],
+				"weight": 3
+			},
+			{
+				"id": "church",
+				"label": "Church",
+				"text": "church",
+				"tags": [
+					"small-town"
+				],
+				"weight": 2
+			},
+			{
+				"id": "science-fair",
+				"label": "Science fair",
+				"text": "science fair",
+				"tags": [
+					"school"
+				],
+				"weight": 2,
+				"compatibleAgeGroups": [
+					"minor"
+				]
+			},
+			{
+				"id": "nyc",
+				"label": "New York City",
+				"text": "new york city",
+				"tags": [
+					"city"
+				],
+				"weight": 3
+			},
+			{
+				"id": "cabin",
+				"label": "Cabin",
+				"text": "cabin",
+				"tags": [
+					"isolated"
+				],
+				"weight": 4
+			},
+			{
+				"id": "arcade",
+				"label": "Arcade",
+				"text": "arcade",
+				"tags": [
+					"hawkins",
+					"nostalgic"
+				],
+				"weight": 3
+			},
+			{
+				"id": "backstage",
+				"label": "Backstage",
+				"text": "backstage",
+				"tags": [
+					"performance"
+				],
+				"weight": 2
+			},
+			{
+				"id": "hospital",
+				"label": "Hospital",
+				"text": "hospital",
+				"tags": [
+					"hurt"
+				],
+				"weight": 3
+			},
+			{
+				"id": "hawkins-woods",
+				"label": "Hawkins woods",
+				"text": "hawkins woods",
+				"tags": [
+					"hawkins",
+					"isolated"
+				],
+				"weight": 4
+			},
+			{
+				"id": "wheeler-basement",
+				"label": "Wheeler basement",
+				"text": "wheeler basement",
+				"tags": [
+					"hawkins",
+					"nostalgic"
+				],
+				"weight": 4
+			},
+			{
+				"id": "byers-house-lenora",
+				"label": "Byers house, Lenora",
+				"text": "byers house, lenora",
+				"tags": [
+					"california"
+				],
+				"weight": 3
+			},
+			{
+				"id": "motel",
+				"label": "Motel",
+				"text": "motel",
+				"tags": [
+					"travel"
+				],
+				"weight": 3
+			},
+			{
+				"id": "first-apartment",
+				"label": "First apartment",
+				"text": "first apartment",
+				"tags": [
+					"domestic"
+				],
+				"weight": 3,
+				"compatibleAgeGroups": [
+					"adult"
+				]
+			},
+			{
+				"id": "rooftop",
+				"label": "Rooftop",
+				"text": "rooftop",
+				"tags": [
+					"city"
+				],
+				"weight": 2
+			},
+			{
+				"id": "quarry",
+				"label": "Quarry",
+				"text": "quarry",
+				"tags": [
+					"hawkins"
+				],
+				"weight": 2
+			},
+			{
+				"id": "school-gym-after-hours",
+				"label": "School gym after hours",
+				"text": "school gym after hours",
+				"tags": [
+					"school"
+				],
+				"weight": 3,
+				"compatibleAgeGroups": [
+					"minor"
+				]
+			},
+			{
+				"id": "kitchen-at-3-a-m",
+				"label": "Kitchen at 3 a.m.",
+				"text": "kitchen at 3 a.m.",
+				"tags": [
+					"domestic"
+				],
+				"weight": 3
+			},
+			{
+				"id": "stakeout",
+				"label": "Stakeout",
+				"text": "stakeout",
+				"tags": [
+					"isolated"
+				],
+				"weight": 2
+			},
+			{
+				"id": "summer-job",
+				"label": "Summer job",
+				"text": "summer job",
+				"tags": [
+					"summer"
+				],
+				"weight": 3
+			},
+			{
+				"id": "stuck-in-an-elevator",
+				"label": "Stuck in an elevator",
+				"text": "stuck in an elevator",
+				"tags": [
+					"isolated"
+				],
+				"weight": 2
+			},
+			{
+				"id": "sleepover",
+				"label": "Sleepover",
+				"text": "sleepover",
+				"tags": [
+					"home"
+				],
+				"weight": 4,
+				"compatibleAgeGroups": [
+					"minor"
+				]
+			},
+			{
+				"id": "detention",
+				"label": "Detention",
+				"text": "detention",
+				"tags": [
+					"school"
+				],
+				"weight": 2,
+				"compatibleAgeGroups": [
+					"minor"
+				]
+			},
+			{
+				"id": "camping-trip",
+				"label": "Camping trip",
+				"text": "camping trip",
+				"tags": [
+					"isolated"
+				],
+				"weight": 3
+			}
+		],
+		"situations": [
+			{
+				"id": "first-meeting",
+				"label": "First meeting",
+				"text": "first meeting",
+				"weight": 2
+			},
+			{
+				"id": "reunion",
+				"label": "Reunion",
+				"text": "reunion",
+				"weight": 4
+			},
+			{
+				"id": "crisis",
+				"label": "Crisis",
+				"text": "crisis",
+				"weight": 4
+			},
+			{
+				"id": "ordinary-day",
+				"label": "Ordinary day",
+				"text": "ordinary day",
+				"weight": 5
+			},
+			{
+				"id": "aftermath",
+				"label": "Aftermath",
+				"text": "aftermath",
+				"weight": 4
+			},
+			{
+				"id": "secret-kept",
+				"label": "Secret kept",
+				"text": "secret kept",
+				"weight": 4
+			},
+			{
+				"id": "secret-revealed",
+				"label": "Secret revealed",
+				"text": "secret revealed",
+				"weight": 4
+			}
+		],
+		"relationships": [
+			{
+				"id": "friends",
+				"label": "Friends",
+				"text": "friends",
+				"weight": 5,
+				"tags": [
+					"friends",
+					"not-together"
+				]
+			},
+			{
+				"id": "pining",
+				"label": "Pining",
+				"text": "pining",
+				"weight": 6,
+				"tags": [
+					"pining",
+					"not-together"
+				]
+			},
+			{
+				"id": "new-couple",
+				"label": "New couple",
+				"text": "new couple",
+				"weight": 4,
+				"tags": [
+					"together",
+					"new"
+				]
+			},
+			{
+				"id": "established",
+				"label": "Established",
+				"text": "established",
+				"weight": 4,
+				"tags": [
+					"together",
+					"established"
+				]
+			},
+			{
+				"id": "exes",
+				"label": "Exes",
+				"text": "exes",
+				"weight": 2,
+				"tags": [
+					"exes",
+					"not-together"
+				],
+				"compatibleAgeGroups": [
+					"adult"
+				]
+			},
+			{
+				"id": "secret-relationship",
+				"label": "Secret relationship",
+				"text": "secret relationship",
+				"weight": 3,
+				"tags": [
+					"together",
+					"secret"
+				]
+			}
+		],
+		"tones": [
+			{
+				"id": "fluff",
+				"label": "Fluff",
+				"text": "fluff",
+				"weight": 5
+			},
+			{
+				"id": "angst",
+				"label": "Angst",
+				"text": "angst",
+				"weight": 5
+			},
+			{
+				"id": "hurt-comfort",
+				"label": "Hurt/comfort",
+				"text": "hurt/comfort",
+				"weight": 5
+			},
+			{
+				"id": "crack",
+				"label": "Crack",
+				"text": "crack",
+				"weight": 2
+			},
+			{
+				"id": "slow-burn",
+				"label": "Slow burn",
+				"text": "slow burn",
+				"weight": 5
+			}
+		],
+		"tropeGroups": {
+			"proximity": "Proximity & circumstance",
+			"practice": "Practice & pretend",
+			"shape": "Relationship shape",
+			"miscommunication": "Miscommunication engines",
+			"hurt-comfort": "Hurt/comfort & caretaking",
+			"domestic": "Domestic & fluff",
+			"milestones": "Confession & milestone beats",
+			"structure": "Structure / POV toys",
+			"setting-au": "Setting AUs",
+			"angst": "Angst levers"
+		},
+		"tropes": [
+			{
+				"id": "forced-proximity",
+				"label": "forced proximity",
+				"text": "forced proximity",
+				"group": "proximity"
+			},
+			{
+				"id": "only-one-bed",
+				"label": "only one bed",
+				"text": "only one bed",
+				"group": "proximity"
+			},
+			{
+				"id": "sharing-a-bathroom",
+				"label": "sharing a bathroom",
+				"text": "sharing a bathroom",
+				"group": "proximity"
+			},
+			{
+				"id": "snowed-in",
+				"label": "snowed in / power outage",
+				"text": "snowed in / power outage",
+				"group": "proximity"
+			},
+			{
+				"id": "fake-dating",
+				"label": "fake dating",
+				"text": "fake dating",
+				"group": "proximity",
+				"incompatibleTags": [
+					"together"
+				]
+			},
+			{
+				"id": "fake-engagement",
+				"label": "fake engagement",
+				"text": "fake engagement",
+				"group": "proximity",
+				"compatibleAgeGroups": [
+					"adult"
+				],
+				"incompatibleTags": [
+					"together"
+				]
+			},
+			{
+				"id": "marriage-of-convenience",
+				"label": "marriage of convenience",
+				"text": "marriage of convenience",
+				"group": "proximity",
+				"compatibleAgeGroups": [
+					"adult"
+				],
+				"incompatibleTags": [
+					"together"
+				]
+			},
+			{
+				"id": "roommates",
+				"label": "roommates",
+				"text": "roommates",
+				"group": "proximity",
+				"compatibleAgeGroups": [
+					"adult"
+				]
+			},
+			{
+				"id": "lab-partners",
+				"label": "lab partners",
+				"text": "lab partners",
+				"group": "proximity"
+			},
+			{
+				"id": "project-partners",
+				"label": "project partners",
+				"text": "project partners",
+				"group": "proximity"
+			},
+			{
+				"id": "huddling-for-warmth",
+				"label": "huddling for warmth",
+				"text": "huddling for warmth",
+				"group": "proximity"
+			},
+			{
+				"id": "bed-sharing",
+				"label": "bed sharing",
+				"text": "bed sharing",
+				"group": "proximity"
+			},
+			{
+				"id": "tutoring",
+				"label": "tutoring",
+				"text": "tutoring",
+				"group": "proximity"
+			},
+			{
+				"id": "practice-kissing",
+				"label": "practice kissing",
+				"text": "practice kissing",
+				"group": "practice",
+				"incompatibleTags": [
+					"together"
+				]
+			},
+			{
+				"id": "practice-dating",
+				"label": "practice dating",
+				"text": "practice dating",
+				"group": "practice",
+				"incompatibleTags": [
+					"together"
+				]
+			},
+			{
+				"id": "practice-confession",
+				"label": "practice confession",
+				"text": "practice confession",
+				"group": "practice",
+				"incompatibleTags": [
+					"together"
+				]
+			},
+			{
+				"id": "teaching-them-to-dance",
+				"label": "teaching them to dance",
+				"text": "teaching them to dance",
+				"group": "practice",
+				"incompatibleTags": [
+					"together"
+				]
+			},
+			{
+				"id": "teaching-them-to-drive",
+				"label": "teaching them to drive",
+				"text": "teaching them to drive",
+				"group": "practice",
+				"incompatibleTags": [
+					"together"
+				]
+			},
+			{
+				"id": "pretend-boyfriend",
+				"label": "pretend boyfriend",
+				"text": "pretend boyfriend",
+				"group": "practice",
+				"incompatibleTags": [
+					"together"
+				]
+			},
+			{
+				"id": "mistaken-for-a-couple",
+				"label": "mistaken for a couple",
+				"text": "mistaken for a couple",
+				"group": "practice",
+				"incompatibleTags": [
+					"together"
+				]
+			},
+			{
+				"id": "matchmaking-friends",
+				"label": "matchmaking friends",
+				"text": "matchmaking friends",
+				"group": "practice",
+				"incompatibleTags": [
+					"together"
+				]
+			},
+			{
+				"id": "secret-admirer",
+				"label": "secret admirer",
+				"text": "secret admirer",
+				"group": "practice",
+				"incompatibleTags": [
+					"together"
+				]
+			},
+			{
+				"id": "truth-or-dare",
+				"label": "truth or dare",
+				"text": "truth or dare",
+				"group": "practice",
+				"incompatibleTags": [
+					"together"
+				]
+			},
+			{
+				"id": "spin-the-bottle",
+				"label": "spin the bottle",
+				"text": "spin the bottle",
+				"group": "practice",
+				"incompatibleTags": [
+					"together"
+				]
+			},
+			{
+				"id": "drunk-confession",
+				"label": "drunk confession",
+				"text": "drunk confession",
+				"group": "practice",
+				"incompatibleTags": [
+					"together"
+				]
+			},
+			{
+				"id": "love-letters",
+				"label": "love letters",
+				"text": "love letters",
+				"group": "practice",
+				"incompatibleTags": [
+					"together"
+				]
+			},
+			{
+				"id": "mixtape",
+				"label": "mixtape",
+				"text": "mixtape",
+				"group": "practice",
+				"incompatibleTags": [
+					"together"
+				]
+			},
+			{
+				"id": "wingman-falls-for-them",
+				"label": "wingman falls for them",
+				"text": "wingman falls for them",
+				"group": "practice",
+				"incompatibleTags": [
+					"together"
+				]
+			},
+			{
+				"id": "friends-to-lovers",
+				"label": "friends to lovers",
+				"text": "friends to lovers",
+				"group": "shape",
+				"incompatibleTags": [
+					"together"
+				]
+			},
+			{
+				"id": "childhood-friends-to-lovers",
+				"label": "childhood friends to lovers",
+				"text": "childhood friends to lovers",
+				"group": "shape",
+				"incompatibleTags": [
+					"together"
+				]
+			},
+			{
+				"id": "enemies-to-lovers",
+				"label": "enemies to lovers",
+				"text": "enemies to lovers",
+				"group": "shape",
+				"incompatibleTags": [
+					"together"
+				]
+			},
+			{
+				"id": "rivals-to-lovers",
+				"label": "rivals to lovers",
+				"text": "rivals to lovers",
+				"group": "shape",
+				"incompatibleTags": [
+					"together"
+				]
+			},
+			{
+				"id": "frenemies",
+				"label": "frenemies",
+				"text": "frenemies",
+				"group": "shape"
+			},
+			{
+				"id": "exes-to-lovers",
+				"label": "exes to lovers",
+				"text": "exes to lovers",
+				"group": "shape",
+				"compatibleAgeGroups": [
+					"adult"
+				],
+				"incompatibleTags": [
+					"together"
+				],
+				"requiresTags": [
+					"exes"
+				]
+			},
+			{
+				"id": "second-chance",
+				"label": "second chance",
+				"text": "second chance",
+				"group": "shape",
+				"incompatibleTags": [
+					"together"
+				],
+				"requiresTags": [
+					"exes"
+				]
+			},
+			{
+				"id": "love-triangle",
+				"label": "love triangle",
+				"text": "love triangle",
+				"group": "shape"
+			},
+			{
+				"id": "unrequited-to-requited",
+				"label": "unrequited → requited",
+				"text": "unrequited → requited",
+				"group": "shape",
+				"incompatibleTags": [
+					"together"
+				]
+			},
+			{
+				"id": "oblivious-idiots",
+				"label": "oblivious idiots",
+				"text": "oblivious idiots",
+				"group": "shape",
+				"incompatibleTags": [
+					"together"
+				]
+			},
+			{
+				"id": "everyone-can-tell-but-them",
+				"label": "everyone can tell but them",
+				"text": "everyone can tell but them",
+				"group": "shape",
+				"incompatibleTags": [
+					"together"
+				]
+			},
+			{
+				"id": "found-family",
+				"label": "found family",
+				"text": "found family",
+				"group": "shape"
+			},
+			{
+				"id": "mutual-pining-with-wrong-assumptions",
+				"label": "mutual pining with wrong assumptions",
+				"text": "mutual pining with wrong assumptions",
+				"group": "miscommunication",
+				"incompatibleTags": [
+					"together"
+				]
+			},
+			{
+				"id": "overheard-half-a-conversation",
+				"label": "overheard half a conversation",
+				"text": "overheard half a conversation",
+				"group": "miscommunication",
+				"incompatibleTags": [
+					"together"
+				]
+			},
+			{
+				"id": "misdelivered-letter",
+				"label": "misdelivered letter",
+				"text": "misdelivered letter",
+				"group": "miscommunication",
+				"incompatibleTags": [
+					"together"
+				]
+			},
+			{
+				"id": "wrong-number",
+				"label": "wrong number",
+				"text": "wrong number",
+				"group": "miscommunication",
+				"incompatibleTags": [
+					"together"
+				]
+			},
+			{
+				"id": "anonymous-pen-pals",
+				"label": "anonymous pen pals",
+				"text": "anonymous pen pals",
+				"group": "miscommunication",
+				"incompatibleTags": [
+					"together"
+				]
+			},
+			{
+				"id": "dare-gone-sincere",
+				"label": "dare gone sincere",
+				"text": "dare gone sincere",
+				"group": "miscommunication",
+				"incompatibleTags": [
+					"together"
+				]
+			},
+			{
+				"id": "jealousy-that-reveals-feelings",
+				"label": "jealousy that reveals feelings",
+				"text": "jealousy that reveals feelings",
+				"group": "miscommunication",
+				"incompatibleTags": [
+					"together"
+				]
+			},
+			{
+				"id": "it-didnt-mean-anything",
+				"label": "\"it didn't mean anything\"",
+				"text": "\"it didn't mean anything\"",
+				"group": "miscommunication",
+				"incompatibleTags": [
+					"together"
+				]
+			},
+			{
+				"id": "sickfic",
+				"label": "sickfic",
+				"text": "sickfic",
+				"group": "hurt-comfort"
+			},
+			{
+				"id": "injured-and-tended-to",
+				"label": "injured and tended to",
+				"text": "injured and tended to",
+				"group": "hurt-comfort"
+			},
+			{
+				"id": "panic-attack-comfort",
+				"label": "panic attack comfort",
+				"text": "panic attack comfort",
+				"group": "hurt-comfort"
+			},
+			{
+				"id": "nightmare-comfort",
+				"label": "nightmare comfort",
+				"text": "nightmare comfort",
+				"group": "hurt-comfort"
+			},
+			{
+				"id": "touch-starved",
+				"label": "touch-starved",
+				"text": "touch-starved",
+				"group": "hurt-comfort"
+			},
+			{
+				"id": "protective-streak",
+				"label": "protective streak",
+				"text": "protective streak",
+				"group": "hurt-comfort"
+			},
+			{
+				"id": "who-did-this-to-you",
+				"label": "\"who did this to you\"",
+				"text": "\"who did this to you\"",
+				"group": "hurt-comfort"
+			},
+			{
+				"id": "recovery-fic",
+				"label": "recovery fic",
+				"text": "recovery fic",
+				"group": "hurt-comfort"
+			},
+			{
+				"id": "sharing-a-jacket",
+				"label": "sharing a jacket",
+				"text": "sharing a jacket",
+				"group": "hurt-comfort"
+			},
+			{
+				"id": "hair-washing",
+				"label": "hair washing",
+				"text": "hair washing",
+				"group": "hurt-comfort"
+			},
+			{
+				"id": "carrying-them-home",
+				"label": "carrying them home",
+				"text": "carrying them home",
+				"group": "hurt-comfort"
+			},
+			{
+				"id": "domestic-bliss",
+				"label": "domestic bliss",
+				"text": "domestic bliss",
+				"group": "domestic",
+				"compatibleAgeGroups": [
+					"adult"
+				],
+				"requiresTags": [
+					"together"
+				]
+			},
+			{
+				"id": "cooking-together",
+				"label": "cooking together",
+				"text": "cooking together",
+				"group": "domestic"
+			},
+			{
+				"id": "moving-in-together",
+				"label": "moving in together",
+				"text": "moving in together",
+				"group": "domestic",
+				"compatibleAgeGroups": [
+					"adult"
+				],
+				"requiresTags": [
+					"together"
+				]
+			},
+			{
+				"id": "pet-acquisition",
+				"label": "pet acquisition",
+				"text": "pet acquisition",
+				"group": "domestic",
+				"requiresTags": [
+					"together"
+				]
+			},
+			{
+				"id": "first-apartment",
+				"label": "first apartment",
+				"text": "first apartment",
+				"group": "domestic",
+				"compatibleAgeGroups": [
+					"adult"
+				],
+				"requiresTags": [
+					"together"
+				]
+			},
+			{
+				"id": "holiday-fic",
+				"label": "holiday fic",
+				"text": "holiday fic",
+				"group": "domestic"
+			},
+			{
+				"id": "birthday-fic",
+				"label": "birthday fic",
+				"text": "birthday fic",
+				"group": "domestic"
+			},
+			{
+				"id": "slow-morning",
+				"label": "slow morning",
+				"text": "slow morning",
+				"group": "domestic",
+				"requiresTags": [
+					"together"
+				]
+			},
+			{
+				"id": "grocery-run-as-a-love-scene",
+				"label": "grocery run as a love scene",
+				"text": "grocery run as a love scene",
+				"group": "domestic"
+			},
+			{
+				"id": "dancing-in-the-kitchen",
+				"label": "dancing in the kitchen",
+				"text": "dancing in the kitchen",
+				"group": "domestic",
+				"requiresTags": [
+					"together"
+				]
+			},
+			{
+				"id": "learning-their-coffee-order",
+				"label": "learning their coffee order",
+				"text": "learning their coffee order",
+				"group": "domestic"
+			},
+			{
+				"id": "cuddling",
+				"label": "cuddling",
+				"text": "cuddling",
+				"group": "domestic"
+			},
+			{
+				"id": "hand-holding",
+				"label": "hand holding",
+				"text": "hand holding",
+				"group": "domestic"
+			},
+			{
+				"id": "forehead-touch",
+				"label": "forehead touch",
+				"text": "forehead touch",
+				"group": "domestic"
+			},
+			{
+				"id": "falling-asleep-on-their-shoulder",
+				"label": "falling asleep on their shoulder",
+				"text": "falling asleep on their shoulder",
+				"group": "domestic"
+			},
+			{
+				"id": "stargazing",
+				"label": "stargazing",
+				"text": "stargazing",
+				"group": "domestic"
+			},
+			{
+				"id": "slow-dancing",
+				"label": "slow dancing",
+				"text": "slow dancing",
+				"group": "domestic"
+			},
+			{
+				"id": "first-date",
+				"label": "first date",
+				"text": "first date",
+				"group": "domestic"
+			},
+			{
+				"id": "prom",
+				"label": "prom",
+				"text": "prom",
+				"group": "domestic"
+			},
+			{
+				"id": "sharing-headphones",
+				"label": "sharing headphones",
+				"text": "sharing headphones",
+				"group": "domestic"
+			},
+			{
+				"id": "late-night-phone-calls",
+				"label": "late night phone calls",
+				"text": "late night phone calls",
+				"group": "domestic"
+			},
+			{
+				"id": "accidental-confession",
+				"label": "accidental confession",
+				"text": "accidental confession",
+				"group": "milestones",
+				"incompatibleTags": [
+					"together"
+				]
+			},
+			{
+				"id": "confession-in-the-rain",
+				"label": "confession in the rain",
+				"text": "confession in the rain",
+				"group": "milestones",
+				"incompatibleTags": [
+					"together"
+				]
+			},
+			{
+				"id": "almost-kiss",
+				"label": "almost kiss",
+				"text": "almost kiss",
+				"group": "milestones",
+				"incompatibleTags": [
+					"together"
+				]
+			},
+			{
+				"id": "first-kiss",
+				"label": "first kiss",
+				"text": "first kiss",
+				"group": "milestones",
+				"incompatibleTags": [
+					"together"
+				]
+			},
+			{
+				"id": "first-i-love-you",
+				"label": "first \"I love you\"",
+				"text": "first \"i love you\"",
+				"group": "milestones",
+				"requiresTags": [
+					"together"
+				]
+			},
+			{
+				"id": "coming-out",
+				"label": "coming out",
+				"text": "coming out",
+				"group": "milestones",
+				"incompatibleTags": [
+					"together"
+				]
+			},
+			{
+				"id": "meeting-the-family",
+				"label": "meeting the family",
+				"text": "meeting the family",
+				"group": "milestones",
+				"requiresTags": [
+					"together"
+				]
+			},
+			{
+				"id": "going-public",
+				"label": "going public",
+				"text": "going public",
+				"group": "milestones",
+				"requiresTags": [
+					"together"
+				]
+			},
+			{
+				"id": "proposal",
+				"label": "proposal",
+				"text": "proposal",
+				"group": "milestones",
+				"compatibleAgeGroups": [
+					"adult"
+				],
+				"requiresTags": [
+					"together"
+				]
+			},
+			{
+				"id": "time-loop",
+				"label": "time loop",
+				"text": "time loop",
+				"group": "structure"
+			},
+			{
+				"id": "groundhog-day-confession",
+				"label": "groundhog day confession",
+				"text": "groundhog day confession",
+				"group": "structure"
+			},
+			{
+				"id": "epistolary",
+				"label": "epistolary (letters, mixtapes, notes)",
+				"text": "epistolary (letters, mixtapes, notes)",
+				"group": "structure"
+			},
+			{
+				"id": "outsider-pov",
+				"label": "outsider POV",
+				"text": "outsider pov",
+				"group": "structure"
+			},
+			{
+				"id": "time-skip-years-later",
+				"label": "time skip / years later",
+				"text": "time skip / years later",
+				"group": "structure"
+			},
+			{
+				"id": "flashback-braid",
+				"label": "flashback braid",
+				"text": "flashback braid",
+				"group": "structure"
+			},
+			{
+				"id": "two-timelines",
+				"label": "two timelines",
+				"text": "two timelines",
+				"group": "structure"
+			},
+			{
+				"id": "fix-it-fic",
+				"label": "fix-it fic",
+				"text": "fix-it fic",
+				"group": "structure",
+				"compatibleCanon": [
+					"canon-divergent"
+				]
+			},
+			{
+				"id": "everybody-lives-au",
+				"label": "everybody lives AU",
+				"text": "everybody lives au",
+				"group": "structure",
+				"compatibleCanon": [
+					"canon-divergent"
+				]
+			},
+			{
+				"id": "coffee-shop",
+				"label": "coffee shop",
+				"text": "coffee shop",
+				"group": "setting-au",
+				"compatibleCanon": [
+					"au"
+				]
+			},
+			{
+				"id": "bookstore",
+				"label": "bookstore",
+				"text": "bookstore",
+				"group": "setting-au",
+				"compatibleCanon": [
+					"au"
+				]
+			},
+			{
+				"id": "college",
+				"label": "college",
+				"text": "college",
+				"group": "setting-au",
+				"compatibleCanon": [
+					"au"
+				],
+				"compatibleAgeGroups": [
+					"adult"
+				]
+			},
+			{
+				"id": "high-school",
+				"label": "high school",
+				"text": "high school",
+				"group": "setting-au",
+				"compatibleCanon": [
+					"au"
+				],
+				"compatibleAgeGroups": [
+					"minor"
+				]
+			},
+			{
+				"id": "roommate",
+				"label": "roommate",
+				"text": "roommate",
+				"group": "setting-au",
+				"compatibleCanon": [
+					"au"
+				],
+				"compatibleAgeGroups": [
+					"adult"
+				]
+			},
+			{
+				"id": "band",
+				"label": "band",
+				"text": "band",
+				"group": "setting-au",
+				"compatibleCanon": [
+					"au"
+				]
+			},
+			{
+				"id": "sports",
+				"label": "sports",
+				"text": "sports",
+				"group": "setting-au",
+				"compatibleCanon": [
+					"au"
+				]
+			},
+			{
+				"id": "summer-camp",
+				"label": "summer camp",
+				"text": "summer camp",
+				"group": "setting-au",
+				"compatibleCanon": [
+					"au"
+				]
+			},
+			{
+				"id": "small-town",
+				"label": "small town",
+				"text": "small town",
+				"group": "setting-au",
+				"compatibleCanon": [
+					"au"
+				]
+			},
+			{
+				"id": "bakery",
+				"label": "bakery",
+				"text": "bakery",
+				"group": "setting-au",
+				"compatibleCanon": [
+					"au"
+				]
+			},
+			{
+				"id": "flower-shop-tattoo-parlor",
+				"label": "flower shop + tattoo parlor",
+				"text": "flower shop + tattoo parlor",
+				"group": "setting-au",
+				"compatibleCanon": [
+					"au"
+				],
+				"compatibleAgeGroups": [
+					"adult"
+				]
+			},
+			{
+				"id": "office",
+				"label": "office",
+				"text": "office",
+				"group": "setting-au",
+				"compatibleCanon": [
+					"au"
+				],
+				"compatibleAgeGroups": [
+					"adult"
+				]
+			},
+			{
+				"id": "hospital-au",
+				"label": "hospital",
+				"text": "hospital",
+				"group": "setting-au",
+				"compatibleCanon": [
+					"au"
+				]
+			},
+			{
+				"id": "theatre-kids",
+				"label": "theatre kids",
+				"text": "theatre kids",
+				"group": "setting-au",
+				"compatibleCanon": [
+					"au"
+				]
+			},
+			{
+				"id": "retail-hell",
+				"label": "retail hell",
+				"text": "retail hell",
+				"group": "setting-au",
+				"compatibleCanon": [
+					"au"
+				]
+			},
+			{
+				"id": "superhero",
+				"label": "superhero",
+				"text": "superhero",
+				"group": "setting-au",
+				"compatibleCanon": [
+					"au"
+				]
+			},
+			{
+				"id": "spider-man",
+				"label": "Spider-Man AU",
+				"text": "spider-man au",
+				"group": "setting-au",
+				"compatibleCanon": [
+					"au"
+				]
+			},
+			{
+				"id": "parent-trap",
+				"label": "parent trap",
+				"text": "parent trap",
+				"group": "setting-au",
+				"compatibleCanon": [
+					"au"
+				]
+			},
+			{
+				"id": "ghost-hunting",
+				"label": "ghost hunting",
+				"text": "ghost hunting",
+				"group": "setting-au",
+				"compatibleCanon": [
+					"au"
+				]
+			},
+			{
+				"id": "soulmate-marks",
+				"label": "soulmate marks",
+				"text": "soulmate marks",
+				"group": "setting-au",
+				"compatibleCanon": [
+					"au"
+				]
+			},
+			{
+				"id": "soulmate-red-string",
+				"label": "soulmate red string",
+				"text": "soulmate red string",
+				"group": "setting-au",
+				"compatibleCanon": [
+					"au"
+				]
+			},
+			{
+				"id": "reincarnation",
+				"label": "reincarnation",
+				"text": "reincarnation",
+				"group": "setting-au",
+				"compatibleCanon": [
+					"au"
+				]
+			},
+			{
+				"id": "time-travel",
+				"label": "time travel",
+				"text": "time travel",
+				"group": "setting-au",
+				"compatibleCanon": [
+					"au"
+				]
+			},
+			{
+				"id": "fantasy-kingdom",
+				"label": "fantasy / kingdom",
+				"text": "fantasy / kingdom",
+				"group": "setting-au",
+				"compatibleCanon": [
+					"au"
+				]
+			},
+			{
+				"id": "mermaid-selkie",
+				"label": "mermaid / selkie",
+				"text": "mermaid / selkie",
+				"group": "setting-au",
+				"compatibleCanon": [
+					"au"
+				]
+			},
+			{
+				"id": "vampire",
+				"label": "vampire",
+				"text": "vampire",
+				"group": "setting-au",
+				"compatibleCanon": [
+					"au"
+				]
+			},
+			{
+				"id": "werewolf",
+				"label": "werewolf",
+				"text": "werewolf",
+				"group": "setting-au",
+				"compatibleCanon": [
+					"au"
+				]
+			},
+			{
+				"id": "haunting",
+				"label": "haunting",
+				"text": "haunting",
+				"group": "setting-au",
+				"compatibleCanon": [
+					"au"
+				]
+			},
+			{
+				"id": "space-station",
+				"label": "space station",
+				"text": "space station",
+				"group": "setting-au",
+				"compatibleCanon": [
+					"au"
+				]
+			},
+			{
+				"id": "post-apocalypse",
+				"label": "post-apocalypse",
+				"text": "post-apocalypse",
+				"group": "setting-au",
+				"compatibleCanon": [
+					"au"
+				]
+			},
+			{
+				"id": "heist-crew",
+				"label": "heist crew",
+				"text": "heist crew",
+				"group": "setting-au",
+				"compatibleCanon": [
+					"au"
+				],
+				"compatibleAgeGroups": [
+					"adult"
+				]
+			},
+			{
+				"id": "spy",
+				"label": "spy AU",
+				"text": "spy au",
+				"group": "setting-au",
+				"compatibleCanon": [
+					"au"
+				],
+				"compatibleAgeGroups": [
+					"adult"
+				]
+			},
+			{
+				"id": "regency",
+				"label": "regency",
+				"text": "regency",
+				"group": "setting-au",
+				"compatibleCanon": [
+					"au"
+				],
+				"compatibleAgeGroups": [
+					"adult"
+				]
+			},
+			{
+				"id": "body-swap",
+				"label": "body swap",
+				"text": "body swap",
+				"group": "setting-au",
+				"compatibleCanon": [
+					"au"
+				]
+			},
+			{
+				"id": "deaged",
+				"label": "deaged",
+				"text": "deaged",
+				"group": "setting-au",
+				"compatibleCanon": [
+					"au"
+				]
+			},
+			{
+				"id": "amnesia",
+				"label": "amnesia",
+				"text": "amnesia",
+				"group": "setting-au",
+				"compatibleCanon": [
+					"au"
+				]
+			},
+			{
+				"id": "abo",
+				"label": "A/B/O (can be non-explicit)",
+				"text": "a/b/o (can be non-explicit)",
+				"group": "setting-au",
+				"compatibleCanon": [
+					"au"
+				],
+				"compatibleAgeGroups": [
+					"adult"
+				]
+			},
+			{
+				"id": "pining-across-distance",
+				"label": "pining across distance",
+				"text": "pining across distance",
+				"group": "angst",
+				"incompatibleTags": [
+					"together"
+				]
+			},
+			{
+				"id": "closeted-in-a-small-town",
+				"label": "closeted in a small town",
+				"text": "closeted in a small town",
+				"group": "angst"
+			},
+			{
+				"id": "disapproving-parents",
+				"label": "disapproving parents",
+				"text": "disapproving parents",
+				"group": "angst"
+			},
+			{
+				"id": "illness",
+				"label": "illness",
+				"text": "illness",
+				"group": "angst"
+			},
+			{
+				"id": "deployment-distance",
+				"label": "deployment / distance",
+				"text": "deployment / distance",
+				"group": "angst",
+				"compatibleAgeGroups": [
+					"adult"
+				]
+			},
+			{
+				"id": "breakup-and-reconciliation",
+				"label": "breakup and reconciliation",
+				"text": "breakup and reconciliation",
+				"group": "angst",
+				"compatibleAgeGroups": [
+					"adult"
+				],
+				"requiresTags": [
+					"together"
+				]
+			},
+			{
+				"id": "we-were-never-going-to-work",
+				"label": "\"we were never going to work\"",
+				"text": "\"we were never going to work\"",
+				"group": "angst",
+				"requiresTags": [
+					"together"
+				]
+			},
+			{
+				"id": "almost-lost-you",
+				"label": "almost-lost-you",
+				"text": "almost-lost-you",
+				"group": "angst"
+			},
+			{
+				"id": "jealous-silence",
+				"label": "jealous silence",
+				"text": "jealous silence",
+				"group": "angst",
+				"incompatibleTags": [
+					"together"
+				]
+			},
+			{
+				"id": "sacrifice-for-the-other-s-sake",
+				"label": "sacrifice for the other's sake",
+				"text": "sacrifice for the other's sake",
+				"group": "angst"
+			}
+		],
+		"explicit": {
+			"levels": [
+				{
+					"id": "none",
+					"label": "None",
+					"text": "none",
+					"weight": 5
+				},
+				{
+					"id": "suggestive",
+					"label": "Suggestive",
+					"text": "suggestive",
+					"weight": 3
+				},
+				{
+					"id": "explicit",
+					"label": "Explicit",
+					"text": "explicit",
+					"weight": 2,
+					"adultOnly": true
+				}
+			],
+			"setups": [
+				{
+					"id": "first-time",
+					"label": "first time",
+					"text": "first time",
+					"incompatibleTags": [
+						"together"
+					]
+				},
+				{
+					"id": "losing-virginity",
+					"label": "losing virginity",
+					"text": "losing virginity",
+					"incompatibleTags": [
+						"together"
+					]
+				},
+				{
+					"id": "experienced-inexperienced",
+					"label": "experienced/inexperienced",
+					"text": "experienced/inexperienced",
+					"who": "{name} is the inexperienced one"
+				},
+				{
+					"id": "friends-with-benefits",
+					"label": "friends with benefits",
+					"text": "friends with benefits",
+					"incompatibleTags": [
+						"together"
+					]
+				},
+				{
+					"id": "fuck-buddies-to-lovers",
+					"label": "fuck buddies to lovers",
+					"text": "fuck buddies to lovers",
+					"incompatibleTags": [
+						"together"
+					]
+				},
+				{
+					"id": "one-night-stand-to-more",
+					"label": "one night stand → more",
+					"text": "one night stand → more",
+					"incompatibleTags": [
+						"together"
+					]
+				},
+				{
+					"id": "hate-sex",
+					"label": "hate sex",
+					"text": "hate sex",
+					"incompatibleTags": [
+						"together"
+					]
+				},
+				{
+					"id": "angry-sex",
+					"label": "angry sex",
+					"text": "angry sex"
+				},
+				{
+					"id": "make-up-sex",
+					"label": "make-up sex",
+					"text": "make-up sex",
+					"requiresTags": [
+						"together"
+					]
+				},
+				{
+					"id": "goodbye-sex",
+					"label": "goodbye sex",
+					"text": "goodbye sex",
+					"requiresTags": [
+						"together"
+					]
+				},
+				{
+					"id": "comfort-sex",
+					"label": "comfort sex",
+					"text": "comfort sex"
+				},
+				{
+					"id": "morning-after",
+					"label": "morning after (sober consent)",
+					"text": "morning after (sober consent)"
+				},
+				{
+					"id": "accidental-stimulation",
+					"label": "accidental stimulation",
+					"text": "accidental stimulation"
+				},
+				{
+					"id": "caught-in-the-act",
+					"label": "caught in the act",
+					"text": "caught in the act"
+				},
+				{
+					"id": "pretend-hookup-for-cover",
+					"label": "pretend hookup for cover",
+					"text": "pretend hookup for cover",
+					"incompatibleTags": [
+						"together"
+					]
+				},
+				{
+					"id": "sex-pollen",
+					"label": "sex pollen",
+					"text": "sex pollen"
+				},
+				{
+					"id": "fuck-or-die",
+					"label": "fuck or die",
+					"text": "fuck or die"
+				},
+				{
+					"id": "heat-rut",
+					"label": "heat / rut (A/B/O)",
+					"text": "heat / rut (a/b/o)"
+				},
+				{
+					"id": "aphrodisiac",
+					"label": "aphrodisiac",
+					"text": "aphrodisiac"
+				}
+			],
+			"dynamics": [
+				{
+					"id": "dom-sub",
+					"label": "dom/sub",
+					"text": "dom/sub",
+					"who": "{name} subs"
+				},
+				{
+					"id": "service-top",
+					"label": "service top",
+					"text": "service top",
+					"who": "{name}"
+				},
+				{
+					"id": "power-bottom",
+					"label": "power bottom",
+					"text": "power bottom",
+					"who": "{name}"
+				},
+				{
+					"id": "switching",
+					"label": "switching",
+					"text": "switching"
+				},
+				{
+					"id": "praise-kink",
+					"label": "praise kink",
+					"text": "praise kink",
+					"who": "{name}"
+				},
+				{
+					"id": "degradation",
+					"label": "degradation",
+					"text": "degradation",
+					"who": "{name}"
+				},
+				{
+					"id": "brat-taming",
+					"label": "brat taming",
+					"text": "brat taming",
+					"who": "{name} is the brat"
+				},
+				{
+					"id": "gentle-dom",
+					"label": "gentle dom",
+					"text": "gentle dom",
+					"who": "{name} doms"
+				},
+				{
+					"id": "soft-dom",
+					"label": "soft dom",
+					"text": "soft dom",
+					"who": "{name} doms"
+				},
+				{
+					"id": "aftercare",
+					"label": "aftercare",
+					"text": "aftercare"
+				},
+				{
+					"id": "possessive-marking",
+					"label": "possessive / marking",
+					"text": "possessive / marking",
+					"who": "{name} is possessive"
+				},
+				{
+					"id": "jealous-sex",
+					"label": "jealous sex",
+					"text": "jealous sex"
+				},
+				{
+					"id": "size-difference",
+					"label": "size difference",
+					"text": "size difference"
+				},
+				{
+					"id": "height-difference",
+					"label": "height difference",
+					"text": "height difference"
+				},
+				{
+					"id": "manhandling",
+					"label": "manhandling",
+					"text": "manhandling",
+					"who": "{name} is manhandled"
+				},
+				{
+					"id": "pinning-down",
+					"label": "pinning down",
+					"text": "pinning down",
+					"who": "{name} is pinned"
+				},
+				{
+					"id": "restrained",
+					"label": "restrained (hands, tie, cuffs)",
+					"text": "restrained (hands, tie, cuffs)",
+					"who": "{name} is restrained"
+				},
+				{
+					"id": "begging",
+					"label": "begging",
+					"text": "begging",
+					"who": "{name} begs"
+				},
+				{
+					"id": "edging",
+					"label": "edging",
+					"text": "edging",
+					"who": "{name} is edged"
+				},
+				{
+					"id": "denial",
+					"label": "denial",
+					"text": "denial",
+					"who": "{name} is denied"
+				},
+				{
+					"id": "overstimulation",
+					"label": "overstimulation",
+					"text": "overstimulation",
+					"who": "{name}"
+				},
+				{
+					"id": "orgasm-control",
+					"label": "orgasm control",
+					"text": "orgasm control",
+					"who": "{name} is controlled"
+				},
+				{
+					"id": "teasing-in-public",
+					"label": "teasing in public",
+					"text": "teasing in public",
+					"who": "{name} is teased"
+				},
+				{
+					"id": "under-the-table",
+					"label": "under the table",
+					"text": "under the table"
+				}
+			],
+			"acts": [
+				{
+					"id": "oral",
+					"label": "oral",
+					"text": "oral"
+				},
+				{
+					"id": "face-riding",
+					"label": "face-riding",
+					"text": "face-riding"
+				},
+				{
+					"id": "fingering",
+					"label": "fingering",
+					"text": "fingering"
+				},
+				{
+					"id": "frottage",
+					"label": "frottage",
+					"text": "frottage"
+				},
+				{
+					"id": "thigh-riding",
+					"label": "thigh-riding",
+					"text": "thigh-riding"
+				},
+				{
+					"id": "handjob",
+					"label": "handjob",
+					"text": "handjob"
+				},
+				{
+					"id": "mutual-masturbation",
+					"label": "mutual masturbation",
+					"text": "mutual masturbation"
+				},
+				{
+					"id": "rimming",
+					"label": "rimming",
+					"text": "rimming"
+				},
+				{
+					"id": "anal",
+					"label": "anal",
+					"text": "anal"
+				},
+				{
+					"id": "double-penetration",
+					"label": "double penetration",
+					"text": "double penetration"
+				},
+				{
+					"id": "sixty-nine",
+					"label": "69",
+					"text": "69"
+				},
+				{
+					"id": "dry-humping",
+					"label": "dry humping",
+					"text": "dry humping"
+				},
+				{
+					"id": "clothed-getting-off",
+					"label": "clothed getting off",
+					"text": "clothed getting off"
+				},
+				{
+					"id": "shower-sex",
+					"label": "shower sex",
+					"text": "shower sex"
+				},
+				{
+					"id": "bathtub",
+					"label": "bathtub",
+					"text": "bathtub"
+				},
+				{
+					"id": "car-sex",
+					"label": "car sex",
+					"text": "car sex"
+				},
+				{
+					"id": "against-a-wall",
+					"label": "against a wall",
+					"text": "against a wall"
+				},
+				{
+					"id": "on-a-desk",
+					"label": "on a desk",
+					"text": "on a desk"
+				},
+				{
+					"id": "mirror-sex",
+					"label": "mirror sex",
+					"text": "mirror sex"
+				},
+				{
+					"id": "lap-sitting",
+					"label": "lap sitting",
+					"text": "lap sitting"
+				},
+				{
+					"id": "morning-sex",
+					"label": "morning sex",
+					"text": "morning sex"
+				},
+				{
+					"id": "sleepy-sex",
+					"label": "sleepy sex",
+					"text": "sleepy sex"
+				},
+				{
+					"id": "lazy-sex",
+					"label": "lazy sex",
+					"text": "lazy sex"
+				},
+				{
+					"id": "marathon",
+					"label": "marathon",
+					"text": "marathon"
+				},
+				{
+					"id": "quickie",
+					"label": "quickie",
+					"text": "quickie"
+				}
+			],
+			"kinks": [
+				{
+					"id": "praise",
+					"label": "praise",
+					"text": "praise",
+					"weight": 4
+				},
+				{
+					"id": "degradation",
+					"label": "degradation",
+					"text": "degradation",
+					"weight": 2
+				},
+				{
+					"id": "breath-play",
+					"label": "breath play",
+					"text": "breath play",
+					"weight": 5
+				},
+				{
+					"id": "piss-kink",
+					"label": "piss kink",
+					"text": "piss kink",
+					"weight": 5
+				},
+				{
+					"id": "breeding",
+					"label": "breeding",
+					"text": "breeding",
+					"weight": 3
+				},
+				{
+					"id": "pregnancy-kink",
+					"label": "pregnancy kink",
+					"text": "pregnancy kink",
+					"weight": 2
+				},
+				{
+					"id": "lingerie",
+					"label": "lingerie",
+					"text": "lingerie",
+					"weight": 2
+				},
+				{
+					"id": "crossdressing",
+					"label": "crossdressing",
+					"text": "crossdressing",
+					"weight": 2
+				},
+				{
+					"id": "uniform-costume",
+					"label": "uniform / costume",
+					"text": "uniform / costume",
+					"weight": 2
+				},
+				{
+					"id": "collar",
+					"label": "collar",
+					"text": "collar",
+					"weight": 2
+				},
+				{
+					"id": "leash",
+					"label": "leash",
+					"text": "leash",
+					"weight": 1
+				},
+				{
+					"id": "blindfold",
+					"label": "blindfold",
+					"text": "blindfold",
+					"weight": 2
+				},
+				{
+					"id": "sensory-deprivation",
+					"label": "sensory deprivation",
+					"text": "sensory deprivation",
+					"weight": 2
+				},
+				{
+					"id": "gag",
+					"label": "gag",
+					"text": "gag",
+					"weight": 2
+				},
+				{
+					"id": "rope-shibari",
+					"label": "rope / shibari",
+					"text": "rope / shibari",
+					"weight": 2
+				},
+				{
+					"id": "spanking-impact",
+					"label": "spanking / impact",
+					"text": "spanking / impact",
+					"weight": 3
+				},
+				{
+					"id": "biting-marking",
+					"label": "biting / marking",
+					"text": "biting / marking",
+					"weight": 4
+				},
+				{
+					"id": "hickeys",
+					"label": "hickeys",
+					"text": "hickeys",
+					"weight": 4
+				},
+				{
+					"id": "knife-play",
+					"label": "knife play (safe)",
+					"text": "knife play (safe)",
+					"weight": 1
+				},
+				{
+					"id": "temperature-play",
+					"label": "temperature play",
+					"text": "temperature play",
+					"weight": 1
+				},
+				{
+					"id": "wax",
+					"label": "wax",
+					"text": "wax",
+					"weight": 1
+				},
+				{
+					"id": "food-play",
+					"label": "food play",
+					"text": "food play",
+					"weight": 1
+				},
+				{
+					"id": "body-worship",
+					"label": "body worship",
+					"text": "body worship",
+					"weight": 3
+				},
+				{
+					"id": "feet",
+					"label": "feet",
+					"text": "feet",
+					"weight": 1
+				},
+				{
+					"id": "hands",
+					"label": "hands",
+					"text": "hands",
+					"weight": 3
+				},
+				{
+					"id": "voice",
+					"label": "voice",
+					"text": "voice",
+					"weight": 3
+				},
+				{
+					"id": "scent",
+					"label": "scent",
+					"text": "scent",
+					"weight": 2
+				},
+				{
+					"id": "exhibitionism",
+					"label": "exhibitionism",
+					"text": "exhibitionism",
+					"weight": 2
+				},
+				{
+					"id": "voyeurism",
+					"label": "voyeurism",
+					"text": "voyeurism",
+					"weight": 2
+				},
+				{
+					"id": "mirror",
+					"label": "mirror",
+					"text": "mirror",
+					"weight": 2
+				},
+				{
+					"id": "filming",
+					"label": "filming",
+					"text": "filming",
+					"weight": 1
+				},
+				{
+					"id": "dirty-talk",
+					"label": "dirty talk",
+					"text": "dirty talk",
+					"weight": 4
+				},
+				{
+					"id": "phone-sex",
+					"label": "phone sex",
+					"text": "phone sex",
+					"weight": 2
+				},
+				{
+					"id": "somnophilia",
+					"label": "somnophilia (pre-negotiated)",
+					"text": "somnophilia (pre-negotiated)",
+					"weight": 1
+				},
+				{
+					"id": "cockwarming",
+					"label": "cockwarming",
+					"text": "cockwarming",
+					"weight": 2
+				},
+				{
+					"id": "edging-kink",
+					"label": "edging",
+					"text": "edging",
+					"weight": 3
+				},
+				{
+					"id": "pet-play",
+					"label": "pet play",
+					"text": "pet play",
+					"weight": 1
+				},
+				{
+					"id": "daddy-sir",
+					"label": "daddy / sir kink",
+					"text": "daddy / sir kink",
+					"weight": 2
+				},
+				{
+					"id": "omega-alpha",
+					"label": "omega / alpha dynamics",
+					"text": "omega / alpha dynamics",
+					"weight": 2
+				},
+				{
+					"id": "knotting",
+					"label": "knotting",
+					"text": "knotting",
+					"weight": 2
+				},
+				{
+					"id": "tentacles",
+					"label": "tentacles",
+					"text": "tentacles",
+					"weight": 1
+				},
+				{
+					"id": "monster-fucking",
+					"label": "monster fucking",
+					"text": "monster fucking",
+					"weight": 1
+				},
+				{
+					"id": "powers-play",
+					"label": "telekinetic / powers play",
+					"text": "telekinetic / powers play",
+					"weight": 3
+				}
+			],
+			"registers": [
+				{
+					"id": "tender",
+					"label": "tender",
+					"text": "tender"
+				},
+				{
+					"id": "desperate",
+					"label": "desperate",
+					"text": "desperate"
+				},
+				{
+					"id": "frantic",
+					"label": "frantic",
+					"text": "frantic"
+				},
+				{
+					"id": "reverent",
+					"label": "reverent",
+					"text": "reverent"
+				},
+				{
+					"id": "filthy",
+					"label": "filthy",
+					"text": "filthy"
+				},
+				{
+					"id": "funny-awkward",
+					"label": "funny / awkward",
+					"text": "funny / awkward"
+				},
+				{
+					"id": "crying-during",
+					"label": "crying during",
+					"text": "crying during"
+				},
+				{
+					"id": "emotional-first-time",
+					"label": "emotional first time",
+					"text": "emotional first time"
+				},
+				{
+					"id": "sex-as-apology",
+					"label": "sex as apology",
+					"text": "sex as apology"
+				},
+				{
+					"id": "sex-as-reassurance",
+					"label": "sex as reassurance",
+					"text": "sex as reassurance"
+				},
+				{
+					"id": "love-confession-mid-act",
+					"label": "love confession mid-act",
+					"text": "love confession mid-act"
+				},
+				{
+					"id": "unspoken-feelings-made-obvious",
+					"label": "unspoken feelings made obvious",
+					"text": "unspoken feelings made obvious"
+				}
+			],
+			"_readme": "Only dealt when the chosen season's ageGroup is adult (post-canon / future-fic) — the gate runs before any weighting, and a minor season hides this whole layer. Weights on kinks are the AO3-style tag weighting; keep this list curated by hand (scraping AO3 is against their ToS)."
+		}
+	}
 }

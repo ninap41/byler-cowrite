@@ -1,7 +1,7 @@
 // Test harness: boots one isolated server per test file (random port, temp
 // data/save dirs) and exposes tiny HTTP + Socket.IO helpers.
 import { spawn } from "node:child_process";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync, cpSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -12,6 +12,10 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 export async function startServer(extraEnv = {}) {
   const dataDir = mkdtempSync(join(tmpdir(), "cowrite-data-"));
   const saveDir = mkdtempSync(join(tmpdir(), "cowrite-saves-"));
+  // The content pack is copied too: the admin prompt editor writes to it, and
+  // a test must never edit the real content/prompts.json.
+  const contentDir = mkdtempSync(join(tmpdir(), "cowrite-content-"));
+  cpSync(join(ROOT, "content"), contentDir, { recursive: true });
   // Random ports can collide across parallel test files — retry on a fresh
   // port if the child dies before it says "running" (e.g. EADDRINUSE).
   let port, child;
@@ -24,6 +28,7 @@ export async function startServer(extraEnv = {}) {
         PORT: String(port),
         COWRITE_DATA_DIR: dataDir,
         COWRITE_SAVE_DIR: saveDir,
+        COWRITE_CONTENT_DIR: contentDir,
         // tests accumulate sessions freely; the cap test lowers this itself
         ...extraEnv,
       },

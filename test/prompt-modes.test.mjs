@@ -39,36 +39,50 @@ test("guided mode assembles prompts and ships the component ids with them", asyn
   const { A, state } = await choosing();
   const res = await ctx.emit(A, "set-prompt-mode", {
     mode: "intermediate",
-    controls: { timePeriodId: "post-vecna", toneId: "nostalgic", tensionIntensity: "high", includeCatalyst: true },
+    controls: { seasonId: "s4", toneId: "angst", explicitLevel: "explicit" },
   });
   assert.equal(res.ok, true);
   await ctx.wait(120);
   const st = state.current;
   assert.equal(st.promptMode, "intermediate");
-  assert.equal(st.promptControls.timePeriodId, "post-vecna");
+  assert.equal(st.promptControls.seasonId, "s4");
   assert.equal(st.options.length, 4);
   st.options.forEach((p, i) => {
     assert.ok(!CURATED.includes(p)); // assembled, not curated
-    assert.ok(p.split("\n").length >= 6, "each clause on its own line, catalyst included");
+    assert.ok(p.split("\n").length >= 7, "each clause on its own line");
     assert.ok(p.split("\n").every((ln) => ln.startsWith("\u2022 ")), "and each one bulleted");
     const meta = st.optionMeta[i];
-    assert.equal(meta.selections.timePeriodId, "post-vecna");
-    assert.equal(meta.selections.toneId, "nostalgic");
-    assert.ok(meta.selections.catalystId);
-    assert.ok(meta.seed && meta.labels.location && meta.labels.tension);
+    assert.equal(meta.selections.seasonId, "s4");
+    assert.equal(meta.selections.toneId, "angst");
+    assert.equal(meta.selections.tropeIds.length, 1);
+    // the gate: S4 is a minor season, so explicit came down to suggestive
+    assert.equal(meta.selections.explicitLevel, "suggestive");
+    assert.equal(meta.selections.explicit, undefined);
+    assert.ok(!p.includes("Rating: explicit") && !p.includes("Kinks:"));
+    assert.ok(meta.seed && (meta.labels.place || meta.selections.canonId === "au") && meta.labels.tropes.length === 1);
   });
+});
+
+test("explicit deals its layer only on an adult season", async () => {
+  const { A, state } = await choosing();
+  await ctx.emit(A, "set-prompt-mode", { mode: "intermediate", controls: { seasonId: "post-canon", explicitLevel: "explicit" } });
+  await ctx.wait(120);
+  for (const [i, p] of state.current.options.entries()) {
+    assert.ok(p.includes("\u2022 Rating: explicit") && p.includes("\u2022 Kinks: "), p);
+    assert.ok(state.current.optionMeta[i].selections.explicit.kinkIds.length >= 1);
+  }
 });
 
 test("a bad mode or control value narrows instead of reaching the generator", async () => {
   const { A, state } = await choosing();
   await ctx.emit(A, "set-prompt-mode", {
     mode: "telepathy",
-    controls: { timePeriodId: "../../etc/passwd", tensionIntensity: "nuclear" },
+    controls: { seasonId: "../../etc/passwd", explicitLevel: "nuclear" },
   });
   await ctx.wait(120);
   assert.equal(state.current.promptMode, "simple");
-  assert.equal(state.current.promptControls.timePeriodId, "random");
-  assert.equal(state.current.promptControls.tensionIntensity, "medium");
+  assert.equal(state.current.promptControls.seasonId, "random");
+  assert.equal(state.current.promptControls.explicitLevel, "none");
 });
 
 test("only the host may change the mode, and start-game can set it up front", async () => {
@@ -78,9 +92,9 @@ test("only the host may change the mode, and start-game can set it up front", as
   await ctx.wait(100);
   assert.equal(state.current.promptMode, "simple");
 
-  const fresh = await choosing({ promptMode: "intermediate", promptControls: { timePeriodId: "college-au" } });
+  const fresh = await choosing({ promptMode: "intermediate", promptControls: { seasonId: "s2" } });
   assert.equal(fresh.state.current.promptMode, "intermediate");
-  assert.equal(fresh.state.current.optionMeta[0].selections.timePeriodId, "college-au");
+  assert.equal(fresh.state.current.optionMeta[0].selections.seasonId, "s2");
 });
 
 test("a hand-written scenario joins a guided ballot with no components, and voting still works", async () => {
@@ -106,20 +120,20 @@ test("reshuffling redeals in the mode that is set", async () => {
   await ctx.emit(A, "shuffle-options");
   await ctx.wait(120);
   assert.notEqual(state.current.options.join("|"), first);
-  assert.ok(state.current.optionMeta.every((m) => m?.selections?.tensionId));
+  assert.ok(state.current.optionMeta.every((m) => m?.selections?.tropeIds?.length));
 });
 
 test("the menu endpoint ships ids and labels, never the clause text", async () => {
   const r = await ctx.api("/api/prompt-options");
   assert.deepEqual(r.data.modes, ["simple", "intermediate"]);
   const d = r.data.intermediate;
-  assert.ok(d.timePeriods.length >= 8 && d.tones.length >= 8 && d.categories.length);
-  // scenario types come labelled, not as bare ids
-  assert.ok(d.categories.every((c) => c.id && c.label && c.label !== c.id));
-  assert.ok(d.timePeriods.every((p) => p.id && p.label && p.ageGroup && !p.text));
-  // the universes ride along, and each period says which of them admit it
-  assert.ok(d.universes.length >= 5 && d.universes.every((u) => u.id && u.label && !u.text));
-  const ids = new Set(d.universes.map((u) => u.id));
-  assert.ok(d.timePeriods.some((p) => p.universes?.length));
-  for (const p of d.timePeriods) for (const u of p.universes || []) assert.ok(ids.has(u), `unknown universe ${u}`);
+  assert.ok(d.seasons.length >= 7 && d.tones.length >= 5 && d.places.length >= 10);
+  for (const key of ["seasons", "canon", "places", "situations", "relationships", "tones", "explicitLevels", "tropeGroups"])
+    assert.ok(d[key].every((x) => x.id && x.label && !x.text), key);
+  // seasons carry their age group so the client can narrow the Explicit menu
+  assert.ok(d.seasons.every((s) => s.ageGroup === "minor" || s.ageGroup === "adult"));
+  assert.ok(d.explicitLevels.find((l) => l.id === "explicit").adultOnly);
+  // the trope bank itself never ships — the host picks a count, not a tag
+  assert.equal(d.tropes, undefined);
+  assert.equal(d.explicit, undefined);
 });
