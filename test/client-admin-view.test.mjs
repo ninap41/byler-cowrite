@@ -109,3 +109,9 @@ test("the editor round-trips the library byte-for-byte, and edits read back", ()
   root.querySelector('[data-pool="intermediate.tropeGroups"] .pe-lines').value = "practice = Practice\nbogus line";
   assert.match(readPromptEditor(root, LIB).errors[0], /isn't "id = Name"/);
 });
+
+test("the admin page READS its lists with GET — api() defaults to POST, which those routes don't answer", () => {
+  const html = readFileSync(new URL("../public/admin.html", import.meta.url), "utf-8");
+  for (const path of ["/api/admin/games", "/api/admin/users", "/api/admin/prompts"])
+    assert.match(html, new RegExp(`api\\("${path}", null, "GET"\\)`), path + " is fetched with GET");
+});

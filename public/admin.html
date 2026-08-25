@@ -60,6 +60,7 @@
 			const me = await requireAuth("/")
 			setUserChip(me)
 			const $ = (id) => document.getElementById(id)
+			let promptDoc = null // the prompt library as loaded; Save reads the editor back into it
 
 			// The page is a convenience, not the guard: every route below refuses
 			// non-admins on its own. This just stops a normal user staring at a
@@ -76,9 +77,8 @@
 
 			// ---- Prompt library editor ----
 			// Built once from the server's document, read back whole on Save.
-			let promptDoc = null
 			async function loadPrompts() {
-				promptDoc = (await api("/api/admin/prompts")).data
+				promptDoc = (await api("/api/admin/prompts", null, "GET")).data
 				$("adminPrompts").innerHTML = promptEditorHtml(promptDoc)
 			}
 			$("adminPrompts").addEventListener("click", async (e) => {
@@ -107,7 +107,7 @@
 			})
 
 			async function refresh() {
-				const [g, u] = await Promise.all([api("/api/admin/games"), api("/api/admin/users")])
+				const [g, u] = await Promise.all([api("/api/admin/games", null, "GET"), api("/api/admin/users", null, "GET")])
 				$("adminGames").innerHTML = adminGamesHtml(g.games)
 				$("adminUsers").innerHTML = adminUsersHtml(u.users, Date.now())
 			}
