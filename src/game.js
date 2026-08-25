@@ -13,6 +13,7 @@ import { store, saveStore, userByToken, makeMsg, isAdmin } from "./store.js";
 import { mirror, mirrorDelete } from "./persist.js";
 import { generateSimplePrompt, generateIntermediatePrompt, validateIntermediateData, EXPLICIT_LEVELS, MODES } from "../lib/prompt-gen.js";
 import { contentPath } from "./content.js";
+import { randomTitle } from "../lib/titles.js";
 import { readDoc, writeDoc, canView, canEdit, canComment, anchorCids, anchorText, stripAnchor, applySuggestion } from "./docs.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -23,6 +24,10 @@ let PROMPT_DATA = JSON.parse(readFileSync(contentPath("prompts.json"), "utf-8"))
 let PROMPT_BANK = PROMPT_DATA.prompts;
 let INTERMEDIATE = PROMPT_DATA.intermediate || null;
 export const getPromptData = () => PROMPT_DATA;
+// The title bank for sessions the host doesn't name (content/titles.json;
+// a pack without one gets "Untitled").
+let TITLE_BANK = null;
+try { TITLE_BANK = JSON.parse(readFileSync(contentPath("titles.json"), "utf-8")); } catch { }
 // The admin editor's write path: validate the whole document, write it to
 // the pack, then swap it in — every ballot dealt from here on uses it.
 // Returns the validation errors (empty = saved).
@@ -851,7 +856,9 @@ export function createGame(io) {
       const code = makeCode();
       const host = newWriter(acct);
       const s = {
-        code, name: "", cover: "", hostId: socket.id, hostToken: host.token,
+        // Every story has a name from the start: a random one, ≤40 chars,
+        // until the host renames it — so nothing is ever listed as a bare code.
+        code, name: randomTitle(TITLE_BANK), cover: "", hostId: socket.id, hostToken: host.token,
         hostUserId: acct.id, hostName: acct.username, // the ORIGINAL host, forever
         createdAt: Date.now(), tags: [], // tags: curation for the all-stories page (empty for now)
         friendly: true, // story mode: friendly (default) vs non-friendly
@@ -867,7 +874,7 @@ export function createGame(io) {
       sessions.set(code, s);
       socket.data.joinedCode = code;
       joinAsWriter(socket, s);
-      ack?.({ ok: true, code, hostId: socket.id, token: s.writers.get(socket.id).token });
+      ack?.({ ok: true, code, hostId: socket.id, token: s.writers.get(socket.id).token, name: s.name });
       broadcastRoster(s);
       saveSnapshot(s); // the code is claimable/revivable from the moment it exists
     });

@@ -1,0 +1,20 @@
+{
+	"_readme": "Random story titles for a session the host didn't name. A pattern is a template of {word-list} slots; every title is cut to 40 characters.",
+	"patterns": [
+		"The {adjective} {noun}",
+		"{noun} in {place}",
+		"{adjective} {noun}",
+		"A {noun} for {name}",
+		"{name} and the {adjective} {noun}",
+		"What the {noun} Knew",
+		"After the {noun}",
+		"{place}, {time}",
+		"The Last {noun}",
+		"{noun} & {noun}"
+	],
+	"adjective": ["quiet", "upside-down", "borrowed", "unspoken", "midnight", "crooked", "electric", "patient", "stubborn", "haunted", "golden", "lost", "secret", "static", "endless", "tender", "reckless", "faraway", "careful", "brave"],
+	"noun": ["Walkie", "Basement", "Sketchbook", "Campaign", "Bike Ride", "Storm", "Painting", "Radio", "Quarry", "Mixtape", "Snowball", "Curfew", "Letter", "Lantern", "Compass", "Quest", "Rain", "Static", "Summer", "Fort"],
+	"place": ["Hawkins", "Lenora", "the Woods", "Castle Byers", "the Basement", "the Arcade", "the Quarry", "Starcourt", "the Van", "Melvald's"],
+	"time": ["1983", "1984", "1985", "1986", "1987", "Midnight", "After Curfew", "Spring Break", "July 4th", "First Snow"],
+	"name": ["Will", "Mike", "the Party", "the Paladin", "the Cleric", "Will the Wise"]
+}

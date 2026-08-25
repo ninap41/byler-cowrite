@@ -340,3 +340,16 @@ test("chat: length cap, echo id, host flag", async () => {
   assert.ok(m.text.length <= 500);
   assert.equal(m.host, true);
 });
+
+test("a new session is born with a random title, ≤40 chars, until the host renames it", async () => {
+  const { host, A, state, code } = await startedGame(ctx);
+  const st = state.current;
+  assert.ok(st.name && st.name.length <= 40, "named at birth: " + JSON.stringify(st.name));
+  assert.notEqual(st.name, code, "not just the code");
+  const B = await ctx.conn();
+  const second = await ctx.emit(B, "create-session", { auth: host.token });
+  assert.ok(second.name && second.name.length <= 40);
+  await ctx.emit(A, "rename-session", { name: "Our story" });
+  await ctx.wait(100);
+  assert.equal(state.current.name, "Our story");
+});
