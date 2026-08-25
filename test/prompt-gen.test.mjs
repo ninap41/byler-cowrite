@@ -200,7 +200,7 @@ test("no clashes: a world is the place, and tropes agree with the relationship",
     // one place per prompt: the world OR the place axis, never both
     assert.equal(!!world, !r.selections.placeId, r.prompt);
     assert.equal(!!r.labels.place, !world);
-    const tags = new Set([...tagsOf(r.selections.relationshipId), ...(world?.tags || []), ...(r.explicitLevel === "explicit" ? ["explicit"] : [])]);
+    const tags = new Set([...tagsOf(r.selections.relationshipId), ...(world?.tags || []), ...(idOf(INT.tones, r.selections.toneId).tags || []), ...(r.explicitLevel === "explicit" ? ["explicit"] : [])]);
     const check = (it) => {
       for (const t of it.incompatibleTags || []) assert.ok(!tags.has(t), `${it.id} with ${r.selections.relationshipId}`);
       for (const t of it.requiresTags || []) assert.ok(tags.has(t), `${it.id} needs ${t}, got ${r.selections.relationshipId}`);
@@ -263,7 +263,7 @@ test("the explicit layer carries every tag from the design doc", () => {
     const setup = idOf(INT.explicit.setups, ex.setupId).text, dyn = idOf(INT.explicit.dynamics, ex.dynamicId).text, reg = idOf(INT.explicit.registers, ex.registerId).text;
     const acts = ex.actIds.map((id) => idOf(INT.explicit.acts, id).text), kinks = ex.kinkIds.map((id) => idOf(INT.explicit.kinks, id).text);
     const w = (id, pool) => withWho(idOf(INT.explicit[pool], id), ex.who);
-    assert.ok(lines.includes(`${BULLET}Kinks: ${[w(ex.setupId, "setups"), w(ex.dynamicId, "dynamics"), ...acts, ...kinks, reg].join(TAG_SEP)}`), r.prompt);
+    assert.ok(lines.some((l) => l.startsWith(`${BULLET}Kinks: ${[w(ex.setupId, "setups"), w(ex.dynamicId, "dynamics"), ...acts, ...kinks, reg].join(TAG_SEP)}`)), r.prompt);
     assert.ok(!lines.some((l) => /^• (Catalyst|Register|Setup|Dynamic|Acts):/.test(l)), "one explicit line");
   }
 });
@@ -337,6 +337,33 @@ test("fluff is never explicit, and explicit is never fluff", () => {
   assert.ok(r.prompt.includes("Rating: suggestive") && !r.prompt.includes("Kinks:"));
   // suggestive fluff is fine
   assert.equal(generateIntermediatePrompt(INT, { seed: "sf", toneId: "fluff", explicitLevel: "suggestive" }).explicitLevel, "suggestive");
+});
+
+test("crack: its tropes only under the Crack tone, and a ridiculous twist one time in five on explicit", () => {
+  const crack = INT.tropes.filter((t) => t.group === "crack");
+  assert.ok(crack.length >= 15 && crack.every((t) => t.requiresTags?.includes("crack")));
+  let own = 0;
+  for (let i = 0; i < 200; i++) {
+    const r = generateIntermediatePrompt(INT, { seed: "cr" + i, toneId: "crack" });
+    if (idOf(INT.tropes, r.selections.tropeIds[0]).group === "crack") own++;
+  }
+  assert.ok(own > 120, "crack tone deals crack tropes most of the time: " + own);
+  for (let i = 0; i < 200; i++) {
+    const r = generateIntermediatePrompt(INT, { seed: "nc" + i, toneId: "angst" });
+    assert.notEqual(idOf(INT.tropes, r.selections.tropeIds[0]).group, "crack");
+  }
+  let twists = 0;
+  for (let i = 0; i < 400; i++) {
+    const r = generateIntermediatePrompt(INT, { seed: "tw" + i, explicitLevel: "explicit" });
+    if (r.selections.explicit.twistId) {
+      twists++;
+      assert.ok(r.prompt.includes(idOf(INT.explicit.twists, r.selections.explicit.twistId).text));
+    }
+  }
+  assert.ok(twists > 40 && twists < 130, "about one in five: " + twists);
+  // never in Cleradin: every twist is Hawkins-shaped
+  for (let i = 0; i < 100; i++)
+    assert.equal(generateIntermediatePrompt(INT, { seed: "ct" + i, explicitLevel: "explicit", worldId: "cleradin" }).selections.explicit.twistId, undefined);
 });
 
 test("a bulleted prompt collapses back to one line for titles", () => {

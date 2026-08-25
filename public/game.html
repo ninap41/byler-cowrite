@@ -800,7 +800,7 @@
 						rr.type = "button"
 						rr.className = "opt-reroll"
 						rr.title = "Reroll this option"
-						rr.textContent = "↻"
+						rr.textContent = "↻ Reroll"
 						rr.onclick = (e) => {
 							e.stopPropagation()
 							if (myVote === p) myVote = null
@@ -825,6 +825,11 @@
 				onChange: ({ mode, controls }) => {
 					myVote = null
 					socket.emit("set-prompt-mode", { mode, controls })
+				},
+				// 🎲 deal four new options from the settings as they stand
+				onReroll: () => {
+					myVote = null
+					socket.emit("shuffle-options")
 				},
 			})
 			// The menus (ids + labels) are static data — fetched once per page.

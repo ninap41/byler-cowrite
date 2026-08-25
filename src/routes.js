@@ -79,23 +79,30 @@ export function registerRoutes(app, game) {
   app.get("/api/prompt-options", (_req, res) => {
     const data = getPromptData().intermediate || null;
     if (!data) return res.json({ modes: ["simple"], intermediate: null });
-    const menu = (list) => (list || []).map((x) => ({ id: x.id, label: x.label }));
+    // Each menu row carries the rules that decide whether it can go with the
+    // other choices — never its clause text — so the client can grey out an
+    // option the generator would refuse (exes on a minor season, a modern
+    // world with… no: fluff with explicit) instead of letting it be picked.
+    const rules = (x) => ({
+      ...(x.tags?.length ? { tags: x.tags } : {}),
+      ...(x.requiresTags?.length ? { requires: x.requiresTags } : {}),
+      ...(x.incompatibleTags?.length ? { excludes: x.incompatibleTags } : {}),
+      ...(x.compatibleAgeGroups?.length ? { ageGroups: x.compatibleAgeGroups } : {}),
+      ...(x.compatibleCanon?.length ? { canon: x.compatibleCanon } : {}),
+      ...(x.adultOnly ? { adultOnly: true } : {}),
+    });
+    const menu = (list) => (list || []).map((x) => ({ id: x.id, label: x.label, ...rules(x) }));
     res.json({
       modes: ["simple", "intermediate"],
       intermediate: {
-        // seasons carry their age group, so the Explicit menu can narrow
-        // itself to what a minor season admits instead of offering a level
-        // the generator would have to force down
-        seasons: (data.seasons || []).map((x) => ({ id: x.id, label: x.label, ageGroup: x.ageGroup })),
+        seasons: (data.seasons || []).map((x) => ({ id: x.id, label: x.label, ageGroup: x.ageGroup, ...rules(x) })),
         canon: menu(data.canon),
-        // the worlds an AU can be — the setting-au tropes — for the World
-        // menu that appears when Canon is Alternate universe
         worlds: menu((data.tropes || []).filter((t) => t.group === "setting-au")),
         places: menu(data.places),
         situations: menu(data.situations),
         relationships: menu(data.relationships),
         tones: menu(data.tones),
-        explicitLevels: (data.explicit?.levels || []).map((x) => ({ id: x.id, label: x.label, adultOnly: !!x.adultOnly })),
+        explicitLevels: menu(data.explicit?.levels).map((x) => ({ ...x, adultOnly: !!x.adultOnly })),
         tropeGroups: Object.entries(data.tropeGroups || {}).map(([id, label]) => ({ id, label })),
       },
     });

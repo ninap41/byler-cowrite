@@ -46,8 +46,9 @@ export function labelize(id) {
 	return s ? s[0].toUpperCase() + s.slice(1) : ""
 }
 
-// A <select>'s children: a Random entry plus one per component.
-export function menuHtml(items, selected, { random = true } = {}) {
+// A <select>'s children: a Random entry plus one per component. `disabled`
+// is a Set of ids that can't go with the other current choices.
+export function menuHtml(items, selected, { random = true, disabled } = {}) {
 	const rows = [...(random ? [{ id: "random", label: "Random" }] : []), ...(items || [])].map((it) =>
 		typeof it === "string" ? { id: it, label: labelize(it) } : it,
 	)
@@ -55,11 +56,37 @@ export function menuHtml(items, selected, { random = true } = {}) {
 	return rows
 		.map(
 			(it) =>
-				`<option value="${esc(it.id)}"${it.id === current ? " selected" : ""}>${esc(
+				`<option value="${esc(it.id)}"${it.id === current ? " selected" : ""}${disabled?.has(it.id) ? " disabled" : ""}>${esc(
 					it.label || labelize(it.id),
 				)}</option>`,
 		)
 		.join("")
+}
+
+// The tags the current choices put into play, the way the generator would
+// (lib/prompt-gen.js isCompatible): the chosen season's age, the canon and
+// world, relationship and tone tags, and "explicit" when that rating is set.
+export function activeContext(menus, c) {
+	const d = menus?.intermediate || {}
+	const find = (list, id) => (list || []).find((x) => x.id === id)
+	const season = find(d.seasons, c.seasonId)
+	const picks = [find(d.canon, c.canonId), find(d.worlds, c.worldId), find(d.relationships, c.relationshipId), find(d.tones, c.toneId), find(d.situations, c.situationId), find(d.places, c.placeId)]
+	const tags = new Set(picks.flatMap((p) => p?.tags || []))
+	if (season) for (const t of season.tags || []) tags.add(t)
+	if (c.explicitLevel === "explicit") tags.add("explicit")
+	return { ageGroup: season?.ageGroup || null, canonId: c.canonId && c.canonId !== "random" ? c.canonId : null, tags }
+}
+
+// Would the generator refuse this option beside the other choices? The same
+// rules as isCompatible, read off the menu row's shipped rules.
+export function optionAllowed(item, ctx) {
+	if (!item || item.id === "random") return true
+	if (item.ageGroups && ctx.ageGroup && !item.ageGroups.includes(ctx.ageGroup)) return false
+	if (item.adultOnly && ctx.ageGroup && ctx.ageGroup !== "adult") return false
+	if (item.canon && ctx.canonId && !item.canon.includes(ctx.canonId)) return false
+	if (item.excludes?.some((t) => ctx.tags.has(t))) return false
+	if (item.requires?.some((t) => !ctx.tags.has(t))) return false
+	return true
 }
 
 // The component chips under a guided option — what scene it was assembled
@@ -77,14 +104,16 @@ export function optionChipsHtml(meta) {
 // from the season: a minor season leaves only None and Suggestive on the
 // menu. Random offers everything — asking for explicit then narrows the
 // season draw to the adult ones server-side.
-export function levelsFor(levels = [], seasons = [], seasonId) {
+export function levelsFor(levels = [], seasons = [], seasonId, tone = null) {
 	const season = seasons.find((s) => s.id === seasonId)
-	if (!season || season.ageGroup === "adult") return levels
-	return levels.filter((l) => !l.adultOnly)
+	let out = !season || season.ageGroup === "adult" ? levels : levels.filter((l) => !l.adultOnly)
+	// a tone that can't be explicit (fluff) takes Explicit off the menu too
+	if (tone?.tags?.includes("no-explicit")) out = out.filter((l) => l.id !== "explicit")
+	return out
 }
 
 // One page can hold two of these (lobby + vote card), so every id is prefixed.
-export function promptModeHtml(prefix) {
+export function promptModeHtml(prefix, { reroll = false } = {}) {
 	const p = esc(prefix)
 	const modes = PROMPT_MODES.map(
 		(m) =>
@@ -100,14 +129,16 @@ export function promptModeHtml(prefix) {
 <div class="guided-controls hidden" id="${p}Controls">
 	${fields}
 	<label for="${p}Explicit">Explicit<select id="${p}Explicit">${menuHtml(EXPLICIT_LEVELS, "none", { random: false })}</select></label>
+	${reroll ? `<button type="button" class="ghost pm-reroll" id="${p}Reroll" title="Deal four new options from these settings">🎲 Reroll all</button>` : ""}
 </div>`
 }
 
 // Mounts the control into `root`. onChange fires on any user change with the
 // current {mode, controls} — the lobby just remembers it until Begin, the vote
 // card emits set-prompt-mode.
-export function mountPromptModes(root, { prefix = "pm", onChange } = {}) {
-	root.innerHTML = promptModeHtml(prefix)
+export function mountPromptModes(root, { prefix = "pm", onChange, onReroll } = {}) {
+	root.innerHTML = promptModeHtml(prefix, { reroll: !!onReroll })
+	if (onReroll) root.querySelector("#" + prefix + "Reroll").addEventListener("click", () => onReroll())
 	const el = (suffix) => root.querySelector("#" + prefix + suffix)
 	let mode = "simple"
 	let controls = { ...DEFAULT_CONTROLS }
@@ -135,8 +166,26 @@ export function mountPromptModes(root, { prefix = "pm", onChange } = {}) {
 			if (!on) el(f.suffix).value = "random"
 		}
 	}
+	// Grey out what can't go with the rest. Each menu is judged against the
+	// OTHER choices (not its own), so the current pick never disables itself;
+	// a pick that has become impossible falls back to Random.
+	function paintCompat() {
+		const d = menus?.intermediate
+		if (!d) return
+		const c = readControls()
+		for (const f of GUIDED_FIELDS) {
+			const others = { ...c, [f.key]: "random" }
+			const ctx = activeContext(menus, others)
+			const disabled = new Set((d[f.menu] || []).filter((it) => !optionAllowed(it, ctx)).map((it) => it.id))
+			const want = disabled.has(c[f.key]) ? "random" : c[f.key]
+			el(f.suffix).innerHTML = menuHtml(d[f.menu], want, { disabled })
+			controls[f.key] = want
+		}
+	}
 	function fire() {
 		paintDependents()
+		paintCompat()
+		paintLevels()
 		controls = readControls()
 		onChange?.({ mode, controls })
 	}
@@ -153,16 +202,14 @@ export function mountPromptModes(root, { prefix = "pm", onChange } = {}) {
 	function paintLevels() {
 		const d = menus?.intermediate
 		const levels = d?.explicitLevels?.length ? d.explicitLevels : EXPLICIT_LEVELS
-		const allowed = levelsFor(levels, d?.seasons || [], el("Season")?.value || "random")
+		const tone = (d?.tones || []).find((t) => t.id === el("Tone")?.value)
+		const allowed = levelsFor(levels, d?.seasons || [], el("Season")?.value || "random", tone)
 		const want = allowed.some((l) => l.id === controls.explicitLevel) ? controls.explicitLevel : "none"
 		el("Explicit").innerHTML = menuHtml(allowed, want, { random: false })
 		controls.explicitLevel = want
 	}
-	el("Controls").addEventListener("change", (e) => {
-		if (e.target === el("Season")) {
-			controls = readControls()
-			paintLevels()
-		}
+	el("Controls").addEventListener("change", () => {
+		controls = readControls()
 		fire()
 	})
 
@@ -174,6 +221,7 @@ export function mountPromptModes(root, { prefix = "pm", onChange } = {}) {
 			if (d) for (const f of GUIDED_FIELDS) el(f.suffix).innerHTML = menuHtml(d[f.menu], controls[f.key])
 			paintLevels()
 			paintDependents()
+			paintCompat()
 			paint()
 			return api
 		},
@@ -184,6 +232,7 @@ export function mountPromptModes(root, { prefix = "pm", onChange } = {}) {
 				for (const f of GUIDED_FIELDS) if (el(f.suffix).options.length) el(f.suffix).value = controls[f.key]
 				paintLevels()
 				paintDependents()
+				paintCompat()
 			}
 			paint()
 			return api

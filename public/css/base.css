@@ -7626,6 +7626,11 @@ body.resizing-side {
 	background: var(--bg-2);
 	color: var(--ink);
 }
+/* an option the generator would refuse beside the other choices */
+.guided-controls select option:disabled {
+	color: var(--muted);
+	opacity: 0.5;
+}
 .mode-hint {
 	font-size: 0.78rem;
 }
@@ -9302,5 +9307,6 @@ html.vcx-live[data-theme="vecna"] #vc-pend {
 .pe-doc code { font-family: var(--font-mono); font-size: 0.8em; }
 /* the host's per-option reroll, in the card's corner opposite the vote count */
 .option { position: relative; }
-.opt-reroll { position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; padding: 0; border-radius: 50%; border: 1px solid var(--line); background: var(--panel-2); color: var(--muted); font-size: 1rem; line-height: 1; cursor: pointer; }
-.opt-reroll:hover { color: var(--ink); transform: rotate(90deg); }
+.opt-reroll { position: absolute; top: 8px; right: 8px; padding: 4px 10px; border-radius: var(--r-sm, 6px); border: 1px solid var(--line); background: var(--panel-2); color: var(--muted); font: inherit; font-size: 0.8rem; line-height: 1.2; cursor: pointer; }
+.opt-reroll:hover { color: var(--ink); border-color: var(--chip-brd); }
+.guided-controls .pm-reroll { align-self: end; }

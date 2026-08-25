@@ -82,6 +82,7 @@ export const PROMPT_POOLS = [
 	{ path: ["intermediate", "explicit", "acts"], title: "Explicit · acts", kind: "items" },
 	{ path: ["intermediate", "explicit", "kinks"], title: "Explicit · kinks (weighted)", kind: "items" },
 	{ path: ["intermediate", "explicit", "registers"], title: "Explicit · registers", kind: "items" },
+	{ path: ["intermediate", "explicit", "twists"], title: "Explicit · ridiculous twists (one in five)", kind: "items" },
 ]
 // The columns every item row carries; everything else an entry holds
 // (tags, compatibleAgeGroups, compatibleCanon, requiresTags…) is edited as

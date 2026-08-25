@@ -141,8 +141,12 @@ test("the menu endpoint ships ids and labels, never the clause text", async () =
   assert.deepEqual(r.data.modes, ["simple", "intermediate"]);
   const d = r.data.intermediate;
   assert.ok(d.seasons.length >= 7 && d.tones.length >= 5 && d.places.length >= 10);
-  for (const key of ["seasons", "canon", "places", "situations", "relationships", "tones", "explicitLevels", "tropeGroups"])
+  for (const key of ["seasons", "canon", "worlds", "places", "situations", "relationships", "tones", "explicitLevels", "tropeGroups"])
     assert.ok(d[key].every((x) => x.id && x.label && !x.text), key);
+  // each row carries the rules that grey it out beside other choices
+  assert.deepEqual(d.relationships.find((r) => r.id === "exes").ageGroups, ["adult"]);
+  assert.ok(d.worlds.find((w) => w.id === "cleradin").tags.includes("fantasy"));
+  assert.ok(d.tones.find((t) => t.id === "fluff").excludes.includes("explicit"));
   // seasons carry their age group so the client can narrow the Explicit menu
   assert.ok(d.seasons.every((s) => s.ageGroup === "minor" || s.ageGroup === "adult"));
   assert.ok(d.explicitLevels.find((l) => l.id === "explicit").adultOnly);

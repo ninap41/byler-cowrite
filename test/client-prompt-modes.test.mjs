@@ -21,11 +21,11 @@ const MENUS = {
       { id: "post-canon", label: "Post-canon", ageGroup: "adult" },
     ],
     canon: [{ id: "au", label: "Alternate universe" }, { id: "canon-compliant", label: "Canon-compliant" }],
-    worlds: [{ id: "cleradin", label: "Cleradin" }, { id: "coffee-shop", label: "coffee shop" }],
+    worlds: [{ id: "cleradin", label: "Cleradin", tags: ["fantasy", "cleradin"] }, { id: "coffee-shop", label: "coffee shop" }, { id: "college", label: "college", ageGroups: ["adult"] }],
     places: [{ id: "church", label: "Church" }, { id: "nyc", label: "New York City" }],
     situations: [{ id: "reunion", label: "Reunion" }],
-    relationships: [{ id: "pining", label: "Pining" }],
-    tones: [{ id: "angst", label: "Angst" }],
+    relationships: [{ id: "pining", label: "Pining", tags: ["not-together"] }, { id: "exes", label: "Exes", ageGroups: ["adult"], tags: ["exes"] }],
+    tones: [{ id: "angst", label: "Angst" }, { id: "fluff", label: "Fluff", tags: ["no-explicit"], excludes: ["explicit"] }],
     explicitLevels: [
       { id: "none", label: "None", adultOnly: false },
       { id: "suggestive", label: "Suggestive", adultOnly: false },
@@ -200,7 +200,7 @@ test("the AU world menu appears only while Canon is Alternate universe, and forg
   fire(root.querySelector("#wMode-intermediate"));
   const wrap = root.querySelector("#wWorldWrap"), world = root.querySelector("#wWorld"), canon = root.querySelector("#wCanon");
   assert.ok(wrap.classList.contains("hidden"), "hidden on Random canon");
-  assert.deepEqual([...world.options].map((o) => o.value), ["random", "cleradin", "coffee-shop"]);
+  assert.deepEqual([...world.options].map((o) => o.value), ["random", "cleradin", "coffee-shop", "college"]);
   canon.value = "au";
   fire(canon, "change");
   assert.ok(!wrap.classList.contains("hidden"));
@@ -217,6 +217,64 @@ test("the AU world menu appears only while Canon is Alternate universe, and forg
   // and the stylesheet lets a label hide (it sets display:flex itself)
   const css = readFileSync(new URL("../public/css/base.css", import.meta.url), "utf-8");
   assert.ok(css.includes(".guided-controls label.hidden"));
+});
+
+test("an option the generator would refuse beside the other choices is greyed out, and a pick that becomes impossible falls back to Random", async () => {
+  const { optionAllowed, activeContext } = await import("../public/js/components/prompt-modes.js");
+  const root = mount("");
+  const pm = mountPromptModes(root, { prefix: "c" }).setMenus(MENUS);
+  fire(root.querySelector("#cMode-intermediate"));
+  const opt = (sel, id) => root.querySelector(`#c${sel} option[value="${id}"]`);
+  // a minor season takes the adult-only relationship and world off the table
+  root.querySelector("#cSeason").value = "s4";
+  fire(root.querySelector("#cSeason"), "change");
+  assert.equal(opt("Rel", "exes").disabled, true);
+  assert.equal(opt("Rel", "pining").disabled, false);
+  assert.equal(opt("World", "college").disabled, true);
+  // fluff and explicit: whichever is picked first greys the other
+  root.querySelector("#cSeason").value = "post-canon";
+  fire(root.querySelector("#cSeason"), "change");
+  root.querySelector("#cExplicit").value = "explicit";
+  fire(root.querySelector("#cExplicit"), "change");
+  assert.equal(opt("Tone", "fluff").disabled, true);
+  root.querySelector("#cExplicit").value = "none";
+  fire(root.querySelector("#cExplicit"), "change");
+  root.querySelector("#cTone").value = "fluff";
+  fire(root.querySelector("#cTone"), "change");
+  assert.deepEqual([...root.querySelector("#cExplicit").options].map((o) => o.value), ["none", "suggestive"], "explicit left the menu");
+  // a pick that becomes impossible falls back to Random rather than sticking
+  root.querySelector("#cTone").value = "angst";
+  fire(root.querySelector("#cTone"), "change");
+  root.querySelector("#cRel").value = "exes";
+  fire(root.querySelector("#cRel"), "change");
+  assert.equal(pm.values().promptControls.relationshipId, "exes");
+  root.querySelector("#cSeason").value = "s5";
+  fire(root.querySelector("#cSeason"), "change");
+  assert.equal(pm.values().promptControls.relationshipId, "random");
+  // the pure rule
+  const ctx = activeContext(MENUS, { seasonId: "s4", canonId: "au", worldId: "cleradin", explicitLevel: "explicit" });
+  assert.equal(ctx.ageGroup, "minor");
+  assert.ok(ctx.tags.has("fantasy") && ctx.tags.has("explicit"));
+  assert.equal(optionAllowed({ id: "x", excludes: ["fantasy"] }, ctx), false);
+  assert.equal(optionAllowed({ id: "x", requires: ["cleradin"] }, ctx), true);
+  assert.equal(optionAllowed({ id: "x", canon: ["canon-divergent"] }, ctx), false);
+  assert.equal(optionAllowed({ id: "random" }, ctx), true);
+  // the stylesheet dims a disabled option
+  const css = readFileSync(new URL("../public/css/base.css", import.meta.url), "utf-8");
+  assert.ok(css.includes(".guided-controls select option:disabled"));
+});
+
+test("the vote card's mount gets a 🎲 Reroll all button; the lobby's doesn't", () => {
+  const root = mount("");
+  const hits = [];
+  mountPromptModes(root, { prefix: "r", onReroll: () => hits.push(1) }).setMenus(MENUS);
+  fire(root.querySelector("#rReroll"));
+  assert.equal(hits.length, 1);
+  const lobby = mount("");
+  mountPromptModes(lobby, { prefix: "l" });
+  assert.equal(lobby.querySelector("#lReroll"), null);
+  const html = readFileSync(new URL("../public/game.html", import.meta.url), "utf-8");
+  assert.match(html, /onReroll: \(\) => \{[\s\S]*?socket\.emit\("shuffle-options"\)/);
 });
 
 test("Simple mode shows no guided knobs — and the stylesheet agrees", async () => {
