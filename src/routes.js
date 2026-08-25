@@ -88,6 +88,9 @@ export function registerRoutes(app, game) {
         // the generator would have to force down
         seasons: (data.seasons || []).map((x) => ({ id: x.id, label: x.label, ageGroup: x.ageGroup })),
         canon: menu(data.canon),
+        // the worlds an AU can be — the setting-au tropes — for the World
+        // menu that appears when Canon is Alternate universe
+        worlds: menu((data.tropes || []).filter((t) => t.group === "setting-au")),
         places: menu(data.places),
         situations: menu(data.situations),
         relationships: menu(data.relationships),

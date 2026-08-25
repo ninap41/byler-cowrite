@@ -171,6 +171,19 @@ test("canon frames the world: an AU always names one on the Canon line, nothing 
   }
 });
 
+test("a chosen AU world is dealt, and implies the AU canon when Canon is Random", () => {
+  for (let i = 0; i < 40; i++) {
+    const r = generateIntermediatePrompt(INT, { seed: "w" + i, worldId: "cleradin" });
+    assert.equal(r.selections.canonId, "au");
+    assert.equal(r.selections.worldId, "cleradin");
+    assert.notEqual(idOf(INT.tropes, r.selections.tropeIds[0]).group, "setting-au");
+  }
+  // a non-world id is ignored; an explicit non-AU canon wins over a world
+  assert.equal(generateIntermediatePrompt(INT, { seed: "w", worldId: "only-one-bed", canonId: "canon-compliant" }).selections.worldId, undefined);
+  assert.equal(generateIntermediatePrompt(INT, { seed: "w", worldId: "cleradin", canonId: "canon-compliant" }).selections.canonId, "canon-compliant");
+  assert.equal(generateIntermediatePrompt(INT, { seed: "w", worldId: "random", canonId: "au" }).selections.canonId, "au");
+});
+
 test("exactly one trope per prompt", () => {
   for (let i = 0; i < 60; i++) assert.equal(generateIntermediatePrompt(INT, { seed: "one" + i }).selections.tropeIds.length, 1);
   const locked = generateIntermediatePrompt(INT, { seed: "l", locked: { tropeId: "only-one-bed" } });

@@ -20,7 +20,8 @@ const MENUS = {
       { id: "s5", label: "Season 5", ageGroup: "minor" },
       { id: "post-canon", label: "Post-canon", ageGroup: "adult" },
     ],
-    canon: [{ id: "au", label: "Alternate universe" }],
+    canon: [{ id: "au", label: "Alternate universe" }, { id: "canon-compliant", label: "Canon-compliant" }],
+    worlds: [{ id: "cleradin", label: "Cleradin" }, { id: "coffee-shop", label: "coffee shop" }],
     places: [{ id: "church", label: "Church" }, { id: "nyc", label: "New York City" }],
     situations: [{ id: "reunion", label: "Reunion" }],
     relationships: [{ id: "pining", label: "Pining" }],
@@ -190,6 +191,32 @@ test("choosing a minor season drops Explicit from the menu and falls back to Non
   // the server's echo of a minor season + explicit paints the same narrowing
   api.setState("intermediate", { seasonId: "s5", explicitLevel: "explicit" });
   assert.equal(level.value, "none");
+});
+
+test("the AU world menu appears only while Canon is Alternate universe, and forgets its pick otherwise", () => {
+  const root = mount("");
+  const seen = [];
+  const pm = mountPromptModes(root, { prefix: "w", onChange: (v) => seen.push(v) }).setMenus(MENUS);
+  fire(root.querySelector("#wMode-intermediate"));
+  const wrap = root.querySelector("#wWorldWrap"), world = root.querySelector("#wWorld"), canon = root.querySelector("#wCanon");
+  assert.ok(wrap.classList.contains("hidden"), "hidden on Random canon");
+  assert.deepEqual([...world.options].map((o) => o.value), ["random", "cleradin", "coffee-shop"]);
+  canon.value = "au";
+  fire(canon, "change");
+  assert.ok(!wrap.classList.contains("hidden"));
+  world.value = "cleradin";
+  fire(world, "change");
+  assert.equal(seen.at(-1).controls.worldId, "cleradin");
+  canon.value = "canon-compliant";
+  fire(canon, "change");
+  assert.ok(wrap.classList.contains("hidden"));
+  assert.equal(seen.at(-1).controls.worldId, "random", "a hidden world reads as Random");
+  // the server's echo paints it the same way
+  pm.setState("intermediate", { canonId: "au", worldId: "coffee-shop" });
+  assert.ok(!wrap.classList.contains("hidden") && world.value === "coffee-shop");
+  // and the stylesheet lets a label hide (it sets display:flex itself)
+  const css = readFileSync(new URL("../public/css/base.css", import.meta.url), "utf-8");
+  assert.ok(css.includes(".guided-controls label.hidden"));
 });
 
 test("Simple mode shows no guided knobs — and the stylesheet agrees", async () => {

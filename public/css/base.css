@@ -6961,6 +6961,7 @@ body.resizing-side {
 .chat-row.hidden,
 .sess-acts.hidden,
 .guided-controls.hidden,
+.guided-controls label.hidden,
 .player-chip.hidden,
 .doc-main.hidden {
 	display: none;

@@ -63,6 +63,19 @@ test("guided mode assembles prompts and ships the component ids with them", asyn
   });
 });
 
+test("a host picks the AU world: every option is Cleradin", async () => {
+  const { A, state } = await choosing();
+  await ctx.emit(A, "set-prompt-mode", { mode: "intermediate", controls: { worldId: "cleradin" } });
+  await ctx.wait(120);
+  assert.equal(state.current.promptControls.worldId, "cleradin");
+  for (const [i, p] of state.current.options.entries()) {
+    assert.ok(p.includes("Canon: alternate universe · Cleradin"), p);
+    assert.equal(state.current.optionMeta[i].selections.worldId, "cleradin");
+  }
+  const menus = await ctx.api("/api/prompt-options");
+  assert.ok(menus.data.intermediate.worlds.some((w) => w.id === "cleradin" && w.label && !w.text));
+});
+
 test("explicit deals its layer only on an adult season", async () => {
   const { A, state } = await choosing();
   await ctx.emit(A, "set-prompt-mode", { mode: "intermediate", controls: { seasonId: "post-canon", explicitLevel: "explicit" } });

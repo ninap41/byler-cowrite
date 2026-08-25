@@ -16,6 +16,8 @@ export const PROMPT_MODES = [
 export const GUIDED_FIELDS = [
 	{ key: "seasonId", suffix: "Season", label: "Season", menu: "seasons" },
 	{ key: "canonId", suffix: "Canon", label: "Canon", menu: "canon" },
+	// only shown while Canon is Alternate universe — which world it is
+	{ key: "worldId", suffix: "World", label: "AU world", menu: "worlds", onlyWhen: { canonId: "au" } },
 	{ key: "placeId", suffix: "Place", label: "Place", menu: "places" },
 	{ key: "situationId", suffix: "Situation", label: "Situation", menu: "situations" },
 	{ key: "relationshipId", suffix: "Rel", label: "Relationship", menu: "relationships" },
@@ -30,6 +32,7 @@ export const EXPLICIT_LEVELS = [
 export const DEFAULT_CONTROLS = {
 	seasonId: "random",
 	canonId: "random",
+	worldId: "random",
 	placeId: "random",
 	situationId: "random",
 	relationshipId: "random",
@@ -88,7 +91,7 @@ export function promptModeHtml(prefix) {
 			`<button class="head-chip" type="button" id="${p}Mode-${m.id}" data-mode="${m.id}" title="${esc(m.hint)}">${esc(m.label)}</button>`,
 	).join("")
 	const fields = GUIDED_FIELDS.map(
-		(f) => `<label for="${p}${f.suffix}">${esc(f.label)}<select id="${p}${f.suffix}"></select></label>`,
+		(f) => `<label for="${p}${f.suffix}" id="${p}${f.suffix}Wrap"${f.onlyWhen ? ' class="hidden"' : ""}>${esc(f.label)}<select id="${p}${f.suffix}"></select></label>`,
 	).join("")
 	return `<div class="mode-row" id="${p}Row">
 	<span class="subtle">Scenarios:</span>${modes}
@@ -122,7 +125,18 @@ export function mountPromptModes(root, { prefix = "pm", onChange } = {}) {
 		el("Controls").classList.toggle("hidden", !guided)
 		el("Hint").textContent = PROMPT_MODES.find((m) => m.id === mode)?.hint || ""
 	}
+	// A dependent knob (the AU world) only shows while its condition holds;
+	// hidden, it reads as Random so a stale pick can't ride along.
+	function paintDependents() {
+		for (const f of GUIDED_FIELDS) {
+			if (!f.onlyWhen) continue
+			const on = Object.entries(f.onlyWhen).every(([k, v]) => (el(GUIDED_FIELDS.find((g) => g.key === k).suffix)?.value || "random") === v)
+			el(f.suffix + "Wrap").classList.toggle("hidden", !on)
+			if (!on) el(f.suffix).value = "random"
+		}
+	}
 	function fire() {
+		paintDependents()
 		controls = readControls()
 		onChange?.({ mode, controls })
 	}
@@ -159,6 +173,7 @@ export function mountPromptModes(root, { prefix = "pm", onChange } = {}) {
 			const d = next?.intermediate
 			if (d) for (const f of GUIDED_FIELDS) el(f.suffix).innerHTML = menuHtml(d[f.menu], controls[f.key])
 			paintLevels()
+			paintDependents()
 			paint()
 			return api
 		},
@@ -168,6 +183,7 @@ export function mountPromptModes(root, { prefix = "pm", onChange } = {}) {
 				controls = { ...controls, ...nextControls }
 				for (const f of GUIDED_FIELDS) if (el(f.suffix).options.length) el(f.suffix).value = controls[f.key]
 				paintLevels()
+				paintDependents()
 			}
 			paint()
 			return api

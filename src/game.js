@@ -57,6 +57,7 @@ function cleanPromptControls(c = {}) {
   return {
     seasonId: id(c.seasonId),
     canonId: id(c.canonId),
+    worldId: id(c.worldId),
     placeId: id(c.placeId),
     situationId: id(c.situationId),
     relationshipId: id(c.relationshipId),
