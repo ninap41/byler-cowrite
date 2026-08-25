@@ -362,3 +362,50 @@ test("admins read and rewrite the prompt library; the next ballot deals from it;
     await c.stop();
   }
 });
+
+test("the writers' reference is editable by category from /admin, and only by an admin", async () => {
+  const c = await startServer();
+  try {
+    const admin = await makeAdmin(c);
+    const normie = await signup(c, "dustinhend", "dustin@hend.com");
+    assert.equal((await c.api("/api/admin/reference", undefined, normie.token)).status, 403);
+    assert.equal((await c.api("/api/admin/reference/dialogue-tags", { categories: [{ key: "basic", words: ["said"] }] }, normie.token, "PUT")).status, 403);
+
+    const got = await c.api("/api/admin/reference", undefined, admin.token);
+    assert.equal(got.status, 200);
+    const dlg = got.data.groups.find((g) => g.slug === "dialogue-tags");
+    assert.ok(dlg && dlg.categories.length > 3, "the whole bank, by group and category");
+    // the delivery group is the one wrapped in a root key — it must round-trip too
+    const delivery = got.data.groups.find((g) => g.slug === "delivery-modifiers");
+    assert.ok(delivery && delivery.categories.length);
+
+    // replace: keep two categories, add one, drop the rest (an emptied one goes)
+    const keep = dlg.categories.slice(0, 2).map(({ key, words }) => ({ key, words }));
+    const put = await c.api(
+      "/api/admin/reference/dialogue-tags",
+      { categories: [...keep, { key: "nervous_habits", words: ["stammered", " stammered ", "fidgeted"] }, { key: "gone", words: [] }] },
+      admin.token, "PUT",
+    );
+    assert.equal(put.status, 200, JSON.stringify(put.data));
+    assert.deepEqual(put.data.group.categories.map((x) => x.key), [...keep.map((k) => k.key), "nervous_habits"]);
+    assert.deepEqual(put.data.group.categories.at(-1).words, ["stammered", "fidgeted"], "trimmed and deduped");
+    assert.equal(put.data.group.categories.at(-1).label, "Nervous habits");
+
+    // the palette sees it with no restart
+    const ref = await c.api("/api/reference", undefined, normie.token);
+    assert.equal(ref.data.groups.find((g) => g.slug === "dialogue-tags").categories.length, 3);
+
+    // the root-wrapped group keeps its wrapper on disk
+    const dput = await c.api("/api/admin/reference/delivery-modifiers", { categories: [{ key: "warm", words: ["softly"] }] }, admin.token, "PUT");
+    assert.equal(dput.status, 200);
+    assert.deepEqual((await c.api("/api/reference", undefined, normie.token)).data.groups.find((g) => g.slug === "delivery-modifiers").categories, [{ key: "warm", label: "Warm", words: ["softly"] }]);
+
+    // validation: bad keys, empty groups, unknown groups
+    assert.equal((await c.api("/api/admin/reference/dialogue-tags", { categories: [{ key: "Bad Key", words: ["x"] }] }, admin.token, "PUT")).status, 400);
+    assert.equal((await c.api("/api/admin/reference/dialogue-tags", { categories: [] }, admin.token, "PUT")).status, 400);
+    assert.equal((await c.api("/api/admin/reference/nope", { categories: [{ key: "a", words: ["x"] }] }, admin.token, "PUT")).status, 400);
+    assert.equal((await c.api("/api/admin/reference/!repitition_parser", { categories: [{ key: "a", words: ["x"] }] }, admin.token, "PUT")).status, 400);
+  } finally {
+    await c.stop();
+  }
+});

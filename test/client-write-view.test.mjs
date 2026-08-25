@@ -399,3 +399,17 @@ test("wireSoloDeletes: the first click arms, the second deletes and removes the 
   assert.equal(box.querySelector(".solo-row"), null, "row removed");
   box.remove();
 });
+
+test("sprints list: total, each row names its project, and a solo row wears its sprinted words", async () => {
+  const { sprintListHtml, soloRowHtml } = await import("../public/js/write-view.js");
+  assert.match(sprintListHtml([]), /No sprints yet/);
+  const html = sprintListHtml(
+    [{ docId: "d1", title: "Snow <b>Ball</b>", words: 210, seconds: 900, at: 1_700_000_000_000 }],
+    { total: 210, count: 1 },
+  );
+  assert.match(html, /210 words across 1 sprint</);
+  assert.ok(html.includes("Snow &lt;b&gt;Ball&lt;/b&gt;"), "titles are escaped");
+  assert.ok(html.includes('href="/write?id=d1"') && html.includes("210 words in 15m 00s"));
+  assert.match(soloRowHtml({ id: "d1", title: "T", wordCount: 5, sprintWords: 3, mine: true }), /⏱ 3 sprinted/);
+  assert.doesNotMatch(soloRowHtml({ id: "d1", title: "T", wordCount: 5, mine: true }), /sprinted/);
+});

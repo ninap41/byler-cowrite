@@ -45,6 +45,18 @@
 								     both belong beside the visibility chip, not on the
 								     formatting toolbar. -->
 								<button class="head-chip" id="shareBtn" type="button" data-tip="Beta readers">👥 Readers</button>
+								<!-- Sprint: press to start the clock, press again to stop and log
+								     how many words were written in between. Leaving the page
+								     stops it too. Author only — it's a habit tool, not a reader's. -->
+								<button
+									class="head-chip hidden"
+									id="sprintBtn"
+									type="button"
+									aria-pressed="false"
+									data-tip="Sprint — time a burst of writing and log the words"
+								>
+									⏱ Sprint
+								</button>
 								<button
 									class="head-chip"
 									id="commentToggle"
@@ -414,6 +426,7 @@
 				comments = doc.comments || []
 				const canEdit = doc.mine
 				$("docTitle").disabled = !canEdit
+				$("sprintBtn").classList.toggle("hidden", !canEdit)
 				if (!canEdit) {
 					// Beta readers read the SAME editor element — that's what makes the
 					// underlines and the click-to-jump identical for both sides — but
@@ -1391,6 +1404,66 @@
 				clearDraft(docId)
 				$("restoreBar").classList.add("hidden")
 			})
+
+			// ---- sprints ----
+			// A sprint is a stopwatch over the word count: start words are
+			// remembered, and stopping (the button, or leaving the page any way at
+			// all) logs `now - start` against this document. The server does the
+			// bookkeeping; the chip just shows the elapsed time and the delta.
+			const countNow = () => {
+				const text = sourceMode ? srcHtml().replace(/<[^>]+>/g, " ") : $("docEditor").innerText || ""
+				return text.trim() ? text.trim().split(/\s+/).length : 0
+			}
+			let sprint = null // { startWords, startedAt, tick }
+			const fmtClock = (ms) => {
+				const s = Math.max(0, Math.floor(ms / 1000))
+				return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`
+			}
+			function paintSprint() {
+				const b = $("sprintBtn")
+				if (!sprint) {
+					b.textContent = "⏱ Sprint"
+					b.classList.remove("on")
+					b.setAttribute("aria-pressed", "false")
+					return
+				}
+				const delta = countNow() - sprint.startWords
+				b.textContent = `⏹ ${fmtClock(Date.now() - sprint.startedAt)} · ${delta >= 0 ? "+" : ""}${delta} words`
+				b.classList.add("on")
+				b.setAttribute("aria-pressed", "true")
+			}
+			function startSprint() {
+				sprint = { startWords: countNow(), startedAt: Date.now(), tick: setInterval(paintSprint, 500) }
+				paintSprint()
+			}
+			// Stop and log. `leaving` uses a keepalive fetch so the request survives
+			// the page going away (api() is a plain fetch that a navigation cancels).
+			function stopSprint({ leaving = false } = {}) {
+				if (!sprint) return
+				const words = Math.max(0, countNow() - sprint.startWords)
+				const seconds = Math.round((Date.now() - sprint.startedAt) / 1000)
+				clearInterval(sprint.tick)
+				sprint = null
+				paintSprint()
+				const body = JSON.stringify({ words, seconds })
+				const req = fetch("/api/docs/" + encodeURIComponent(docId) + "/sprint", {
+					method: "POST",
+					keepalive: true,
+					headers: { "Content-Type": "application/json", Authorization: "Bearer " + getToken() },
+					body,
+				})
+				if (leaving) return
+				req
+					.then((r) => r.json())
+					.then((d) => {
+						if (d?.doc) doc = { ...doc, sprintWords: d.doc.sprintWords, sprints: d.doc.sprints }
+						$("saveState").textContent = `Sprint logged — ${words} word${words === 1 ? "" : "s"} in ${fmtClock(seconds * 1000)}`
+					})
+					.catch(() => {})
+			}
+			$("sprintBtn").addEventListener("click", () => (sprint ? stopSprint() : startSprint()))
+			// pagehide fires on every way out (close, reload, back, in-app links)
+			window.addEventListener("pagehide", () => stopSprint({ leaving: true }))
 
 			// ---- leaving while dirty ----
 			// beforeunload covers reloads/closes; the styled modal covers in-app links.

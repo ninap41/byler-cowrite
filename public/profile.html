@@ -71,6 +71,7 @@
 							<div class="stat"><b id="statWords">0</b><span>words written</span></div>
 							<div class="stat"><b id="statBadges">0</b><span>badges earned</span></div>
 							<div class="stat"><b id="statStories">0</b><span>stories written in</span></div>
+							<div class="stat"><b id="statSprints">0</b><span>words sprinted</span></div>
 						</div>
 					</div>
 
@@ -87,6 +88,12 @@
 					<div class="card">
 						<h3 class="dash-h" style="margin-top: 0">Solo writes</h3>
 						<div id="writesList"></div>
+					</div>
+
+					<!-- sprints: timed bursts in the solo editor, and which project each landed in -->
+					<div class="card">
+						<h3 class="dash-h" style="margin-top: 0">Sprints</h3>
+						<div id="sprintList"></div>
 					</div>
 
 					<!-- hosted stories -->
@@ -141,7 +148,7 @@
 			import { safeColor } from "/js/util.js"
 			import { streakRingHtml } from "/js/dashboard-view.js"
 			import { ladderAccordionHtml, usageCaseHtml, aboutHtml, avatarHtml } from "/js/profile-view.js"
-			import { soloListHtml, wireSoloDeletes } from "/js/write-view.js"
+			import { soloListHtml, wireSoloDeletes, sprintListHtml } from "/js/write-view.js"
 
 			mountChrome({ page: "profile" })
 			const $ = (id) => document.getElementById(id)
@@ -158,6 +165,7 @@
 				let hosted = []
 				let contributed = []
 				let writes = []
+				let sprints = []
 				let lastLine = null
 				let friendState = { state: "self" }
 				const who = wanted || me.username
@@ -167,6 +175,7 @@
 					p = r.user
 					hosted = r.hosted || []
 					writes = r.writes || []
+					sprints = r.sprints || []
 					contributed = r.contributed || []
 					lastLine = r.lastLine || null
 					friendState = r.friendState || friendState
@@ -325,6 +334,8 @@
 					}
 					renderStories("hostedList", hosted, "No hosted stories yet.")
 					renderStories("contribList", contributed, "No contributed stories yet.")
+					$("statSprints").textContent = (p.sprintWords || 0).toLocaleString()
+					$("sprintList").innerHTML = sprintListHtml(sprints, { total: p.sprintWords || 0, count: p.sprintCount || 0 })
 					$("writesList").innerHTML = soloListHtml(writes, { empty: "No solo writes yet.", limit: 5 })
 					if (writes.length > 5) {
 						const more = document.createElement("p")

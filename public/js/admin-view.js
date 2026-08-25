@@ -287,3 +287,53 @@ export function readPromptEditor(root, base) {
 	}
 	return { doc, errors }
 }
+
+// ---- Writers' reference editor ----
+// The "/" palette's word bank, one <details> per group (dialogue tags, action
+// verbs…) with one textarea per CATEGORY, a word per line. A category emptied
+// is a category removed; the "+ Add category" row names a new one. Each
+// group saves on its own — they're separate files, and a slip in one
+// shouldn't hold the others hostage.
+export const refKey = (s) =>
+	String(s || "")
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, "_")
+		.replace(/^_+|_+$/g, "")
+		.slice(0, 60)
+
+export function refCategoryHtml(cat) {
+	const words = cat.words || []
+	return `<div class="re-cat" data-key="${esc(cat.key)}">
+	<label class="re-cat-head"><b>${esc(cat.label || cat.key)}</b> <code class="subtle">${esc(cat.key)}</code> <span class="subtle re-count">(${words.length})</span>
+	<button type="button" class="ghost re-del" title="Remove this category">✕</button></label>
+	<textarea class="pe-lines re-words" rows="${Math.min(10, Math.max(3, words.length + 1))}">${esc(words.join("\n"))}</textarea>
+</div>`
+}
+
+export function refGroupHtml(g) {
+	const n = (g.categories || []).reduce((a, c) => a + (c.words || []).length, 0)
+	return `<details class="pe-pool re-group" data-slug="${esc(g.slug)}"><summary>${esc(g.label)} <code class="subtle">${esc(g.prefix)}</code> <span class="subtle">(${(g.categories || []).length} categories · ${n} words)</span></summary>
+	<p class="subtle">${esc(g.desc || "")}</p>
+	<div class="re-cats">${(g.categories || []).map(refCategoryHtml).join("")}</div>
+	<div class="re-addrow"><input class="re-newkey" placeholder="New category, e.g. Nervous habits" maxlength="60"><button type="button" class="ghost re-add">+ Add category</button></div>
+	<div class="pe-foot"><button type="button" class="primary re-save">Save ${esc(g.label)}</button><span class="subtle re-status"></span></div>
+</details>`
+}
+
+export const refEditorHtml = (bundle) =>
+	`<div class="pe" id="refEditor">${(bundle?.groups || []).length ? bundle.groups.map(refGroupHtml).join("") : `<p class="subtle">No reference groups are loaded.</p>`}</div>`
+
+// Read one group's editor back: [{key, words}], empties dropped so an emptied
+// textarea deletes its category on save.
+export function readRefGroup(groupEl) {
+	const categories = []
+	const errors = []
+	for (const cat of groupEl.querySelectorAll(".re-cat")) {
+		const key = cat.dataset.key
+		if (!/^[a-z0-9]+(?:_[a-z0-9]+)*$/.test(key)) errors.push(`"${key}" isn't a valid category key.`)
+		const words = cat.querySelector(".re-words").value.split("\n").map((w) => w.trim()).filter(Boolean)
+		if (words.length) categories.push({ key, words })
+	}
+	if (!categories.length) errors.push("A group needs at least one category with words.")
+	return { categories, errors }
+}

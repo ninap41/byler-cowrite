@@ -3,12 +3,19 @@
 // data file, the slash prefix that opens it, and (only where the file wraps its
 // categories in an extra object) the `root` key to unwrap.
 // Keys starting with "!" are parser config, not word banks — skipped here.
-import { readFileSync } from "fs";
+//
+// The bank is editable from /admin: setReferenceGroup() rewrites ONE group's
+// data file (categories + words, keys kept, the `root` wrapper honoured) and
+// reloads the bundle, so the next palette open serves the edit. The write is
+// mirrored like the prompt library (kind "reference"), restored at boot but
+// never seeded, so an unedited bank keeps following the repo.
+import { readFileSync, writeFileSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
+import { mirror } from "./persist.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const REF_DIR = process.env.COWRITE_REF_DIR || join(__dirname, "..", "writers-reference");
+export const REF_DIR = process.env.COWRITE_REF_DIR || join(__dirname, "..", "writers-reference");
 
 // pining_and_tension -> "Pining and tension"
 const label = (key) => {
@@ -16,15 +23,25 @@ const label = (key) => {
   return words.charAt(0).toUpperCase() + words.slice(1);
 };
 
-function loadBundle() {
-  let manifest;
+// A category key is a filename-safe snake_case slug: it becomes a JSON key and
+// a slash-palette heading, never markup, but a tidy vocabulary keeps the bank
+// hand-editable in the repo too.
+export const KEY_RE = /^[a-z0-9]+(?:_[a-z0-9]+)*$/;
+export const slugKey = (s) =>
+  String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 60);
+
+function readManifest() {
   try {
-    manifest = JSON.parse(readFileSync(join(REF_DIR, "index.json"), "utf-8"));
+    return JSON.parse(readFileSync(join(REF_DIR, "index.json"), "utf-8"));
   } catch (e) {
     console.error("reference: index.json unreadable —", e.message);
-    return { groups: [] };
+    return null;
   }
+}
 
+function loadBundle() {
+  const manifest = readManifest();
+  if (!manifest) return { groups: [] };
   const groups = [];
   for (const [slug, meta] of Object.entries(manifest)) {
     if (slug.startsWith("!") || !meta || typeof meta !== "object" || !meta.path) continue;
@@ -44,4 +61,43 @@ function loadBundle() {
   return { groups };
 }
 
-export const referenceBundle = loadBundle();
+let bundle = loadBundle();
+export const getReference = () => bundle;
+
+// Validate an edited group and write it. `categories` is [{key, words[]}];
+// a category with no words is dropped, so emptying one deletes it. Returns a
+// list of errors — nothing is written unless it's empty.
+export function setReferenceGroup(slug, categories) {
+  const manifest = readManifest();
+  const meta = manifest?.[String(slug)];
+  if (!meta || String(slug).startsWith("!") || !meta.path) return ["No such reference group."];
+  if (!Array.isArray(categories)) return ["categories must be a list."];
+  const errors = [];
+  const body = {};
+  for (const c of categories) {
+    const key = String(c?.key || "");
+    if (!KEY_RE.test(key)) { errors.push(`"${key}" isn't a valid category key (snake_case).`); continue; }
+    if (body[key]) { errors.push(`Category "${key}" appears twice.`); continue; }
+    const words = (Array.isArray(c.words) ? c.words : [])
+      .map((w) => String(w).replace(/\s+/g, " ").trim().slice(0, 200))
+      .filter(Boolean);
+    if (words.length) body[key] = [...new Set(words)];
+  }
+  if (!Object.keys(body).length) errors.push("A group needs at least one category with words.");
+  if (errors.length) return errors;
+  let out = body;
+  if (meta.root) {
+    let raw = {};
+    try { raw = JSON.parse(readFileSync(join(REF_DIR, meta.path), "utf-8")); } catch { /* fresh */ }
+    out = { ...raw, [meta.root]: body };
+  }
+  const json = JSON.stringify(out, null, "\t") + "\n";
+  try {
+    writeFileSync(join(REF_DIR, meta.path), json);
+    mirror("reference", String(meta.path).replace(/^\.\//, "").replace(/\.json$/, ""), json);
+  } catch (e) {
+    return ["Couldn't write the reference file: " + e.message];
+  }
+  bundle = loadBundle();
+  return [];
+}

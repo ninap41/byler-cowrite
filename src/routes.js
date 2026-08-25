@@ -13,7 +13,7 @@ import {
   readDoc, writeDoc, createDoc, deleteDoc, listDocsFor, docSummary,
   canView, canEdit, canComment, isReader, cleanTitle, cleanVisibility, publicDocs, docsOwnedBy,
 } from "./docs.js";
-import { referenceBundle } from "./reference.js";
+import { getReference, setReferenceGroup } from "./reference.js";
 import { hashPassword, checkPassword } from "./passwords.js";
 import {
   store, saveStore, EMAIL_RE, ADMIN_EMAILS,
@@ -423,7 +423,9 @@ export function registerRoutes(app, game) {
     const writes = docsOwnedBy(u.id).map((d) => ({
       ...docSummary(d, nameOf), mine: d.ownerId === viewer.id, viewable: canView(d, viewer.id),
     }));
-    res.json({ user: profileOf(u, new Set(onlineSockets.values())), hosted, contributed, writes, lastLine: u.lastLine || lastLine, friendState });
+    // Sprints: the newest 20, each naming the project it was written in.
+    const sprints = (u.sprints || []).slice(0, 20);
+    res.json({ user: profileOf(u, new Set(onlineSockets.values())), hosted, contributed, writes, sprints, lastLine: u.lastLine || lastLine, friendState });
   });
 
   // ---- Inbox ----
@@ -756,7 +758,7 @@ export function registerRoutes(app, game) {
   // surface — it's read once at startup, so this is a cheap constant response.
   app.get("/api/reference", (req, res) => {
     if (!authedUser(req)) return res.status(401).json({ error: "Sign in first." });
-    res.json(referenceBundle);
+    res.json(getReference());
   });
 
   const nameOf = (id) => store.users.find((x) => x.id === id)?.username || "";
@@ -821,6 +823,30 @@ export function registerRoutes(app, game) {
     if (!canEdit(doc, u.id)) return res.status(403).json({ error: "Only the author can delete this." });
     deleteDoc(doc.id);
     res.json({ ok: true });
+  });
+
+  // A writing sprint, logged when it stops: the client subtracts the words it
+  // had when the sprint began from the words it has now. The count lands on
+  // the account (a `sprints` log, newest first, with the doc it was written
+  // in) and on the document (its own running total), so a profile can say
+  // how much was sprinted and where. Owner only — you sprint in your own
+  // draft. Negative counts (words deleted) log as 0: a sprint can't owe.
+  app.post("/api/docs/:id/sprint", (req, res) => {
+    const u = authedUser(req);
+    if (!u) return res.status(401).json({ error: "Sign in first." });
+    const doc = readDoc(req.params.id);
+    if (!doc) return res.status(404).json({ error: "No such document." });
+    if (!canEdit(doc, u.id)) return res.status(403).json({ error: "Only the author can sprint here." });
+    const words = Math.min(50000, Math.max(0, Math.floor(Number(req.body?.words) || 0)));
+    const seconds = Math.min(86400, Math.max(0, Math.floor(Number(req.body?.seconds) || 0)));
+    const entry = { docId: doc.id, title: doc.title, words, seconds, at: Date.now() };
+    u.sprints = [entry, ...(u.sprints || [])].slice(0, 200);
+    u.sprintWords = (u.sprintWords || 0) + words;
+    saveStore();
+    doc.sprintWords = (doc.sprintWords || 0) + words;
+    doc.sprints = (doc.sprints || 0) + 1;
+    writeDoc(doc);
+    res.json({ ok: true, sprint: entry, sprintWords: u.sprintWords, doc: docPayload(doc, u) });
   });
 
   // Invite a beta reader. Deliberately friends-only: sharing a draft is a
@@ -938,6 +964,21 @@ export function registerRoutes(app, game) {
     const errors = setPromptData(req.body?.data);
     if (errors.length) return res.status(400).json({ error: "The library didn't validate.", errors });
     res.json({ ok: true });
+  });
+
+  // The writers-reference bank behind the "/" palette, one group per data
+  // file. The editor edits a group at a time: PUT replaces that group's
+  // categories whole (a category emptied is a category removed) and the next
+  // palette open serves it — no restart, mirrored like the prompt library.
+  app.get("/api/admin/reference", (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    res.json(getReference());
+  });
+  app.put("/api/admin/reference/:slug", (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    const errors = setReferenceGroup(req.params.slug, req.body?.categories);
+    if (errors.length) return res.status(400).json({ error: "That group didn't validate.", errors });
+    res.json({ ok: true, group: getReference().groups.find((g) => g.slug === req.params.slug) || null });
   });
 
   // End a game in progress without taking a seat in it. Players see the

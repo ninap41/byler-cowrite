@@ -25,6 +25,8 @@ await initPersistence({
   docDir: process.env.COWRITE_DOC_DIR || join(DATA_DIR, "docs"),
   // the admin's prompt-library edits are mirrored too (restored, never seeded)
   contentDir: process.env.COWRITE_CONTENT_DIR || join(__dirname, "content"),
+  // and the writers-reference bank edited from /admin, the same way
+  refDir: process.env.COWRITE_REF_DIR || join(__dirname, "writers-reference"),
 });
 const { createGame } = await import("./src/game.js");
 const { registerRoutes } = await import("./src/routes.js");

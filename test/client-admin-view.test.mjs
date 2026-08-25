@@ -131,3 +131,28 @@ test("the editor opens with a rules reference: every Rules field, the draw order
   assert.ok(root.querySelector(".pe-doc"));
   assert.deepEqual(readPromptEditor(root, LIB).doc, LIB);
 });
+
+test("the reference editor draws one block per category and reads back only the non-empty ones", async () => {
+  const { refEditorHtml, readRefGroup, refKey, refCategoryHtml } = await import("../public/js/admin-view.js");
+  document.body.innerHTML = refEditorHtml({
+    groups: [{ slug: "dialogue-tags", label: "Dialogue tags", prefix: "/dialogue", desc: "Said-alternatives.", categories: [
+      { key: "basic", label: "Basic", words: ["said", "replied"] },
+      { key: "volume", label: "Volume", words: ["whispered"] },
+    ] }],
+  });
+  const group = document.querySelector(".re-group");
+  assert.equal(group.dataset.slug, "dialogue-tags");
+  assert.equal(group.querySelectorAll(".re-cat").length, 2);
+  assert.equal(group.querySelector('.re-cat[data-key="basic"] .re-words').value, "said\nreplied");
+  assert.ok(group.querySelector(".re-save") && group.querySelector(".re-add"), "a save per group and an add-category row");
+  // empty a category: it's dropped on read; add one via the builder
+  group.querySelector('.re-cat[data-key="volume"] .re-words').value = "  \n";
+  group.querySelector(".re-cats").insertAdjacentHTML("beforeend", refCategoryHtml({ key: refKey("Nervous habits!"), words: [] }));
+  group.querySelector('.re-cat[data-key="nervous_habits"] .re-words').value = "fidgeted\n\n stammered ";
+  const { categories, errors } = readRefGroup(group);
+  assert.deepEqual(errors, []);
+  assert.deepEqual(categories, [{ key: "basic", words: ["said", "replied"] }, { key: "nervous_habits", words: ["fidgeted", "stammered"] }]);
+  assert.equal(refKey("  Hurt / Comfort  "), "hurt_comfort");
+  group.querySelectorAll(".re-words").forEach((t) => (t.value = ""));
+  assert.ok(readRefGroup(group).errors.length, "a group can't be saved empty");
+});

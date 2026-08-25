@@ -708,3 +708,27 @@ test("a writer's solo writes are LISTED on their profile and /stories?user= — 
   assert.equal(hw["Alice public"].viewable, true);
   assert.equal(hw["Alice for Bob"].visibility, "readers");
 });
+
+// ---- sprints ----
+test("a sprint logs its words on the account and the document; only the author can sprint", async () => {
+  const doc = await newDoc(alice.token, "Sprint draft");
+  const r = await ctx.api(`/api/docs/${doc.id}/sprint`, { words: 137, seconds: 600 }, alice.token);
+  assert.equal(r.status, 200);
+  assert.equal(r.data.sprint.words, 137);
+  assert.equal(r.data.sprint.title, "Sprint draft");
+  assert.equal(r.data.doc.sprintWords, 137);
+  // negative deltas (words deleted) log as zero, never a debt
+  await ctx.api(`/api/docs/${doc.id}/sprint`, { words: -40, seconds: 30 }, alice.token);
+  const prof = await ctx.api("/api/users/aliceauthor", null, alice.token, "GET");
+  assert.equal(prof.data.user.sprintWords, 137);
+  assert.equal(prof.data.user.sprintCount, 2);
+  assert.equal(prof.data.sprints[0].words, 0, "newest first");
+  assert.equal(prof.data.sprints[1].docId, doc.id, "and each names its project");
+  const w = prof.data.writes.find((d) => d.id === doc.id);
+  assert.equal(w.sprintWords, 137);
+  assert.equal(w.sprints, 2);
+  // a beta reader can't sprint in someone else's document
+  await ctx.api(`/api/docs/${doc.id}/readers`, { username: "bobbeta" }, alice.token);
+  assert.equal((await ctx.api(`/api/docs/${doc.id}/sprint`, { words: 5, seconds: 5 }, bob.token)).status, 403);
+  assert.equal((await ctx.api(`/api/docs/${doc.id}/sprint`, { words: 5, seconds: 5 })).status, 401);
+});

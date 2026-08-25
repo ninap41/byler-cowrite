@@ -281,7 +281,7 @@ export const readerChipsHtml = (readers, canManage) =>
 export function soloRowHtml(d) {
 	const v = d.visibility || "private"
 	const title = esc(d.title || "Untitled")
-	const meta = `${esc(wordsLabel(d.wordCount))}`
+	const meta = `${esc(wordsLabel(d.wordCount))}` + (d.sprintWords ? ` · ⏱ ${esc(String(d.sprintWords))} sprinted` : "")
 	const pill = `<span class="doc-pill ${v === "private" ? "" : "on"}">${visLabel(v)}</span>`
 	const open = `/write?id=${encodeURIComponent(d.id)}`
 	let acts
@@ -342,3 +342,28 @@ export function wireSoloDeletes(box, onDelete) {
 		true,
 	)
 }
+
+// ---- sprints ----
+// A sprint row: when, how many words, how long, and the project it was written
+// in (linked — the reader may not be allowed in, but the write page says so).
+const fmtDur = (sec) => {
+	const s = Math.max(0, Math.floor(sec || 0))
+	const m = Math.floor(s / 60)
+	return m ? `${m}m ${String(s % 60).padStart(2, "0")}s` : `${s}s`
+}
+export function sprintRowHtml(sp) {
+	const title = esc(sp.title || "Untitled")
+	const open = `/write?id=${encodeURIComponent(sp.docId || "")}`
+	return (
+		`<div class="solo-row sprint-row" data-doc="${esc(sp.docId || "")}">` +
+		`<span class="solo-date">${esc(fmtWhen(sp.at))}</span>` +
+		`<span class="solo-info"><a class="solo-title" href="${open}">${title}</a>` +
+		`<span class="solo-meta">⏱ ${esc(String(sp.words || 0))} word${sp.words === 1 ? "" : "s"} in ${esc(fmtDur(sp.seconds))}</span></span>` +
+		`</div>`
+	)
+}
+export const sprintListHtml = (sprints, { total = 0, count = 0, empty = "No sprints yet — start one from the ⏱ button in a solo write." } = {}) =>
+	!sprints || !sprints.length
+		? `<p class="subtle" style="text-align:left;margin:0">${esc(empty)}</p>`
+		: `<p class="subtle" style="text-align:left;margin:0 0 8px">${esc(String(total))} word${total === 1 ? "" : "s"} across ${count} sprint${count === 1 ? "" : "s"}</p>` +
+			sprints.map(sprintRowHtml).join("")

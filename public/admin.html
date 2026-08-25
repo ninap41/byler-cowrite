@@ -47,6 +47,13 @@
 					anything is saved.
 				</p>
 				<div id="adminPrompts"></div>
+
+				<h3 style="margin: 26px 0 8px">Writers' reference</h3>
+				<p class="subtle" style="text-align: left; margin: 0 0 10px">
+					The word bank behind the "/" palette in solo writes, by category — one word or phrase per line.
+					Empty a category to remove it. Each group saves on its own and applies the next time the palette opens.
+				</p>
+				<div id="adminRef"></div>
 			</div>
 		</div>
 
@@ -54,7 +61,7 @@
 			import { api } from "/js/api.js"
 			import { mountChrome, setUserChip } from "/js/chrome.js"
 			import { requireAuth } from "/js/auth-guard.js"
-			import { adminGamesHtml, adminUsersHtml, promptEditorHtml, promptRowHtml, readPromptEditor, PROMPT_POOLS } from "/js/admin-view.js"
+			import { adminGamesHtml, adminUsersHtml, promptEditorHtml, promptRowHtml, readPromptEditor, PROMPT_POOLS, refEditorHtml, refCategoryHtml, refKey, readRefGroup } from "/js/admin-view.js"
 
 			mountChrome({ page: "admin" })
 			const me = await requireAuth("/")
@@ -70,10 +77,47 @@
 				$("adminGames").innerHTML = ""
 				$("adminUsers").innerHTML = ""
 				$("adminPrompts").innerHTML = ""
+				$("adminRef").innerHTML = ""
 			} else {
 				await refresh()
 				await loadPrompts()
+				await loadRef()
 			}
+
+			// ---- Writers' reference editor ----
+			async function loadRef() {
+				$("adminRef").innerHTML = refEditorHtml(await api("/api/admin/reference", null, "GET"))
+			}
+			$("adminRef").addEventListener("click", async (e) => {
+				const del = e.target.closest(".re-del")
+				if (del) return del.closest(".re-cat").remove()
+				const group = e.target.closest(".re-group")
+				if (!group) return
+				if (e.target.closest(".re-add")) {
+					const input = group.querySelector(".re-newkey")
+					const key = refKey(input.value)
+					if (!key) return input.focus()
+					if (group.querySelector(`.re-cat[data-key="${key}"]`)) return (group.querySelector(".re-status").textContent = "⚠ That category already exists.")
+					group.querySelector(".re-cats").insertAdjacentHTML("beforeend", refCategoryHtml({ key, label: input.value.trim(), words: [] }))
+					input.value = ""
+					group.querySelector(".re-cat:last-child .re-words").focus()
+					return
+				}
+				const save = e.target.closest(".re-save")
+				if (!save) return
+				const status = group.querySelector(".re-status")
+				const { categories, errors } = readRefGroup(group)
+				if (errors.length) return (status.textContent = "⚠ " + errors.join(" · "))
+				save.disabled = true
+				status.textContent = "Saving…"
+				try {
+					await api(`/api/admin/reference/${encodeURIComponent(group.dataset.slug)}`, { categories }, "PUT")
+					status.textContent = "✓ Saved — the palette uses it next time it opens."
+				} catch (err) {
+					status.textContent = "⚠ " + (err.data?.errors?.join(" · ") || err.message || "That didn't save.")
+				}
+				save.disabled = false
+			})
 
 			// ---- Prompt library editor ----
 			// Built once from the server's document, read back whole on Save.

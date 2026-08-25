@@ -107,6 +107,8 @@ export const docSummary = (doc, nameOf) => ({
   id: doc.id,
   title: doc.title,
   wordCount: doc.wordCount || 0,
+  sprintWords: doc.sprintWords || 0,
+  sprints: doc.sprints || 0,
   visibility: doc.visibility,
   updatedAt: doc.updatedAt,
   createdAt: doc.createdAt,

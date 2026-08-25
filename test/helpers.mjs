@@ -16,6 +16,9 @@ export async function startServer(extraEnv = {}) {
   // a test must never edit the real content/prompts.json.
   const contentDir = mkdtempSync(join(tmpdir(), "cowrite-content-"));
   cpSync(join(ROOT, "content"), contentDir, { recursive: true });
+  // and the writers-reference bank, which the admin reference editor rewrites
+  const refDir = mkdtempSync(join(tmpdir(), "cowrite-ref-"));
+  cpSync(join(ROOT, "writers-reference"), refDir, { recursive: true });
   // Random ports can collide across parallel test files — retry on a fresh
   // port if the child dies before it says "running" (e.g. EADDRINUSE).
   let port, child;
@@ -29,6 +32,7 @@ export async function startServer(extraEnv = {}) {
         COWRITE_DATA_DIR: dataDir,
         COWRITE_SAVE_DIR: saveDir,
         COWRITE_CONTENT_DIR: contentDir,
+        COWRITE_REF_DIR: refDir,
         // tests accumulate sessions freely; the cap test lowers this itself
         ...extraEnv,
       },

@@ -9079,7 +9079,8 @@ html.vcx-live[data-theme="vecna"] #vc-pend {
 .sk-hud.hidden,
 .vcx-layer.hidden,
 .vcx-veil.hidden,
-.vcx-hud.hidden {
+.vcx-hud.hidden,
+.head-chip.hidden {
 	display: none;
 }
 
@@ -9310,3 +9311,9 @@ html.vcx-live[data-theme="vecna"] #vc-pend {
 .opt-reroll { position: absolute; top: 8px; right: 8px; padding: 4px 10px; border-radius: var(--r-sm, 6px); border: 1px solid var(--line); background: var(--panel-2); color: var(--muted); font: inherit; font-size: 0.8rem; line-height: 1.2; cursor: pointer; }
 .opt-reroll:hover { color: var(--ink); border-color: var(--chip-brd); }
 .guided-controls .pm-reroll { align-self: end; }
+/* the writers' reference editor on /admin: one block per category */
+.re-cat { margin: 0 0 10px; }
+.re-cat-head { display: flex; align-items: center; gap: 8px; margin: 0 0 4px; font-size: 0.85rem; }
+.re-cat-head .re-del { margin-left: auto; padding: 2px 8px; font-size: 0.8rem; }
+.re-addrow { display: flex; gap: 8px; align-items: center; margin: 6px 0; }
+.re-addrow input { flex: 1; font: inherit; font-size: 0.85rem; padding: 6px 8px; }

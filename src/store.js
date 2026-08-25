@@ -155,6 +155,7 @@ export const profileOf = (u, onlineIds) => ({
   nextBadge: nextTierFor(u),
   streak: u.streak || 0, bestStreak: u.bestStreak || 0,
   stories: (u.games || []).length,
+  sprintWords: u.sprintWords || 0, sprintCount: (u.sprints || []).length,
   about: u.about || "", links: u.links || [], avatar: u.avatar || "", avatarFit: u.avatarFit || "cover",
   online: onlineIds.has(u.id),
 });

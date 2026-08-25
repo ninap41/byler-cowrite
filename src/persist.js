@@ -17,7 +17,7 @@ const q = (text, params) =>
 // Connect, restore every stored blob to disk, and seed the table from any
 // local files it doesn't know yet (first boot after enabling the database).
 // Must run BEFORE store.js/game.js are imported — they read files at import.
-export async function initPersistence({ dataDir, saveDir, docDir, contentDir }) {
+export async function initPersistence({ dataDir, saveDir, docDir, contentDir, refDir }) {
   if (!process.env.DATABASE_URL) return false;
   const { default: pg } = await import("pg");
   pool = new pg.Pool({ connectionString: process.env.DATABASE_URL, max: 3 });
@@ -39,13 +39,15 @@ export async function initPersistence({ dataDir, saveDir, docDir, contentDir }) 
     kind === "users" ? join(dataDir, "users.json")
       : kind === "doc" ? join(docDir, name + ".json")
         : kind === "content" ? join(contentDir, name + ".json")
-          : join(saveDir, name + ".json");
+          : kind === "reference" ? join(refDir, name + ".json")
+            : join(saveDir, name + ".json");
 
   const { rows } = await pool.query("SELECT kind, name, doc FROM cowrite_blobs");
   const known = new Set();
   for (const r of rows) {
     known.add(r.kind + "/" + r.name);
     if (r.kind === "content" && !contentDir) continue;
+    if (r.kind === "reference" && !refDir) continue; // same rule: restored, never seeded
     try {
       writeFileSync(pathFor(r.kind, r.name), r.doc);
     } catch (e) {
