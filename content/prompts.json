@@ -2,10 +2,11 @@
 	"prompts": [
 		"Mike finds the drawing Will made of the party — the one where the Paladin looks a little too much like Mike. It's tucked in a book Will lent him.",
 		"Snowball dance, alternate ending. Will doesn't run to the bathroom this time.",
-		"It's the summer after Vecna. Will and Mike are the only two awake at 3 a.m. in the Byers' house sitting on the floor because neither can sleep.",
-		"Mike drives to Lenora to visit for spring break.",
-		"A thunderstorm knocks the power out during a campaign. Everyone else goes home. Will and Mike.",
-		"Will overhears Mike on the phone with El, saying the words 'I don't think it was ever really about her.' He shouldn't have heard that. He can't un-hear it.",
+		"It's the summer after Vecna. Will and Mike are the only two awake at 3 a.m. in the Byers' house sitting on the floor because neither can sleep with college around the corner.",
+		"Mike drives to Lenora to visit Will and Jonathan for spring break.",
+		"A thunderstorm knocks the power out during a campaign.",
+		"A thunderstorm knocks the power out during a campaign, the party goes home, except for Mike and Will.",
+		"Will overhears Mike on the phone with El, saying the words 'I don't think it was ever really about you.'",
 		"The painting. Will finally tells Mike the truth about who really commissioned it. Set it right after the van scene in season 4 — or wherever you want.",
 		"Post-canon: they're moving into a tiny apartment together 'as roommates.' There is one bed.",
 		"Mike keeps the walkie-talkie under his pillow long after they should've outgrown it. One night, static — then Will's voice, calling him like it's 1983 again.",
@@ -73,78 +74,78 @@
 				"id": "pre-canon",
 				"label": "Pre-canon (before 1983)",
 				"text": "pre-canon (before 1983)",
+				"weight": 2,
 				"ageGroup": "minor",
 				"tags": [
 					"canon-era",
 					"kids"
-				],
-				"weight": 2
+				]
 			},
 			{
 				"id": "s1",
 				"label": "Season 1 (1983)",
 				"text": "season 1 (1983)",
+				"weight": 3,
 				"ageGroup": "minor",
 				"tags": [
 					"canon-era",
 					"kids"
-				],
-				"weight": 3
+				]
 			},
 			{
 				"id": "s2",
 				"label": "Season 2 (1984)",
 				"text": "season 2 (1984)",
+				"weight": 4,
 				"ageGroup": "minor",
 				"tags": [
 					"canon-era",
 					"kids"
-				],
-				"weight": 4
+				]
 			},
 			{
 				"id": "s3",
 				"label": "Season 3 (1985)",
 				"text": "season 3 (1985)",
+				"weight": 4,
 				"ageGroup": "minor",
 				"tags": [
 					"canon-era",
 					"kids"
-				],
-				"weight": 4
+				]
 			},
 			{
 				"id": "s4",
 				"label": "Season 4 (1986)",
 				"text": "season 4 (1986)",
+				"weight": 6,
 				"ageGroup": "minor",
 				"tags": [
 					"canon-era",
 					"teens"
-				],
-				"weight": 6
+				]
 			},
 			{
 				"id": "s5",
 				"label": "Season 5 (1987)",
 				"text": "season 5 (1987)",
+				"weight": 5,
 				"ageGroup": "minor",
 				"tags": [
 					"canon-era",
 					"teens"
-				],
-				"weight": 5
+				]
 			},
 			{
 				"id": "post-canon",
 				"label": "Post-canon / future-fic (adults)",
 				"text": "post-canon / future-fic (adults)",
+				"weight": 6,
 				"ageGroup": "adult",
 				"tags": [
 					"future",
 					"adults"
-				],
-				"weight": 6
+				]
 			}
 		],
 		"canon": [
@@ -152,29 +153,29 @@
 				"id": "canon-compliant",
 				"label": "Canon-compliant",
 				"text": "canon-compliant",
+				"weight": 3,
 				"tags": [
 					"canon"
-				],
-				"weight": 3
+				]
 			},
 			{
 				"id": "canon-divergent",
 				"label": "Canon-divergent",
 				"text": "canon-divergent",
+				"weight": 4,
 				"tags": [
 					"canon",
 					"divergent"
-				],
-				"weight": 4
+				]
 			},
 			{
 				"id": "au",
 				"label": "Alternate universe",
 				"text": "alternate universe",
+				"weight": 4,
 				"tags": [
 					"au"
-				],
-				"weight": 4
+				]
 			}
 		],
 		"places": [
@@ -182,38 +183,38 @@
 				"id": "road-trip",
 				"label": "Road trip",
 				"text": "road trip",
+				"weight": 4,
 				"tags": [
 					"travel"
-				],
-				"weight": 4
+				]
 			},
 			{
 				"id": "july-4th-festival",
 				"label": "July 4th festival",
 				"text": "july 4th festival",
+				"weight": 3,
 				"tags": [
 					"hawkins",
 					"summer"
-				],
-				"weight": 3
+				]
 			},
 			{
 				"id": "church",
 				"label": "Church",
 				"text": "church",
+				"weight": 2,
 				"tags": [
 					"small-town"
-				],
-				"weight": 2
+				]
 			},
 			{
 				"id": "science-fair",
 				"label": "Science fair",
 				"text": "science fair",
+				"weight": 2,
 				"tags": [
 					"school"
 				],
-				"weight": 2,
 				"compatibleAgeGroups": [
 					"minor"
 				]
@@ -222,94 +223,94 @@
 				"id": "nyc",
 				"label": "New York City",
 				"text": "new york city",
+				"weight": 3,
 				"tags": [
 					"city"
-				],
-				"weight": 3
+				]
 			},
 			{
 				"id": "cabin",
 				"label": "Cabin",
 				"text": "cabin",
+				"weight": 4,
 				"tags": [
 					"isolated"
-				],
-				"weight": 4
+				]
 			},
 			{
 				"id": "arcade",
 				"label": "Arcade",
 				"text": "arcade",
+				"weight": 3,
 				"tags": [
 					"hawkins",
 					"nostalgic"
-				],
-				"weight": 3
+				]
 			},
 			{
 				"id": "backstage",
 				"label": "Backstage",
 				"text": "backstage",
+				"weight": 2,
 				"tags": [
 					"performance"
-				],
-				"weight": 2
+				]
 			},
 			{
 				"id": "hospital",
 				"label": "Hospital",
 				"text": "hospital",
+				"weight": 3,
 				"tags": [
 					"hurt"
-				],
-				"weight": 3
+				]
 			},
 			{
 				"id": "hawkins-woods",
 				"label": "Hawkins woods",
 				"text": "hawkins woods",
+				"weight": 4,
 				"tags": [
 					"hawkins",
 					"isolated"
-				],
-				"weight": 4
+				]
 			},
 			{
 				"id": "wheeler-basement",
 				"label": "Wheeler basement",
 				"text": "wheeler basement",
+				"weight": 4,
 				"tags": [
 					"hawkins",
 					"nostalgic"
-				],
-				"weight": 4
+				]
 			},
 			{
 				"id": "byers-house-lenora",
 				"label": "Byers house, Lenora",
 				"text": "byers house, lenora",
+				"weight": 3,
 				"tags": [
 					"california"
-				],
-				"weight": 3
+				]
 			},
 			{
 				"id": "motel",
 				"label": "Motel",
 				"text": "motel",
+				"weight": 3,
 				"tags": [
 					"travel"
-				],
-				"weight": 3
+				]
 			},
 			{
 				"id": "first-apartment",
 				"label": "First apartment",
 				"text": "first apartment",
+				"weight": 3,
 				"tags": [
 					"domestic"
 				],
-				"weight": 3,
 				"compatibleAgeGroups": [
 					"adult"
 				]
@@ -318,28 +319,28 @@
 				"id": "rooftop",
 				"label": "Rooftop",
 				"text": "rooftop",
+				"weight": 2,
 				"tags": [
 					"city"
-				],
-				"weight": 2
+				]
 			},
 			{
 				"id": "quarry",
 				"label": "Quarry",
 				"text": "quarry",
+				"weight": 2,
 				"tags": [
 					"hawkins"
-				],
-				"weight": 2
+				]
 			},
 			{
 				"id": "school-gym-after-hours",
 				"label": "School gym after hours",
 				"text": "school gym after hours",
+				"weight": 3,
 				"tags": [
 					"school"
 				],
-				"weight": 3,
 				"compatibleAgeGroups": [
 					"minor"
 				]
@@ -348,46 +349,46 @@
 				"id": "kitchen-at-3-a-m",
 				"label": "Kitchen at 3 a.m.",
 				"text": "kitchen at 3 a.m.",
+				"weight": 3,
 				"tags": [
 					"domestic"
-				],
-				"weight": 3
+				]
 			},
 			{
 				"id": "stakeout",
 				"label": "Stakeout",
 				"text": "stakeout",
+				"weight": 2,
 				"tags": [
 					"isolated"
-				],
-				"weight": 2
+				]
 			},
 			{
 				"id": "summer-job",
 				"label": "Summer job",
 				"text": "summer job",
+				"weight": 3,
 				"tags": [
 					"summer"
-				],
-				"weight": 3
+				]
 			},
 			{
 				"id": "stuck-in-an-elevator",
 				"label": "Stuck in an elevator",
 				"text": "stuck in an elevator",
+				"weight": 2,
 				"tags": [
 					"isolated"
-				],
-				"weight": 2
+				]
 			},
 			{
 				"id": "sleepover",
 				"label": "Sleepover",
 				"text": "sleepover",
+				"weight": 4,
 				"tags": [
 					"home"
 				],
-				"weight": 4,
 				"compatibleAgeGroups": [
 					"minor"
 				]
@@ -396,10 +397,10 @@
 				"id": "detention",
 				"label": "Detention",
 				"text": "detention",
+				"weight": 2,
 				"tags": [
 					"school"
 				],
-				"weight": 2,
 				"compatibleAgeGroups": [
 					"minor"
 				]
@@ -408,10 +409,10 @@
 				"id": "camping-trip",
 				"label": "Camping trip",
 				"text": "camping trip",
+				"weight": 3,
 				"tags": [
 					"isolated"
-				],
-				"weight": 3
+				]
 			}
 		],
 		"situations": [
@@ -1665,6 +1666,7 @@
 				"id": "cleradin",
 				"label": "Cleradin — sorcerer Will, paladin Mike",
 				"text": "Cleradin: Will the sorcerer, Mike the paladin",
+				"weight": 3,
 				"group": "setting-au",
 				"compatibleCanon": [
 					"au"
@@ -1672,8 +1674,7 @@
 				"tags": [
 					"fantasy",
 					"cleradin"
-				],
-				"weight": 3
+				]
 			},
 			{
 				"id": "mermaid-selkie",
@@ -1808,364 +1809,364 @@
 				"id": "the-healing-runs-out-mid-quest",
 				"label": "the healing runs out mid-quest",
 				"text": "the healing runs out mid-quest",
+				"weight": 5,
 				"group": "cleradin",
 				"requiresTags": [
 					"cleradin"
-				],
-				"weight": 5
+				]
 			},
 			{
 				"id": "the-paladin-s-oath-vs-the-sorcerer-s-magic",
 				"label": "the paladin's oath vs the sorcerer's magic",
 				"text": "the paladin's oath vs the sorcerer's magic",
+				"weight": 5,
 				"group": "cleradin",
 				"requiresTags": [
 					"cleradin"
-				],
-				"weight": 5
+				]
 			},
 			{
 				"id": "sworn-to-guard-him-from-the-people-who-want-his-magic",
 				"label": "sworn to guard him from the people who want his magic",
 				"text": "sworn to guard him from the people who want his magic",
+				"weight": 5,
 				"group": "cleradin",
 				"requiresTags": [
 					"cleradin"
-				],
-				"weight": 5
+				]
 			},
 			{
 				"id": "one-tent-on-the-road-to-the-keep",
 				"label": "one tent on the road to the keep",
 				"text": "one tent on the road to the keep",
+				"weight": 5,
 				"group": "cleradin",
 				"requiresTags": [
 					"cleradin"
-				],
-				"weight": 5
+				]
 			},
 			{
 				"id": "the-spell-goes-wrong-and-points-at-mike",
 				"label": "the spell goes wrong and points at Mike",
 				"text": "the spell goes wrong and points at mike",
+				"weight": 5,
 				"group": "cleradin",
 				"requiresTags": [
 					"cleradin"
-				],
-				"weight": 5
+				]
 			},
 			{
 				"id": "will-s-magic-flares-when-mike-is-hurt",
 				"label": "Will's magic flares when Mike is hurt",
 				"text": "will's magic flares when mike is hurt",
+				"weight": 5,
 				"group": "cleradin",
 				"requiresTags": [
 					"cleradin"
-				],
-				"weight": 5
+				]
 			},
 			{
 				"id": "the-oath-forbids-it",
 				"label": "the oath forbids it",
 				"text": "the oath forbids it",
+				"weight": 5,
 				"group": "cleradin",
 				"requiresTags": [
 					"cleradin"
-				],
-				"weight": 5
+				]
 			},
 			{
 				"id": "a-curse-only-the-other-can-break",
 				"label": "a curse only the other can break",
 				"text": "a curse only the other can break",
+				"weight": 5,
 				"group": "cleradin",
 				"requiresTags": [
 					"cleradin"
-				],
-				"weight": 5
+				]
 			},
 			{
 				"id": "the-campaign-made-real",
 				"label": "the campaign made real",
 				"text": "the campaign made real",
+				"weight": 5,
 				"group": "cleradin",
 				"requiresTags": [
 					"cleradin"
-				],
-				"weight": 5
+				]
 			},
 			{
 				"id": "the-tower-at-cleradin-the-last-night-before-the-siege",
 				"label": "the tower at Cleradin, the last night before the siege",
 				"text": "the tower at cleradin, the last night before the siege",
+				"weight": 5,
 				"group": "cleradin",
 				"requiresTags": [
 					"cleradin"
-				],
-				"weight": 5
+				]
 			},
 			{
 				"id": "the-party-splits-and-it-s-just-them",
 				"label": "the party splits and it's just them",
 				"text": "the party splits and it's just them",
+				"weight": 5,
 				"group": "cleradin",
 				"requiresTags": [
 					"cleradin"
-				],
-				"weight": 5
+				]
 			},
 			{
 				"id": "a-healer-s-hands-a-knight-s-scars",
 				"label": "a healer's hands, a knight's scars",
 				"text": "a healer's hands, a knight's scars",
+				"weight": 5,
 				"group": "cleradin",
 				"requiresTags": [
 					"cleradin"
-				],
-				"weight": 5
+				]
 			},
 			{
 				"id": "the-sorcerer-is-feared-the-paladin-doesn-t-care",
 				"label": "the sorcerer is feared, the paladin doesn't care",
 				"text": "the sorcerer is feared, the paladin doesn't care",
+				"weight": 5,
 				"group": "cleradin",
 				"requiresTags": [
 					"cleradin"
-				],
-				"weight": 5
+				]
 			},
 			{
 				"id": "carried-off-the-battlefield",
 				"label": "carried off the battlefield",
 				"text": "carried off the battlefield",
+				"weight": 5,
 				"group": "cleradin",
 				"requiresTags": [
 					"cleradin"
-				],
-				"weight": 5
+				]
 			},
 			{
 				"id": "the-blessing-that-only-works-if-he-means-it",
 				"label": "the blessing that only works if he means it",
 				"text": "the blessing that only works if he means it",
+				"weight": 5,
 				"group": "cleradin",
 				"requiresTags": [
 					"cleradin"
-				],
-				"weight": 5
+				]
 			},
 			{
 				"id": "a-vow-spoken-in-the-wrong-language",
 				"label": "a vow spoken in the wrong language",
 				"text": "a vow spoken in the wrong language",
+				"weight": 5,
 				"group": "cleradin",
 				"requiresTags": [
 					"cleradin"
-				],
-				"weight": 5
+				]
 			},
 			{
 				"id": "mike-is-turned-into-a-cat-and-will-has-to-figure-out-which-cat",
 				"label": "Mike is turned into a cat and Will has to figure out which cat",
 				"text": "mike is turned into a cat and will has to figure out which cat",
+				"weight": 8,
 				"group": "crack",
 				"requiresTags": [
 					"crack"
-				],
-				"weight": 8
+				]
 			},
 			{
 				"id": "will-s-drawings-come-to-life-starting-with-the-unflattering-ones-of-mike",
 				"label": "Will's drawings come to life, starting with the unflattering ones of Mike",
 				"text": "will's drawings come to life, starting with the unflattering ones of mike",
+				"weight": 8,
 				"group": "crack",
 				"requiresTags": [
 					"crack"
-				],
-				"weight": 8
+				]
 			},
 			{
 				"id": "the-party-runs-a-byler-betting-pool-and-el-is-the-bookie",
 				"label": "the party runs a Byler betting pool and El is the bookie",
 				"text": "the party runs a byler betting pool and el is the bookie",
+				"weight": 8,
 				"group": "crack",
 				"incompatibleTags": [
 					"fantasy"
 				],
 				"requiresTags": [
 					"crack"
-				],
-				"weight": 8
+				]
 			},
 			{
 				"id": "mike-accidentally-proposes-during-a-dandd-turn",
 				"label": "Mike accidentally proposes during a D&D turn",
 				"text": "mike accidentally proposes during a d&d turn",
+				"weight": 8,
 				"group": "crack",
 				"incompatibleTags": [
 					"fantasy"
 				],
 				"requiresTags": [
 					"crack"
-				],
-				"weight": 8
+				]
 			},
 			{
 				"id": "steve-tries-to-give-them-both-dating-advice-at-the-same-time",
 				"label": "Steve tries to give them both dating advice at the same time",
 				"text": "steve tries to give them both dating advice at the same time",
+				"weight": 8,
 				"group": "crack",
 				"incompatibleTags": [
 					"fantasy"
 				],
 				"requiresTags": [
 					"crack"
-				],
-				"weight": 8
+				]
 			},
 			{
 				"id": "body-swap-and-will-finds-mike-s-diary-in-his-own-handwriting",
 				"label": "body swap, and Will finds Mike's diary in his own handwriting",
 				"text": "body swap, and will finds mike's diary in his own handwriting",
+				"weight": 8,
 				"group": "crack",
 				"requiresTags": [
 					"crack"
-				],
-				"weight": 8
+				]
 			},
 			{
 				"id": "dustin-invents-a-lie-detector-and-points-it-at-mike",
 				"label": "Dustin invents a lie detector and points it at Mike",
 				"text": "dustin invents a lie detector and points it at mike",
+				"weight": 8,
 				"group": "crack",
 				"incompatibleTags": [
 					"fantasy"
 				],
 				"requiresTags": [
 					"crack"
-				],
-				"weight": 8
+				]
 			},
 			{
 				"id": "the-demogorgon-is-actually-just-really-into-their-love-story",
 				"label": "the demogorgon is actually just really into their love story",
 				"text": "the demogorgon is actually just really into their love story",
+				"weight": 8,
 				"group": "crack",
 				"incompatibleTags": [
 					"fantasy"
 				],
 				"requiresTags": [
 					"crack"
-				],
-				"weight": 8
+				]
 			},
 			{
 				"id": "mike-writes-a-fanfic-about-them-and-posts-it-under-a-fake-name",
 				"label": "Mike writes a fanfic about them and posts it under a fake name",
 				"text": "mike writes a fanfic about them and posts it under a fake name",
+				"weight": 8,
 				"group": "crack",
 				"incompatibleTags": [
 					"fantasy"
 				],
 				"requiresTags": [
 					"crack"
-				],
-				"weight": 8
+				]
 			},
 			{
 				"id": "karen-wheeler-ships-it-harder-than-anyone",
 				"label": "Karen Wheeler ships it harder than anyone",
 				"text": "karen wheeler ships it harder than anyone",
+				"weight": 8,
 				"group": "crack",
 				"incompatibleTags": [
 					"fantasy"
 				],
 				"requiresTags": [
 					"crack"
-				],
-				"weight": 8
+				]
 			},
 			{
 				"id": "they-get-married-in-hopper-s-cabin-by-a-very-confused-murray",
 				"label": "they get married in Hopper's cabin by a very confused Murray",
 				"text": "they get married in hopper's cabin by a very confused murray",
+				"weight": 8,
 				"group": "crack",
 				"incompatibleTags": [
 					"fantasy"
 				],
 				"requiresTags": [
 					"crack"
-				],
-				"weight": 8
+				]
 			},
 			{
 				"id": "everyone-in-hawkins-is-suddenly-telepathic-for-a-day",
 				"label": "everyone in Hawkins is suddenly telepathic for a day",
 				"text": "everyone in hawkins is suddenly telepathic for a day",
+				"weight": 8,
 				"group": "crack",
 				"requiresTags": [
 					"crack"
-				],
-				"weight": 8
+				]
 			},
 			{
 				"id": "mike-s-dm-voice-is-doing-something-to-will-and-he-hates-it",
 				"label": "Mike's DM voice is doing something to Will and he hates it",
 				"text": "mike's dm voice is doing something to will and he hates it",
+				"weight": 8,
 				"group": "crack",
 				"requiresTags": [
 					"crack"
-				],
-				"weight": 8
+				]
 			},
 			{
 				"id": "robin-has-a-powerpoint-about-them-in-1986",
 				"label": "Robin has a PowerPoint about them (in 1986)",
 				"text": "robin has a powerpoint about them (in 1986)",
+				"weight": 8,
 				"group": "crack",
 				"incompatibleTags": [
 					"fantasy"
 				],
 				"requiresTags": [
 					"crack"
-				],
-				"weight": 8
+				]
 			},
 			{
 				"id": "a-truth-potion-at-family-video",
 				"label": "a truth potion at Family Video",
 				"text": "a truth potion at family video",
+				"weight": 8,
 				"group": "crack",
 				"incompatibleTags": [
 					"fantasy"
 				],
 				"requiresTags": [
 					"crack"
-				],
-				"weight": 8
+				]
 			},
 			{
 				"id": "they-swap-places-with-hopper-and-joyce-for-a-day",
 				"label": "they swap places with Hopper and Joyce for a day",
 				"text": "they swap places with hopper and joyce for a day",
+				"weight": 8,
 				"group": "crack",
 				"incompatibleTags": [
 					"fantasy"
 				],
 				"requiresTags": [
 					"crack"
-				],
-				"weight": 8
+				]
 			},
 			{
 				"id": "will-accidentally-summons-a-demon-who-is-also-a-matchmaker",
 				"label": "Will accidentally summons a demon who is also a matchmaker",
 				"text": "will accidentally summons a demon who is also a matchmaker",
+				"weight": 8,
 				"group": "crack",
 				"requiresTags": [
 					"crack"
-				],
-				"weight": 8
+				]
 			},
 			{
 				"id": "pining-across-distance",
@@ -2389,11 +2390,6 @@
 					"text": "fuck or die"
 				},
 				{
-					"id": "heat-rut",
-					"label": "heat / rut (A/B/O)",
-					"text": "heat / rut (a/b/o)"
-				},
-				{
 					"id": "aphrodisiac",
 					"label": "aphrodisiac",
 					"text": "aphrodisiac"
@@ -2508,6 +2504,9 @@
 					"id": "edging",
 					"label": "edging",
 					"text": "edging",
+					"tags": [
+						"edging"
+					],
 					"who": "{name} is edged"
 				},
 				{
@@ -2909,6 +2908,9 @@
 					"id": "edging-kink",
 					"label": "edging",
 					"text": "edging",
+					"incompatibleTags": [
+						"edging"
+					],
 					"weight": 3
 				},
 				{

@@ -426,3 +426,13 @@ test("a broken library is a data error, not a silent dud", () => {
   assert.ok(validateIntermediateData(badCanon).some((e) => /unknown canon/.test(e)));
   assert.deepEqual(validateIntermediateData(null), ["missing intermediate data"]);
 });
+
+test("the explicit line never says a thing twice: the dynamic's tags are in play when the kinks draw", () => {
+  const adult = INT.seasons.find((s) => s.ageGroup === "adult").id;
+  for (let seed = 1; seed < 400; seed++) {
+    const r = generateIntermediatePrompt(INT, { seed: "edge" + seed, seasonId: adult, explicitLevel: "explicit" });
+    const ex = r.selections.explicit;
+    if (!ex) continue;
+    if (ex.dynamicId === "edging") assert.ok(!ex.kinkIds.includes("edging-kink"), `seed ${seed} dealt edging twice`);
+  }
+});
