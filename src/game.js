@@ -1032,6 +1032,31 @@ export function createGame(io) {
       ack?.({ ok: true });
     });
 
+    // Host-only: redeal ONE option, in the mode that is set, keeping the rest
+    // of the ballot. Votes cast for the replaced option are dropped.
+    socket.on("reroll-option", ({ index } = {}, ack) => {
+      const s = mySession();
+      const i = Number(index);
+      if (!s || s.hostId !== socket.id || s.phase !== "choosing" || !Number.isInteger(i) || i < 0 || i >= s.options.length)
+        return ack?.({ ok: false });
+      const old = s.options[i];
+      let next = null, meta = null;
+      for (let attempt = 0; attempt < 8 && (next == null || s.options.includes(next)); attempt++) {
+        if (s.promptMode === "intermediate" && INTERMEDIATE) {
+          const r = generateIntermediatePrompt(INTERMEDIATE, { ...s.promptControls });
+          next = r.prompt; meta = { seed: r.seed, selections: r.selections, labels: r.labels };
+        } else {
+          next = generateSimplePrompt(PROMPT_BANK, { recent: s.options }).prompt; meta = null;
+        }
+      }
+      if (next == null || s.options.includes(next)) return ack?.({ ok: false, error: "Nothing new to deal." });
+      s.options[i] = next;
+      (s.optionMeta ||= [])[i] = meta;
+      for (const [sid, v] of s.votes) if (v === old) s.votes.delete(sid);
+      broadcastGame(s);
+      ack?.({ ok: true });
+    });
+
     // Host-only: switch the generator mode (simple ↔ guided) or retune the
     // guided controls. Either way the ballot is redealt and votes reset.
     socket.on("set-prompt-mode", ({ mode, controls }, ack) => {

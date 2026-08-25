@@ -150,3 +150,33 @@ test("the menu endpoint ships ids and labels, never the clause text", async () =
   assert.equal(d.tropes, undefined);
   assert.equal(d.explicit, undefined);
 });
+
+test("the host rerolls one option and keeps the rest; votes on it drop; nobody else can", async () => {
+  const { A, B, state } = await choosing({ promptMode: "intermediate" });
+  const before = [...state.current.options];
+  B.emit("vote", { prompt: before[1] });
+  await ctx.wait(100);
+  assert.equal(state.current.tally[1], 1);
+  const denied = await ctx.emit(B, "reroll-option", { index: 1 });
+  assert.equal(denied.ok, false);
+  const ok = await ctx.emit(A, "reroll-option", { index: 1 });
+  assert.equal(ok.ok, true);
+  await ctx.wait(120);
+  const after = state.current.options;
+  assert.equal(after.length, 4);
+  assert.notEqual(after[1], before[1]);
+  assert.deepEqual([after[0], after[2], after[3]], [before[0], before[2], before[3]], "the other three stay");
+  assert.equal(state.current.tally[1], 0, "the vote for the old option is gone");
+  assert.ok(state.current.optionMeta[1]?.selections?.tropeIds?.length, "the new option carries its meta");
+  const bad = await ctx.emit(A, "reroll-option", { index: 9 });
+  assert.equal(bad.ok, false);
+  // simple mode too
+  await ctx.emit(A, "set-prompt-mode", { mode: "simple" });
+  await ctx.wait(100);
+  const s0 = state.current.options[0];
+  await ctx.emit(A, "reroll-option", { index: 0 });
+  await ctx.wait(100);
+  assert.notEqual(state.current.options[0], s0);
+  assert.ok(CURATED.includes(state.current.options[0]));
+  assert.equal(state.current.optionMeta[0], null);
+});

@@ -794,6 +794,20 @@
 						myVote = p
 						socket.emit("vote", { prompt: p })
 					}
+					// the host can redeal just this one, keeping the rest of the ballot
+					if (myId === hostId) {
+						const rr = document.createElement("button")
+						rr.type = "button"
+						rr.className = "opt-reroll"
+						rr.title = "Reroll this option"
+						rr.textContent = "↻"
+						rr.onclick = (e) => {
+							e.stopPropagation()
+							if (myVote === p) myVote = null
+							socket.emit("reroll-option", { index: i })
+						}
+						b.appendChild(rr)
+					}
 					box.appendChild(b)
 				})
 				$("voteProgress").textContent = `${st.voted} of ${st.total} voted — most votes wins`
