@@ -270,6 +270,14 @@ test("a role lands on a character: power bottom names Mike or Will", () => {
   }
   assert.deepEqual([...seen].sort(), ["Mike", "Will"]);
   assert.ok(INT.explicit.dynamics.filter((d) => d.who).length >= 12);
+  // service top is Mike's, whoever the draw named
+  const st = idOf(INT.explicit.dynamics, "service-top");
+  assert.equal(st.only, "Mike");
+  assert.equal(withWho(st, "Will"), "service top (Mike)");
+  for (let i = 0; i < 300; i++) {
+    const r = generateIntermediatePrompt(INT, { seed: "st" + i, explicitLevel: "explicit", seasonId: "post-canon" });
+    if (r.selections.explicit.dynamicId === "service-top") assert.ok(r.prompt.includes("service top (Mike)") && !r.prompt.includes("service top (Will)"), r.prompt);
+  }
 });
 
 test("Cleradin: sorcerer Will, paladin Mike — its own tropes, and nothing modern ever reaches it", () => {

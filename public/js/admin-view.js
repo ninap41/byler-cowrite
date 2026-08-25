@@ -78,7 +78,7 @@ export const PROMPT_POOLS = [
 	{ path: ["intermediate", "tropes"], title: "Tropes", kind: "items", fields: ["group"] },
 	{ path: ["intermediate", "explicit", "levels"], title: "Explicit · levels", kind: "items" },
 	{ path: ["intermediate", "explicit", "setups"], title: "Explicit · setups", kind: "items", fields: ["who"] },
-	{ path: ["intermediate", "explicit", "dynamics"], title: "Explicit · dynamics", kind: "items", fields: ["who"] },
+	{ path: ["intermediate", "explicit", "dynamics"], title: "Explicit · dynamics", kind: "items", fields: ["who", "only"] },
 	{ path: ["intermediate", "explicit", "acts"], title: "Explicit · acts", kind: "items" },
 	{ path: ["intermediate", "explicit", "kinks"], title: "Explicit · kinks (weighted)", kind: "items" },
 	{ path: ["intermediate", "explicit", "registers"], title: "Explicit · registers", kind: "items" },
@@ -121,6 +121,8 @@ export function promptRowHtml(item, pool, groups = {}) {
 				return `<td><select data-field="ageGroup">${["minor", "adult"]
 					.map((g) => `<option value="${g}"${g === item.ageGroup ? " selected" : ""}>${g}</option>`)
 					.join("")}</select></td>`
+			if (f === "only")
+				return `<td><input data-field="only" value="${esc(item.only ?? "")}" placeholder="either" size="6" /></td>`
 			return `<td><input data-field="${esc(f)}" value="${esc(item[f] ?? "")}" placeholder="{name} is…" /></td>`
 		})
 		.join("")
@@ -142,7 +144,7 @@ export function promptPoolHtml(pool, doc) {
 	<textarea class="pe-lines" rows="${Math.min(14, Math.max(3, list.length + 1))}">${esc(list.join("\n"))}</textarea>
 </details>`
 	const groups = doc.intermediate?.tropeGroups || {}
-	const heads = ["Label", "Weight", ...(pool.fields || []).map((f) => ({ group: "Group", ageGroup: "Age", who: "Role (who)" })[f] || f), "Rules (JSON)", ""]
+	const heads = ["Label", "Weight", ...(pool.fields || []).map((f) => ({ group: "Group", ageGroup: "Age", who: "Role (who)", only: "Always" })[f] || f), "Rules (JSON)", ""]
 	return `<details class="pe-pool" data-pool="${esc(key)}"><summary>${esc(pool.title)} <span class="subtle">(${list.length})</span></summary>
 	<p class="subtle">${esc(pool.hint || "Label is what the menus and prompt show; weight biases the draw (blank = 1); rules is the entry's other fields as JSON — tags, compatibleAgeGroups, compatibleCanon, requiresTags, incompatibleTags, adultOnly.")}</p>
 	<table class="pe-table"><thead><tr>${heads.map((h) => `<th>${esc(h)}</th>`).join("")}</tr></thead>
