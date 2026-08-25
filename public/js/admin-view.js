@@ -153,9 +153,74 @@ export function promptPoolHtml(pool, doc) {
 </details>`
 }
 
+// The tags the GENERATOR itself puts into play (they're not authored on an
+// entry; the draw adds them as it goes), with what each one means.
+export const BUILTIN_TAGS = {
+	explicit: "added when the rating came out explicit — a tone that lists it in incompatibleTags (fluff, crack) steps aside",
+	"no-explicit": "a tone that carries it forces an explicit request down to suggestive",
+}
+
+// Every tag the library actually uses, with the entries that carry it, so
+// the rules cell is written against a real vocabulary rather than guessed.
+export function tagIndex(doc) {
+	const idx = new Map()
+	const add = (tag, where) => idx.set(tag, [...(idx.get(tag) || []), where])
+	const walk = (list, name) => {
+		for (const it of list || []) for (const t of it.tags || []) add(t, `${name}: ${it.label}`)
+	}
+	const im = doc.intermediate || {}
+	for (const k of ["seasons", "canon", "places", "situations", "relationships", "tones", "tropes"]) walk(im[k], k)
+	for (const k of ["levels", "setups", "dynamics", "acts", "kinks", "registers"]) walk(im.explicit?.[k], "explicit " + k)
+	return [...idx.entries()].sort(([a], [b]) => a.localeCompare(b))
+}
+
+// The rules reference at the head of the editor: what a row's fields mean,
+// how the draw runs, and the tag vocabulary this library uses.
+export function promptRulesHtml(doc) {
+	const row = (k, v) => `<tr><td><code>${esc(k)}</code></td><td>${v}</td></tr>`
+	const tags = tagIndex(doc)
+	return `<details class="pe-pool pe-doc" data-doc="1"><summary>📖 How the rules work — fields, tags, and the order of the draw</summary>
+	<h4>Every row</h4>
+	<table class="pe-doc-table">
+	${row("Label", "what the menus, chips and prompt show. The clause text is the label lowercased (an existing row keeps a custom clause if you don't change its label).")}
+	${row("Weight", "how often it's drawn — 1 is normal, 5 is five times as likely, blank is 1. Ids dealt earlier on the same ballot are damped (÷3), not banned.")}
+	${row("Rules (JSON)", "the entry's other fields, as one JSON object. Example: <code>{&quot;tags&quot;:[&quot;fantasy&quot;],&quot;compatibleAgeGroups&quot;:[&quot;adult&quot;]}</code>")}
+	</table>
+	<h4>What Rules can hold</h4>
+	<table class="pe-doc-table">
+	${row("tags", "strings this entry <em>puts into play</em> once drawn. Later draws check their rules against everything in play so far.")}
+	${row("requiresTags", "draw this only if <em>every</em> listed tag is already in play (Cleradin's tropes: <code>[&quot;cleradin&quot;]</code>; domestic bliss: <code>[&quot;together&quot;]</code>).")}
+	${row("incompatibleTags", "never draw this if <em>any</em> listed tag is in play (a phone call in a fantasy world: <code>[&quot;fantasy&quot;]</code>; a first kiss on a couple: <code>[&quot;together&quot;]</code>).")}
+	${row("compatibleAgeGroups", "<code>[&quot;minor&quot;]</code> or <code>[&quot;adult&quot;]</code> — the season's age group must match. Age comes from the season, nowhere else.")}
+	${row("adultOnly", "<code>true</code> — never on a minor season, whatever else says. The explicit level carries it.")}
+	${row("compatibleCanon", "which canon ids admit this — every world is <code>[&quot;au&quot;]</code>, fix-it is <code>[&quot;canon-divergent&quot;]</code>.")}
+	${row("who", "explicit dynamics/setups only — names the role: <code>&quot;{name} is the brat&quot;</code> renders <em>brat taming (Will is the brat)</em>. Has its own column.")}
+	${row("only", "explicit dynamics only — the one character the role always lands on (service top: <code>Mike</code>). The <em>Always</em> column.")}
+	${row("group", "tropes only — must be one of the Trope groups below. <code>setting-au</code> entries are worlds: an AU draws one onto the Canon line and skips the Place.")}
+	${row("ageGroup", "seasons only — <code>minor</code> or <code>adult</code>. Only an adult season can be explicit.")}
+	</table>
+	<h4>The order of the draw</h4>
+	<ol class="pe-doc-list">
+	<li><b>Season</b> — fixes the age. Explicit on a Random season narrows to adult seasons; a chosen minor season is kept and the rating drops to suggestive.</li>
+	<li><b>Canon</b> — in an AU, one world from <code>setting-au</code> (its tags go into play — <code>fantasy</code>, <code>cleradin</code>…); Place is then skipped.</li>
+	<li><b>Relationship</b>, <b>Situation</b>, <b>Tone</b> — each checked against the tags in play (<code>explicit</code> is in play by now if the rating is explicit).</li>
+	<li><b>Trope</b> — exactly one, from every group but the worlds.</li>
+	<li><b>Place</b> — only when no world was drawn.</li>
+	<li><b>Explicit layer</b> — adult season and rating explicit only: setup · dynamic · 1–2 acts · 1–2 kinks · register on one Kinks line, roles naming a character.</li>
+	</ol>
+	<h4>Tags in this library</h4>
+	<p class="subtle">Authored on entries (with who carries them), plus the two the generator adds itself. Any new string is a valid tag — it only means something once another entry requires or excludes it.</p>
+	<table class="pe-doc-table">
+	${Object.entries(BUILTIN_TAGS).map(([t, d]) => row(t, `<em>generator</em> — ${esc(d)}`)).join("")}
+	${tags.map(([t, where]) => row(t, esc(where.length > 6 ? where.slice(0, 6).join(", ") + ` … (${where.length})` : where.join(", ")))).join("")}
+	</table>
+</details>`
+}
+
 export function promptEditorHtml(doc) {
 	const groups = doc.intermediate?.tropeGroups || {}
 	return `<div class="pe" id="promptEditor">
+	${promptRulesHtml(doc)}
 	${PROMPT_POOLS.filter((p) => getIn(doc, p.path) !== undefined || p.path[0] === "prompts").map((p) => promptPoolHtml(p, doc)).join("")}
 	<details class="pe-pool" data-pool="intermediate.tropeGroups"><summary>Trope groups <span class="subtle">(${Object.keys(groups).length})</span></summary>
 	<p class="subtle">id = name, one per line. A trope's group must be named here; the "setting-au" group is the worlds an AU draws from.</p>
@@ -172,6 +237,7 @@ export function readPromptEditor(root, base) {
 	const doc = JSON.parse(JSON.stringify(base || {}))
 	const errors = []
 	for (const el of root.querySelectorAll(".pe-pool")) {
+		if (el.dataset.doc) continue // the rules reference holds no data
 		const key = el.dataset.pool
 		const path = key.split(".")
 		const ta = el.querySelector(".pe-lines")

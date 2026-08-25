@@ -115,3 +115,19 @@ test("the admin page READS its lists with GET — api() defaults to POST, which 
   for (const path of ["/api/admin/games", "/api/admin/users", "/api/admin/prompts"])
     assert.match(html, new RegExp(`api\\("${path}", null, "GET"\\)`), path + " is fetched with GET");
 });
+
+test("the editor opens with a rules reference: every Rules field, the draw order, and the library's real tag vocabulary", async () => {
+  const { promptRulesHtml, tagIndex, BUILTIN_TAGS } = await import("../public/js/admin-view.js");
+  const html = promptRulesHtml(LIB);
+  for (const f of ["tags", "requiresTags", "incompatibleTags", "compatibleAgeGroups", "adultOnly", "compatibleCanon", "who", "only", "group", "ageGroup"])
+    assert.ok(html.includes(`<code>${f}</code>`), f + " is documented");
+  for (const t of ["together", "not-together", "fantasy", "cleradin", "au", "no-explicit", "explicit"]) assert.ok(html.includes(`<code>${t}</code>`), t + " is listed");
+  assert.ok(html.includes("Season") && html.includes("Explicit layer"));
+  assert.ok(Object.keys(BUILTIN_TAGS).includes("explicit"));
+  const idx = Object.fromEntries(tagIndex(LIB));
+  assert.ok(idx.cleradin.some((w) => /tropes: Cleradin/.test(w)));
+  // it holds no data: reading the editor back ignores it
+  const root = mount(promptEditorHtml(LIB));
+  assert.ok(root.querySelector(".pe-doc"));
+  assert.deepEqual(readPromptEditor(root, LIB).doc, LIB);
+});

@@ -9293,3 +9293,9 @@ html.vcx-live[data-theme="vecna"] #vc-pend {
 .pe-lines { width: 100%; font: inherit; font-size: 0.85rem; line-height: 1.45; }
 .pe-add { margin-top: 8px; }
 .pe-foot { display: flex; align-items: center; gap: 12px; margin: 12px 0 0; }
+.pe-doc h4 { margin: 12px 0 4px; font-size: 0.9rem; }
+.pe-doc-table { border-collapse: collapse; font-size: 0.82rem; width: 100%; }
+.pe-doc-table td { padding: 3px 8px 3px 0; vertical-align: top; border-top: 1px solid var(--line); }
+.pe-doc-table td:first-child { white-space: nowrap; width: 1%; }
+.pe-doc-list { font-size: 0.85rem; padding-left: 20px; margin: 4px 0; }
+.pe-doc code { font-family: var(--font-mono); font-size: 0.8em; }

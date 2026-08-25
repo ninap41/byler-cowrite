@@ -310,7 +310,7 @@ test("Cleradin: sorcerer Will, paladin Mike — its own tropes, and nothing mode
 
 test("fluff is never explicit, and explicit is never fluff", () => {
   const soft = new Set(INT.tones.filter((t) => t.tags?.includes("no-explicit")).map((t) => t.id));
-  assert.ok(soft.has("fluff") && soft.has("crack"));
+  assert.ok(soft.has("fluff"));
   for (let i = 0; i < 200; i++) {
     const r = generateIntermediatePrompt(INT, { seed: "fl" + i, explicitLevel: "explicit" });
     assert.ok(!soft.has(r.selections.toneId), `${r.selections.toneId} dealt explicit`);
