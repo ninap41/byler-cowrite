@@ -197,9 +197,10 @@ test("no clashes: a world is the place, and tropes agree with the relationship",
     const r = generateIntermediatePrompt(INT, { seed: "clash" + i, explicitLevel: i % 2 ? "explicit" : "none" });
     const tropes = [r.selections.worldId, ...r.selections.tropeIds].filter(Boolean).map((id) => idOf(INT.tropes, id));
     const world = tropes.find((t) => t.group === "setting-au");
-    // one place per prompt: the world OR the place axis, never both
-    assert.equal(!!world, !r.selections.placeId, r.prompt);
-    assert.equal(!!r.labels.place, !world);
+    // one place per prompt: a world deals one of ITS OWN rooms, a canon
+    // ballot deals from the generic pool — never a generic place under a world
+    if (world) assert.ok(INT.auPlaces.some((p) => p.id === r.selections.placeId && p.requiresTags.includes("au-" + world.id)), r.prompt);
+    else assert.ok(INT.places.some((p) => p.id === r.selections.placeId), r.prompt);
     const tags = new Set([...tagsOf(r.selections.relationshipId), ...(world?.tags || []), ...(idOf(INT.tones, r.selections.toneId).tags || []), ...(r.explicitLevel === "explicit" ? ["explicit"] : [])]);
     const check = (it) => {
       for (const t of it.incompatibleTags || []) assert.ok(!tags.has(t), `${it.id} with ${r.selections.relationshipId}`);
@@ -434,5 +435,38 @@ test("the explicit line never says a thing twice: the dynamic's tags are in play
     const ex = r.selections.explicit;
     if (!ex) continue;
     if (ex.dynamicId === "edging") assert.ok(!ex.kinkIds.includes("edging-kink"), `seed ${seed} dealt edging twice`);
+  }
+});
+
+test("an AU world deals a place of its own: never a canon place, explicit rooms only on explicit ballots", () => {
+  const adult = INT.seasons.find((s) => s.ageGroup === "adult").id;
+  const worlds = INT.tropes.filter((t) => t.group === "setting-au");
+  assert.ok(!worlds.some((w) => w.id.startsWith("soulmate")), "the soulmate worlds are gone");
+  assert.equal(worlds.find((w) => w.id === "abo").label, "Alpha/Beta/Omega");
+  const canonPlaceIds = new Set(INT.places.map((p) => p.id));
+  let plain = 0, x = 0;
+  for (let i = 0; i < 200; i++) {
+    const r = generateIntermediatePrompt(INT, { seed: "aup" + i, seasonId: adult, canonId: "au", explicitLevel: i % 2 ? "explicit" : "none" });
+    assert.ok(r.selections.worldId, "an AU has a world");
+    const pid = r.selections.placeId;
+    assert.ok(pid && !canonPlaceIds.has(pid), `seed ${i}: AU place expected, got ${pid}`);
+    const place = INT.auPlaces.find((p) => p.id === pid);
+    assert.ok(place.requiresTags.includes("au-" + r.selections.worldId), "the place belongs to the world dealt");
+    if (place.requiresTags.includes("explicit")) { x++; assert.equal(r.explicitLevel, "explicit"); } else plain++;
+    assert.match(r.prompt, /Place: /);
+  }
+  assert.ok(plain > 0 && x > 0, "both kinds get dealt");
+  // high school is kids: it never lands on an explicit ballot
+  for (let i = 0; i < 150; i++) {
+    const r = generateIntermediatePrompt(INT, { seed: "hs" + i, seasonId: adult, canonId: "au", explicitLevel: "explicit" });
+    assert.notEqual(r.selections.worldId, "high-school");
+  }
+  // a chosen world is honoured with its own place
+  const r = generateIntermediatePrompt(INT, { seed: "cl", worldId: "cleradin" });
+  assert.ok(INT.auPlaces.find((p) => p.id === r.selections.placeId)?.requiresTags.includes("au-cleradin"));
+  // and canon ballots never get an AU room
+  for (let i = 0; i < 100; i++) {
+    const r = generateIntermediatePrompt(INT, { seed: "cn" + i, canonId: "canon-compliant" });
+    if (r.selections.placeId) assert.ok(canonPlaceIds.has(r.selections.placeId));
   }
 });
