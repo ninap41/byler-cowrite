@@ -9383,3 +9383,9 @@ html.vcx-live[data-theme="vecna"] #vc-pend {
 .vine .vine-glow { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; opacity: 0; filter: blur(5px); }
 .vine .vine-shine { fill: none; stroke-width: 1.8; stroke-linecap: round; opacity: 0; }
 .ann-glimpse-tag { display: flex; align-items: center; gap: 6px; }
+
+/* a guided knob's label row: the name and, beside it, the checkbox that
+   leaves that part out of the prompt entirely */
+.guided-controls .pm-lab { display: inline-flex; align-items: center; gap: 6px; }
+.guided-controls .pm-off { margin: 0; width: 13px; height: 13px; accent-color: var(--accent); cursor: pointer; }
+.guided-controls select:disabled { opacity: 0.45; }

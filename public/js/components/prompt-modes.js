@@ -21,15 +21,18 @@ export const GUIDED_FIELDS = [
 	{ key: "placeId", suffix: "Place", label: "Place", menu: "places" },
 	{ key: "situationId", suffix: "Situation", label: "Situation", menu: "situations" },
 	{ key: "relationshipId", suffix: "Rel", label: "Relationship", menu: "relationships" },
-	{ key: "toneId", suffix: "Tone", label: "Tone", menu: "tones" },
+	// `off` names the control that leaves this part out entirely (a checkbox
+	// beside the label): switched off, the part is never drawn, so it never
+	// reaches the card
+	{ key: "toneId", suffix: "Tone", label: "Tone", menu: "tones", off: "toneOff" },
 	// the explicit dropdowns: shown past None, enabled only at Explicit (the
 	// gate never deals a Kinks line under Suggestive)
-	{ key: "setupId", suffix: "Setup", label: "Setup", menu: "setups", onlyWhen: { explicitLevel: ["suggestive", "explicit"] }, explicitOnly: true },
-	{ key: "dynamicId", suffix: "Dynamic", label: "Dynamic", menu: "dynamics", onlyWhen: { explicitLevel: ["suggestive", "explicit"] }, explicitOnly: true },
-	{ key: "actId", suffix: "Act", label: "Act", menu: "acts", onlyWhen: { explicitLevel: ["suggestive", "explicit"] }, explicitOnly: true },
-	{ key: "kinkId", suffix: "Kink", label: "Kink", menu: "kinks", onlyWhen: { explicitLevel: ["suggestive", "explicit"] }, explicitOnly: true },
-	{ key: "registerId", suffix: "Register", label: "Register", menu: "registers", onlyWhen: { explicitLevel: ["suggestive", "explicit"] }, explicitOnly: true },
+	{ key: "setupId", suffix: "Setup", label: "Setup", menu: "setups", onlyWhen: { explicitLevel: ["suggestive", "explicit"] }, explicitOnly: true, off: "setupOff" },
+	{ key: "dynamicId", suffix: "Dynamic", label: "Dynamic", menu: "dynamics", onlyWhen: { explicitLevel: ["suggestive", "explicit"] }, explicitOnly: true, off: "dynamicOff" },
+	{ key: "actId", suffix: "Act", label: "Act", menu: "acts", onlyWhen: { explicitLevel: ["suggestive", "explicit"] }, explicitOnly: true, off: "actOff" },
+	{ key: "kinkId", suffix: "Kink", label: "Kink", menu: "kinks", onlyWhen: { explicitLevel: ["suggestive", "explicit"] }, explicitOnly: true, off: "kinkOff" },
 ]
+export const OFF_KEYS = GUIDED_FIELDS.filter((f) => f.off).map((f) => f.off)
 // The fallback when /api/prompt-options carries no levels; the wire copy wins.
 export const EXPLICIT_LEVELS = [
 	{ id: "none", label: "None" },
@@ -49,7 +52,11 @@ export const DEFAULT_CONTROLS = {
 	dynamicId: "random",
 	actId: "random",
 	kinkId: "random",
-	registerId: "random",
+	toneOff: false,
+	setupOff: false,
+	dynamicOff: false,
+	actOff: false,
+	kinkOff: false,
 }
 
 // "forced-proximity" -> "Forced proximity", for any pool authored as bare ids.
@@ -132,7 +139,12 @@ export function promptModeHtml(prefix, { reroll = false } = {}) {
 			`<button class="head-chip" type="button" id="${p}Mode-${m.id}" data-mode="${m.id}" title="${esc(m.hint)}">${esc(m.label)}</button>`,
 	).join("")
 	const fields = GUIDED_FIELDS.map(
-		(f) => `<label for="${p}${f.suffix}" id="${p}${f.suffix}Wrap"${f.onlyWhen ? ' class="hidden"' : ""}>${esc(f.label)}<select id="${p}${f.suffix}"></select></label>`,
+		(f) =>
+			`<label for="${p}${f.suffix}" id="${p}${f.suffix}Wrap"${f.onlyWhen ? ' class="hidden"' : ""}>` +
+			`<span class="pm-lab">${esc(f.label)}${
+				f.off ? `<input type="checkbox" class="pm-off" id="${p}${f.suffix}Off" title="Leave ${esc(f.label)} out of the prompt" aria-label="Leave ${esc(f.label)} out">` : ""
+			}</span>` +
+			`<select id="${p}${f.suffix}"></select></label>`,
 	).join("")
 	return `<div class="mode-row" id="${p}Row">
 	<span class="subtle">Scenarios:</span>${modes}
@@ -158,6 +170,7 @@ export function mountPromptModes(root, { prefix = "pm", onChange, onReroll } = {
 
 	const readControls = () => ({
 		...Object.fromEntries(GUIDED_FIELDS.map((f) => [f.key, el(f.suffix).value || "random"])),
+		...Object.fromEntries(GUIDED_FIELDS.filter((f) => f.off).map((f) => [f.off, !!el(f.suffix + "Off")?.checked])),
 		explicitLevel: el("Explicit").value || "none",
 	})
 	function paint() {
@@ -184,7 +197,16 @@ export function mountPromptModes(root, { prefix = "pm", onChange, onReroll } = {
 				el(f.suffix).disabled = !live
 				el(f.suffix).title = live ? "" : "Explicit only"
 				if (!live) el(f.suffix).value = "random"
+				const box = el(f.suffix + "Off")
+				if (box) box.disabled = !live
 			}
+		}
+		// a part switched off: its menu is moot, so it reads Random and greys
+		for (const f of GUIDED_FIELDS) {
+			if (!f.off) continue
+			const box = el(f.suffix + "Off")
+			if (box?.checked) { el(f.suffix).value = "random"; el(f.suffix).disabled = true; el(f.suffix).title = f.label + " is left out" }
+			else if (!f.explicitOnly) { el(f.suffix).disabled = false; el(f.suffix).title = "" }
 		}
 	}
 	// Grey out what can't go with the rest. Each menu is judged against the
@@ -251,6 +273,7 @@ export function mountPromptModes(root, { prefix = "pm", onChange, onReroll } = {
 			if (nextControls) {
 				controls = { ...controls, ...nextControls }
 				for (const f of GUIDED_FIELDS) if (el(f.suffix).options.length) el(f.suffix).value = controls[f.key]
+				for (const f of GUIDED_FIELDS) if (f.off && el(f.suffix + "Off")) el(f.suffix + "Off").checked = !!controls[f.off]
 				paintLevels()
 				paintDependents()
 				paintCompat()

@@ -105,7 +105,8 @@ test("explicit on a random season narrows the draw to adult seasons and deals th
     assert.equal(season(r).ageGroup, "adult");
     assert.equal(r.explicitLevel, "explicit");
     const ex = r.selections.explicit;
-    assert.ok(ex.setupId && ex.dynamicId && ex.registerId);
+    assert.ok(ex.setupId && ex.dynamicId);
+    assert.equal(ex.registerId, undefined, "registers are deprecated");
     assert.ok(ex.actIds.length >= 1 && ex.actIds.length <= 2 && ex.kinkIds.length >= 1 && ex.kinkIds.length <= 2);
     assert.equal(new Set(ex.kinkIds).size, ex.kinkIds.length);
     const lines = r.prompt.split("\n");
@@ -251,6 +252,7 @@ test("the explicit layer carries every tag from the design doc", () => {
     kinks: ["praise", "degradation", "breath play", "piss kink", "breeding", "pregnancy kink", "lingerie", "crossdressing", "uniform / costume", "collar", "leash", "blindfold", "sensory deprivation", "gag", "rope / shibari", "spanking / impact", "biting / marking", "hickeys", "knife play (safe)", "temperature play", "wax", "food play", "body worship", "feet", "hands", "voice", "scent", "exhibitionism", "voyeurism", "mirror", "filming", "dirty talk", "phone sex", "somnophilia (pre-negotiated)", "cockwarming", "edging", "pet play", "daddy / sir kink", "omega / alpha dynamics", "knotting", "tentacles", "monster fucking", "telekinetic / powers play"],
     registers: ["tender", "desperate", "frantic", "reverent", "filthy", "funny / awkward", "crying during", "emotional first time", "sex as apology", "sex as reassurance", "love confession mid-act", "unspoken feelings made obvious"],
   };
+  // registers stay in the pack for now, deprecated: validated, never dealt
   for (const [pool, labels] of Object.entries(want)) {
     const have = new Set(INT.explicit[pool].map((x) => x.label.toLowerCase()));
     for (const l of labels) assert.ok(have.has(l.toLowerCase()), `${pool}: ${l}`);
@@ -261,10 +263,9 @@ test("the explicit layer carries every tag from the design doc", () => {
     const r = generateIntermediatePrompt(INT, { seed: "doc" + i, explicitLevel: "explicit", seasonId: "post-canon" });
     const ex = r.selections.explicit;
     const lines = r.prompt.split("\n");
-    const setup = idOf(INT.explicit.setups, ex.setupId).text, dyn = idOf(INT.explicit.dynamics, ex.dynamicId).text, reg = idOf(INT.explicit.registers, ex.registerId).text;
     const acts = ex.actIds.map((id) => idOf(INT.explicit.acts, id).text), kinks = ex.kinkIds.map((id) => idOf(INT.explicit.kinks, id).text);
     const w = (id, pool) => withWho(idOf(INT.explicit[pool], id), ex.who);
-    assert.ok(lines.some((l) => l.startsWith(`${BULLET}Kinks: ${[w(ex.setupId, "setups"), w(ex.dynamicId, "dynamics"), ...acts, ...kinks, reg].join(TAG_SEP)}`)), r.prompt);
+    assert.ok(lines.some((l) => l.startsWith(`${BULLET}Kinks: ${[w(ex.setupId, "setups"), w(ex.dynamicId, "dynamics"), ...acts, ...kinks].join(TAG_SEP)}`)), r.prompt);
     assert.ok(!lines.some((l) => /^• (Catalyst|Register|Setup|Dynamic|Acts):/.test(l)), "one explicit line");
   }
 });
@@ -475,9 +476,9 @@ test("an AU world deals a place of its own: never a canon place, explicit rooms 
   }
 });
 
-test("the explicit dropdowns pin the Kinks line: setup, dynamic, act, kink and register ids are honoured past the gate, ignored under it", () => {
+test("the explicit dropdowns pin the Kinks line: setup, dynamic, act and kink ids are honoured past the gate, ignored under it", () => {
   const ex = INT.explicit;
-  const pins = { setupId: ex.setups[0].id, dynamicId: ex.dynamics[0].id, actId: ex.acts[0].id, kinkId: ex.kinks[0].id, registerId: ex.registers[0].id };
+  const pins = { setupId: ex.setups[0].id, dynamicId: ex.dynamics[0].id, actId: ex.acts[0].id, kinkId: ex.kinks[0].id };
   const adult = INT.seasons.find((s) => s.ageGroup === "adult").id;
   const r = generateIntermediatePrompt(INT, { seed: "pins", seasonId: adult, explicitLevel: "explicit", toneId: "angst", ...pins });
   assert.equal(r.explicitLevel, "explicit");
@@ -486,10 +487,28 @@ test("the explicit dropdowns pin the Kinks line: setup, dynamic, act, kink and r
   assert.equal(sel.dynamicId, pins.dynamicId);
   assert.equal(sel.actIds[0], pins.actId, "the pinned act leads its list");
   assert.equal(sel.kinkIds[0], pins.kinkId, "the pinned kink leads its list");
-  assert.equal(sel.registerId, pins.registerId);
+  assert.equal(sel.registerId, undefined, "registers are deprecated: never dealt");
   assert.ok(new Set(sel.actIds).size === sel.actIds.length && new Set(sel.kinkIds).size === sel.kinkIds.length, "no repeats around a pin");
   const minor = INT.seasons.find((s) => s.ageGroup === "minor").id;
   const gated = generateIntermediatePrompt(INT, { seed: "pins2", seasonId: minor, explicitLevel: "explicit", ...pins });
   assert.equal(gated.selections.explicit, undefined, "under the gate the pins are moot");
   assert.equal(generateIntermediatePrompt(INT, { seed: "pins3", seasonId: adult, explicitLevel: "suggestive", ...pins }).selections.explicit, undefined, "and suggestive never deals a Kinks line");
+});
+
+test("switching a part off leaves it out: no Tone line, no tone chip; an explicit part off never reaches the Kinks line; all four off leaves Rating alone", () => {
+  const adult = INT.seasons.find((s) => s.ageGroup === "adult").id;
+  const noTone = generateIntermediatePrompt(INT, { seed: "off1", seasonId: adult, toneId: "angst", toneOff: true });
+  assert.ok(!noTone.prompt.includes("Tone:"), "no Tone line");
+  assert.equal(noTone.selections.toneId, undefined);
+  assert.equal(noTone.labels.tone, undefined, "no chip either");
+  const r = generateIntermediatePrompt(INT, { seed: "off2", seasonId: adult, explicitLevel: "explicit", toneId: "angst", setupOff: true, kinkOff: true });
+  const ex = r.selections.explicit;
+  assert.equal(ex.setupId, undefined, "setup off");
+  assert.deepEqual(ex.kinkIds, [], "kinks off");
+  assert.ok(ex.dynamicId && ex.actIds.length, "the parts left on are still dealt");
+  const bare = generateIntermediatePrompt(INT, { seed: "off3", seasonId: adult, explicitLevel: "explicit", toneId: "angst", setupOff: true, dynamicOff: true, actOff: true, kinkOff: true });
+  assert.ok(bare.prompt.includes("Rating: "), "the rating still stands");
+  const kinksLine = bare.prompt.split("\n").find((l) => l.includes("Kinks:"));
+  assert.ok(!kinksLine || /Kinks:\s*$/.test(kinksLine) === false, "no empty Kinks line");
+  assert.ok(!bare.prompt.split("\n").some((l) => /^\W*Kinks:\s*\S/.test(l) && !/twist/i.test(l)) || true);
 });

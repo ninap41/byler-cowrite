@@ -65,8 +65,8 @@ same ballot are damped (÷3), not banned.
    relationship's `together` / `not-together` / `exes` tags so a
    getting-together trope never lands on a couple.
 6. **Explicit layer** (adult season + level `explicit` only): one setup, one
-   dynamic, 1–2 acts, 1–2 weighted kinks, one register — each its own line
-   (one `Kinks:` line (setup · dynamic · acts · kinks · register), tags within a line
+   dynamic, 1–2 acts, 1–2 weighted kinks (registers are deprecated: never dealt) — each its own line
+   (one `Kinks:` line (setup · dynamic · acts · kinks), tags within a line
    joined by ` · `) after a `Rating: explicit` line. `suggestive` adds just
    `Rating: suggestive`.
 

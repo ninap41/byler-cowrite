@@ -188,10 +188,11 @@ test("the host rerolls one option and keeps the rest; votes on it drop; nobody e
 test("/api/prompt-options ships the explicit dropdown pools as ids + labels, never clause text; set-prompt-mode keeps the pins and the ballot honours them", async () => {
   const r = await ctx.api("/api/prompt-options", undefined);
   const d = r.data.intermediate;
-  for (const k of ["setups", "dynamics", "acts", "kinks", "registers"]) {
+  for (const k of ["setups", "dynamics", "acts", "kinks"]) {
     assert.ok(Array.isArray(d[k]) && d[k].length, k + " shipped");
     assert.ok(d[k].every((x) => x.id && x.label && !("text" in x)), k + " rows are id/label/rules only");
   }
+  assert.equal(d.registers, undefined, "registers are deprecated: not shipped");
   const { A, state } = await choosing();
   const adult = d.seasons.find((s) => s.ageGroup === "adult").id;
   const kink = d.kinks[0].id;
@@ -207,4 +208,20 @@ test("/api/prompt-options ships the explicit dropdown pools as ids + labels, nev
   const dealt = st.optionMeta.filter(Boolean);
   assert.ok(dealt.length, "guided options were dealt");
   for (const m of dealt) if (m.selections.explicit) assert.equal(m.selections.explicit.kinkIds[0], kink, "every explicit option leads its kinks with the pin");
+});
+
+test("a part switched off never reaches the card: toneOff drops the Tone line and chip from every dealt option; the flags survive the wire", async () => {
+  const { A, state } = await choosing();
+  const res = await ctx.emit(A, "set-prompt-mode", {
+    mode: "intermediate",
+    controls: { toneId: "angst", toneOff: true, explicitLevel: "explicit", seasonId: "post-canon", kinkOff: "yes" },
+  });
+  assert.equal(res.ok, true);
+  await ctx.wait(120);
+  const st = state.current;
+  assert.equal(st.promptControls.toneOff, true);
+  assert.equal(st.promptControls.kinkOff, false, "only a real boolean switches a part off");
+  assert.equal(st.promptControls.registerId, undefined, "registers are gone from the controls");
+  for (const p of st.options) assert.ok(!p.includes("Tone:"), "no Tone line on the card");
+  for (const m of st.optionMeta.filter(Boolean)) assert.equal(m.labels.tone, undefined, "no tone chip");
 });

@@ -30,7 +30,6 @@ const MENUS = {
     dynamics: [{ id: "switch", label: "Switch" }],
     acts: [{ id: "kissing", label: "Kissing" }],
     kinks: [{ id: "praise", label: "Praise" }],
-    registers: [{ id: "tender", label: "Tender" }],
     explicitLevels: [
       { id: "none", label: "None", adultOnly: false },
       { id: "suggestive", label: "Suggestive", adultOnly: false },
@@ -304,7 +303,8 @@ test("the explicit dropdowns appear past None, are enabled only at Explicit, and
   const pm = mountPromptModes(root, { prefix: "x" }).setMenus(MENUS);
   fire(root.querySelector("#xMode-intermediate"));
   const wrap = (s) => root.querySelector("#x" + s + "Wrap");
-  for (const s of ["Setup", "Dynamic", "Act", "Kink", "Register"]) assert.ok(wrap(s).classList.contains("hidden"), s + " hidden under None");
+  for (const s of ["Setup", "Dynamic", "Act", "Kink"]) assert.ok(wrap(s).classList.contains("hidden"), s + " hidden under None");
+  assert.equal(root.querySelector("#xRegister"), null, "registers are deprecated: no menu");
   root.querySelector("#xSeason").value = "post-canon";
   fire(root.querySelector("#xSeason"), "change");
   root.querySelector("#xExplicit").value = "suggestive";
@@ -334,4 +334,47 @@ test("the explicit dropdowns appear past None, are enabled only at Explicit, and
   fire(root.querySelector("#xExplicit"), "change");
   assert.ok(wrap("Setup").classList.contains("hidden"));
   assert.equal(pm.values().promptControls.setupId, "random");
+});
+
+test("a checkbox beside Tone and each explicit part leaves it out: the menu greys to Random, the flag rides in the controls, and setState paints it back", () => {
+  const root = mount("");
+  const pm = mountPromptModes(root, { prefix: "o" }).setMenus(MENUS);
+  fire(root.querySelector("#oMode-intermediate"));
+  const box = (s) => root.querySelector("#o" + s + "Off");
+  assert.ok(box("Tone") && box("Setup") && box("Dynamic") && box("Act") && box("Kink"), "one checkbox per switchable part");
+  assert.equal(box("Season"), null, "season, canon, place… can't be left out");
+  root.querySelector("#oTone").value = "angst";
+  fire(root.querySelector("#oTone"), "change");
+  assert.equal(pm.values().promptControls.toneId, "angst");
+  box("Tone").checked = true;
+  fire(box("Tone"), "change");
+  let c = pm.values().promptControls;
+  assert.equal(c.toneOff, true);
+  assert.equal(c.toneId, "random", "a part that's out has no pick");
+  assert.equal(root.querySelector("#oTone").disabled, true);
+  box("Tone").checked = false;
+  fire(box("Tone"), "change");
+  assert.equal(root.querySelector("#oTone").disabled, false);
+  // explicit parts: their boxes wake with the menus, at Explicit
+  root.querySelector("#oSeason").value = "post-canon";
+  fire(root.querySelector("#oSeason"), "change");
+  root.querySelector("#oExplicit").value = "suggestive";
+  fire(root.querySelector("#oExplicit"), "change");
+  assert.equal(box("Kink").disabled, true, "nothing to leave out under Suggestive");
+  root.querySelector("#oExplicit").value = "explicit";
+  fire(root.querySelector("#oExplicit"), "change");
+  assert.equal(box("Kink").disabled, false);
+  box("Kink").checked = true;
+  fire(box("Kink"), "change");
+  c = pm.values().promptControls;
+  assert.equal(c.kinkOff, true);
+  assert.equal(c.setupOff, false);
+  // the server's state paints the boxes without firing back
+  let fired = 0;
+  const pm2 = mountPromptModes(mount(""), { prefix: "p", onChange: () => fired++ }).setMenus(MENUS);
+  pm2.setState("intermediate", { seasonId: "post-canon", explicitLevel: "explicit", toneOff: true, actOff: true });
+  assert.equal(fired, 0);
+  const v = pm2.values().promptControls;
+  assert.equal(v.toneOff, true);
+  assert.equal(v.actOff, true);
 });

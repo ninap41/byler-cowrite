@@ -63,7 +63,12 @@ function cleanPromptControls(c = {}) {
     dynamicId: id(c.dynamicId),
     actId: id(c.actId),
     kinkId: id(c.kinkId),
-    registerId: id(c.registerId),
+    // Parts the host switched off: never drawn, never on the card.
+    toneOff: c.toneOff === true,
+    setupOff: c.setupOff === true,
+    dynamicOff: c.dynamicOff === true,
+    actOff: c.actOff === true,
+    kinkOff: c.kinkOff === true,
   };
 }
 const cleanPromptMode = (m) => (MODES.includes(m) && (m !== "intermediate" || INTERMEDIATE) ? m : "simple");

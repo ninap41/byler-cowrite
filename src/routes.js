@@ -107,7 +107,6 @@ export function registerRoutes(app, game) {
         dynamics: menu(data.explicit?.dynamics),
         acts: menu(data.explicit?.acts),
         kinks: menu(data.explicit?.kinks),
-        registers: menu(data.explicit?.registers),
         tropeGroups: Object.entries(data.tropeGroups || {}).map(([id, label]) => ({ id, label })),
       },
     });
