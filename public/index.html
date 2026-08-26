@@ -329,6 +329,20 @@
 				// The hero must NEVER be an invisible click-shield: if the write-in
 				// stalls (background tab, throttled rAF), force the finished frame so
 				// the Enter button is always reachable.
+				// The title is the pack's fandom + "Cowrite", so each line is fitted
+				// to the 900-wide stage after the fonts land: a word wider than the
+				// stage is scaled down (never up — short names keep the set size).
+				// Measured, not guessed, so "Heated Rivalry" fits as surely as "Byler".
+				var HERO_STAGE = 840
+				function fitHeroWords() {
+					;["heroWord1", "heroWord2"].forEach(function (id) {
+						var el = document.getElementById(id)
+						if (!el || !el.getComputedTextLength) return
+						el.style.fontSize = ""
+						var w = el.getComputedTextLength()
+						if (w > HERO_STAGE) el.style.fontSize = Math.max(36, Math.floor(104 * HERO_STAGE / w)) + "px"
+					})
+				}
 				function heroFinish() {
 					var words = ["#heroWord1", "#heroWord2"]
 					gsap.killTweensOf([words, "#heroUnderline", "#heroTag", "#heroBtns", logoEl, logoRays, logoQuill])
@@ -464,6 +478,7 @@
 					var quoteReady = Promise.race([window._quoteFetch || Promise.resolve(), new Promise((r) => setTimeout(r, 800))])
 					Promise.all([fontsReady, quoteReady]).then(function () {
 						tagFullText = tagSpanEl.textContent // whatever won the race is what we type
+						fitHeroWords()
 						heroWriteIn()
 					})
 				}

@@ -538,7 +538,8 @@ test("host controls are the comments drawer, on the game page", async () => {
 // <meta name="site-name"> the client modules read.
 test("pages are rendered from site.json: no raw tokens, name in title, meta injected", async () => {
   const { readFileSync } = await import("node:fs");
-  const NAME = JSON.parse(readFileSync(new URL("../content/site.json", import.meta.url), "utf-8")).name;
+  const site = JSON.parse(readFileSync(new URL("../content/site.json", import.meta.url), "utf-8"));
+  const NAME = site.name || `${site.fandom} Cowrite`; // derived when the pack doesn't name the app
   for (const path of ["/", "/index.html", "/dashboard", "/game", "/reset.html"]) {
     const r = await page(path);
     assert.equal(r.status, 200, path);
@@ -548,6 +549,8 @@ test("pages are rendered from site.json: no raw tokens, name in title, meta inje
   }
   const home = await page("/");
   assert.ok(home.body.includes('id="heroWord1" class="hero-word-svg" x="450" y="110">Byler<'), "the hero's first word is the fandom");
+  assert.ok(home.body.includes("function fitHeroWords"), "and it is fitted to the stage after the fonts land");
+  assert.ok(home.body.includes("getComputedTextLength"), "by measuring, not guessing");
 });
 
 test("/games is the coming-soon page, linked from the nav drawer and the dashboard rail", async () => {

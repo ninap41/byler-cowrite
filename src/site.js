@@ -18,6 +18,9 @@ function load() {
   for (const k of Object.keys(DEFAULTS)) {
     if (typeof raw[k] === "string" && raw[k].trim()) out[k] = raw[k].trim().slice(0, 200);
   }
+  // The name is "<fandom> Cowrite" unless the pack names the app itself:
+  // Byler Cowrite, Heated Rivalry Cowrite… one field to change per fandom.
+  if (!(typeof raw.name === "string" && raw.name.trim())) out.name = `${out.fandom} Cowrite`;
   return out;
 }
 
