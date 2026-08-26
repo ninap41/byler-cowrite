@@ -29,9 +29,9 @@ const httpServer = createServer(app);
 const io = new Server(httpServer);
 // Pages, ES modules, and CSS must never be served stale: a cached old module
 // mixed with a new one breaks the whole import graph (buttons render but no
-// handler attaches). Sounds are immutable-ish and may cache.
+// handler attaches). Sounds and pinned vendor libraries (GSAP) may cache.
 app.use((req, res, next) => {
-  if (!req.path.startsWith("/sounds/")) res.set("Cache-Control", "no-store");
+  if (!req.path.startsWith("/sounds/") && !req.path.startsWith("/vendor/")) res.set("Cache-Control", "no-store");
   next();
 });
 // Pages are rendered, not served raw: renderPage() fills the {{SITE_NAME}}-style
@@ -51,6 +51,7 @@ for (const page of PAGES) {
 }
 app.use(express.static(join(__dirname, "public")));
 app.use("/sounds", express.static(join(__dirname, "sounds"), { maxAge: "7d" }));
+app.use("/vendor", express.static(join(__dirname, "public", "vendor"), { maxAge: "7d" }));
 app.use(express.json({ limit: "2mb" })); // the admin prompt editor PUTs the whole library
 
 const game = createGame(io); // owns sessions, presence, saves/, socket handlers
