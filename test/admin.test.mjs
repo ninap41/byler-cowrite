@@ -503,3 +503,20 @@ test("an admin downloads the live content pack as a zip; a normal account can't"
     await c.stop();
   }
 });
+
+test("GET /api/admin/smtp reports the email setup to an admin only, never a secret's value", async () => {
+  // the shared admin already exists on ctx (the storage test made it): sign in
+  const admin = (await ctx.api("/api/login", { user: "storageadmin", password: "1234" })).data;
+  const normie = await signup(ctx, "smtpnormie", "smtp@example.com");
+  const denied = await ctx.api("/api/admin/smtp", undefined, normie.token);
+  assert.equal(denied.status, 403);
+  const r = await ctx.api("/api/admin/smtp", undefined, admin.token);
+  assert.equal(r.status, 200);
+  // the test server has no SMTP_HOST: it says so, and says which vars are set as booleans
+  assert.equal(r.data.ok, false);
+  assert.match(r.data.error, /SMTP_HOST is not set/);
+  assert.equal(typeof r.data.configured.host, "boolean");
+  assert.equal(typeof r.data.configured.pass, "boolean");
+  const page = await fetch(ctx.url + "/admin").then((x) => x.text());
+  assert.ok(page.includes('id="adminSmtp"'), "the check has a button on /admin");
+});

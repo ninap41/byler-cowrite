@@ -73,6 +73,13 @@
 					right now, zipped in the repo's own layout (content/, writers-reference/) so it can be dropped back in.
 				</p>
 				<div class="row"><button class="ghost" id="adminDownload">⬇ Download content</button><span id="adminDownloadMsg" class="gc-meta"></span></div>
+
+				<h3 style="margin: 26px 0 8px">Email (SMTP)</h3>
+				<p class="subtle" style="text-align: left; margin: 0 0 10px">
+					Password-reset links go out over SMTP. When a reset says "try again later", this check connects and logs in
+					with the configured secrets and shows the real reason.
+				</p>
+				<div class="row"><button class="ghost" id="adminSmtp">✉ Check email setup</button><span id="adminSmtpMsg" class="gc-meta"></span></div>
 			</div>
 		</div>
 
@@ -162,6 +169,18 @@
 					setTimeout(() => URL.revokeObjectURL(url), 5000)
 					msg.textContent = "Saved " + name
 				} catch (e) { msg.textContent = "Couldn't download: " + e.message }
+			})
+
+			// ---- SMTP check ----
+			$("adminSmtp").addEventListener("click", async () => {
+				const msg = $("adminSmtpMsg")
+				msg.textContent = "Connecting…"
+				try {
+					const r = await api("/api/admin/smtp", null, "GET")
+					const c = r.configured || {}
+					const vars = `host ${c.host ? "✓" : "✗"} · port ${c.port} · user ${c.user ? "✓" : "✗"} · pass ${c.pass ? "✓" : "✗"} · from ${c.from ? "✓" : "✗"}`
+					msg.textContent = r.ok ? `✓ Connected and logged in. ${vars}` : `✗ ${r.error}${r.code ? " (" + r.code + ")" : ""} — ${vars}`
+				} catch (e) { msg.textContent = "Couldn't check: " + e.message }
 			})
 
 			// ---- Writers' reference editor ----

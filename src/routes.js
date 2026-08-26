@@ -49,22 +49,47 @@ const USER_CAP = Number(process.env.COWRITE_MAX_USERS || 100);
 // Forgot password: email a reset link (valid 30 minutes). Without SMTP env
 // vars the link is logged locally for development — it is never returned to
 // the browser.
-async function sendResetEmail(to, link) {
-  const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM } = process.env;
-  if (!SMTP_HOST) {
-    console.log(`[reset] Password reset link for ${to}: ${link}`);
-    return;
-  }
+// The transport is built from the env each time, so a secret edited on
+// Replit takes effect without a restart. Timeouts are short on purpose: a
+// blocked port otherwise hangs the request for minutes before failing.
+async function smtpTransport() {
+  const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS } = process.env;
   const port = Number(SMTP_PORT || 587);
   if (!Number.isInteger(port) || port < 1 || port > 65535)
     throw new Error("SMTP_PORT must be an integer between 1 and 65535");
   const nodemailer = (await import("nodemailer")).default;
-  const transport = nodemailer.createTransport({
+  return nodemailer.createTransport({
     host: SMTP_HOST,
     port,
     secure: port === 465,
     auth: SMTP_USER ? { user: SMTP_USER, pass: SMTP_PASS } : undefined,
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 20_000,
   });
+}
+// What /admin's SMTP check reports: which vars are set (never their values)
+// and, when a host is configured, whether a real connection + login works —
+// the underlying error message included, because that is the whole point.
+export async function smtpStatus() {
+  const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM } = process.env;
+  const configured = { host: !!SMTP_HOST, port: SMTP_PORT || "587 (default)", user: !!SMTP_USER, pass: !!SMTP_PASS, from: !!(SMTP_FROM || SMTP_USER) };
+  if (!SMTP_HOST) return { ok: false, configured, error: "SMTP_HOST is not set: reset links are only logged to the console." };
+  try {
+    const t = await smtpTransport();
+    await t.verify();
+    return { ok: true, configured };
+  } catch (e) {
+    return { ok: false, configured, error: e.message, code: e.code };
+  }
+}
+async function sendResetEmail(to, link) {
+  const { SMTP_HOST, SMTP_USER, SMTP_FROM } = process.env;
+  if (!SMTP_HOST) {
+    console.log(`[reset] Password reset link for ${to}: ${link}`);
+    return;
+  }
+  const transport = await smtpTransport();
   await transport.sendMail({
     from: SMTP_FROM || SMTP_USER,
     to,
@@ -1041,6 +1066,14 @@ export function registerRoutes(app, game) {
   // Where the data lives and whether writes are landing: "files" locally,
   // "postgres" on Replit. lastError surfaces a failed upsert that would
   // otherwise only be a server log line.
+  // Why did a reset email fail? Verifies the SMTP transport and returns the
+  // real error to an admin (the reset route only ever says "try again later").
+  app.get("/api/admin/smtp", async (req, res) => {
+    const u = authedUser(req);
+    if (!isAdmin(u)) return res.status(403).json({ error: "Admins only." });
+    res.json(await smtpStatus());
+  });
+
   app.get("/api/admin/storage", (req, res) => {
     const u = authedUser(req);
     if (!isAdmin(u)) return res.status(403).json({ error: "Admins only." });
