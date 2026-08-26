@@ -92,11 +92,11 @@ test("the dashboard rail is navigation: inbox count, start, join, solo write", a
   assert.ok(rail.includes('aria-expanded="false"') && rail.includes('aria-controls="joinFold"'), "and says so");
   assert.ok(body.includes('$("code").focus()'), "opening it puts the caret where you'd type");
 
-  // the quote lives here too; friends moved beside the writers directory,
-  // because they are two columns of the same question
+  // the friends card sits between the nav and the quote in the rail; the
+  // writers directory is a full-width card of its own in the main column
   assert.ok(rail.includes('class="card quote-card"'), "the quote is in the rail");
-  assert.ok(!rail.includes('id="friendsBox"'), "friends are not");
+  assert.ok(rail.includes('id="friendsBox"'), "and so are friends");
+  assert.ok(rail.indexOf('class="card dash-nav"') < rail.indexOf('class="card friends-card"') && rail.indexOf('class="card friends-card"') < rail.indexOf('class="card quote-card"'), "nav, friends, quote");
   const main = body.slice(0, body.indexOf("RIGHT RAIL"));
-  assert.ok(main.includes('class="writers-split"'), "writers and friends share one card");
-  assert.ok(main.indexOf('id="writerSearch"') < main.indexOf('id="friendsBox"'), "search first, friends beside it");
+  assert.ok(main.includes('id="writerSearch"') && !main.includes("writers-split"), "writers span their own card");
 });

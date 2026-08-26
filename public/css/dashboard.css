@@ -406,20 +406,8 @@ a.rg-row {
    Everyone on the left to search through, the people you already know on the
    right. Under 860px they stack, because two lists of names side by side on a
    phone is two half-lists. */
-.writers-split {
-	display: grid;
-	grid-template-columns: 1.35fr 1fr;
-	gap: 18px 24px;
-	align-items: start;
-}
-.writers-split .wsplit-col {
-	min-width: 0;
-}
-@media (max-width: 860px) {
-	.writers-split {
-		grid-template-columns: 1fr;
-	}
-}
+/* Writers is one full-width card; Friends sits in the rail under the nav. */
+.friends-card { text-align: left; }
 
 /* ---- inbox ---- */
 /* A row is an entry in a list, not a card: no outline, no rounded corners —

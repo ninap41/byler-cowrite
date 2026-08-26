@@ -288,7 +288,7 @@ export function latestAnnouncementHtml(post) {
 	const headed = /<h[1-3]\b/i.test(post.html || "")
 	return (
 		`<div class="ann-glimpse">` +
-		`<span class="ann-glimpse-tag">📣 Announcement${when ? ` · ${esc(when)}` : ""}</span>` +
+		`<span class="ann-glimpse-tag"><span class="ann-horn" aria-hidden="true">📣</span> Announcement${when ? ` · ${esc(when)}` : ""}</span>` +
 		(headed ? `<b class="ann-glimpse-title">${esc(post.title || "")}</b>` : "") +
 		// Read more rides at the end of the preview's last line, not on its own
 		`<p class="ann-glimpse-text">${esc(previewText(post.html))} <a class="ann-glimpse-more" href="/announcements">Read more →</a></p>` +

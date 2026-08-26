@@ -98,21 +98,12 @@
 						<div id="dashWrites"></div>
 					</div>
 
-					<!-- writers directory + friends: two columns of the same question,
-					     "who else is here", everyone on the left to search through,
-					     the ones you already know on the right. -->
+					<!-- writers directory: everyone with an account, the full width
+					     of the column to search through (friends live in the rail) -->
 					<div class="card">
-						<div class="writers-split">
-							<section class="wsplit-col">
-								<h3 class="dash-h" style="margin-top: 0">Writers</h3>
-								<input id="writerSearch" placeholder="Search writers…" style="margin-top: 10px" />
-								<div id="writersList"></div>
-							</section>
-							<section class="wsplit-col">
-								<h3 class="dash-h" style="margin-top: 0">Friends</h3>
-								<div id="friendsBox"></div>
-							</section>
-						</div>
+						<h3 class="dash-h" style="margin-top: 0">Writers</h3>
+						<input id="writerSearch" placeholder="Search writers…" style="margin-top: 10px" />
+						<div id="writersList"></div>
 					</div>
 
 					<!-- previous games (achievements + streak live in the right rail) -->
@@ -176,6 +167,12 @@
 						<div class="err" id="lobbyErr"></div>
 					</nav>
 
+					<!-- the people you already know, under the nav -->
+					<div class="card friends-card">
+						<h3 class="dash-h" style="margin-top: 0">Friends</h3>
+						<div id="friendsBox"></div>
+					</div>
+
 					<div class="card quote-card">
 						<span class="qmark">&ldquo;</span>
 						<span id="quoteText">Every story is better together. One turn at a time.</span>
@@ -206,7 +203,7 @@
 			import { showInviteToast } from "/js/turn-alert.js"
 			import { soloListHtml, wireSoloDeletes } from "/js/write-view.js"
 			import { confirmDialog } from "/js/components/confirm-delete.js"
-			import { mountLiquidCard } from "/js/components/liquid-card.js"
+			import { mountTendrilBorder } from "/js/components/tendril-border.js"
 
 			mountChrome({ page: "dashboard" })
 			const $ = (id) => document.getElementById(id)
@@ -573,9 +570,10 @@
 					if (!post) return
 					$("annCard").innerHTML = latestAnnouncementHtml(post)
 					$("annCard").classList.remove("hidden")
-					// the newest word from the admins arrives on water: the card's
-					// edges ripple in the theme's colour (components/liquid-card.js)
-					mountLiquidCard($("annCard"))
+					// the newest word from the admins draws its own border in the
+					// theme's accent, then a gradient keeps glimmering along it
+					const card = $("annCard")
+					mountTendrilBorder(card, { horn: card.querySelector(".ann-horn") })
 				} catch (e) { /* no card */ }
 			}
 
