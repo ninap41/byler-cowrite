@@ -16,13 +16,14 @@
 		/>
 		<script src="https://kit.fontawesome.com/60a456108b.js" crossorigin="anonymous"></script>
 		<link rel="stylesheet" href="/css/base.css" />
+		<link rel="stylesheet" href="/css/home.css" />
 		<script>
 			// Signed-in visitors go straight to the dashboard BEFORE the hero
 			// paints — a stale token bounces back here already cleared, so no loop.
 			if (localStorage.getItem("cowriteAuth")) location.replace("/dashboard")
 		</script>
 	</head>
-	<body>
+	<body class="home-page">
 		<!-- HERO LANDING -->
 		<div class="hero" id="hero">
 			<div class="hero-inner">
@@ -52,6 +53,7 @@
 				<div class="hero-btns" id="heroBtns">
 					<button class="primary" id="heroEnter">Enter →</button>
 				</div>
+				<button class="hero-more" id="heroMore" type="button"><span>or take the tour</span><span class="arrow">↓</span></button>
 			</div>
 		</div>
 
@@ -85,9 +87,21 @@
 		</div>
 
 		<div class="wrap">
-			<h1>{{SITE_NAME}}</h1>
-			<p class="tag">{{TAGLINE}}</p>
+			<!-- The tour's sticky bar: brand, chapter rail, log in -->
+			<div class="tour-bar" id="tourBar">
+				<span id="barLogo"></span>
+				<a class="bar-name" href="/">{{SITE_NAME}}</a>
+				<span class="tour-rail"><span>the tour</span><span class="tour-dots" id="tourDots"></span></span>
+				<button class="primary bar-login" id="barLogin">Log in</button>
+			</div>
 
+			<!-- Start here: the claim beside the auth card -->
+			<section class="home-start" id="start">
+				<div>
+					<p class="kicker">Start here</p>
+					<h2>{{BLURB}}</h2>
+					<p class="lede">Playing and hosting both require an account. Spectating never does — scroll on and watch a story being written this minute.</p>
+				</div>
 			<div class="main">
 				<!-- HOMEPAGE AUTH (choice -> login/signup/forgot pane) -->
 				<div id="lobby" class="card">
@@ -168,15 +182,31 @@
 				</div>
 			</div>
 			<!-- /main -->
+			</section>
+
+			<!-- The tour: one panel per feature, built by js/tour-screens.js -->
+			<div class="tour" id="tour"></div>
+
+			<div class="home-close">
+				<div class="card">
+					<span id="closeLogo"></span>
+					<h3>Everyone holds the pen.</h3>
+					<p>Sign up, or watch a live story without an account.</p>
+					<div class="row"><button class="primary" id="closeSignup">Create account</button><button class="ghost" id="closeWatch">👁 Watch a story</button></div>
+				</div>
+			</div>
 		</div>
 
 		<script type="module">
 			import { api, getToken, setToken } from "/js/api.js"
 			import { mountChrome } from "/js/chrome.js"
 			import { wireAuthForms } from "/js/components/auth-forms.js"
-			import { heroMarkHtml } from "/js/logo.js"
+			import { heroMarkHtml, logoHtml } from "/js/logo.js"
+			import { tourHtml, tourDotsHtml, TOUR } from "/js/tour-screens.js"
 
+			const $ = (id) => document.getElementById(id)
 			mountChrome({ nav: false }) // homepage: no drawer, just theme + background
+			mountTour()
 			// Spiral + quill in one svg; the GSAP script has the quill draw the spiral.
 			document.getElementById("heroLogo").innerHTML = heroMarkHtml("hero")
 			// Already signed in (valid token)? Straight to the dashboard.
@@ -243,7 +273,6 @@
 			})
 
 			// ---- Features modal (opens from the hero tagline) ----
-			const $ = (id) => document.getElementById(id)
 			// Random tagline from quotes.json — swap it in before (or while) the
 			// hero types it out; the animation script awaits this promise.
 			window._quoteFetch = fetch("/api/quote")
@@ -265,6 +294,57 @@
 			$("heroEnter").onclick = () => {
 				if (window._heroExit) window._heroExit()
 				else $("hero").classList.add("hidden")
+			}
+
+			// ---- The tour ----
+			function scrollTo(id) {
+				const el = $(id)
+				if (!el) return
+				if (!$("hero").classList.contains("hidden")) {
+					// leaving the hero the same way Enter does, then landing on the target
+					if (window._heroExit) window._heroExit()
+					else $("hero").classList.add("hidden")
+					setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "start" }), 700)
+				} else el.scrollIntoView({ behavior: "smooth", block: "start" })
+			}
+			function mountTour() {
+				$("barLogo").innerHTML = logoHtml("bar")
+				$("closeLogo").innerHTML = logoHtml("close")
+				$("tour").innerHTML = tourHtml()
+				$("tourDots").innerHTML = tourDotsHtml()
+				// the theme the visitor wears is marked in the themes screen — and a
+				// click on any thumb previews it on the spot (attribute only, not saved)
+				const wearing = document.documentElement.getAttribute("data-theme") || "neon"
+				document.querySelectorAll(".ts-theme[data-theme-id]").forEach((t) => {
+					t.classList.toggle("on", t.dataset.themeId === wearing)
+					t.onclick = () => {
+						document.documentElement.setAttribute("data-theme", t.dataset.themeId)
+						document.querySelectorAll(".ts-theme[data-theme-id]").forEach((o) => o.classList.toggle("on", o === t))
+					}
+				})
+				// screens fade up as they arrive; the chapter rail follows the reader
+				const dots = [...document.querySelectorAll(".tour-dot")]
+				if ("IntersectionObserver" in window) {
+					const reveal = new IntersectionObserver((es) => es.forEach((e) => e.isIntersecting && e.target.classList.add("in")), { rootMargin: "0px 0px -12% 0px" })
+					document.querySelectorAll(".tour-screen").forEach((el) => reveal.observe(el))
+					const rail = new IntersectionObserver(
+						(es) => es.forEach((e) => {
+							if (!e.isIntersecting) return
+							const i = +e.target.dataset.chapter
+							dots.forEach((d, j) => d.classList.toggle("on", i === j))
+						}),
+						{ rootMargin: "-40% 0px -55% 0px" },
+					)
+					document.querySelectorAll(".tour-panel").forEach((el) => rail.observe(el))
+				} else document.querySelectorAll(".tour-screen").forEach((el) => el.classList.add("in"))
+				dots.forEach((d, i) => (d.onclick = (e) => { e.preventDefault(); scrollTo("tour-" + TOUR[i].id) }))
+				$("heroMore").onclick = () => scrollTo("tour")
+				$("barLogin").onclick = () => { $("chLogin").click(); scrollTo("start") }
+				$("closeSignup").onclick = () => { $("chSignup").click(); scrollTo("start") }
+				$("closeWatch").onclick = () => {
+					const live = $("liveWatch")
+					if (live.classList.contains("hidden")) { $("chSignup").click(); scrollTo("start") } else scrollTo("liveWatch")
+				}
 			}
 
 			// ---- Live stories: spectate without an account ----
@@ -354,7 +434,7 @@
 					}
 					gsap.set(words, { fillOpacity: 1, strokeDashoffset: 0, strokeWidth: 1.6, strokeDasharray: HERO_DASH })
 					gsap.set("#heroUnderline", { strokeDashoffset: 0 })
-					gsap.set(["#heroTag", "#heroBtns"], { opacity: 1, y: 0, clearProps: "transform" })
+					gsap.set(["#heroTag", "#heroBtns", "#heroMore"], { opacity: 1, y: 0, clearProps: "transform" })
 					tagSpanEl.textContent = tagFullText
 				}
 				function heroWriteIn() {
@@ -372,6 +452,7 @@
 					tagSpan.textContent = ""
 					gsap.set("#heroTag", { opacity: 0 })
 					gsap.set("#heroBtns", { opacity: 0, y: 16 })
+					gsap.set("#heroMore", { opacity: 0 })
 					// hard guarantee: whatever happens to the timeline, the finished
 					// frame lands within 9s (and instantly if the tab goes hidden)
 					setTimeout(heroFinish, 9000)
@@ -469,6 +550,7 @@
 							"-=0.35",
 						)
 						.to("#heroBtns", { opacity: 1, y: 0, duration: 0.6, ease: "power2.out", clearProps: "transform" }, "-=0.2")
+						.to("#heroMore", { opacity: 1, duration: 0.6, ease: "power2.out" }, "-=0.3")
 					return tl
 				}
 				if (heroEl && !heroEl.classList.contains("hidden")) {
@@ -527,7 +609,7 @@
 					gsap.to(underline, { strokeDashoffset: underline.getTotalLength(), duration: 0.35, ease: "power2.in" })
 					gsap.to(words, { fillOpacity: 0, duration: 0.35, ease: "power2.in" })
 					gsap.to(words, { strokeDashoffset: HERO_DASH, duration: 0.55, delay: 0.1, ease: "power2.in" })
-					gsap.to(["#heroTag", "#heroBtns"], { opacity: 0, y: 14, duration: 0.35, ease: "power2.in" })
+					gsap.to(["#heroTag", "#heroBtns", "#heroMore"], { opacity: 0, y: 14, duration: 0.35, ease: "power2.in" })
 					gsap.to(heroEl, { opacity: 0, duration: 0.5, delay: 0.45, ease: "power2.in", onComplete: revealLobby })
 				}
 
@@ -552,7 +634,7 @@
 						wasHidden = nowHidden
 					}).observe(el, { attributes: true, attributeFilter: ["class"] })
 				})
-				gsap.fromTo("h1", { opacity: 0, y: -10 }, { opacity: 1, y: 0, duration: 0.7, ease: "power3.out" })
+				gsap.fromTo(".home-start h2", { opacity: 0, y: -10 }, { opacity: 1, y: 0, duration: 0.7, ease: "power3.out" })
 			})()
 		</script>
 	</body>
