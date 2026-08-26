@@ -49,9 +49,9 @@ for (const page of PAGES) {
   app.get("/" + page + ".html", servePage(page));
   if (page !== "index") app.get("/" + page, servePage(page));
 }
+app.use("/vendor", express.static(join(__dirname, "public", "vendor"), { maxAge: "7d" })); // before the general static, or it would answer first
 app.use(express.static(join(__dirname, "public")));
 app.use("/sounds", express.static(join(__dirname, "sounds"), { maxAge: "7d" }));
-app.use("/vendor", express.static(join(__dirname, "public", "vendor"), { maxAge: "7d" }));
 app.use(express.json({ limit: "2mb" })); // the admin prompt editor PUTs the whole library
 
 const game = createGame(io); // owns sessions, presence, saves/, socket handlers
