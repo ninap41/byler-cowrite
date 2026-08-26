@@ -59,6 +59,13 @@
 				</p>
 				<div id="adminPrompts"></div>
 
+				<h3 style="margin: 26px 0 8px">Content backup</h3>
+				<p class="subtle" style="text-align: left; margin: 0 0 10px">
+					Everything above as files: the content pack and the writers' reference exactly as this site holds them
+					right now, zipped in the repo's own layout (content/, writers-reference/) so it can be dropped back in.
+				</p>
+				<div class="row"><button class="ghost" id="adminDownload">⬇ Download content</button><span id="adminDownloadMsg" class="gc-meta"></span></div>
+
 				<h3 style="margin: 26px 0 8px">Writers' reference</h3>
 				<p class="subtle" style="text-align: left; margin: 0 0 10px">
 					The word bank behind the "/" palette in solo writes, by category, one word or phrase per line.
@@ -69,7 +76,7 @@
 		</div>
 
 		<script type="module">
-			import { api } from "/js/api.js"
+			import { api, getToken } from "/js/api.js"
 			import { mountChrome, setUserChip } from "/js/chrome.js"
 			import { requireAuth } from "/js/auth-guard.js"
 			import { adminGamesHtml, adminUsersHtml, filterAdminUsers, adminUserCount, promptEditorHtml, promptRowHtml, readPromptEditor, PROMPT_POOLS, auWorldHtml, refEditorHtml, refCategoryHtml, refKey, readRefGroup, badgeEditorHtml, badgeRowHtml, readBadgeEditor, BADGE_POOLS } from "/js/admin-view.js"
@@ -138,6 +145,22 @@
 					status.textContent = "⚠ " + (err.data?.errors?.join(" · ") || err.message || "That didn't save.")
 					save.disabled = false
 				}
+			})
+
+			// ---- Content backup ----
+			$("adminDownload").addEventListener("click", async () => {
+				const msg = $("adminDownloadMsg")
+				msg.textContent = "Packing…"
+				try {
+					const r = await fetch("/api/admin/content.zip", { headers: { Authorization: "Bearer " + getToken() } })
+					if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || r.statusText)
+					const name = (r.headers.get("Content-Disposition") || "").match(/filename="([^"]+)"/)?.[1] || "content.zip"
+					const url = URL.createObjectURL(await r.blob())
+					const a = Object.assign(document.createElement("a"), { href: url, download: name })
+					document.body.appendChild(a); a.click(); a.remove()
+					setTimeout(() => URL.revokeObjectURL(url), 5000)
+					msg.textContent = "Saved " + name
+				} catch (e) { msg.textContent = "Couldn't download: " + e.message }
 			})
 
 			// ---- Writers' reference editor ----

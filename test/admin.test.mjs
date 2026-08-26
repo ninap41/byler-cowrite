@@ -467,3 +467,38 @@ test("the badge editor: an admin saves the catalogue and a new badge is earned o
     await c.stop();
   }
 });
+
+test("an admin downloads the live content pack as a zip; a normal account can't", async () => {
+  const c = await startServer();
+  try {
+    const admin = await makeAdmin(c);
+    const normie = await signup(c, "dustinh", "dustin@henderson.com");
+    const get = (token) => fetch(c.url + "/api/admin/content.zip", { headers: { Authorization: "Bearer " + token } });
+    assert.equal((await get(normie.token)).status, 403);
+    assert.equal((await fetch(c.url + "/api/admin/content.zip")).status, 401);
+    // Edit a pack file first: the download must reflect the STORE, not the repo.
+    const badges = (await c.api("/api/admin/achievements", undefined, admin.token)).data;
+    badges.wordTiers[0].name = "Backup Proof Rank";
+    assert.equal((await c.api("/api/admin/achievements", { data: badges }, admin.token, "PUT")).status, 200);
+    const r = await get(admin.token);
+    assert.equal(r.status, 200);
+    assert.equal(r.headers.get("content-type"), "application/zip");
+    assert.match(r.headers.get("content-disposition"), /attachment; filename="cowrite-content-\d{4}-\d{2}-\d{2}\.zip"/);
+    const buf = Buffer.from(await r.arrayBuffer());
+    assert.equal(buf.readUInt32LE(0), 0x04034b50, "a zip");
+    const text = buf.toString("latin1");
+    for (const name of ["content/achievements.json", "content/prompts.json", "content/site.json", "content/quotes.json", "content/titles.json", "writers-reference/index.json", "writers-reference/dialogue-tags.json"]) {
+      assert.ok(text.includes(name), `carries ${name}`);
+    }
+    const { inflateRawSync } = await import("node:zlib");
+    // Locate the achievements entry and inflate it to prove it's the live edit.
+    const i = text.indexOf("content/achievements.json");
+    const headerAt = text.lastIndexOf("PK\x03\x04", i);
+    const method = buf.readUInt16LE(headerAt + 8), csize = buf.readUInt32LE(headerAt + 18), nlen = buf.readUInt16LE(headerAt + 26);
+    const start = headerAt + 30 + nlen;
+    const body = method === 8 ? inflateRawSync(buf.subarray(start, start + csize)) : buf.subarray(start, start + csize);
+    assert.ok(body.toString("utf-8").includes("Backup Proof Rank"), "the zip holds the store's copy, not the repo's");
+  } finally {
+    await c.stop();
+  }
+});

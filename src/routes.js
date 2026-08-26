@@ -3,6 +3,7 @@
 import { randomUUID } from "crypto";
 import { readContent } from "./content.js";
 import { storage, describeStorage } from "./storage.js";
+import { buildZip } from "./zip.js";
 import { listPosts, addPost, deletePost } from "./announcements.js";
 import { SITE } from "./site.js";
 import { getPromptData, setPromptData } from "./game.js";
@@ -1016,6 +1017,22 @@ export function registerRoutes(app, game) {
     const errors = setReferenceGroup(req.params.slug, req.body?.categories);
     if (errors.length) return res.status(400).json({ error: "That group didn't validate.", errors });
     res.json({ ok: true, group: getReference().groups.find((g) => g.slug === req.params.slug) || null });
+  });
+
+  // A backup of the live pack: every content/* and reference/* document as
+  // the store holds it (the database in production), zipped as
+  // content/<name>.json + writers-reference/<name>.json — the repo's own
+  // layout, so a download can be dropped back in and reseeded.
+  app.get("/api/admin/content.zip", (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    const files = [];
+    for (const [kind, dir] of [["content", "content"], ["reference", "writers-reference"]]) {
+      for (const name of storage.list(kind).sort()) files.push({ name: `${dir}/${name}.json`, data: storage.get(kind, name) ?? "" });
+    }
+    const stamp = new Date().toISOString().slice(0, 10);
+    res.setHeader("Content-Type", "application/zip");
+    res.setHeader("Content-Disposition", `attachment; filename="cowrite-content-${stamp}.zip"`);
+    res.send(buildZip(files));
   });
 
   // End a game in progress without taking a seat in it. Players see the
