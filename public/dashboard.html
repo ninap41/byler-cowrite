@@ -41,6 +41,9 @@
 			<div class="dash-wrap">
 				<!-- ============ LEFT COLUMN ============ -->
 				<div class="dash-col">
+					<!-- newest announcement, only when there is one -->
+					<div class="card ann-card hidden" id="annCard"></div>
+
 					<!-- welcome -->
 					<div class="card">
 						<div class="welcome">
@@ -195,8 +198,7 @@
 				achievementsHtml,
 				streakRingHtml,
 				writerRowHtml,
-				friendRowHtml,
-			} from "/js/dashboard-view.js"
+				friendRowHtml, latestAnnouncementHtml } from "/js/dashboard-view.js"
 			import { avatarHtml } from "/js/profile-view.js"
 			import { showInviteToast } from "/js/turn-alert.js"
 			import { soloListHtml, wireSoloDeletes } from "/js/write-view.js"
@@ -214,6 +216,7 @@
 				if (inv?.code) showInviteToast(inv)
 				loadInbox()
 			})
+			loadAnnouncement()
 
 			function renderMe() {
 				if (!me) return
@@ -558,6 +561,17 @@
 			// conversation and /inbox is where conversations happen; what belongs
 			// here is only the fact that one is waiting. So the rail's Inbox row
 			// wears the count and the page never renders a single message.
+			// The newest announcement, if any; the card stays hidden otherwise.
+			async function loadAnnouncement() {
+				try {
+					const d = await api("/api/announcements", null, "GET")
+					const post = (d.posts || [])[0]
+					if (!post) return
+					$("annCard").innerHTML = latestAnnouncementHtml(post)
+					$("annCard").classList.remove("hidden")
+				} catch (e) { /* no card */ }
+			}
+
 			async function loadInbox() {
 				let unread = 0
 				try {

@@ -289,3 +289,22 @@ test("archive: only the host may continue a story, canContinue is host-only, by 
   assert.match(html, /canContinue\(g, me\?\.username\)/, "the card's Continue is gated");
   assert.match(html, /canContinue\(g, me\?\.username\)/, "the detail's Continue too");
 });
+
+test("dashboard announcement glimpse: truncated plain-text preview, escaped, Read more to /announcements, nothing without a post", async () => {
+  const { latestAnnouncementHtml, previewText, PREVIEW_CHARS } = await import("../public/js/dashboard-view.js");
+  assert.equal(latestAnnouncementHtml(null), "");
+  assert.equal(latestAnnouncementHtml(undefined), "");
+  const long = "word ".repeat(80).trim();
+  const html = latestAnnouncementHtml({ id: "a", title: "Big <news>", html: `<h2>Big news</h2><p>${long}</p>`, at: 1_700_000_000_000 });
+  assert.ok(html.includes("Big &lt;news&gt;") && !html.includes("<news>"), "title escaped");
+  assert.ok(html.includes('href="/announcements"') && html.includes("Read more"));
+  assert.ok(!html.includes("<h2>"), "markup is stripped from the preview");
+  const preview = previewText(`<h2>Big news</h2><p>${long}</p>`);
+  assert.ok(preview.length <= PREVIEW_CHARS + 1 && preview.endsWith("…"), "cut on a word with an ellipsis");
+  assert.ok(preview.startsWith("Big news word"), "block boundaries become spaces");
+  assert.equal(previewText("<p>short</p>"), "short");
+  assert.equal(previewText("<p>the writers&#39; reference &amp; more</p>"), "the writers' reference & more", "stored entities are decoded once");
+  const plain = latestAnnouncementHtml({ id: "b", title: "No heading here, just words", html: "<p>No heading here, just words</p>", at: 1 });
+  assert.ok(!plain.includes("ann-glimpse-title"), "a derived title is not repeated above the preview");
+  assert.ok(plain.includes("<p class=\"ann-glimpse-text\">No heading here, just words</p>"));
+});

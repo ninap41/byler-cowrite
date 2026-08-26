@@ -59,7 +59,7 @@ export function toolbarHtml(idPrefix = "") {
 		`<option value="justifyRight" title="Right">⇥</option></select>` +
 		`</span>` +
 		`<span class="tb-group">` +
-		`<button class="ghost" id="${id("emDashBtn")}" title="Insert em dash" type="button">, </button>` +
+		`<button class="ghost" id="${id("emDashBtn")}" title="Insert em dash" type="button">—</button>` +
 		`<button class="ghost" data-cmd="insertHorizontalRule" title="Horizontal rule" type="button">HR</button>` +
 		`<button class="ghost" id="${id("clearFmtBtn")}" title="Clear formatting" type="button">Tx</button>` +
 		`</span>`
@@ -101,7 +101,7 @@ export function mountRichToolbar(editor, toolbar, { onEdit = () => {}, idPrefix 
 	}
 
 	toolbar.querySelectorAll("button[data-cmd]").forEach((b) => press(b, () => exec(b.dataset.cmd)))
-	press($("emDashBtn"), () => exec("insertText", ", "))
+	press($("emDashBtn"), () => exec("insertText", "—"))
 	press($("clearFmtBtn"), () => {
 		editor.focus()
 		document.execCommand("removeFormat")
@@ -215,7 +215,7 @@ export function mountRichToolbar(editor, toolbar, { onEdit = () => {}, idPrefix 
 			if (el) el.disabled = inHeading
 		}
 		if (box) {
-			if (inHeading) box.value = ", "
+			if (inHeading) box.value = "—"
 			else if (sizes.length > 1) box.value = "Multi"
 			else if (sizes.length === 1) box.value = sizes[0]
 		}

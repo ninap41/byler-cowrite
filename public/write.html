@@ -128,7 +128,7 @@
 							<span class="tb-group">
 								<button class="ghost" id="linkBtn" title="Insert link" type="button">🔗</button>
 								<button class="ghost" id="imgBtn" title="Insert image" type="button">🖼</button>
-								<button class="ghost" id="emDashBtn" title="Insert em dash" type="button">, </button>
+								<button class="ghost" id="emDashBtn" title="Insert em dash" type="button">—</button>
 								<button class="ghost" data-cmd="insertHorizontalRule" title="Horizontal rule" type="button">HR</button>
 								<button class="ghost" id="clearFmtBtn" title="Clear formatting" type="button">Tx</button>
 							</span>
@@ -957,7 +957,7 @@
 			$("emDashBtn").addEventListener("mousedown", (e) => {
 				e.preventDefault()
 				$("docEditor").focus()
-				document.execCommand("insertText", false, ", ")
+				document.execCommand("insertText", false, "—")
 				onEdit({ immediate: true })
 			})
 			// The range the size box will act on, remembered while the editor still
@@ -1005,7 +1005,7 @@
 				$("fontStepper").dataset.tip = inHeading
 					? "The heading style sets this text's size"
 					: "Font size of the selected text"
-				if (inHeading) $("fsInput").value = ", "
+				if (inHeading) $("fsInput").value = "—"
 				else if (sizes.length > 1) $("fsInput").value = "Multi"
 				else if (sizes.length === 1) $("fsInput").value = sizes[0]
 				try {

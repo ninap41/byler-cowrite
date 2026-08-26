@@ -263,3 +263,35 @@ export function streakRingHtml(streak, best) {
 		`</svg>`
 	)
 }
+
+// The dashboard's glimpse of the newest announcement: title, date, the first
+// words of the post as plain text, and a Read more link to /announcements.
+// Nothing (no card) when there is no post.
+export const PREVIEW_CHARS = 160
+export function previewText(html, max = PREVIEW_CHARS) {
+	const text = String(html || "")
+		.replace(/<\/(p|h[1-6]|li|blockquote|div)>|<br\s*\/?>/gi, " ")
+		.replace(/<[^>]+>/g, "")
+		.replace(/&nbsp;/g, " ")
+		// the stored html is entity-escaped; the preview is plain text, esc()'d again on render
+		.replace(/&(amp|lt|gt|quot|#39|#x27);/g, (_, e) => ({ amp: "&", lt: "<", gt: ">", quot: '"', "#39": "'", "#x27": "'" })[e])
+		.replace(/\s+/g, " ")
+		.trim()
+	if (text.length <= max) return text
+	return text.slice(0, max).replace(/\s+\S*$/, "") + "…"
+}
+export function latestAnnouncementHtml(post) {
+	if (!post) return ""
+	const when = post.at ? new Date(post.at).toLocaleDateString([], { dateStyle: "medium" }) : ""
+	// a post with no heading is titled by its opening words, which the
+	// preview already shows, so the title line only appears for a real heading
+	const headed = /<h[1-3]\b/i.test(post.html || "")
+	return (
+		`<div class="ann-glimpse">` +
+		`<span class="ann-glimpse-tag">📣 Announcement${when ? ` · ${esc(when)}` : ""}</span>` +
+		(headed ? `<b class="ann-glimpse-title">${esc(post.title || "")}</b>` : "") +
+		`<p class="ann-glimpse-text">${esc(previewText(post.html))}</p>` +
+		`<a class="ann-glimpse-more" href="/announcements">Read more →</a>` +
+		`</div>`
+	)
+}
