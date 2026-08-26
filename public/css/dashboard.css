@@ -940,6 +940,21 @@ a.rg-row {
 	grid-template-columns: minmax(0, 1fr) 280px;
 	gap: 24px 28px;
 }
+/* The rail breaks BELOW the column on a phone. This must be re-said here:
+   the two-column rule above comes after the 900px breakpoint at the top of
+   the file and would otherwise outrank it (same source-order trap as
+   `.hidden` in base.css) — which is how the rail came to overlap the
+   column on mobile. */
+@media (max-width: 900px) {
+	.dash-wrap {
+		grid-template-columns: minmax(0, 1fr);
+		gap: 24px;
+	}
+	.dash-rail {
+		border-top: 1px solid var(--line);
+		padding-top: 22px;
+	}
+}
 .dash-col {
 	gap: 26px;
 }

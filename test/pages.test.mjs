@@ -569,3 +569,16 @@ test("the game page's tab title is the story's name, refreshed with the session 
   assert.ok(bar.includes("setPageTitle()"), "every session-bar repaint refreshes the title");
   assert.ok(!/onlyShow[\s\S]{0,200}document\.title =/.test(src), "onlyShow no longer sets a phase-only title");
 });
+
+test("the dashboard rail breaks below the column on a phone — the LAST word on .dash-wrap's columns is single", async () => {
+  const css = (await page("/css/dashboard.css")).body;
+  // every un-media'd .dash-wrap column rule must come BEFORE the last
+  // 900px collapse, or the collapse loses on source order and the rail
+  // overlaps the column (which is exactly what happened)
+  const collapse = [...css.matchAll(/@media \(max-width: 900px\) \{\s*\.dash-wrap \{[^}]*grid-template-columns: minmax\(0, 1fr\);/g)];
+  assert.ok(collapse.length, "a 900px single-column rule exists");
+  const lastCollapse = collapse[collapse.length - 1].index;
+  const twoCol = [...css.matchAll(/\.dash-wrap \{[^}]*grid-template-columns: minmax\(0, 1fr\) \d+px/g)];
+  assert.ok(twoCol.length, "and a two-column rule");
+  for (const m of twoCol) assert.ok(m.index < lastCollapse, "every two-column rule precedes the final collapse");
+});
