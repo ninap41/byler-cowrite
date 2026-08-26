@@ -537,12 +537,14 @@ test("host controls are the comments drawer, on the game page", async () => {
 // renders every page's {{SITE_NAME}}/{{FANDOM}} tokens and injects a
 // <meta name="site-name"> the client modules read.
 test("pages are rendered from site.json: no raw tokens, name in title, meta injected", async () => {
+  const { readFileSync } = await import("node:fs");
+  const NAME = JSON.parse(readFileSync(new URL("../content/site.json", import.meta.url), "utf-8")).name;
   for (const path of ["/", "/index.html", "/dashboard", "/game", "/reset.html"]) {
     const r = await page(path);
     assert.equal(r.status, 200, path);
     assert.ok(!r.body.includes("{{"), path + " has no unrendered token");
-    assert.ok(r.body.includes("Byler Cowrite"), path + " carries the default pack's name");
-    assert.ok(r.body.includes('<meta name="site-name" content="Byler Cowrite"'), path + " injects the meta");
+    assert.ok(r.body.includes(NAME), path + " carries the pack's name");
+    assert.ok(r.body.includes(`<meta name="site-name" content="${NAME}"`), path + " injects the meta");
   }
   const home = await page("/");
   assert.ok(home.body.includes('id="heroWord1" class="hero-word-svg" x="450" y="110">Byler<'), "the hero's first word is the fandom");
