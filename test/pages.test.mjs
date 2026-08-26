@@ -591,3 +591,10 @@ test("touch devices get 16px fields, so iOS never zooms the page on focus", asyn
     assert.ok(!/maximum-scale|user-scalable=no/.test(html), p + " never forbids zooming");
   }
 });
+
+test("every page loads the Font Awesome kit", async () => {
+  for (const p of ["/", "/dashboard", "/game", "/archive", "/inbox", "/profile", "/settings", "/write", "/writes", "/stories", "/games", "/ranks", "/announcements", "/admin", "/reset"]) {
+    const html = (await page(p)).body;
+    assert.ok(html.includes('<script src="https://kit.fontawesome.com/60a456108b.js" crossorigin="anonymous"></script>'), p + " carries the kit");
+  }
+});
