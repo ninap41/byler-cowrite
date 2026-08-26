@@ -78,6 +78,16 @@
 			const me = await requireAuth("/")
 			setUserChip(me)
 			const $ = (id) => document.getElementById(id)
+			// The accounts list is filtered client-side from the last fetch: the
+			// search box re-renders from allUsers, so typing never hits the API.
+			let allUsers = []
+			function renderUsers() {
+				const shown = filterAdminUsers(allUsers, $("adminUserSearch").value)
+				$("adminUsers").innerHTML = adminUsersHtml(shown, Date.now())
+				$("adminUserCount").textContent = adminUserCount(shown.length, allUsers.length)
+			}
+			$("adminUserSearch").addEventListener("input", renderUsers)
+
 			let promptDoc = null // the prompt library as loaded; Save reads the editor back into it
 
 			// The page is a convenience, not the guard: every route below refuses
@@ -206,16 +216,6 @@
 				}
 				e.target.disabled = false
 			})
-
-			// The accounts list is filtered client-side from the last fetch: the
-			// search box re-renders from allUsers, so typing never hits the API.
-			let allUsers = []
-			function renderUsers() {
-				const shown = filterAdminUsers(allUsers, $("adminUserSearch").value)
-				$("adminUsers").innerHTML = adminUsersHtml(shown, Date.now())
-				$("adminUserCount").textContent = adminUserCount(shown.length, allUsers.length)
-			}
-			$("adminUserSearch").addEventListener("input", renderUsers)
 
 			async function refresh() {
 				const [g, u] = await Promise.all([api("/api/admin/games", null, "GET"), api("/api/admin/users", null, "GET")])
