@@ -136,9 +136,10 @@ export function mountLiquidCard(el, { amp = 9, rate = 1, maskSwell = 10, doc = d
 		W = Math.max(1, r.width) + PAD * 2
 		H = Math.max(1, r.height) + PAD * 2
 		svg.setAttribute("viewBox", `0 0 ${W} ${H}`)
-		// the resting edge sits a little inside the box so the waves have room to
-		// swell without being clipped by a tight column
-		base = squircle(W / 2, H / 2, W / 2 - PAD - 6, H / 2 - PAD + 2)
+		// the resting edge sits OUTSIDE the card box (16px on the sides, 14px
+		// top/bottom): the waves swing about 11px inward at most, so a trough
+		// never crosses into the padding and the text stays on the water
+		base = squircle(W / 2, H / 2, W / 2 - PAD + 16, H / 2 - PAD + 14)
 		norm = normals(base)
 		paint(0)
 	}
