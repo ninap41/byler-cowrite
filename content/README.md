@@ -34,8 +34,12 @@ touched to run the app for another fandom — only this directory.
      be dealt; every `compatibleCanon` id must exist in `canon`; every trope's
      `group` must be named in `tropeGroups`, and at least one group must be
      `setting-au` (an AU draws its world from it); `explicit.levels` must carry
-     `none`/`suggestive`/`explicit` with `explicit` marked `adultOnly`. Anything
-     that must not reach minors gets `compatibleAgeGroups: ["adult"]`. Or
+     `none`/`explicit` with `explicit` marked `adultOnly` (`suggestive` is
+     deprecated and ignored). A season that may carry the explicit layer is the
+     adult one or one tagged `explicit-ok`; seasons that must never carry it
+     get `incompatibleTags: ["explicit"]`. Anything that must not reach minors
+     gets `compatibleAgeGroups: ["adult"]`; `adultOnly` marks explicit-only
+     content and reaches any season that admits explicit. Or
      delete the `intermediate` key entirely and the game runs Simple mode only.
 5. **Rewrite `achievements.json`**:
    - `wordTiers`: rename the ranks (keep `id`s stable if accounts already exist —

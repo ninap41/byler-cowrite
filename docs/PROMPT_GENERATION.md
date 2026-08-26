@@ -40,7 +40,7 @@ character, not markup. `unbullet()` collapses it for titles.
 | relationship status | `relationships` | strangers, friends, pining, new couple, established, exes, secret relationship |
 | tone | `tones` | fluff, angst, hurt/comfort, crack, slow burn |
 | trope | `tropes` (grouped by `tropeGroups`) | exactly one from the bank, weighted |
-| explicit | `explicit.levels` | `none` / `suggestive` / `explicit` |
+| explicit | `explicit.levels` | `none` / `explicit` (`suggestive` is deprecated: ignored) |
 
 Every entry is `{id, label, text, weight?, tags?, compatibleAgeGroups?, compatibleCanon?, incompatibleTags?, requiresTags?, adultOnly?}`.
 `label` is what the menus and the option chips show; `text` is the clause the
@@ -52,9 +52,12 @@ same ballot are damped (÷3), not banned.
 1. **Season** — chosen first because it fixes the age. Asking for `explicit`
    with the season on Random narrows the draw to adult seasons; a season the
    host picked is always honoured (the level drops instead — see the gate).
-2. **Explicit gate** — `gateExplicit(level, season)`: on a minor season
-   `explicit` → `suggestive`; `none`/`suggestive` pass everywhere. This runs
-   **before any tag weighting**; the kink layer is never drawn for a minor season.
+2. **Explicit gate** — `gateExplicit(level, season)`: on a season that does
+   not admit it (anything but the adult season or one tagged `explicit-ok`:
+   S4, S5) `explicit` → `none`. This runs **before any tag weighting**; the
+   kink layer is never drawn for such a season. Those early seasons also
+   carry `incompatibleTags: ["explicit"]`, so the same rule greys them in
+   the Season menu once Explicit is chosen.
 3. **Canon** — decides whether a setting AU is thinkable.
 4. Place, relationship, situation, tone — each filtered by `isCompatible()`.
 5. **Trope** — exactly one, weighted, from every group except `setting-au`.
@@ -67,8 +70,7 @@ same ballot are damped (÷3), not banned.
 6. **Explicit layer** (adult season + level `explicit` only): one setup, one
    dynamic, 1–2 acts, 1–2 weighted kinks (registers are deprecated: never dealt) — each its own line
    (one `Kinks:` line (setup · dynamic · acts · kinks), tags within a line
-   joined by ` · `) after a `Rating: explicit` line. `suggestive` adds just
-   `Rating: suggestive`.
+   joined by ` · `) after a `Rating: explicit` line. `none` adds nothing.
 
 Every clause is `Category: choice` (`CATEGORIES` in the lib — Season, Canon,
 Place, Relationship, Situation, Trope, Tone, Rating, Kinks). The prompt is still plain text; `promptHtml()` in
