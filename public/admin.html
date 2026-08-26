@@ -38,7 +38,11 @@
 					Sorted by how long they've been gone. Removing an account frees its username and signs it out
 					everywhere; the lines it wrote stay in their stories. Admin accounts can't be removed.
 				</p>
-				<div id="adminUsers"></div>
+				<div class="row admin-search">
+					<input id="adminUserSearch" type="search" placeholder="Search accounts by username or email…" autocomplete="off" />
+					<span id="adminUserCount" class="gc-meta"></span>
+				</div>
+				<div id="adminUsers" class="admin-scroll"></div>
 
 				<h3 style="margin: 26px 0 8px">Prompt library</h3>
 				<p class="subtle" style="text-align: left; margin: 0 0 10px">
@@ -61,7 +65,7 @@
 			import { api } from "/js/api.js"
 			import { mountChrome, setUserChip } from "/js/chrome.js"
 			import { requireAuth } from "/js/auth-guard.js"
-			import { adminGamesHtml, adminUsersHtml, promptEditorHtml, promptRowHtml, readPromptEditor, PROMPT_POOLS, auWorldHtml, refEditorHtml, refCategoryHtml, refKey, readRefGroup } from "/js/admin-view.js"
+			import { adminGamesHtml, adminUsersHtml, filterAdminUsers, adminUserCount, promptEditorHtml, promptRowHtml, readPromptEditor, PROMPT_POOLS, auWorldHtml, refEditorHtml, refCategoryHtml, refKey, readRefGroup } from "/js/admin-view.js"
 
 			mountChrome({ page: "admin" })
 			const me = await requireAuth("/")
@@ -161,10 +165,21 @@
 				e.target.disabled = false
 			})
 
+			// The accounts list is filtered client-side from the last fetch: the
+			// search box re-renders from allUsers, so typing never hits the API.
+			let allUsers = []
+			function renderUsers() {
+				const shown = filterAdminUsers(allUsers, $("adminUserSearch").value)
+				$("adminUsers").innerHTML = adminUsersHtml(shown, Date.now())
+				$("adminUserCount").textContent = adminUserCount(shown.length, allUsers.length)
+			}
+			$("adminUserSearch").addEventListener("input", renderUsers)
+
 			async function refresh() {
 				const [g, u] = await Promise.all([api("/api/admin/games", null, "GET"), api("/api/admin/users", null, "GET")])
 				$("adminGames").innerHTML = adminGamesHtml(g.games)
-				$("adminUsers").innerHTML = adminUsersHtml(u.users, Date.now())
+				allUsers = u.users || []
+				renderUsers()
 			}
 
 			// One delegated listener for both lists: the rows are rebuilt on every

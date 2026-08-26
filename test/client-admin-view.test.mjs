@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { installDom } from "./dom.mjs";
 
 installDom();
-const { adminGamesHtml, adminUsersHtml, agoLabel } = await import("../public/js/admin-view.js");
+const { adminGamesHtml, adminUsersHtml, agoLabel, filterAdminUsers, adminUserCount } = await import("../public/js/admin-view.js");
 
 const DAY = 86_400_000;
 const NOW = 1_700_000_000_000;
@@ -33,7 +33,24 @@ test("admin accounts are protected in the markup, everyone else gets a Remove bu
   assert.ok(html.includes("protected"));
   assert.ok(html.includes('data-admin-act="delete-user" data-admin-target="jonathanb"'));
   assert.ok(html.includes("1 month ago"), "inactivity is spelled out, not a raw timestamp");
-  assert.match(adminUsersHtml([], NOW), /No accounts yet/);
+  assert.match(adminUsersHtml([], NOW), /No accounts match/);
+});
+
+test("the accounts search matches username or email, case-insensitively, and the count says how many it kept", () => {
+  const users = [
+    { username: "willthewise", email: "will@byers.com" },
+    { username: "mikewheeler", email: "MIKE@wheeler.com" },
+    { username: "dustin", email: "d@x.com" },
+  ];
+  assert.equal(filterAdminUsers(users, "").length, 3, "empty query keeps everyone");
+  assert.equal(filterAdminUsers(users, "  ").length, 3);
+  assert.deepEqual(filterAdminUsers(users, "WILL").map((u) => u.username), ["willthewise"]);
+  assert.deepEqual(filterAdminUsers(users, "wheeler.com").map((u) => u.username), ["mikewheeler"], "email matches too");
+  assert.deepEqual(filterAdminUsers(users, "zzz"), []);
+  assert.equal(filterAdminUsers(null, "x").length, 0);
+  assert.equal(adminUserCount(3, 3), "3 accounts");
+  assert.equal(adminUserCount(1, 3), "1 of 3 accounts");
+  assert.equal(adminUserCount(1, 1), "1 account");
 });
 
 test("names, emails and titles are escaped — a moderator's page is not an injection surface", () => {

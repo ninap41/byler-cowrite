@@ -40,8 +40,22 @@ export function adminGamesHtml(games) {
 		.join("")
 }
 
+// The accounts search: username or email, case-insensitive substring. Pure,
+// so the page can re-filter the last fetch on every keystroke.
+export function filterAdminUsers(users, query) {
+	const q = String(query || "").trim().toLowerCase()
+	if (!q) return users || []
+	return (users || []).filter((u) => String(u.username || "").toLowerCase().includes(q) || String(u.email || "").toLowerCase().includes(q))
+}
+
+// "12 of 40 accounts" while a search narrows the list, "40 accounts" otherwise.
+export function adminUserCount(shown, total) {
+	const n = `${total} account${total === 1 ? "" : "s"}`
+	return shown === total ? n : `${shown} of ${n}`
+}
+
 export function adminUsersHtml(users, now) {
-	if (!users || !users.length) return `<p class="subtle" style="text-align:left">No accounts yet.</p>`
+	if (!users || !users.length) return `<p class="subtle" style="text-align:left">No accounts match.</p>`
 	return users
 		.map(
 			(u) =>

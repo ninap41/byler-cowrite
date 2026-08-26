@@ -9325,3 +9325,11 @@ html.vcx-live[data-theme="vecna"] #vc-pend {
 .au-head .au-del { margin-left: auto; }
 .au-lbl { display: block; font-size: 0.8rem; color: var(--muted); margin: 8px 0 3px; }
 .au-world { margin-left: 0; }
+
+/* /admin accounts: a search row over a list that scrolls in place once it
+   outgrows the box, so a long directory never pushes the prompt library
+   off the bottom of the page. */
+.admin-search { gap: 10px; align-items: center; margin: 0 0 6px; }
+.admin-search input { flex: 1; min-width: 200px; margin: 0; }
+.admin-search .gc-meta { flex: none; }
+.admin-scroll { max-height: 60vh; overflow-y: auto; overscroll-behavior: contain; padding-right: 4px; }
