@@ -1210,6 +1210,31 @@ export function createGame(io) {
     });
 
     // Host can name the session; the name shows at the top for everyone.
+    // The host hands the game to another seated writer — for good: the
+    // ORIGINAL-host rights (hostToken/hostUserId/hostName) move with the role,
+    // so the new host may delete the story, continue it from anywhere, and is
+    // never gated out of it; the old host becomes an ordinary writer.
+    socket.on("make-host", ({ id }, ack) => {
+      const s = mySession();
+      if (!s || (s.hostId !== socket.id && !adminSeat(s, socket.id)))
+        return ack?.({ ok: false, error: "Host only." });
+      const w = s.writers.get(String(id || ""));
+      if (!w || w.connected === false) return ack?.({ ok: false, error: "Pick a writer who is in the game." });
+      if (id === s.hostId) return ack?.({ ok: false, error: "They already host." });
+      const from = s.writers.get(socket.id);
+      s.hostId = id;
+      s.hostToken = w.token;
+      s.hostUserId = w.userId ?? s.hostUserId;
+      s.hostName = w.name;
+      w.approved = true;
+      announce(s, from, `made ${w.name} the host 👑`);
+      saveSnapshot(s);
+      if (s.phase === "waiting" || s.phase === "over") broadcastRoster(s);
+      if (s.phase !== "waiting") broadcastGame(s);
+      pushPendingRequests(s);
+      ack?.({ ok: true, hostId: s.hostId });
+    });
+
     socket.on("rename-session", ({ name }, ack) => {
       const s = mySession();
       if (!s || (s.hostId !== socket.id && !adminSeat(s, socket.id)))

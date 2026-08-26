@@ -294,3 +294,32 @@ test("two writers racing to continue a reveal: exactly one continues, the other 
     await ctx2.stop?.();
   }
 });
+
+test("make-host hands the game — and the original-host rights — to another writer", async () => {
+  const { host, mike, A, B, code } = await startedGame(ctx);
+  const stranger = await signup(ctx, "erica1", "erica@sinclair.com");
+  const S = await ctx.conn();
+  // only the host may
+  const no = await ctx.emit(B, "make-host", { id: B.id });
+  assert.equal(no.ok, false);
+  const bad = await ctx.emit(A, "make-host", { id: "nope" });
+  assert.equal(bad.ok, false, "must be a seated writer");
+  const stP = new Promise((r) => B.once("game-state", r));
+  const ok = await ctx.emit(A, "make-host", { id: B.id });
+  assert.equal(ok.ok, true);
+  assert.equal(ok.hostId, B.id);
+  const st = await stP;
+  assert.equal(st.hostId, B.id);
+  assert.equal(st.hostName, "mikewheeler");
+  const mikeMe = await ctx.api("/api/me", null, mike.token, "GET");
+  assert.equal(st.hostUserId, mikeMe.data.user.id, "the original-host rights moved too");
+  // the old host is now an ordinary writer: no host powers
+  assert.equal((await ctx.emit(A, "pause-game", {})).ok, false);
+  assert.equal((await ctx.emit(B, "pause-game", {})).ok, true);
+  // and the dashboard/archive agree on who hosts
+  const mine = await ctx.api("/api/games/" + code, null, mike.token, "GET");
+  assert.equal(mine.data.hosted, true);
+  const old = await ctx.api("/api/games/" + code, null, host.token, "GET");
+  assert.equal(old.data.hosted, false);
+  S.disconnect();
+});

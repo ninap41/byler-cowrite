@@ -737,6 +737,38 @@
 					if (!res?.ok) alert(res?.error || "Could not start.")
 				})
 
+			// The host's ⋯ menu on another seated player (lobby roster and the
+			// players row alike): "Make host" hands them the game for good
+			// (make-host, server-side host-only). Only the host sees it, only on
+			// writers who are in the game and aren't already hosting.
+			function seatMenuHtml(w, writers) {
+				const amHost = (writers || []).some((x) => x.isHost && x.id === myId)
+				if (!amHost || w.isHost || w.connected === false) return ""
+				return (
+					`<span class="mg-menu seat-menu">` +
+					`<button type="button" class="ghost mg-more" aria-label="More options for ${esc(w.name)}" title="More">⋯</button>` +
+					`<span class="mg-menu-list"><button type="button" class="ghost seat-make-host" data-id="${esc(w.id)}">👑 Make host</button></span>` +
+					`</span>`
+				)
+			}
+			document.addEventListener("click", (e) => {
+				const more = e.target.closest(".seat-menu .mg-more")
+				const mk = e.target.closest(".seat-make-host")
+				if (!more && !mk) return document.querySelectorAll(".seat-menu.open").forEach((m) => m.classList.remove("open"))
+				e.preventDefault()
+				e.stopPropagation()
+				if (more) {
+					const menu = more.closest(".seat-menu")
+					const open = menu.classList.contains("open")
+					document.querySelectorAll(".seat-menu.open").forEach((m) => m.classList.remove("open"))
+					menu.classList.toggle("open", !open)
+					return
+				}
+				mk.closest(".seat-menu").classList.remove("open")
+				socket.emit("make-host", { id: mk.dataset.id }, (res) => {
+					if (!res?.ok) alert(res?.error || "Could not hand over the game.")
+				})
+			})
 			socket.on("roster", ({ writers, code, name, cover, hostUserId: hu }) => {
 				updateLiveStatus(writers)
 				if (hu !== undefined) hostUserId = hu
@@ -756,7 +788,8 @@
 						miniAvatar(w) +
 						`<span class="rname" style="color:${col}">${esc(w.name)}</span>` +
 						whoMarks(w) +
-						`${w.badge ? `<span class="badge-chip">${esc(w.badge)}</span>` : ""}`
+						`${w.badge ? `<span class="badge-chip">${esc(w.badge)}</span>` : ""}` +
+						seatMenuHtml(w, writers)
 					list.appendChild(li)
 				}
 				hostId = writers.find((w) => w.isHost)?.id ?? hostId
@@ -976,6 +1009,7 @@
 							`<span style="color:${col}">${esc(w.name)}</span>` +
 							(next ? `<em class="up-next">up next</em>` : "") +
 							whoMarks(w) +
+							seatMenuHtml(w, st.writers) +
 							`</span>`
 						)
 					})
