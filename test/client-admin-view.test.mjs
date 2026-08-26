@@ -64,8 +64,10 @@ test("every pool of the library is an editable section, simple scenarios first",
   for (const p of PROMPT_POOLS) assert.ok(pools.includes(p.path.join(".")), p.title);
   assert.ok(pools.includes("intermediate.tropeGroups"));
   assert.ok(html.includes(`(${LIB.prompts.length})`), "the simple pool shows its count");
+  // every item row, minus the AU worlds — they're a section of their own
   assert.equal((html.match(/class="pe-row"/g) || []).length,
-    PROMPT_POOLS.filter((p) => p.kind === "items").reduce((n, p) => n + p.path.reduce((o, k) => o[k], LIB).length, 0));
+    PROMPT_POOLS.filter((p) => p.kind === "items").reduce((n, p) => n + p.path.reduce((o, k) => o[k], LIB).length, 0)
+      - LIB.intermediate.tropes.filter((t) => t.group === "setting-au").length);
   assert.match(html, /id="promptSave"/);
   // a trope row picks its group from the named groups; a season its age
   assert.match(html, /<select data-field="group">[\s\S]*value="setting-au"/);
@@ -155,4 +157,44 @@ test("the reference editor draws one block per category and reads back only the 
   assert.equal(refKey("  Hurt / Comfort  "), "hurt_comfort");
   group.querySelectorAll(".re-words").forEach((t) => (t.value = ""));
   assert.ok(readRefGroup(group).errors.length, "a group can't be saved empty");
+});
+
+test("AU worlds are their own section: each with its places in two lists, read back as setting-au tropes + auPlaces", async () => {
+  const { auWorldsHtml, readAuWorlds } = await import("../public/js/admin-view.js");
+  const worlds = LIB.intermediate.tropes.filter((t) => t.group === "setting-au");
+  const html = promptEditorHtml(LIB);
+  assert.equal((html.match(/class="pe-pool au-world"/g) || []).length, worlds.length);
+  assert.ok(html.includes('data-pool="au-worlds"'));
+  document.body.innerHTML = `<div id="pe">${html}</div>`;
+  const root = document.getElementById("pe");
+  // a world's places are listed, plain and explicit apart
+  const coffee = root.querySelector('.au-world[data-id="coffee-shop"]');
+  assert.ok(coffee.querySelector(".au-plain").value.includes("behind the counter during the morning rush"));
+  assert.ok(coffee.querySelector(".au-explicit").value.includes("a walk-in fridge"));
+  // round trip: the whole document comes back the same size
+  const { doc, errors } = readPromptEditor(root, LIB);
+  assert.deepEqual(errors, []);
+  assert.equal(doc.intermediate.tropes.filter((t) => t.group === "setting-au").length, worlds.length);
+  assert.equal(doc.intermediate.auPlaces.length, LIB.intermediate.auPlaces.length);
+  assert.equal(doc.intermediate.tropes.length, LIB.intermediate.tropes.length, "the other tropes survive");
+  const hs = doc.intermediate.tropes.find((t) => t.id === "high-school");
+  assert.deepEqual(hs.incompatibleTags, ["explicit"], "rules round-trip");
+  assert.ok(hs.tags.includes("au-high-school"));
+  assert.ok(doc.intermediate.tropes.find((t) => t.id === "cleradin").tags.includes("fantasy"));
+  // edit: add a place to a world, remove another world
+  coffee.querySelector(".au-explicit").value += "\na roof over the shop";
+  root.querySelector('.au-world[data-id="band"]').remove();
+  const r2 = readPromptEditor(root, LIB);
+  assert.ok(r2.doc.intermediate.auPlaces.some((p) => p.text === "a roof over the shop" && p.adultOnly && p.requiresTags.includes("explicit") && p.requiresTags.includes("au-coffee-shop")));
+  assert.ok(!r2.doc.intermediate.tropes.some((t) => t.id === "band"));
+  assert.ok(!r2.doc.intermediate.auPlaces.some((p) => p.requiresTags.includes("au-band")), "a removed world takes its places with it");
+  // a new world
+  assert.match(auWorldsHtml(LIB), /au-add/);
+  const { auWorldHtml } = await import("../public/js/admin-view.js");
+  root.querySelector(".au-list").insertAdjacentHTML("beforeend", auWorldHtml({ id: "", label: "Pirate ship", group: "setting-au" }, LIB));
+  root.querySelector('.au-world:last-child .au-plain').value = "a crow's nest";
+  const r3 = readAuWorlds(root, LIB);
+  const pirate = r3.worlds.find((w) => w.id === "pirate-ship");
+  assert.ok(pirate && pirate.compatibleCanon[0] === "au" && pirate.tags.includes("au-pirate-ship"));
+  assert.ok(r3.places.some((p) => p.requiresTags[0] === "au-pirate-ship"));
 });

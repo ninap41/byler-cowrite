@@ -72,11 +72,10 @@ export const PROMPT_POOLS = [
 	{ path: ["intermediate", "seasons"], title: "Seasons", kind: "items", fields: ["ageGroup"] },
 	{ path: ["intermediate", "canon"], title: "Canon", kind: "items" },
 	{ path: ["intermediate", "places"], title: "Places (canon)", kind: "items" },
-	{ path: ["intermediate", "auPlaces"], title: "Places (AU worlds — rules name the world's au-<id> tag, explicit ones also \"explicit\")", kind: "items" },
 	{ path: ["intermediate", "situations"], title: "Situations", kind: "items" },
 	{ path: ["intermediate", "relationships"], title: "Relationships", kind: "items" },
 	{ path: ["intermediate", "tones"], title: "Tones", kind: "items" },
-	{ path: ["intermediate", "tropes"], title: "Tropes", kind: "items", fields: ["group"] },
+	{ path: ["intermediate", "tropes"], title: "Tropes", kind: "items", fields: ["group"], hint: "Every trope but the AU worlds — those have their own section below, with their places." },
 	{ path: ["intermediate", "explicit", "levels"], title: "Explicit · levels", kind: "items" },
 	{ path: ["intermediate", "explicit", "setups"], title: "Explicit · setups", kind: "items", fields: ["who"] },
 	{ path: ["intermediate", "explicit", "dynamics"], title: "Explicit · dynamics", kind: "items", fields: ["who", "only"] },
@@ -139,7 +138,8 @@ export function promptRowHtml(item, pool, groups = {}) {
 
 export function promptPoolHtml(pool, doc) {
 	const key = poolKey(pool)
-	const list = getIn(doc, pool.path) || []
+	let list = getIn(doc, pool.path) || []
+	if (key === "intermediate.tropes") list = list.filter((t) => t.group !== "setting-au")
 	if (pool.kind === "strings")
 		return `<details class="pe-pool" data-pool="${esc(key)}"><summary>${esc(pool.title)} <span class="subtle">(${list.length})</span></summary>
 	<p class="subtle">${esc(pool.hint || "")}</p>
@@ -224,6 +224,7 @@ export function promptEditorHtml(doc) {
 	return `<div class="pe" id="promptEditor">
 	${promptRulesHtml(doc)}
 	${PROMPT_POOLS.filter((p) => getIn(doc, p.path) !== undefined || p.path[0] === "prompts").map((p) => promptPoolHtml(p, doc)).join("")}
+	${auWorldsHtml(doc)}
 	<details class="pe-pool" data-pool="intermediate.tropeGroups"><summary>Trope groups <span class="subtle">(${Object.keys(groups).length})</span></summary>
 	<p class="subtle">id = name, one per line. A trope's group must be named here; the "setting-au" group is the worlds an AU draws from.</p>
 	<textarea class="pe-lines" rows="${Object.keys(groups).length + 1}">${esc(Object.entries(groups).map(([k, v]) => `${k} = ${v}`).join("\n"))}</textarea>
@@ -241,6 +242,7 @@ export function readPromptEditor(root, base) {
 	for (const el of root.querySelectorAll(".pe-pool")) {
 		if (el.dataset.doc) continue // the rules reference holds no data
 		const key = el.dataset.pool
+		if (key === "au-worlds" || el.closest(".au-world")) continue // read below, as one piece
 		const path = key.split(".")
 		const ta = el.querySelector(".pe-lines")
 		if (key === "intermediate.tropeGroups") {
@@ -286,7 +288,104 @@ export function readPromptEditor(root, base) {
 		}
 		setIn(doc, path, items)
 	}
+	// AU worlds ride the trope bank (group setting-au) and own auPlaces
+	const au = readAuWorlds(root, base)
+	errors.push(...au.errors)
+	doc.intermediate ??= {}
+	// keep the bank's original order: worlds go back where they were, new
+	// rows (from either section) follow in their own order
+	const table = (doc.intermediate.tropes || []).filter((t) => t.group !== "setting-au")
+	const byId = new Map([...table, ...au.worlds].map((t) => [t.id, t]))
+	const ordered = []
+	for (const t of base?.intermediate?.tropes || []) if (byId.has(t.id)) { ordered.push(byId.get(t.id)); byId.delete(t.id) }
+	for (const t of [...table, ...au.worlds]) if (byId.has(t.id)) { ordered.push(t); byId.delete(t.id) }
+	doc.intermediate.tropes = ordered
+	doc.intermediate.auPlaces = au.places
 	return { doc, errors }
+}
+
+// ---- AU worlds ----
+// One block per world: its label/weight/rules, and its places as two
+// textareas — everyday rooms, and rooms only an explicit ballot deals. Each
+// place becomes an auPlaces entry keyed by the world's own au-<id> tag; the
+// explicit ones also require "explicit" and are adultOnly.
+export const worldTag = (id) => "au-" + id
+const worldPlaces = (doc, id) => {
+	const plain = [], explicit = []
+	for (const p of doc.intermediate?.auPlaces || []) {
+		if (!(p.requiresTags || []).includes(worldTag(id))) continue
+		;((p.requiresTags || []).includes("explicit") ? explicit : plain).push(p.text || p.label)
+	}
+	return { plain, explicit }
+}
+export function auWorldHtml(world, doc) {
+	const { plain, explicit } = worldPlaces(doc, world.id)
+	const rules = Object.fromEntries(Object.entries(world).filter(([k]) => !["id", "label", "text", "weight", "group", "tags"].includes(k)))
+	const tags = (world.tags || []).filter((t) => t !== worldTag(world.id))
+	if (tags.length) rules.tags = tags
+	return `<details class="pe-pool au-world" data-id="${esc(world.id)}"><summary>${esc(world.label)} <span class="subtle">(${plain.length} places · ${explicit.length} explicit)</span></summary>
+	<div class="au-head">
+		<label>Label <input data-field="label" value="${esc(world.label)}" required /></label>
+		<label>Weight <input data-field="weight" type="number" min="0.05" step="0.5" value="${esc(world.weight ?? "")}" placeholder="1" /></label>
+		<label>Rules (JSON) <input data-field="rules" class="pe-rules" value="${esc(Object.keys(rules).length ? JSON.stringify(rules) : "")}" placeholder='{"tags":["fantasy"]}' /></label>
+		<button type="button" class="ghost au-del" title="Remove this world and its places">✕ Remove world</button>
+	</div>
+	<label class="au-lbl">Places — one per line, dealt on any ballot in this world</label>
+	<textarea class="pe-lines au-plain" rows="${Math.min(12, Math.max(3, plain.length + 1))}">${esc(plain.join("\n"))}</textarea>
+	<label class="au-lbl">Explicit places — only on an explicit ballot (adult season)</label>
+	<textarea class="pe-lines au-explicit" rows="${Math.min(12, Math.max(3, explicit.length + 1))}">${esc(explicit.join("\n"))}</textarea>
+</details>`
+}
+export function auWorldsHtml(doc) {
+	const worlds = (doc.intermediate?.tropes || []).filter((t) => t.group === "setting-au")
+	return `<details class="pe-pool" data-pool="au-worlds"><summary>AU worlds <span class="subtle">(${worlds.length})</span></summary>
+	<p class="subtle">The worlds an Alternate-universe ballot draws from, each with its own places. A world's tag (au-&lt;id&gt;) is added for you; put other tags (fantasy, no explicit → {"incompatibleTags":["explicit"]}) in Rules.</p>
+	<div class="au-list">${worlds.map((w) => auWorldHtml(w, doc)).join("")}</div>
+	<div class="re-addrow"><input class="au-newlabel" placeholder="New world, e.g. Pirate ship" maxlength="60" /><button type="button" class="ghost au-add">+ Add world</button></div>
+</details>`
+}
+const placeId = (wid, text, explicit) =>
+	("au-" + wid + "-" + text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")).slice(0, 70) + (explicit ? "-x" : "")
+export function readAuWorlds(root, base) {
+	const worlds = [], places = [], errors = [], ids = new Set()
+	const prevWorlds = (base?.intermediate?.tropes || []).filter((t) => t.group === "setting-au")
+	for (const el of root.querySelectorAll(".au-world")) {
+		const val = (f) => el.querySelector(`[data-field="${f}"]`)?.value ?? ""
+		const label = val("label").trim()
+		if (!label) continue
+		const id = el.dataset.id || slugId(label)
+		const prev = prevWorlds.find((w) => w.id === id)
+		const world = { id, label, text: prev && prev.label === label && prev.text ? prev.text : label.toLowerCase(), group: "setting-au", compatibleCanon: ["au"] }
+		const w = Number(val("weight"))
+		if (val("weight").trim() && w > 0) world.weight = w
+		const rules = val("rules").trim()
+		if (rules) {
+			try {
+				const parsed = JSON.parse(rules)
+				if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("not an object")
+				for (const k of ["id", "label", "text", "weight", "group"]) delete parsed[k]
+				Object.assign(world, parsed)
+			} catch {
+				errors.push(`AU world ${label}: rules must be a JSON object`)
+			}
+		}
+		world.tags = [...new Set([...(world.tags || []), worldTag(id)])]
+		worlds.push(world)
+		const lines = (cls) => el.querySelector(cls).value.split("\n").map((l) => l.trim()).filter(Boolean)
+		const push = (list, explicit) => {
+			for (const text of list) {
+				let pid = placeId(id, text, explicit), n = 2
+				while (ids.has(pid)) pid = placeId(id, text, explicit) + "-" + n++
+				ids.add(pid)
+				const p = { id: pid, label: text, text, requiresTags: explicit ? [worldTag(id), "explicit"] : [worldTag(id)] }
+				if (explicit) p.adultOnly = true
+				places.push(p)
+			}
+		}
+		push(lines(".au-plain"), false)
+		push(lines(".au-explicit"), true)
+	}
+	return { worlds, places, errors }
 }
 
 // ---- Writers' reference editor ----

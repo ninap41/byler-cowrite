@@ -61,7 +61,7 @@
 			import { api } from "/js/api.js"
 			import { mountChrome, setUserChip } from "/js/chrome.js"
 			import { requireAuth } from "/js/auth-guard.js"
-			import { adminGamesHtml, adminUsersHtml, promptEditorHtml, promptRowHtml, readPromptEditor, PROMPT_POOLS, refEditorHtml, refCategoryHtml, refKey, readRefGroup } from "/js/admin-view.js"
+			import { adminGamesHtml, adminUsersHtml, promptEditorHtml, promptRowHtml, readPromptEditor, PROMPT_POOLS, auWorldHtml, refEditorHtml, refCategoryHtml, refKey, readRefGroup } from "/js/admin-view.js"
 
 			mountChrome({ page: "admin" })
 			const me = await requireAuth("/")
@@ -128,6 +128,17 @@
 			$("adminPrompts").addEventListener("click", async (e) => {
 				const del = e.target.closest(".pe-del")
 				if (del) return del.closest("tr").remove()
+				const wdel = e.target.closest(".au-del")
+				if (wdel) return wdel.closest(".au-world").remove()
+				const wadd = e.target.closest(".au-add")
+				if (wadd) {
+					const input = wadd.previousElementSibling
+					const label = input.value.trim()
+					if (!label) return input.focus()
+					wadd.closest(".pe-pool").querySelector(".au-list").insertAdjacentHTML("beforeend", auWorldHtml({ id: "", label, group: "setting-au" }, promptDoc))
+					input.value = ""
+					return
+				}
 				const add = e.target.closest(".pe-add")
 				if (add) {
 					const pool = PROMPT_POOLS.find((p) => p.path.join(".") === add.closest(".pe-pool").dataset.pool)
