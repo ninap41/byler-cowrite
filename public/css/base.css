@@ -7634,7 +7634,7 @@ body.resizing-side {
 .mode-hint {
 	font-size: 0.78rem;
 }
-/* Guided needs the component library; without it the chip is plainly off. */
+/* Advanced needs the component library; without it the chip is plainly off. */
 .mode-row .head-chip:disabled {
 	opacity: 0.4;
 	cursor: not-allowed;
@@ -9255,7 +9255,7 @@ html.vcx-live[data-theme="vecna"] #vc-pend {
 	text-align: left;
 }
 
-/* Guided-prompt clauses open "Category: choice"; promptHtml (util.js) wraps
+/* Advanced-prompt clauses open "Category: choice"; promptHtml (util.js) wraps
    the category name so each one wears the same colour everywhere a prompt is
    shown — banner, ballot, archive. */
 .prompt-grid {

@@ -335,7 +335,7 @@ test("admins read and rewrite the prompt library; the next ballot deals from it;
     const noPrompts = await c.api("/api/admin/prompts", { data: { ...doc, prompts: [] } }, admin.token, "PUT");
     assert.equal(noPrompts.status, 400);
 
-    // a good one is saved and dealt from at once — Simple AND Guided
+    // a good one is saved and dealt from at once — Simple AND Advanced
     const next = JSON.parse(JSON.stringify(doc));
     next.prompts = ["Only this scenario now."];
     next.intermediate.tones = [{ id: "test-tone", label: "Test tone", text: "the test tone", weight: 1 }];

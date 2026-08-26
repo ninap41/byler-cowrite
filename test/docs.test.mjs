@@ -325,7 +325,7 @@ test("presence lists everyone viewing the doc", async () => {
 test("the reference bank is served for the slash palette", async () => {
   const r = await ctx.api("/api/reference", null, alice.token, "GET");
   assert.equal(r.status, 200);
-  assert.equal(r.data.groups.length, 6, "all six reference files load");
+  assert.equal(r.data.groups.length, 5, "all five reference files load");
   const action = r.data.groups.find((g) => g.prefix === "/action");
   assert.ok(action.categories.length > 10);
   assert.ok(action.categories[0].words.length > 5);

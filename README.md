@@ -127,7 +127,10 @@ at this scale (a few MB, a write per committed line) is pennies per month.
 ## Editing the prompt bank
 
 Edit `content/prompts.json` — one scenario string per array entry. No code changes.
-The `/` palette in solo writes reads `writers-reference/` the same way.
+The `/` palette in solo writes reads `writers-reference/` the same way — one JSON
+file per group (`/dialogue` tags, `/action` verbs, `/delivery` modifiers,
+`/feel` internal sensations, `/spice` romance), registered in
+`writers-reference/index.json`. Both banks are also editable from `/admin`.
 
 ## Development notes
 

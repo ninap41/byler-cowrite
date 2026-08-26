@@ -4,7 +4,6 @@
 		"path": "./dialogue-tags.json",
 		"prefix": "/dialogue"
 	},
-
 	"action-verbs": {
 		"desc": "Physical beats and body language for action lines between dialogue — gaze, facial expressions, gestures, posture, movement, touch, nervous habits, startle reactions, and object interaction.",
 		"path": "./action-verbs.json",
@@ -20,11 +19,6 @@
 		"desc": "What emotions physically feel like from the inside — racing hearts, dropped stomachs, caught breath, prickling skin — grouped by body part and by feeling (longing, dread, grief, relief).",
 		"path": "./internal-sensations.json",
 		"prefix": "/feel"
-	},
-	"transitions": {
-		"desc": "Scene and time connectors for stitching a round-robin story together — time skips, scene shifts, gradual vs sudden change, flashbacks, POV pivots, and scene endings.",
-		"path": "./transitions.json",
-		"prefix": "/transition"
 	},
 	"romance": {
 		"desc": "The slow-burn toolkit — pining, charged eye contact, almost-moments, first touches, kisses, confessions, flustered disasters, and the soft aftermath.",
@@ -101,7 +95,6 @@
 			"their",
 			"theirs",
 			"themselves",
-
 			"this",
 			"that",
 			"these",
@@ -111,7 +104,6 @@
 			"whose",
 			"which",
 			"what",
-
 			"some",
 			"any",
 			"each",

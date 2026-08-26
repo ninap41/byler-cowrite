@@ -1,14 +1,14 @@
 // The prompt-generation mode picker — markup AND wiring, so the lobby (before
 // the game starts) and the vote card (while it's running) mount the same
 // control and can't drift. Two modes ship: "simple" deals curated scenarios
-// from prompts.json untouched, "intermediate" (Guided) assembles one from
+// from prompts.json untouched, "intermediate" (Advanced) assembles one from
 // axes — season, canon, place, situation, relationship, tone — plus one weighted
 // trope and, past the age gate, the explicit layer. See docs/PROMPT_GENERATION.md.
 import { esc } from "../util.js"
 
 export const PROMPT_MODES = [
 	{ id: "simple", label: "Simple", hint: "Hand-written scenarios, ready to write" },
-	{ id: "intermediate", label: "Guided", hint: "Build the scene from axes and tropes you choose" },
+	{ id: "intermediate", label: "Advanced", hint: "Build the scene from axes and tropes you choose" },
 ]
 
 // Every guided axis: the id suffix its control gets, its label, and where its
@@ -149,7 +149,7 @@ export function mountPromptModes(root, { prefix = "pm", onChange, onReroll } = {
 		explicitLevel: el("Explicit").value || "none",
 	})
 	function paint() {
-		// Guided is only offerable once we know the component pools exist.
+		// Advanced is only offerable once we know the component pools exist.
 		const guided = mode === "intermediate" && !!menus?.intermediate
 		for (const m of PROMPT_MODES) el("Mode-" + m.id).classList.toggle("on", m.id === mode)
 		el("Mode-intermediate").disabled = !menus?.intermediate

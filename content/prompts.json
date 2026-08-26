@@ -1,7 +1,7 @@
 {
 	"prompts": [
-		"Mike finds the drawing Will made of the party — the one where the Paladin looks a little too much like Mike. It's tucked in a book Will lent him.",
-		"Snowball dance, alternate ending. Will doesn't run to the bathroom this time.",
+		"Mike finds the drawing Will made of the party. It's tucked in a book Will lent him.",
+		"Snowball dance, alternate ending.",
 		"It's the summer after Vecna. Will and Mike are the only two awake at 3 a.m. in the Byers' house sitting on the floor because neither can sleep with college around the corner.",
 		"Mike drives to Lenora to visit Will and Jonathan for spring break.",
 		"A thunderstorm knocks the power out during a campaign.",
@@ -12,25 +12,22 @@
 		"Mike keeps the walkie-talkie under his pillow long after they should've outgrown it. One night, static — then Will's voice, calling him like it's 1983 again.",
 		"Will teaches Mike how to paint. Mike is terrible at it. Neither of them cares, because Will keeps having to lean in to fix Mike's grip on the brush.",
 		"Truth or dare with the party, but Max is merciless and she has known about both of them for years.",
-		"It's Will's birthday and Mike shows up with a gift that says, without saying, everything he's never had the courage to.",
-		"They fight. A real one, years in the making. Say something you can't take back — then figure out how they find their way back to each other.",
+		"It's Will's birthday, they're adults and Mike shows up with an unexpected gift.",
+		"They fight after Mike gets jealous of Carlton.",
 		"The Upside Down took something from Will that only Mike ever noticed was missing. Post-recovery, Mike is determined to help him find it again.",
 		"College. Will and Mike end up at the same school by a coincidence that is absolutely not a coincidence, and share a dorm hallway.",
-		"A rainy road trip. One motel. Mike falls asleep on Will's shoulder in the car and Will doesn't dare move for two hundred miles.",
-		"El and Will have a quiet conversation about Mike. It goes gentler, and braver, than either of them expected.",
-		"Mike memorized the sound of Will's laugh sometime around 1984 and only just realized it. He's realizing a lot of things lately.",
-		"The party graduates high school. Everyone's talking about the future. Will can only think about one specific part of his.",
-		"Will draws Mike, in secret, for the hundredth time. This time Mike walks in before he can hide the sketchbook.",
-		"A slow dance in an empty gym while cleaning up after a school event nobody else stayed for.",
+		"A rainy road trip in college. One motel. Mike falls asleep on Will's shoulder in the car.",
+		"El and Will have a quiet conversation about Mike in Season 5.",
+		"The party graduates high school. Everyone's talking about the future over meatloaf.",
+		"Will draws Mike, in secret. Mike walks in before he can hide the sketchbook.",
 		"Mike writes a letter he never intends to send. Will finds it. Take it from there.",
 		"Christmas at the Wheelers'. Mistletoe.",
-		"They're both grown now — late twenties — and reunite at a party reunion after years apart. Everything they never said is still sitting right there between them.",
-		"The Void. Will is pulled somewhere into the Upside Down, and Mike is the only one who can hear him.",
+		"They're both grown now — late twenties — and reunite at a party reunion after years apart.",
+		"Will is pulled somewhere into the Upside Down, and Mike is the only one who can hear him.",
 		"Mike gets jealous of someone new in Will's life in California.",
-		"Cleradin. Will is the cleric, Mike is the paladin sworn to the party. When the healing runs out mid-quest, Mike is the one kneeling in the dirt refusing to let him go.",
-		"Will is a sorcerer who never asked for his magic, and Mike is the knight assigned to guard him from the people who want it. Neither of them is very good at keeping their distance.",
+		"Will is the cleric, Mike is the paladin. They are on a mysterious quest assigned by a king with the party.",
+		"Will is a sorcerer who never asked for his magic, and Mike is the knight assigned to guard him.",
 		"A witch and his familiar. Will's spells have gone strange lately, and every single one of them keeps pointing at the boy who was supposed to just be a black cat on his windowsill.",
-		"Hogwarts AU. Mike is the Gryffindor who shouldn't be in the Hufflepuff common room at midnight, and Will is the one who keeps leaving the door unlocked anyway.",
 		"Mike is a pirate captain with a bad reputation and worse manners. Will is the thing tangled in his nets that is very much not a fish, and very much not letting go of his wrist.",
 		"Vampire AU. Will has been nineteen since 1986 and Mike has just recognized him across a crowded bar, forty years too late and not aged a day in his memory.",
 		"Ghost story: Mike buys a crumbling house in Hawkins and the boy who's been haunting it since the eighties knows things about him he never told anyone alive.",
@@ -54,9 +51,13 @@
 		"Zombie apocalypse. Will has been bitten, or thinks he has, and won't let Mike near him.",
 		"Werewolf AU: the full moon has never scared Will. What scares him is who keeps waiting up in the woods for him to come back.",
 		"Modern-day, no monsters, no powers: they're just two boys at the same high school.",
+		"Mike and Will get summer jobs as lifeguards during summer and Hawkins.",
+		"Mike is kicked out from his parent's house in Hawkins and decides to live with the Byers until they move to Montauk.",
+		"Mike and will spend Halloween night together counting candy in the year 1984, well Holly and her friend watch a horror film in the basement.",
+		"Mike and Will meet in college. Mike is a journalism major well will is an art major. They don't know each other but bump into each other in the hallway.",
 		"Parent Trap AU: Eddie Munson and Robin Buckley are the split-up parents, and Mike and Will are the kids scheming to get them back together. The plan requires a lot of time alone.",
-		"No-Demogorgon AU: the whole party spends the day at the Hawkins July 4th festival, and Will and Mike keep losing everyone else on purpose.",
-		"Spider-Man AU: Will Byers swings over New York City by night, and Mike Wheeler is his Mary Jane .",
+		"No-Demogorgon AU: the whole party spends the day at the Hawkins July 4th festival. (Season 3)",
+		"Spider-Man AU: Will Byers swings over New York City by night, and Mike Wheeler is his Mary Jane.",
 		"AU where Will has powers of his own, and uses them to pin Mike down. Mike lets him.",
 		"Ghost-hunting AU: both boys work for Hawkins Paranormal, Murray is the tech guy in the van, and the house tonight is not the only thing that's haunted.",
 		"Erica enters the science fair and needs the help of her brother and his friends. Will and Mike get competitive about it.",
@@ -1568,11 +1569,11 @@
 				"compatibleAgeGroups": [
 					"minor"
 				],
-				"tags": [
-					"au-high-school"
-				],
 				"incompatibleTags": [
 					"explicit"
+				],
+				"tags": [
+					"au-high-school"
 				]
 			},
 			{
@@ -1811,11 +1812,11 @@
 				"id": "cleradin",
 				"label": "Cleradin — sorcerer Will, paladin Mike",
 				"text": "Cleradin: Will the sorcerer, Mike the paladin",
-				"weight": 3,
 				"group": "setting-au",
 				"compatibleCanon": [
 					"au"
 				],
+				"weight": 3,
 				"tags": [
 					"fantasy",
 					"cleradin",
@@ -2689,10 +2690,10 @@
 					"id": "edging",
 					"label": "edging",
 					"text": "edging",
+					"who": "{name} is edged",
 					"tags": [
 						"edging"
-					],
-					"who": "{name} is edged"
+					]
 				},
 				{
 					"id": "denial",
@@ -3093,10 +3094,10 @@
 					"id": "edging-kink",
 					"label": "edging",
 					"text": "edging",
+					"weight": 3,
 					"incompatibleTags": [
 						"edging"
-					],
-					"weight": 3
+					]
 				},
 				{
 					"id": "pet-play",

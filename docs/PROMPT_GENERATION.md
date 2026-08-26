@@ -12,7 +12,7 @@ Two modes ship, held on the session as `promptMode` / `promptControls`:
 | Mode | UI label | What it deals |
 |---|---|---|
 | `simple` (default) | Simple | One curated scenario string from `prompts`, untouched. |
-| `intermediate` | Guided | A prompt assembled from **axes** + **1–3 weighted tropes** (+ the explicit layer past the age gate). |
+| `intermediate` | Advanced | A prompt assembled from **axes** + **1–3 weighted tropes** (+ the explicit layer past the age gate). |
 
 Advanced mode is not built.
 
@@ -22,7 +22,7 @@ Advanced mode is not built.
 picks one that isn't in `recent` (the current ballot) and never rewrites it.
 Add a scenario by adding a string; fix a typo by editing one. Nothing else to do.
 
-# 2. Guided (intermediate) mode
+# 2. Advanced (intermediate) mode
 
 Tags are written as short strings so they can be weighted and combined the way
 AO3 tags are. Each clause is a terse lowercase fragment, and the prompt is one
