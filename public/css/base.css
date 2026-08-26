@@ -1085,7 +1085,6 @@ a.solo-title:hover {
    not a button — so it stays put while the menu scrolls beneath it. */
 .nav-drawer .nav-logout {
 	position: sticky;
-	top: 76px; /* the drawer scrolls itself; 76px keeps it clear of the ☰/✕ at the top */
 	z-index: 1;
 	margin: 0 0 6px;
 	width: 100%;
