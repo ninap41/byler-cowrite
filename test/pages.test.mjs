@@ -547,3 +547,14 @@ test("pages are rendered from site.json: no raw tokens, name in title, meta inje
   const home = await page("/");
   assert.ok(home.body.includes('id="heroWord1" class="hero-word-svg" x="450" y="110">Byler<'), "the hero's first word is the fandom");
 });
+
+test("/games is the coming-soon page, linked from the nav drawer and the dashboard rail", async () => {
+  const r = await fetch(ctx.url + "/games");
+  assert.equal(r.status, 200);
+  const html = await r.text();
+  assert.match(html, /Coming soon/);
+  assert.doesNotMatch(html, /\{\{[A-Z_]+\}\}/, "tokens filled");
+  const { readFileSync } = await import("node:fs");
+  assert.match(readFileSync(new URL("../public/js/chrome.js", import.meta.url), "utf-8"), /href="\/games"[^>]*>🕹️ Games</, "the hamburger menu lists it");
+  assert.match(readFileSync(new URL("../public/dashboard.html", import.meta.url), "utf-8"), /class="dnav" href="\/games"/, "the dashboard rail lists it");
+});

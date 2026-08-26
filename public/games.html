@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en" data-theme="neon">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<script>
+			// Apply the saved theme before first paint (initTheme() re-validates it later)
+			try { var _t = localStorage.getItem("cowriteTheme"); if (_t) document.documentElement.setAttribute("data-theme", _t); var _f = localStorage.getItem("cowriteFont"); if (_f) document.documentElement.setAttribute("data-font", _f) } catch (e) {}
+		</script>
+		<title>{{SITE_NAME}}: Games</title>
+		<link rel="icon" type="image/x-icon" href="./favicon.ico?v=2" />
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,900;1,9..144,400;1,9..144,600&family=Inconsolata:wght@400;600;700&family=Orbitron:wght@500;700;900&family=Space+Grotesk:wght@400;500;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Tiny5&family=Jersey+15&display=swap"
+			rel="stylesheet"
+		/>
+		<link rel="stylesheet" href="/css/base.css" />
+	</head>
+	<body>
+		<div class="wrap">
+			<div class="archive-inner">
+				<div class="archive-head">
+					<a class="ghost" href="/dashboard" style="text-decoration: none; padding: 10px 16px; border-radius: 12px">← Back</a>
+					<h2>🕹️ Games</h2>
+				</div>
+				<!-- a placeholder until there is something to play here; the entry
+				     exists now so the nav and the rail don't change shape later -->
+				<div class="card soon-card">
+					<p class="soon-mark" aria-hidden="true">🕹️</p>
+					<h3 class="soon-title">Coming soon</h3>
+					<p class="subtle soon-sub">Games to play between stories are on their way. Until then, the story game is at <a href="/dashboard">Start a game</a>.</p>
+				</div>
+			</div>
+		</div>
+
+		<script type="module">
+			import { requireAuth } from "/js/auth-guard.js"
+			import { mountChrome, setUserChip } from "/js/chrome.js"
+
+			mountChrome({ page: "games" })
+			setUserChip(await requireAuth())
+		</script>
+	</body>
+</html>

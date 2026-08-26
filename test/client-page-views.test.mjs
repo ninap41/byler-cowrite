@@ -306,5 +306,5 @@ test("dashboard announcement glimpse: truncated plain-text preview, escaped, Rea
   assert.equal(previewText("<p>the writers&#39; reference &amp; more</p>"), "the writers' reference & more", "stored entities are decoded once");
   const plain = latestAnnouncementHtml({ id: "b", title: "No heading here, just words", html: "<p>No heading here, just words</p>", at: 1 });
   assert.ok(!plain.includes("ann-glimpse-title"), "a derived title is not repeated above the preview");
-  assert.ok(plain.includes("<p class=\"ann-glimpse-text\">No heading here, just words</p>"));
+  assert.ok(plain.includes("<p class=\"ann-glimpse-text\">No heading here, just words <a class=\"ann-glimpse-more\""), "the preview, with Read more riding its last line");
 });

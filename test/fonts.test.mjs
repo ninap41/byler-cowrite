@@ -56,7 +56,7 @@ test("every family a theme names is actually loaded, and nothing is loaded in va
 });
 
 test("every page requests the same font set, one stale <head> would change a theme's look", () => {
-  const pages = ["index", "dashboard", "game", "archive", "stories", "profile", "settings", "write", "writes", "admin", "reset"];
+  const pages = ["index", "dashboard", "game", "archive", "stories", "profile", "settings", "write", "writes", "admin", "reset", "games"];
   for (const p of pages) {
     const html = read(`public/${p}.html`);
     for (const name of [...Object.keys(fonts.families), ...Object.keys(extras())])
@@ -119,7 +119,7 @@ test("every site font has its html[data-font] rule, overriding body + story + di
 });
 
 test("every page applies the saved site font before first paint, like the theme", () => {
-  const pages = ["index", "dashboard", "game", "archive", "stories", "profile", "settings", "write", "writes", "admin", "reset"];
+  const pages = ["index", "dashboard", "game", "archive", "stories", "profile", "settings", "write", "writes", "admin", "reset", "games"];
   for (const p of pages) {
     const html = read(`public/${p}.html`);
     assert.ok(html.includes('localStorage.getItem("cowriteFont")'), `${p}.html reads cowriteFont in its head`);

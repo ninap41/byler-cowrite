@@ -113,6 +113,7 @@ const NAV = (page) => `
 		<a href="/inbox" ${page === "inbox" ? 'aria-current="page"' : ""}>📬 Inbox</a>
 		<a href="/announcements" ${page === "announcements" ? 'aria-current="page"' : ""}>📣 Announcements</a>
 		<a href="/game" ${page === "game" ? 'aria-current="page"' : ""}>✍️ Current game</a>
+		<a href="/games" ${page === "games" ? 'aria-current="page"' : ""}>🕹️ Games</a>
 		<hr class="nav-sep" />
 		<a href="/writes" ${page === "writes" || page === "write" ? 'aria-current="page"' : ""}>✒️ Solo writes</a>
 		<a href="/archive" ${page === "archive" ? 'aria-current="page"' : ""}>📚 Previous games</a>
