@@ -2388,6 +2388,15 @@ ul.roster li {
 	font-size: 0.9rem;
 	cursor: pointer;
 }
+/* The global h1 is gradient text (color: transparent + background-clip), and
+   the caret is drawn in `color` — so inside an editable heading the cursor
+   vanished. Every editing surface names its caret explicitly. */
+.editor, .doc-editor, [contenteditable="true"],
+.editor h1, .doc-editor h1, [contenteditable="true"] h1,
+.editor h2, .doc-editor h2, [contenteditable="true"] h2,
+.editor h3, .doc-editor h3, [contenteditable="true"] h3 {
+	caret-color: var(--accent-2);
+}
 /* rich block formats (story, editor, live preview, archive) */
 .story h1, .editor h1, .live h1 { font-size: 1.55em; line-height: 1.25; margin: 0.35em 0 0.25em; }
 .story h2, .editor h2, .live h2 { font-size: 1.3em; line-height: 1.3; margin: 0.35em 0 0.2em; }

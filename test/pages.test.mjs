@@ -598,3 +598,8 @@ test("every page loads the Font Awesome kit", async () => {
     assert.ok(html.includes('<script src="https://kit.fontawesome.com/60a456108b.js" crossorigin="anonymous"></script>'), p + " carries the kit");
   }
 });
+
+test("the caret is visible inside a gradient-text heading in every editor", async () => {
+  const css = (await page("/css/base.css")).body;
+  assert.match(css, /\.editor h1, \.doc-editor h1, \[contenteditable="true"\] h1,[\s\S]*?caret-color: var\(--accent-2\);/, "h1 in the game and solo editors names its caret");
+});
