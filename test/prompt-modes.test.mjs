@@ -336,3 +336,22 @@ test("a hand-written scenario is tagged with its author, can't be rerolled, and 
   const block = src.slice(src.indexOf("const meta = st.optionMeta?.[i]"), src.indexOf('$("voteProgress")'));
   assert.ok(/if \(meta\?\.custom\) \{[\s\S]*?meta\.by === me\.id\) \|\| myId === hostId[\s\S]*?remove-prompt[\s\S]*?\} else if \(myId === hostId\) \{[\s\S]*?reroll-option/.test(block), "Remove for the author/host on a custom card, ↻ for the host on a dealt one, never both");
 });
+
+test("POST /api/prompt/roll deals one prompt for the solo editor in either mode, honours the knobs, needs an account, stores nothing", async () => {
+  const anon = await ctx.api("/api/prompt/roll", { mode: "simple" });
+  assert.equal(anon.status, 401);
+  const u = await signup(ctx, "roller" + Math.random().toString(36).slice(2, 6), Math.random() + "@x.com");
+  const simple = await ctx.api("/api/prompt/roll", { mode: "simple" }, u.token);
+  assert.equal(simple.status, 200);
+  assert.ok(CURATED.includes(simple.data.prompt), "Simple deals a curated line");
+  assert.equal(simple.data.meta, null);
+  const adv = await ctx.api("/api/prompt/roll", { mode: "intermediate", controls: { seasonId: "s4", toneId: "angst", toneOff: false } }, u.token);
+  assert.equal(adv.status, 200);
+  assert.equal(adv.data.mode, "intermediate");
+  assert.ok(adv.data.prompt.includes("Season:") && adv.data.prompt.includes("Tone: "), "assembled from the knobs");
+  assert.equal(adv.data.meta.selections.seasonId, "s4");
+  assert.equal(adv.data.meta.selections.toneId, "angst");
+  const junk = await ctx.api("/api/prompt/roll", { mode: "nuclear", controls: { seasonId: "<x>" } }, u.token);
+  assert.equal(junk.status, 200);
+  assert.ok(CURATED.includes(junk.data.prompt), "junk off the wire falls back to Simple");
+});

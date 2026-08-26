@@ -367,3 +367,34 @@ export const sprintListHtml = (sprints, { total = 0, count = 0, empty = "No spri
 		? `<p class="subtle" style="text-align:left;margin:0">${esc(empty)}</p>`
 		: `<p class="subtle" style="text-align:left;margin:0 0 8px">${esc(String(total))} word${total === 1 ? "" : "s"} across ${count} sprint${count === 1 ? "" : "s"}</p>` +
 			sprints.map(sprintRowHtml).join("")
+
+// The prompt as it goes INTO a document: one centred paragraph, every
+// "Category: choice" line with its category in bold, lines stacked with
+// <br>; a curated one-liner is just the centred text. Only sanitizeDoc's
+// subset (p.al-c, b, br) so it round-trips the editor and the server.
+const PROMPT_CAT_RE = /^(?:\u2022 )?([A-Z][a-z]+): (.*)$/
+export function promptInsertHtml(prompt) {
+	const lines = String(prompt || "")
+		.split("\n")
+		.map((l) => l.trim())
+		.filter(Boolean)
+	if (!lines.length) return ""
+	const body = lines
+		.map((l) => {
+			const m = l.match(PROMPT_CAT_RE)
+			return m ? `<b>${esc(m[1])}:</b> ${esc(m[2])}` : esc(l)
+		})
+		.join("<br>")
+	return `<p class="al-c">${body}</p>`
+}
+// Where it goes: right after the first heading, else at the very top.
+export function insertAfterHeading(root, html) {
+	const tpl = root.ownerDocument.createElement("template")
+	tpl.innerHTML = html
+	const node = tpl.content.firstElementChild
+	if (!node) return null
+	const heading = root.querySelector("h1, h2, h3")
+	if (heading) heading.after(node)
+	else root.prepend(node)
+	return node
+}

@@ -2167,5 +2167,16 @@ export function createGame(io) {
     return true;
   }
 
-  return { sessions, onlineSockets, readSnapshot, allSnapshots, gameSummary, freshStory, inGame, myGamesFor, recentGamesFor, deleteGame, endGameByCode, sleepGameByCode, inviteToGame, renameUser, setTags, commentRows, closeDocFor, closeDocReaders };
+  // One prompt on demand, outside any session — the solo editor's "Prompt?"
+  // roller. Same modes, same knobs, same cleaning as a ballot.
+  function rollPrompt(mode, controls) {
+    const m = cleanPromptMode(mode);
+    const c = cleanPromptControls(controls || {});
+    if (m === "intermediate" && INTERMEDIATE) {
+      const r = generateIntermediatePrompt(INTERMEDIATE, { ...c });
+      return { mode: m, prompt: r.prompt, meta: { seed: r.seed, selections: r.selections, labels: r.labels } };
+    }
+    return { mode: "simple", prompt: generateSimplePrompt(PROMPT_BANK, { recent: [] }).prompt, meta: null };
+  }
+  return { rollPrompt, sessions, onlineSockets, readSnapshot, allSnapshots, gameSummary, freshStory, inGame, myGamesFor, recentGamesFor, deleteGame, endGameByCode, sleepGameByCode, inviteToGame, renameUser, setTags, commentRows, closeDocFor, closeDocReaders };
 }

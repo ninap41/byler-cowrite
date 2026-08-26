@@ -4,9 +4,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { installDom } from "./dom.mjs";
+import { readFileSync } from "node:fs";
 
 installDom(); // plainBlockHtml parses through a detached div
-import { docCardHtml, docListHtml, docShelfHtml, DOC_GROUPS, presenceHtml, soloRowHtml, soloListHtml, wireSoloDeletes, commentHtml, commentThreadHtml, readerChipsHtml, wordsLabel, formatSource, unformatSource, plainBlockHtml, visChipHtml, visMenuHtml, visLabel, VIS, scrollTargetFor, inviteOptions, inviteRowHtml, inviteListHtml } from "../public/js/write-view.js";
+import { docCardHtml, docListHtml, docShelfHtml, DOC_GROUPS, presenceHtml, soloRowHtml, soloListHtml, wireSoloDeletes, commentHtml, commentThreadHtml, readerChipsHtml, wordsLabel, formatSource, unformatSource, plainBlockHtml, visChipHtml, visMenuHtml, visLabel, VIS, scrollTargetFor, inviteOptions, inviteRowHtml, inviteListHtml, promptInsertHtml, insertAfterHeading } from "../public/js/write-view.js";
 
 const DOC = {
   id: "abc", title: "The Upside Down", wordCount: 120, visibility: "private",
@@ -412,4 +413,40 @@ test("sprints list: total, each row names its project, and a solo row wears its 
   assert.ok(html.includes('href="/write?id=d1"') && html.includes("210 words in 15m 00s"));
   assert.match(soloRowHtml({ id: "d1", title: "T", wordCount: 5, sprintWords: 3, mine: true }), /⏱ 3 sprinted/);
   assert.doesNotMatch(soloRowHtml({ id: "d1", title: "T", wordCount: 5, mine: true }), /sprinted/);
+});
+
+test("promptInsertHtml: one centred paragraph, categories in bold, lines stacked; a curated line is just centred text; everything escaped", () => {
+  const guided = "• Season: S2\n• Canon: canon-compliant\n• Trope: only one bed <b>x</b>";
+  assert.equal(promptInsertHtml(guided), '<p class="al-c"><b>Season:</b> S2<br><b>Canon:</b> canon-compliant<br><b>Trope:</b> only one bed &lt;b&gt;x&lt;/b&gt;</p>');
+  assert.equal(promptInsertHtml("Mike & Will, the last night before the move."), '<p class="al-c">Mike &amp; Will, the last night before the move.</p>');
+  assert.equal(promptInsertHtml(""), "");
+});
+
+test("insertAfterHeading: right under the first heading, else at the very top", () => {
+  document.body.innerHTML = `<div id="ed"><p>intro</p><h2>Chapter 1</h2><p>first</p></div>`;
+  const ed = document.getElementById("ed");
+  const node = insertAfterHeading(ed, '<p class="al-c"><b>Season:</b> S2</p>');
+  assert.equal(node.className, "al-c");
+  assert.equal(ed.children[2].outerHTML, '<p class="al-c"><b>Season:</b> S2</p>', "after the heading, before the text");
+  document.body.innerHTML = `<div id="ed2"><p>no heading here</p></div>`;
+  const ed2 = document.getElementById("ed2");
+  insertAfterHeading(ed2, '<p class="al-c">x</p>');
+  assert.equal(ed2.firstElementChild.textContent, "x", "at the top when there is no heading");
+  assert.equal(insertAfterHeading(ed2, ""), null);
+});
+
+test("the write page carries the Prompt? chip (author only), the roller modal with Roll, Cancel and an Insert that waits for a roll, and Insert goes under the heading", () => {
+  const src = readFileSync(new URL("../public/write.html", import.meta.url), "utf-8");
+  assert.match(src, /class="head-chip hidden" id="promptBtn"/, "hidden until the author is known");
+  assert.ok(src.includes('$("promptBtn").classList.toggle("hidden", !canEdit)'), "author only");
+  assert.match(src, /id="promptModal"/);
+  assert.match(src, /id="soloPrompt"/, "the game's mode picker is mounted inside");
+  assert.ok(src.includes('mountPromptModes($("soloPrompt"), { prefix: "soloPm" })'));
+  assert.match(src, /id="promptRollBtn"[^>]*>🎲 Roll</);
+  assert.match(src, /id="promptCancel"[^>]*>Cancel</);
+  assert.match(src, /class="primary hidden" id="promptInsert"[^>]*>Insert</, "Insert only after a roll");
+  assert.ok(src.includes('$("promptInsert").classList.remove("hidden")'), "…revealed by showRolled");
+  assert.ok(src.includes('api("/api/prompt/roll", { mode: promptMode, controls: promptControls })'));
+  assert.ok(src.includes('insertAfterHeading($("docEditor"), promptInsertHtml(rolled.prompt))'));
+  assert.ok(/insertAfterHeading\(\$\("docEditor"\), promptInsertHtml\(rolled\.prompt\)\)\s*onEdit\(\{ immediate: true \}\)\s*closePromptModal\(\)/.test(src), "an insert is an edit (dirty, undo step) and closes the modal");
 });

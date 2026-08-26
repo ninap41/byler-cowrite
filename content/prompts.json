@@ -517,7 +517,10 @@
 				"id": "first-meeting",
 				"label": "First meeting",
 				"text": "first meeting",
-				"weight": 2
+				"weight": 2,
+				"tags": [
+					"first-meeting"
+				]
 			},
 			{
 				"id": "reunion",
@@ -565,6 +568,9 @@
 				"tags": [
 					"friends",
 					"not-together"
+				],
+				"incompatibleTags": [
+					"first-meeting"
 				]
 			},
 			{
@@ -575,6 +581,9 @@
 				"tags": [
 					"pining",
 					"not-together"
+				],
+				"incompatibleTags": [
+					"first-meeting"
 				]
 			},
 			{
@@ -585,6 +594,9 @@
 				"tags": [
 					"together",
 					"new"
+				],
+				"incompatibleTags": [
+					"first-meeting"
 				]
 			},
 			{
@@ -595,6 +607,9 @@
 				"tags": [
 					"together",
 					"established"
+				],
+				"incompatibleTags": [
+					"first-meeting"
 				]
 			},
 			{
@@ -608,6 +623,9 @@
 				],
 				"compatibleAgeGroups": [
 					"adult"
+				],
+				"incompatibleTags": [
+					"first-meeting"
 				]
 			},
 			{
@@ -618,6 +636,9 @@
 				"tags": [
 					"together",
 					"secret"
+				],
+				"incompatibleTags": [
+					"first-meeting"
 				]
 			}
 		],
@@ -12822,9 +12843,9 @@
 				]
 			},
 			{
-				"id": "au-ghost-hunting-the-moment-the-flashlight-answers",
-				"label": "the moment the flashlight answers",
-				"text": "the moment the flashlight answers",
+				"id": "au-ghost-hunting-the-middle-of-an-investigation-when-a-flashlight-star",
+				"label": "the middle of an investigation, when a flashlight starts flashing without anyone touching it",
+				"text": "the middle of an investigation, when a flashlight starts flashing without anyone touching it",
 				"requiresTags": [
 					"au-ghost-hunting"
 				]

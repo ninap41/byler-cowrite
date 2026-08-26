@@ -23,8 +23,8 @@ const MENUS = {
     canon: [{ id: "au", label: "Alternate universe" }, { id: "canon-compliant", label: "Canon-compliant" }],
     worlds: [{ id: "cleradin", label: "Cleradin", tags: ["fantasy", "cleradin"] }, { id: "coffee-shop", label: "coffee shop" }, { id: "college", label: "college", ageGroups: ["adult"] }],
     places: [{ id: "church", label: "Church" }, { id: "nyc", label: "New York City" }],
-    situations: [{ id: "reunion", label: "Reunion" }],
-    relationships: [{ id: "pining", label: "Pining", tags: ["not-together"] }, { id: "exes", label: "Exes", ageGroups: ["adult"], tags: ["exes"] }],
+    situations: [{ id: "reunion", label: "Reunion" }, { id: "first-meeting", label: "First meeting", tags: ["first-meeting"] }],
+    relationships: [{ id: "pining", label: "Pining", tags: ["not-together"], excludes: ["first-meeting"] }, { id: "exes", label: "Exes", ageGroups: ["adult"], tags: ["exes"], excludes: ["first-meeting"] }],
     tones: [{ id: "angst", label: "Angst" }, { id: "fluff", label: "Fluff", tags: ["no-explicit"], excludes: ["explicit"] }],
     setups: [{ id: "hotel", label: "Hotel" }, { id: "car", label: "Car", excludes: ["fantasy"] }],
     dynamics: [{ id: "switch", label: "Switch" }],
@@ -392,4 +392,23 @@ test("the off checkbox is drawn from scratch so its mark sits dead centre", asyn
   assert.match(rule, /display: inline-grid/);
   assert.match(rule, /place-content: center/);
   assert.ok(css.includes(".guided-controls .pm-off:checked::before { transform: scale(1); }"));
+});
+
+test("First meeting switches the Relationship menu off: every row greyed, the select disabled and read as Random; another situation gives it back", () => {
+  const root = mount("");
+  const pm = mountPromptModes(root, { prefix: "fm" }).setMenus(MENUS);
+  fire(root.querySelector("#fmMode-intermediate"));
+  root.querySelector("#fmRel").value = "pining";
+  fire(root.querySelector("#fmRel"), "change");
+  assert.equal(pm.values().promptControls.relationshipId, "pining");
+  root.querySelector("#fmSituation").value = "first-meeting";
+  fire(root.querySelector("#fmSituation"), "change");
+  const rel = root.querySelector("#fmRel");
+  assert.equal(rel.disabled, true, "the whole menu is off");
+  assert.equal(rel.title, "A first meeting has no relationship yet");
+  assert.equal(pm.values().promptControls.relationshipId, "random", "the pick is dropped");
+  assert.ok([...rel.options].filter((o) => o.value !== "random").every((o) => o.disabled), "and every row is greyed by the shared rule");
+  root.querySelector("#fmSituation").value = "reunion";
+  fire(root.querySelector("#fmSituation"), "change");
+  assert.equal(root.querySelector("#fmRel").disabled, false, "back with any other situation");
 });

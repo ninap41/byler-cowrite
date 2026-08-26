@@ -834,6 +834,13 @@ export function registerRoutes(app, game) {
   // in) and on the document (its own running total), so a profile can say
   // how much was sprinted and where. Owner only — you sprint in your own
   // draft. Negative counts (words deleted) log as 0: a sprint can't owe.
+  // The solo editor's prompt roller: one prompt in the asked mode, with the
+  // guided knobs honoured; nothing is stored.
+  app.post("/api/prompt/roll", (req, res) => {
+    if (!authedUser(req)) return res.status(401).json({ error: "Sign in first." });
+    res.json(game.rollPrompt(req.body?.mode, req.body?.controls));
+  });
+
   app.post("/api/docs/:id/sprint", (req, res) => {
     const u = authedUser(req);
     if (!u) return res.status(401).json({ error: "Sign in first." });

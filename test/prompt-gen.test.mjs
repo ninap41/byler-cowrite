@@ -193,7 +193,8 @@ test("exactly one trope per prompt", () => {
 });
 
 test("no clashes: a world is the place, and tropes agree with the relationship", () => {
-  const tagsOf = (rel) => idOf(INT.relationships, rel).tags;
+  // a first meeting deals no relationship at all
+  const tagsOf = (rel) => (rel ? idOf(INT.relationships, rel).tags : ["first-meeting"]);
   for (let i = 0; i < 500; i++) {
     const r = generateIntermediatePrompt(INT, { seed: "clash" + i, explicitLevel: i % 2 ? "explicit" : "none" });
     const tropes = [r.selections.worldId, ...r.selections.tropeIds].filter(Boolean).map((id) => idOf(INT.tropes, id));
@@ -520,4 +521,19 @@ test("situationOff leaves the situation out: no line, no chip, no id", () => {
   assert.equal(r.selections.situationId, undefined);
   assert.equal(r.labels.situation, undefined);
   assert.ok(r.prompt.includes("Relationship:"), "the other axes stay");
+});
+
+test("a first meeting has no relationship: the line is not dealt, a host's pick is ignored, and every relationship refuses the tag", () => {
+  const fm = INT.situations.find((s) => s.id === "first-meeting");
+  assert.ok(fm.tags.includes("first-meeting"));
+  assert.ok(INT.relationships.every((r) => r.incompatibleTags?.includes("first-meeting")), "the menu greys every row");
+  for (let i = 0; i < 10; i++) {
+    const r = generateIntermediatePrompt(INT, { seed: "fm" + i, situationId: "first-meeting", relationshipId: "established" });
+    assert.ok(!r.prompt.includes("Relationship:"), "no Relationship line");
+    assert.equal(r.selections.relationshipId, undefined);
+    assert.equal(r.labels.relationship, undefined, "no chip");
+    assert.equal(r.selections.situationId, "first-meeting");
+  }
+  const other = generateIntermediatePrompt(INT, { seed: "fm-x", situationId: INT.situations.find((s) => s.id !== "first-meeting").id, relationshipId: "established" });
+  assert.equal(other.selections.relationshipId, "established", "any other situation keeps the pick");
 });

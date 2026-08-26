@@ -202,6 +202,17 @@ export function mountPromptModes(root, { prefix = "pm", onChange, onReroll } = {
 				if (box) box.disabled = !live
 			}
 		}
+		// a first meeting has no relationship yet: the whole menu is off, not
+		// just each row greyed (the rows are, too — every relationship refuses
+		// the first-meeting tag — but a disabled select says it plainly)
+		{
+			const d = menus?.intermediate
+			const sit = (d?.situations || []).find((x) => x.id === valueOf("situationId"))
+			const first = !!sit?.tags?.includes("first-meeting")
+			const rel = el("Rel")
+			if (first) { rel.value = "random"; rel.disabled = true; rel.title = "A first meeting has no relationship yet" }
+			else if (rel.disabled && rel.title === "A first meeting has no relationship yet") { rel.disabled = false; rel.title = "" }
+		}
 		// a part switched off: its menu is moot, so it reads Random and greys
 		for (const f of GUIDED_FIELDS) {
 			if (!f.off) continue

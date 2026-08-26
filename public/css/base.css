@@ -6968,6 +6968,7 @@ body.resizing-side {
 .guided-controls.hidden,
 .guided-controls label.hidden,
 .player-chip.hidden,
+.prompt-roll-result.hidden,
 .doc-main.hidden {
 	display: none;
 }
@@ -9401,3 +9402,11 @@ html.vcx-live[data-theme="vecna"] #vc-pend {
 .guided-controls .pm-off:checked::before { transform: scale(1); }
 .guided-controls .pm-off:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
 .guided-controls select:disabled { opacity: 0.45; }
+
+/* the solo editor's prompt roller: the picker's knobs wrap inside the card,
+   the rolled scenario reads like a ballot card, Insert appears with it */
+.prompt-roll-card { width: min(720px, calc(100vw - 32px)); text-align: left; }
+.prompt-roll-card .guided-controls { margin-top: 8px; }
+.prompt-roll-row { align-items: center; gap: 12px; margin: 12px 0 0; }
+.prompt-roll-result { display: block; margin: 12px 0 0; cursor: default; }
+.prompt-roll-card .share-foot { justify-content: flex-end; gap: 8px; }

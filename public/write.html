@@ -57,6 +57,12 @@
 								>
 									⏱ Sprint
 								</button>
+								<!-- Prompt?: roll a scenario from the game's prompt library (Simple
+								     or Advanced) and drop it into the document under the heading.
+								     Author only: it writes into the text. -->
+								<button class="head-chip hidden" id="promptBtn" type="button" data-tip="Roll a prompt from the scenario library and insert it">
+									🎲 Prompt?
+								</button>
 								<button
 									class="head-chip"
 									id="commentToggle"
@@ -293,6 +299,26 @@
 			</div>
 		</div>
 
+		<!-- Prompt roller: the game's scenario generator, one card at a time.
+		     Insert only appears once something has been rolled. -->
+		<div class="confirm-modal hidden" id="promptModal" role="dialog" aria-modal="true" aria-labelledby="promptModalTitle">
+			<div class="confirm-card prompt-roll-card">
+				<h3 id="promptModalTitle">🎲 Roll a prompt</h3>
+				<p class="subtle share-blurb">Simple deals a scenario from the library; Advanced builds one from the knobs.</p>
+				<div id="soloPrompt"></div>
+				<div class="row prompt-roll-row">
+					<button class="primary" id="promptRollBtn" type="button">🎲 Roll</button>
+					<span class="subtle" id="promptRollHint">Roll to see a scenario, roll again for another.</span>
+				</div>
+				<div class="option prompt-roll-result hidden" id="promptCard"></div>
+				<div class="err" id="promptErr"></div>
+				<div class="row share-foot">
+					<button class="ghost" id="promptCancel" type="button">Cancel</button>
+					<button class="primary hidden" id="promptInsert" type="button">Insert</button>
+				</div>
+			</div>
+		</div>
+
 		<!-- unsaved-changes guard for in-app navigation -->
 		<div class="confirm-modal hidden" id="leaveModal">
 			<div class="confirm-card">
@@ -333,6 +359,8 @@
 				DEFAULT_SIDE,
 			} from "/js/doc-prefs.js"
 			import { mountSlashPalette } from "/js/components/slash-palette.js"
+			import { mountPromptModes } from "/js/components/prompt-modes.js"
+			import { promptHtml } from "/js/util.js"
 			import { mountFlipSelect } from "/js/components/flip-select.js"
 			import { loadDraft, saveDraft, clearDraft, draftIsNewer } from "/js/doc-store.js"
 			import { createHistory } from "/js/components/history.js"
@@ -345,6 +373,8 @@
 				unformatSource,
 				plainBlockHtml,
 				visChipHtml,
+				promptInsertHtml,
+				insertAfterHeading,
 				visMenuHtml,
 				visOf,
 				scrollTargetFor,
@@ -427,6 +457,7 @@
 				const canEdit = doc.mine
 				$("docTitle").disabled = !canEdit
 				$("sprintBtn").classList.toggle("hidden", !canEdit)
+				$("promptBtn").classList.toggle("hidden", !canEdit)
 				if (!canEdit) {
 					// Beta readers read the SAME editor element — that's what makes the
 					// underlines and the click-to-jump identical for both sides — but
@@ -839,6 +870,59 @@
 			}
 
 			$("commentToggle").addEventListener("click", () => setCommentMode(!commentMode))
+
+			// ---- Prompt roller ----
+			// One mount of the game's prompt-mode picker (Simple / Advanced +
+			// knobs), a Roll that asks the server for ONE prompt, and Insert,
+			// which exists only once a prompt is on the card.
+			let rolled = null
+			const soloPrompt = mountPromptModes($("soloPrompt"), { prefix: "soloPm" })
+			let promptMenusLoaded = false
+			async function openPromptModal() {
+				if (!promptMenusLoaded) {
+					try {
+						soloPrompt.setMenus(await api("/api/prompt-options", null, "GET"))
+						promptMenusLoaded = true
+					} catch (e) { /* Simple still works */ }
+				}
+				$("promptModal").classList.remove("hidden")
+				$("promptRollBtn").focus()
+			}
+			function closePromptModal() {
+				$("promptModal").classList.add("hidden")
+			}
+			function showRolled(r) {
+				rolled = r
+				$("promptCard").innerHTML = promptHtml(r.prompt)
+				$("promptCard").classList.remove("hidden")
+				$("promptInsert").classList.remove("hidden")
+				$("promptRollBtn").textContent = "🎲 Reroll"
+				$("promptRollHint").textContent = "Not it? Roll again."
+			}
+			$("promptBtn").addEventListener("click", openPromptModal)
+			$("promptCancel").addEventListener("click", closePromptModal)
+			$("promptModal").addEventListener("click", (e) => {
+				if (e.target === $("promptModal")) closePromptModal()
+			})
+			document.addEventListener("keydown", (e) => {
+				if (e.key === "Escape" && !$("promptModal").classList.contains("hidden")) closePromptModal()
+			})
+			$("promptRollBtn").addEventListener("click", async () => {
+				$("promptErr").textContent = ""
+				const { promptMode, promptControls } = soloPrompt.values()
+				try {
+					showRolled(await api("/api/prompt/roll", { mode: promptMode, controls: promptControls }))
+				} catch (e) {
+					$("promptErr").textContent = e.message || "Couldn't roll."
+				}
+			})
+			$("promptInsert").addEventListener("click", () => {
+				if (!rolled) return
+				// centred, categories in bold, right under the heading (or first)
+				insertAfterHeading($("docEditor"), promptInsertHtml(rolled.prompt))
+				onEdit({ immediate: true })
+				closePromptModal()
+			})
 
 			$("commentPane").addEventListener("click", (e) => {
 				const li = e.target.closest(".doc-comment")
