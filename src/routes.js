@@ -96,6 +96,9 @@ export function registerRoutes(app, game) {
         canon: menu(data.canon),
         worlds: menu((data.tropes || []).filter((t) => t.group === "setting-au")),
         places: menu(data.places),
+        // every world's own rooms (id/label/rules; `requires` carries the
+        // world's au-<id> tag) so the Place menu can follow the chosen world
+        auPlaces: menu(data.auPlaces),
         situations: menu(data.situations),
         relationships: menu(data.relationships),
         tones: menu(data.tones),

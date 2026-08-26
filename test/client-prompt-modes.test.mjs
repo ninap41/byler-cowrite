@@ -23,6 +23,11 @@ const MENUS = {
     canon: [{ id: "au", label: "Alternate universe" }, { id: "canon-compliant", label: "Canon-compliant" }],
     worlds: [{ id: "cleradin", label: "Cleradin", tags: ["fantasy", "cleradin"] }, { id: "coffee-shop", label: "coffee shop" }, { id: "college", label: "college", ageGroups: ["adult"] }],
     places: [{ id: "church", label: "Church" }, { id: "nyc", label: "New York City" }],
+    auPlaces: [
+      { id: "au-cleradin-the-tower", label: "the tower", requires: ["au-cleradin"] },
+      { id: "au-cleradin-the-bathhouse", label: "the bathhouse", requires: ["au-cleradin", "explicit"], adultOnly: true },
+      { id: "au-coffee-shop-the-back-room", label: "the back room", requires: ["au-coffee-shop"] },
+    ],
     situations: [{ id: "reunion", label: "Reunion", tags: ["reunion"] }, { id: "first-meeting", label: "First meeting", tags: ["first-meeting"] }],
     relationships: [{ id: "pining", label: "Pining", tags: ["not-together"], excludes: ["first-meeting"] }, { id: "established", label: "Established", tags: ["together"], excludes: ["first-meeting", "reunion"] }, { id: "exes", label: "Exes", ageGroups: ["adult"], tags: ["exes"], excludes: ["first-meeting"] }],
     tones: [{ id: "angst", label: "Angst" }, { id: "fluff", label: "Fluff", tags: ["no-explicit"], excludes: ["explicit"] }],
@@ -426,4 +431,32 @@ test("Reunion greys the couple relationships and drops such a pick back to Rando
   assert.equal(root.querySelector('#reRel option[value="pining"]').disabled, false, "a not-together relationship is still on");
   assert.equal(pm.values().promptControls.relationshipId, "random", "the impossible pick fell back");
   assert.equal(root.querySelector("#reRel").disabled, false, "the menu itself stays usable, unlike a first meeting");
+});
+
+test("the Place menu follows the AU world: a chosen world lists its own rooms (Random first), another world its own, canon the generic places; a pick from the other pool falls back to Random; explicit rooms grey under a soft rating", () => {
+  const root = mount("");
+  const pm = mountPromptModes(root, { prefix: "pl" }).setMenus(MENUS);
+  fire(root.querySelector("#plMode-intermediate"));
+  const values = () => [...root.querySelector("#plPlace").options].map((o) => o.value);
+  assert.deepEqual(values(), ["random", "church", "nyc"], "canon: the generic pool");
+  root.querySelector("#plPlace").value = "nyc";
+  fire(root.querySelector("#plPlace"), "change");
+  assert.equal(pm.values().promptControls.placeId, "nyc");
+  root.querySelector("#plCanon").value = "au";
+  fire(root.querySelector("#plCanon"), "change");
+  root.querySelector("#plWorld").value = "cleradin";
+  fire(root.querySelector("#plWorld"), "change");
+  assert.deepEqual(values(), ["random", "au-cleradin-the-tower", "au-cleradin-the-bathhouse"], "Cleradin's rooms, Random first");
+  assert.equal(pm.values().promptControls.placeId, "random", "the canon pick fell back");
+  assert.equal(root.querySelector('#plPlace option[value="au-cleradin-the-bathhouse"]').disabled, true, "an explicit room is greyed under no rating");
+  root.querySelector("#plPlace").value = "au-cleradin-the-tower";
+  fire(root.querySelector("#plPlace"), "change");
+  assert.equal(pm.values().promptControls.placeId, "au-cleradin-the-tower", "a room can be pinned");
+  root.querySelector("#plWorld").value = "coffee-shop";
+  fire(root.querySelector("#plWorld"), "change");
+  assert.deepEqual(values(), ["random", "au-coffee-shop-the-back-room"], "another world, its own rooms");
+  assert.equal(pm.values().promptControls.placeId, "random", "the Cleradin room fell back");
+  root.querySelector("#plCanon").value = "canon-compliant";
+  fire(root.querySelector("#plCanon"), "change");
+  assert.deepEqual(values(), ["random", "church", "nyc"], "back to canon: the generic places render again");
 });

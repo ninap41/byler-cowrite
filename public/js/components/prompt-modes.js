@@ -92,6 +92,10 @@ export function activeContext(menus, c) {
 	const season = find(d.seasons, c.seasonId)
 	const picks = [find(d.canon, c.canonId), find(d.worlds, c.worldId), find(d.relationships, c.relationshipId), find(d.tones, c.toneId), find(d.situations, c.situationId), find(d.places, c.placeId)]
 	const tags = new Set(picks.flatMap((p) => p?.tags || []))
+	// a world in play carries its own au-<id> tag (the generator's addTags
+	// does the same), which is what that world's rooms require
+	const world = find(d.worlds, c.worldId)
+	if (world && (c.canonId === "au" || c.canonId === "random")) tags.add("au-" + world.id)
 	if (season) for (const t of season.tags || []) tags.add(t)
 	if (c.explicitLevel === "explicit") tags.add("explicit")
 	return { ageGroup: season?.ageGroup || null, canonId: c.canonId && c.canonId !== "random" ? c.canonId : null, tags }
@@ -224,6 +228,20 @@ export function mountPromptModes(root, { prefix = "pm", onChange, onReroll } = {
 	// Grey out what can't go with the rest. Each menu is judged against the
 	// OTHER choices (not its own), so the current pick never disables itself;
 	// a pick that has become impossible falls back to Random.
+	// The pool a menu deals from. Only Place moves: under a chosen AU world it
+	// is that world's own rooms (auPlaces whose `requires` names the world),
+	// otherwise the generic places — so switching worlds, or back to canon,
+	// swaps the whole list and a pick from the other pool falls to Random.
+	function poolFor(f, c) {
+		const d = menus?.intermediate || {}
+		if (f.key !== "placeId") return d[f.menu] || []
+		const world = worldInPlay(c)
+		if (!world) return d.places || []
+		return (d.auPlaces || []).filter((p) => (p.requires || []).includes("au-" + world))
+	}
+	// the world that governs the Place menu: a chosen world when Canon is AU
+	// or Random (a chosen world implies AU), never under a canon setting
+	const worldInPlay = (c) => (c.worldId && c.worldId !== "random" && (c.canonId === "au" || c.canonId === "random") ? c.worldId : null)
 	function paintCompat() {
 		const d = menus?.intermediate
 		if (!d) return
@@ -231,9 +249,10 @@ export function mountPromptModes(root, { prefix = "pm", onChange, onReroll } = {
 		for (const f of GUIDED_FIELDS) {
 			const others = { ...c, [f.key]: "random" }
 			const ctx = activeContext(menus, others)
-			const disabled = new Set((d[f.menu] || []).filter((it) => !optionAllowed(it, ctx)).map((it) => it.id))
-			const want = disabled.has(c[f.key]) ? "random" : c[f.key]
-			el(f.suffix).innerHTML = menuHtml(d[f.menu], want, { disabled })
+			const pool = poolFor(f, c)
+			const disabled = new Set(pool.filter((it) => !optionAllowed(it, ctx)).map((it) => it.id))
+			const want = disabled.has(c[f.key]) || !pool.some((it) => it.id === c[f.key]) ? "random" : c[f.key]
+			el(f.suffix).innerHTML = menuHtml(pool, want, { disabled })
 			controls[f.key] = want
 		}
 	}
@@ -273,7 +292,7 @@ export function mountPromptModes(root, { prefix = "pm", onChange, onReroll } = {
 		setMenus(next) {
 			menus = next
 			const d = next?.intermediate
-			if (d) for (const f of GUIDED_FIELDS) el(f.suffix).innerHTML = menuHtml(d[f.menu], controls[f.key])
+			if (d) for (const f of GUIDED_FIELDS) el(f.suffix).innerHTML = menuHtml(poolFor(f, controls), controls[f.key])
 			paintLevels()
 			paintDependents()
 			paintCompat()

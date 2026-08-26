@@ -549,3 +549,15 @@ test("a reunion never opens on a couple: new couple, established and secret rela
   }
   assert.equal(generateIntermediatePrompt(INT, { seed: "reu-ok", situationId: "reunion", relationshipId: "exes", seasonId: "post-canon" }).selections.relationshipId, "exes", "a fitting pin is honoured");
 });
+
+test("a pinned AU room is honoured under its world; a room from another world, or a generic place, is dealt around", () => {
+  const room = INT.auPlaces.find((p) => p.requiresTags.includes("au-cleradin") && !p.requiresTags.includes("explicit"));
+  const r = generateIntermediatePrompt(INT, { seed: "room", canonId: "au", worldId: "cleradin", placeId: room.id });
+  assert.equal(r.selections.placeId, room.id, "the pinned room");
+  const other = INT.auPlaces.find((p) => !p.requiresTags.includes("au-cleradin") && !p.requiresTags.includes("explicit"));
+  const r2 = generateIntermediatePrompt(INT, { seed: "room2", canonId: "au", worldId: "cleradin", placeId: other.id });
+  assert.notEqual(r2.selections.placeId, other.id);
+  assert.ok(INT.auPlaces.find((p) => p.id === r2.selections.placeId).requiresTags.includes("au-cleradin"), "still one of Cleradin's own");
+  const r3 = generateIntermediatePrompt(INT, { seed: "room3", canonId: "au", worldId: "cleradin", placeId: INT.places[0].id });
+  assert.ok(INT.auPlaces.some((p) => p.id === r3.selections.placeId), "a generic place never lands under a world");
+});

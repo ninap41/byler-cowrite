@@ -355,3 +355,12 @@ test("POST /api/prompt/roll deals one prompt for the solo editor in either mode,
   assert.equal(junk.status, 200);
   assert.ok(CURATED.includes(junk.data.prompt), "junk off the wire falls back to Simple");
 });
+
+test("/api/prompt-options ships every world's rooms as auPlaces rows keyed by the world's tag, never clause text", async () => {
+  const d = (await ctx.api("/api/prompt-options", undefined)).data.intermediate;
+  assert.ok(Array.isArray(d.auPlaces) && d.auPlaces.length > 1000, "the whole room list");
+  assert.ok(d.auPlaces.every((p) => p.id && p.label && Array.isArray(p.requires) && p.requires.some((t) => t.startsWith("au-")) && !("text" in p)));
+  const cleradin = d.auPlaces.filter((p) => p.requires.includes("au-cleradin"));
+  assert.ok(cleradin.length >= 30, "Cleradin has its rooms");
+  assert.ok(cleradin.some((p) => p.requires.includes("explicit") && p.adultOnly), "including explicit ones, marked");
+});
