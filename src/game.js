@@ -1050,6 +1050,8 @@ export function createGame(io) {
       const i = Number(index);
       if (!s || s.hostId !== socket.id || s.phase !== "choosing" || !Number.isInteger(i) || i < 0 || i >= s.options.length)
         return ack?.({ ok: false });
+      // a hand-written scenario is somebody's words: it can be removed, never redealt
+      if (s.optionMeta?.[i]?.custom) return ack?.({ ok: false, error: "A custom scenario can't be rerolled." });
       const old = s.options[i];
       let next = null, meta = null;
       for (let attempt = 0; attempt < 8 && (next == null || s.options.includes(next)); attempt++) {
@@ -1106,7 +1108,28 @@ export function createGame(io) {
       if (s.options.includes(p)) return ack?.({ ok: false, error: "That's already an option." });
       if (s.options.length >= MAX_OPTIONS) return ack?.({ ok: false, error: "Too many options already." });
       s.options.push(p);
-      (s.optionMeta ||= []).push(null); // a hand-written scenario has no components
+      // a hand-written scenario has no components; it is tagged with its
+      // author so the page can offer THEM a Remove and nobody a reroll
+      (s.optionMeta ||= []).push({ custom: true, by: s.writers.get(socket.id)?.userId ?? null });
+      broadcastGame(s);
+      ack?.({ ok: true });
+    });
+
+    // A hand-written scenario can be withdrawn by whoever wrote it (or the
+    // host / an admin); votes on it are dropped with it.
+    socket.on("remove-prompt", ({ index } = {}, ack) => {
+      const s = mySession();
+      const i = Number(index);
+      if (!s || s.phase !== "choosing" || !Number.isInteger(i) || i < 0 || i >= s.options.length) return ack?.({ ok: false });
+      const meta = s.optionMeta?.[i];
+      if (!meta?.custom) return ack?.({ ok: false, error: "Only a hand-written scenario can be removed." });
+      const me = s.writers.get(socket.id);
+      const mine = me?.userId != null && me.userId === meta.by;
+      if (!mine && s.hostId !== socket.id && !adminSeat(s, socket.id)) return ack?.({ ok: false, error: "Not yours to remove." });
+      const old = s.options[i];
+      s.options.splice(i, 1);
+      s.optionMeta.splice(i, 1);
+      for (const [sid, v] of s.votes) if (v === old) s.votes.delete(sid);
       broadcastGame(s);
       ack?.({ ok: true });
     });

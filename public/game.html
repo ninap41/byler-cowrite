@@ -802,8 +802,26 @@
 						myVote = p
 						socket.emit("vote", { prompt: p })
 					}
-					// the host can redeal just this one, keeping the rest of the ballot
-					if (myId === hostId) {
+					const meta = st.optionMeta?.[i]
+					// a hand-written scenario: its author (or the host) can take it
+					// back; nobody rerolls somebody's words
+					if (meta?.custom) {
+						if ((me?.id != null && meta.by === me.id) || myId === hostId) {
+							const rm = document.createElement("button")
+							rm.type = "button"
+							rm.className = "opt-reroll opt-remove"
+							rm.title = "Remove this scenario"
+							rm.textContent = "✕ Remove"
+							rm.onclick = (e) => {
+								e.stopPropagation()
+								if (myVote === p) myVote = null
+								socket.emit("remove-prompt", { index: i })
+							}
+							b.appendChild(rm)
+							b.classList.add("has-reroll")
+						}
+					} else if (myId === hostId) {
+						// the host can redeal just this one, keeping the rest of the ballot
 						const rr = document.createElement("button")
 						rr.type = "button"
 						rr.className = "opt-reroll"
@@ -815,6 +833,7 @@
 							socket.emit("reroll-option", { index: i })
 						}
 						b.appendChild(rr)
+						b.classList.add("has-reroll")
 					}
 					box.appendChild(b)
 				})

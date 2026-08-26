@@ -117,7 +117,7 @@ test("a hand-written scenario joins a guided ballot with no components, and voti
   await ctx.wait(120);
   assert.equal(state.current.options.length, 5);
   assert.equal(state.current.optionMeta.length, 5);
-  assert.equal(state.current.optionMeta[4], null);
+  assert.deepEqual({ ...state.current.optionMeta[4], by: "x" }, { custom: true, by: "x" }, "tagged as hand-written, no components");
 
   const generated = state.current.options[0];
   A.emit("vote", { prompt: generated });
@@ -273,4 +273,66 @@ test("each mode keeps its own ballot: switching Simple ⇄ Advanced brings back 
   await ctx.emit(A, "set-prompt-mode", { mode: "intermediate", controls: { toneId: "fluff" } });
   await ctx.wait(120);
   assert.deepEqual(opts(), now);
+});
+
+test("only the host rerolls: shuffle-options and reroll-option are refused for a seated non-host, and the page draws the per-option button for the host alone", async () => {
+  const { A, B, state } = await choosing();
+  const before = [...state.current.options];
+  assert.equal((await ctx.emit(B, "shuffle-options")).ok, false, "a writer can't redeal the ballot");
+  assert.equal((await ctx.emit(B, "reroll-option", { index: 0 })).ok, false, "nor one card");
+  await ctx.wait(80);
+  assert.deepEqual(state.current.options, before, "nothing moved");
+  assert.equal((await ctx.emit(A, "shuffle-options")).ok, true, "the host can");
+  const src = readFileSync(new URL("../public/game.html", import.meta.url), "utf-8");
+  const block = src.slice(src.indexOf("const meta = st.optionMeta?.[i]"), src.indexOf('$("voteProgress")'));
+  assert.ok(/else if \(myId === hostId\) \{[\s\S]*?reroll-option/.test(block), "the ↻ button exists only in the host's markup");
+  assert.ok(block.includes('b.classList.add("has-reroll")'), "and the card pads for it");
+  const css = readFileSync(new URL("../public/css/base.css", import.meta.url), "utf-8");
+  const rule = css.match(/\.opt-reroll \{[^}]*\}/)[0];
+  assert.match(rule, /top: 50%/);
+  assert.match(rule, /right: 84px/, "beside the vote count, not over it");
+});
+
+test("a hand-written scenario is tagged with its author, can't be rerolled, and is removable by its author, the host or an admin — nobody else", async () => {
+  const { A, B, state } = await choosing();
+  const C = await ctx.conn(); // a socket with no seat here
+  // B writes one
+  const add = await ctx.emit(B, "add-prompt", { prompt: "Will and Mike, the last night before the move." });
+  assert.equal(add.ok, true);
+  await ctx.wait(100);
+  let st = state.current;
+  const i = st.options.indexOf("Will and Mike, the last night before the move.");
+  assert.ok(i >= 0);
+  assert.equal(st.optionMeta[i].custom, true, "tagged custom");
+  assert.ok(st.optionMeta[i].by, "with its author");
+  assert.equal(st.optionMeta[i].labels, undefined, "and no chips");
+  // the host can't reroll it
+  const rr = await ctx.emit(A, "reroll-option", { index: i });
+  assert.equal(rr.ok, false);
+  assert.match(rr.error, /can't be rerolled/);
+  await ctx.wait(60);
+  assert.equal(state.current.options[i], "Will and Mike, the last night before the move.", "still there");
+  // a socket with no seat can't remove it
+  assert.equal((await ctx.emit(C, "remove-prompt", { index: i })).ok, false);
+  // the author removes it, with the vote that was on it
+  await ctx.emit(B, "vote", { prompt: "Will and Mike, the last night before the move." });
+  await ctx.wait(60);
+  assert.equal(state.current.voted, 1);
+  const rm = await ctx.emit(B, "remove-prompt", { index: i });
+  assert.equal(rm.ok, true);
+  await ctx.wait(100);
+  st = state.current;
+  assert.ok(!st.options.includes("Will and Mike, the last night before the move."), "gone");
+  assert.equal(st.optionMeta.length, st.options.length, "meta stays parallel");
+  assert.equal(st.voted, 0, "its vote went with it");
+  // the host may remove another writer's custom scenario; a dealt card can't be removed by anyone
+  await ctx.emit(B, "add-prompt", { prompt: "A second one, for the host to pull." });
+  await ctx.wait(80);
+  const j = state.current.options.indexOf("A second one, for the host to pull.");
+  assert.equal((await ctx.emit(A, "remove-prompt", { index: j })).ok, true, "host removes");
+  assert.equal((await ctx.emit(A, "remove-prompt", { index: 0 })).ok, false, "a dealt card is not removable");
+  // the page: no ↻ on a custom card, ✕ only for its author or the host
+  const src = readFileSync(new URL("../public/game.html", import.meta.url), "utf-8");
+  const block = src.slice(src.indexOf("const meta = st.optionMeta?.[i]"), src.indexOf('$("voteProgress")'));
+  assert.ok(/if \(meta\?\.custom\) \{[\s\S]*?meta\.by === me\.id\) \|\| myId === hostId[\s\S]*?remove-prompt[\s\S]*?\} else if \(myId === hostId\) \{[\s\S]*?reroll-option/.test(block), "Remove for the author/host on a custom card, ↻ for the host on a dealt one, never both");
 });

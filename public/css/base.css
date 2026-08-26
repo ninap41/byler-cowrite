@@ -9313,7 +9313,12 @@ html.vcx-live[data-theme="vecna"] #vc-pend {
 .pe-doc code { font-family: var(--font-mono); font-size: 0.8em; }
 /* the host's per-option reroll, in the card's corner opposite the vote count */
 .option { position: relative; }
-.opt-reroll { position: absolute; top: 8px; right: 8px; padding: 4px 10px; border-radius: var(--r-sm, 6px); border: 1px solid var(--line); background: var(--panel-2); color: var(--muted); font: inherit; font-size: 0.8rem; line-height: 1.2; cursor: pointer; }
+/* the host's per-option reroll sits BESIDE the vote count, on the same
+   centred line to its left, never over it (a one-line Simple card put the two
+   in the same corner); the card that carries it pads its right for both */
+.opt-reroll { position: absolute; top: 50%; right: 84px; transform: translateY(-50%); padding: 4px 10px; border-radius: var(--r-sm, 6px); border: 1px solid var(--line); background: var(--panel-2); color: var(--muted); font: inherit; font-size: 0.8rem; line-height: 1.2; cursor: pointer; white-space: nowrap; text-indent: 0; }
+.option.has-reroll { padding-right: 176px; }
+.opt-remove:hover { color: var(--accent); border-color: var(--accent); }
 .opt-reroll:hover { color: var(--ink); border-color: var(--chip-brd); }
 .guided-controls .pm-reroll { align-self: end; }
 /* the writers' reference editor on /admin: one block per category */
