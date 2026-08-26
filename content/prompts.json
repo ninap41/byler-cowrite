@@ -139,8 +139,8 @@
 			},
 			{
 				"id": "post-canon",
-				"label": "Post-canon / future-fic (adults)",
-				"text": "post-canon / future-fic (adults)",
+				"label": "Future fic (adults)",
+				"text": "future fic (adults)",
 				"weight": 6,
 				"ageGroup": "adult",
 				"tags": [

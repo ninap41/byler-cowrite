@@ -100,8 +100,8 @@ A filter that empties a pool falls back to the whole pool rather than failing.
 
 `explicit` holds `levels`, `setups`, `dynamics`, `acts`, `kinks` (weighted —
 the design doc's bolded tags carry the most weight), `registers`. It is only
-available when the chosen season's `ageGroup` is `adult` (post-canon /
-future-fic). Every on-screen season is minors; suggestive and every
+available when the chosen season's `ageGroup` is `adult` ("Future fic (adults)",
+id `post-canon`). Every on-screen season is minors; suggestive and every
 non-explicit trope remain available everywhere. Scraping AO3 for the weighted
 list is against their ToS — keep this list curated by hand.
 
