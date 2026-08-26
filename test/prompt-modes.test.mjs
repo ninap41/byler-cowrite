@@ -55,10 +55,9 @@ test("guided mode assembles prompts and ships the component ids with them", asyn
     assert.equal(meta.selections.seasonId, "s4");
     assert.equal(meta.selections.toneId, "angst");
     assert.equal(meta.selections.tropeIds.length, 1);
-    // the gate: S4 is a minor season, so explicit came down to suggestive
-    assert.equal(meta.selections.explicitLevel, "suggestive");
-    assert.equal(meta.selections.explicit, undefined);
-    assert.ok(!p.includes("Rating: explicit") && !p.includes("Kinks:"));
+    // S4 admits explicit: the layer is dealt
+    assert.equal(meta.selections.explicitLevel, "explicit");
+    assert.ok(meta.selections.explicit && p.includes("Kinks:"));
     assert.ok(meta.seed && (meta.labels.place || meta.selections.canonId === "au") && meta.labels.tropes.length === 1);
   });
 });

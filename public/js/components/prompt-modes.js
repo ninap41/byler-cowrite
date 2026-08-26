@@ -25,20 +25,20 @@ export const GUIDED_FIELDS = [
 	// beside the label): switched off, the part is never drawn, so it never
 	// reaches the card
 	{ key: "toneId", suffix: "Tone", label: "Tone", menu: "tones", off: "toneOff" },
-	// the explicit dropdowns: shown past None, enabled only at Explicit (the
-	// gate never deals a Kinks line under Suggestive)
-	{ key: "setupId", suffix: "Setup", label: "Setup", menu: "setups", onlyWhen: { explicitLevel: ["suggestive", "explicit"] }, explicitOnly: true, off: "setupOff" },
-	{ key: "dynamicId", suffix: "Dynamic", label: "Dynamic", menu: "dynamics", onlyWhen: { explicitLevel: ["suggestive", "explicit"] }, explicitOnly: true, off: "dynamicOff" },
-	{ key: "actId", suffix: "Act", label: "Act", menu: "acts", onlyWhen: { explicitLevel: ["suggestive", "explicit"] }, explicitOnly: true, off: "actOff" },
-	{ key: "kinkId", suffix: "Kink", label: "Kink", menu: "kinks", onlyWhen: { explicitLevel: ["suggestive", "explicit"] }, explicitOnly: true, off: "kinkOff" },
+	// the explicit dropdowns: shown at Explicit
+	{ key: "setupId", suffix: "Setup", label: "Setup", menu: "setups", onlyWhen: { explicitLevel: ["explicit"] }, explicitOnly: true, off: "setupOff" },
+	{ key: "dynamicId", suffix: "Dynamic", label: "Dynamic", menu: "dynamics", onlyWhen: { explicitLevel: ["explicit"] }, explicitOnly: true, off: "dynamicOff" },
+	{ key: "actId", suffix: "Act", label: "Act", menu: "acts", onlyWhen: { explicitLevel: ["explicit"] }, explicitOnly: true, off: "actOff" },
+	{ key: "kinkId", suffix: "Kink", label: "Kink", menu: "kinks", onlyWhen: { explicitLevel: ["explicit"] }, explicitOnly: true, off: "kinkOff" },
 ]
 export const OFF_KEYS = GUIDED_FIELDS.filter((f) => f.off).map((f) => f.off)
 // The fallback when /api/prompt-options carries no levels; the wire copy wins.
 export const EXPLICIT_LEVELS = [
 	{ id: "none", label: "None" },
-	{ id: "suggestive", label: "Suggestive" },
 	{ id: "explicit", label: "Explicit", adultOnly: true },
 ]
+// a season the explicit layer may reach: the adult one, or one the pack marks explicit-ok
+export const seasonAllowsExplicit = (season) => !!season && (season.ageGroup === "adult" || (season.tags || []).includes("explicit-ok"))
 export const DEFAULT_CONTROLS = {
 	seasonId: "random",
 	canonId: "random",
@@ -130,7 +130,9 @@ export function optionChipsHtml(meta) {
 // season draw to the adult ones server-side.
 export function levelsFor(levels = [], seasons = [], seasonId, tone = null) {
 	const season = seasons.find((s) => s.id === seasonId)
-	let out = !season || season.ageGroup === "adult" ? levels : levels.filter((l) => !l.adultOnly)
+	// suggestive is deprecated: an old pack's row never reaches the menu
+	levels = levels.filter((l) => l.id !== "suggestive")
+	let out = !season || seasonAllowsExplicit(season) ? levels : levels.filter((l) => !l.adultOnly)
 	// a tone that can't be explicit (fluff) takes Explicit off the menu too
 	if (tone?.tags?.includes("no-explicit")) out = out.filter((l) => l.id !== "explicit")
 	return out
@@ -258,6 +260,11 @@ export function mountPromptModes(root, { prefix = "pm", onChange, onReroll } = {
 	}
 	function fire() {
 		paintDependents()
+		// levels narrow FIRST: a season that admits no Explicit drops the level
+		// to None before the season menu is judged, so the season the host just
+		// chose stays chosen (the two gates never fight); then once more after
+		// the menus, in case a tone bounced
+		paintLevels()
 		paintCompat()
 		paintLevels()
 		controls = readControls()

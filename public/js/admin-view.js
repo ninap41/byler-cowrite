@@ -173,7 +173,7 @@ export function promptPoolHtml(pool, doc) {
 // entry; the draw adds them as it goes), with what each one means.
 export const BUILTIN_TAGS = {
 	explicit: "added when the rating came out explicit, a tone that lists it in incompatibleTags (fluff, crack) steps aside",
-	"no-explicit": "a tone that carries it forces an explicit request down to suggestive",
+	"no-explicit": "a tone that carries it forces an explicit request down to none",
 }
 
 // Every tag the library actually uses, with the entries that carry it, so
@@ -217,7 +217,7 @@ export function promptRulesHtml(doc) {
 	</table>
 	<h4>The order of the draw</h4>
 	<ol class="pe-doc-list">
-	<li><b>Season</b>, fixes the age. Explicit on a Random season narrows to adult seasons; a chosen minor season is kept and the rating drops to suggestive.</li>
+	<li><b>Season</b>, fixes the age. Explicit is only for S4, S5 and the future fic (<code>explicit-ok</code> / adult); on a Random season it narrows to those, and a chosen earlier season is kept while the rating drops to none.</li>
 	<li><b>Canon</b>, in an AU, one world from <code>setting-au</code> (its tags go into play, <code>fantasy</code>, <code>cleradin</code>…); Place is then skipped.</li>
 	<li><b>Relationship</b>, <b>Situation</b>, <b>Tone</b>, each checked against the tags in play (<code>explicit</code> is in play by now if the rating is explicit).</li>
 	<li><b>Trope</b>, exactly one, from every group but the worlds.</li>

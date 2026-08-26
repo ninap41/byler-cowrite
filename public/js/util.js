@@ -44,7 +44,7 @@ export const PROMPT_CAT_TIPS = {
 	Situation: "What kind of moment this is.",
 	Trope: "A fanfic trope to build the story around.",
 	Tone: "The feel of the piece.",
-	Rating: "How far it goes: suggestive fades to black; explicit is on the page (adults only).",
+	Rating: "Explicit: on the page. Only in Season 4, Season 5 or a future fic.",
 	Kinks: "How it starts, the dynamic between them, what happens, and the emotional key it's played in.",
 }
 const PROMPT_CATS = Object.keys(PROMPT_CAT_TIPS)

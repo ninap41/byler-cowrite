@@ -16,8 +16,9 @@ const MENUS = {
   modes: ["simple", "intermediate"],
   intermediate: {
     seasons: [
-      { id: "s4", label: "Season 4", ageGroup: "minor" },
-      { id: "s5", label: "Season 5", ageGroup: "minor" },
+      { id: "s3", label: "Season 3", ageGroup: "minor", excludes: ["explicit"] },
+      { id: "s4", label: "Season 4", ageGroup: "minor", tags: ["explicit-ok"] },
+      { id: "s5", label: "Season 5", ageGroup: "minor", tags: ["explicit-ok"] },
       { id: "post-canon", label: "Post-canon", ageGroup: "adult" },
     ],
     canon: [{ id: "au", label: "Alternate universe" }, { id: "canon-compliant", label: "Canon-compliant" }],
@@ -37,7 +38,7 @@ const MENUS = {
     kinks: [{ id: "praise", label: "Praise" }],
     explicitLevels: [
       { id: "none", label: "None", adultOnly: false },
-      { id: "suggestive", label: "Suggestive", adultOnly: false },
+      { id: "suggestive", label: "Suggestive", adultOnly: false }, // an old pack's row: deprecated, never shown
       { id: "explicit", label: "Explicit", adultOnly: true },
     ],
     tropeGroups: [{ id: "proximity", label: "Proximity & circumstance" }],
@@ -105,9 +106,9 @@ test("guided is off until the component pools are known", () => {
 
   pm.setMenus(MENUS);
   assert.equal(guidedBtn.disabled, false);
-  assert.equal(root.querySelector("#t1Season").options.length, 4); // Random + 3
+  assert.equal(root.querySelector("#t1Season").options.length, 5); // Random + 4
   assert.equal(root.querySelector("#t1Place").options.length, 3); // Random + 2
-  assert.equal(root.querySelector("#t1Explicit").options.length, 3); // Random season: every level
+  assert.equal(root.querySelector("#t1Explicit").options.length, 2); // Random season: None and Explicit (suggestive is deprecated)
   assert.equal(root.querySelector("#t1Explicit").value, "none", "explicit defaults to none, never random");
 });
 
@@ -180,26 +181,30 @@ test("game.html mounts the picker in both the lobby and the vote card", () => {
 test("levelsFor narrows the explicit levels to what a season admits", async () => {
   const { levelsFor } = await import("../public/js/components/prompt-modes.js");
   const { seasons, explicitLevels } = MENUS.intermediate;
-  assert.equal(levelsFor(explicitLevels, seasons, "random").length, 3, "Random season offers every level");
-  assert.deepEqual(levelsFor(explicitLevels, seasons, "s4").map((l) => l.id), ["none", "suggestive"]);
-  assert.equal(levelsFor(explicitLevels, seasons, "post-canon").length, 3);
+  assert.deepEqual(levelsFor(explicitLevels, seasons, "random").map((l) => l.id), ["none", "explicit"], "Random season offers both; suggestive is deprecated");
+  assert.deepEqual(levelsFor(explicitLevels, seasons, "s3").map((l) => l.id), ["none"], "an early season has no room for explicit");
+  assert.deepEqual(levelsFor(explicitLevels, seasons, "s4").map((l) => l.id), ["none", "explicit"], "S4 admits it");
+  assert.deepEqual(levelsFor(explicitLevels, seasons, "post-canon").map((l) => l.id), ["none", "explicit"]);
 });
 
-test("choosing a minor season drops Explicit from the menu and falls back to None", () => {
+test("choosing an early season drops Explicit from the menu and falls back to None", () => {
   const root = mount('<div id="pm"></div>');
   const api = mountPromptModes(root, { prefix: "t" });
   api.setMenus(MENUS).setState("intermediate", { seasonId: "post-canon", explicitLevel: "explicit" });
   const season = root.querySelector("#tSeason");
   const level = root.querySelector("#tExplicit");
   assert.equal(level.value, "explicit");
-  season.value = "s4";
+  season.value = "s3";
   fire(season, "change");
-  assert.deepEqual([...level.options].map((o) => o.value), ["none", "suggestive"]);
+  assert.deepEqual([...level.options].map((o) => o.value), ["none"]);
   assert.equal(level.value, "none", "a level this season has no room for falls back to None");
   assert.equal(api.values().promptControls.explicitLevel, "none");
-  // the server's echo of a minor season + explicit paints the same narrowing
-  api.setState("intermediate", { seasonId: "s5", explicitLevel: "explicit" });
+  // the server's echo of an early season + explicit paints the same narrowing
+  api.setState("intermediate", { seasonId: "s3", explicitLevel: "explicit" });
   assert.equal(level.value, "none");
+  // …while S5 keeps it
+  api.setState("intermediate", { seasonId: "s5", explicitLevel: "explicit" });
+  assert.equal(level.value, "explicit");
 });
 
 test("the AU world menu appears only while Canon is Alternate universe, and forgets its pick otherwise", () => {
@@ -250,7 +255,7 @@ test("an option the generator would refuse beside the other choices is greyed ou
   fire(root.querySelector("#cExplicit"), "change");
   root.querySelector("#cTone").value = "fluff";
   fire(root.querySelector("#cTone"), "change");
-  assert.deepEqual([...root.querySelector("#cExplicit").options].map((o) => o.value), ["none", "suggestive"], "explicit left the menu");
+  assert.deepEqual([...root.querySelector("#cExplicit").options].map((o) => o.value), ["none"], "explicit left the menu");
   // a pick that becomes impossible falls back to Random rather than sticking
   root.querySelector("#cTone").value = "angst";
   fire(root.querySelector("#cTone"), "change");
@@ -312,11 +317,6 @@ test("the explicit dropdowns appear past None, are enabled only at Explicit, and
   assert.equal(root.querySelector("#xRegister"), null, "registers are deprecated: no menu");
   root.querySelector("#xSeason").value = "post-canon";
   fire(root.querySelector("#xSeason"), "change");
-  root.querySelector("#xExplicit").value = "suggestive";
-  fire(root.querySelector("#xExplicit"), "change");
-  assert.ok(!wrap("Kink").classList.contains("hidden"), "listed under Suggestive");
-  assert.equal(root.querySelector("#xKink").disabled, true, "but only Explicit reads them");
-  assert.equal(root.querySelector("#xKink").title, "Explicit only");
   root.querySelector("#xExplicit").value = "explicit";
   fire(root.querySelector("#xExplicit"), "change");
   assert.equal(root.querySelector("#xKink").disabled, false);
@@ -369,9 +369,6 @@ test("a checkbox beside Tone and each explicit part leaves it out: the menu grey
   // explicit parts: their boxes wake with the menus, at Explicit
   root.querySelector("#oSeason").value = "post-canon";
   fire(root.querySelector("#oSeason"), "change");
-  root.querySelector("#oExplicit").value = "suggestive";
-  fire(root.querySelector("#oExplicit"), "change");
-  assert.equal(box("Kink").disabled, true, "nothing to leave out under Suggestive");
   root.querySelector("#oExplicit").value = "explicit";
   fire(root.querySelector("#oExplicit"), "change");
   assert.equal(box("Kink").disabled, false);
@@ -459,4 +456,24 @@ test("the Place menu follows the AU world: a chosen world lists its own rooms (R
   root.querySelector("#plCanon").value = "canon-compliant";
   fire(root.querySelector("#plCanon"), "change");
   assert.deepEqual(values(), ["random", "church", "nyc"], "back to canon: the generic places render again");
+});
+
+test("the two gates agree: an early season takes Explicit off the menu, and Explicit greys the early seasons", () => {
+  const root = mount("");
+  const pm = mountPromptModes(root, { prefix: "g" }).setMenus(MENUS);
+  fire(root.querySelector("#gMode-intermediate"));
+  const opt = (sel, id) => root.querySelector(`#g${sel} option[value="${id}"]`);
+  root.querySelector("#gExplicit").value = "explicit";
+  fire(root.querySelector("#gExplicit"), "change");
+  assert.equal(opt("Season", "s3").disabled, true, "pre-canon through S3 are greyed under Explicit");
+  assert.equal(opt("Season", "s4").disabled, false);
+  assert.equal(opt("Season", "post-canon").disabled, false);
+  assert.equal(pm.values().promptControls.explicitLevel, "explicit");
+  root.querySelector("#gExplicit").value = "none";
+  fire(root.querySelector("#gExplicit"), "change");
+  assert.equal(opt("Season", "s3").disabled, false, "back on None the early seasons return");
+  root.querySelector("#gSeason").value = "s3";
+  fire(root.querySelector("#gSeason"), "change");
+  assert.deepEqual([...root.querySelector("#gExplicit").options].map((o) => o.value), ["none"], "and an early season takes Explicit off");
+  assert.equal(root.querySelector("#gExplicit").querySelector('option[value="suggestive"]'), null, "suggestive never appears");
 });

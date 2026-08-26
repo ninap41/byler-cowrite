@@ -102,7 +102,7 @@ export function registerRoutes(app, game) {
         situations: menu(data.situations),
         relationships: menu(data.relationships),
         tones: menu(data.tones),
-        explicitLevels: menu(data.explicit?.levels).map((x) => ({ ...x, adultOnly: !!x.adultOnly })),
+        explicitLevels: menu(data.explicit?.levels).filter((x) => x.id !== "suggestive").map((x) => ({ ...x, adultOnly: !!x.adultOnly })),
         // the explicit dropdowns (ids + labels + rules, never clause text);
         // the client shows them only past None and the generator only reads
         // them past the gate

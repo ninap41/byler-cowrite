@@ -77,32 +77,35 @@ test("explicit and locked ids are honored, everything else is random", () => {
   assert.ok(r.labels.tropes.includes("only one bed"));
 });
 
-test("the explicit gate: a minor season forces the level down and hides the kink layer", () => {
-  for (const id of MINOR) {
+test("the explicit gate: pre-canon through S3 force the level to none and hide the kink layer; S4, S5 and the future fic admit it", () => {
+  for (const id of ["pre-canon", "s1", "s2", "s3"]) {
     const r = generateIntermediatePrompt(INT, { seed: "gate-" + id, seasonId: id, explicitLevel: "explicit" });
-    assert.equal(r.selections.seasonId, id, "a chosen minor season is honoured, not overruled");
-    assert.equal(r.explicitLevel, "suggestive");
+    assert.equal(r.selections.seasonId, id, "the chosen season is honoured");
+    assert.equal(r.explicitLevel, "none");
     assert.equal(r.selections.explicit, undefined);
-    assert.ok(!r.prompt.includes("Rating: explicit") && !r.prompt.includes("Kinks:"));
-    assert.ok(r.prompt.includes("Rating: suggestive"));
-    assert.equal(r.labels.explicit, "Suggestive");
+    assert.ok(!r.prompt.includes("Rating:") && !r.prompt.includes("Kinks:"));
+    assert.equal(r.labels.explicit, undefined);
   }
-  // none stays none, suggestive stays suggestive, everywhere
-  for (const id of [...MINOR, ...ADULT]) {
+  for (const id of ["s4", "s5", "post-canon"]) {
+    const r = generateIntermediatePrompt(INT, { seed: "gate-" + id, seasonId: id, explicitLevel: "explicit", toneId: "angst" });
+    assert.equal(r.explicitLevel, "explicit", id + " admits explicit");
+    assert.ok(r.selections.explicit && r.prompt.includes("Kinks:"), id + " deals the layer");
+  }
+  // none stays none everywhere; suggestive is deprecated and reads as none
+  for (const { id } of INT.seasons) {
     assert.equal(generateIntermediatePrompt(INT, { seasonId: id, explicitLevel: "none" }).explicitLevel, "none");
-    assert.equal(generateIntermediatePrompt(INT, { seasonId: id, explicitLevel: "suggestive" }).explicitLevel, "suggestive");
+    assert.equal(generateIntermediatePrompt(INT, { seasonId: id, explicitLevel: "suggestive" }).explicitLevel, "none");
   }
-  // an unknown level is none
   assert.equal(generateIntermediatePrompt(INT, { explicitLevel: "nuclear" }).explicitLevel, "none");
-  assert.equal(gateExplicit("explicit", { ageGroup: "minor" }), "suggestive");
+  assert.equal(gateExplicit("explicit", { ageGroup: "minor" }), "none");
+  assert.equal(gateExplicit("explicit", { ageGroup: "minor", tags: ["explicit-ok"] }), "explicit");
   assert.equal(gateExplicit("explicit", { ageGroup: "adult" }), "explicit");
-  assert.equal(gateExplicit("bogus", { ageGroup: "adult" }), "none");
 });
 
-test("explicit on a random season narrows the draw to adult seasons and deals the layer as tags", () => {
+test("explicit on a random season narrows the draw to the seasons that admit it and deals the layer as tags", () => {
   for (let i = 0; i < 60; i++) {
     const r = generateIntermediatePrompt(INT, { seed: "ex" + i, explicitLevel: "explicit" });
-    assert.equal(season(r).ageGroup, "adult");
+    assert.ok(season(r).ageGroup === "adult" || season(r).tags.includes("explicit-ok"), season(r).id);
     assert.equal(r.explicitLevel, "explicit");
     const ex = r.selections.explicit;
     assert.ok(ex.setupId && ex.dynamicId);
@@ -122,8 +125,8 @@ test("explicit on a random season narrows the draw to adult seasons and deals th
   // and never leaks: over many unfiltered draws, an explicit layer only ever
   // rides an adult season
   for (let i = 0; i < 300; i++) {
-    const r = generateIntermediatePrompt(INT, { seed: "any" + i, explicitLevel: ["none", "suggestive", "explicit"][i % 3] });
-    if (r.selections.explicit) assert.equal(season(r).ageGroup, "adult");
+    const r = generateIntermediatePrompt(INT, { seed: "any" + i, explicitLevel: ["none", "explicit"][i % 2] });
+    if (r.selections.explicit) assert.ok(season(r).ageGroup === "adult" || season(r).tags.includes("explicit-ok"), "the layer only where the season admits it");
   }
 });
 
@@ -148,7 +151,7 @@ test("age safety holds over many draws: adult-only tropes and places never reach
     ].filter(Boolean);
     for (const item of chosen) {
       if (item.compatibleAgeGroups) assert.ok(item.compatibleAgeGroups.includes(s.ageGroup), `${item.id} vs ${s.id}`);
-      if (item.adultOnly) assert.equal(s.ageGroup, "adult");
+      if (item.adultOnly) assert.ok(s.ageGroup === "adult" || (s.tags || []).includes("explicit-ok"), `${item.id} vs ${s.id}`);
     }
     assert.equal(r.selections.tropeIds.length, 1);
   }
@@ -237,9 +240,9 @@ test("a guided prompt is a bulleted clause per line, not a paragraph", () => {
   assert.equal(lines[0].slice(2), "Season: " + season(r).text);
   assert.equal(lines[1].slice(2), "Canon: " + idOf(INT.canon, r.selections.canonId).text);
   assert.equal(lines.at(-1).slice(2), "Tone: " + idOf(INT.tones, r.selections.toneId).text);
-  // suggestive adds its own line; explicit adds a tag line
-  const sug = generateIntermediatePrompt(INT, { seed: "lines", explicitLevel: "suggestive", seasonId: "s3", canonId: "canon-compliant" });
-  assert.equal(sug.prompt.split("\n").length, 8);
+  // explicit adds a Rating line and a tag line
+  const ex = generateIntermediatePrompt(INT, { seed: "lines", explicitLevel: "explicit", seasonId: "post-canon", canonId: "canon-compliant", toneId: "angst" });
+  assert.equal(ex.prompt.split("\n").length, 9);
   // and a curated prompt is still a single untouched line, never bulleted
   const simple = generateSimplePrompt(DATA.prompts).prompt;
   assert.ok(!simple.includes("\n") && !simple.includes(BULLET.trim()));
@@ -332,14 +335,12 @@ test("fluff is never explicit, and explicit is never fluff", () => {
     assert.ok(!soft.has(r.selections.toneId), `${r.selections.toneId} dealt explicit`);
     assert.equal(r.explicitLevel, "explicit");
   }
-  // the host chose fluff AND explicit: fluff wins, the rating steps down
+  // the host chose fluff AND explicit: fluff wins, the rating drops to none
   const r = generateIntermediatePrompt(INT, { seed: "ff", toneId: "fluff", explicitLevel: "explicit", seasonId: "post-canon" });
   assert.equal(r.selections.toneId, "fluff");
-  assert.equal(r.explicitLevel, "suggestive");
+  assert.equal(r.explicitLevel, "none");
   assert.equal(r.selections.explicit, undefined);
-  assert.ok(r.prompt.includes("Rating: suggestive") && !r.prompt.includes("Kinks:"));
-  // suggestive fluff is fine
-  assert.equal(generateIntermediatePrompt(INT, { seed: "sf", toneId: "fluff", explicitLevel: "suggestive" }).explicitLevel, "suggestive");
+  assert.ok(!r.prompt.includes("Rating:") && !r.prompt.includes("Kinks:"));
 });
 
 test("crack: its tropes only under the Crack tone, and a ridiculous twist one time in five on explicit", () => {
@@ -387,13 +388,14 @@ test("selection helpers: weights bias without guaranteeing, filters can be exhau
   for (let i = 0; i < 500; i++) counts[pickWeighted(items, rng).id]++;
   assert.ok(counts.a > counts.b && counts.b > 0);
   assert.equal(pickWeighted([], rng), null);
-  const minor = { season: { id: "s4", ageGroup: "minor" }, canon: { id: "canon-compliant" }, activeTags: new Set(["canon"]) };
+  const minor = { season: { id: "s3", ageGroup: "minor" }, canon: { id: "canon-compliant" }, activeTags: new Set(["canon"]) };
   assert.equal(isCompatible({ id: "x", adultOnly: true }, minor), false);
+  assert.equal(isCompatible({ id: "x", adultOnly: true }, { ...minor, season: { id: "s4", ageGroup: "minor", tags: ["explicit-ok"] } }), true, "adultOnly reaches an explicit-ok season");
   assert.equal(isCompatible({ id: "x", incompatibleTags: ["canon"] }, minor), false);
   assert.equal(isCompatible({ id: "x", compatibleAgeGroups: ["adult"] }, minor), false);
   assert.equal(isCompatible({ id: "x", compatibleCanon: ["au"] }, minor), false);
   assert.equal(isCompatible({ id: "x", tags: [] }, minor), true);
-  assert.deepEqual(EXPLICIT_LEVELS, ["none", "suggestive", "explicit"]);
+  assert.deepEqual(EXPLICIT_LEVELS, ["none", "explicit"], "suggestive is deprecated");
 });
 
 test("generatePrompt dispatches by mode and refuses missing pools", () => {
@@ -418,8 +420,8 @@ test("a broken library is a data error, not a silent dud", () => {
   assert.ok(validateIntermediateData(dup).some((e) => /duplicate id/.test(e)));
   const orphan = { ...INT, tropes: [...INT.tropes, { id: "x", label: "x", text: "x", group: "nowhere" }] };
   assert.ok(validateIntermediateData(orphan).some((e) => /group nowhere/.test(e)));
-  const noAdult = { ...INT, seasons: INT.seasons.filter((s) => s.ageGroup !== "adult") };
-  assert.ok(validateIntermediateData(noAdult).some((e) => /no adult season/.test(e)));
+  const noAdult = { ...INT, seasons: INT.seasons.filter((s) => s.ageGroup !== "adult" && !(s.tags || []).includes("explicit-ok")) };
+  assert.ok(validateIntermediateData(noAdult).some((e) => /no season allows explicit/.test(e)));
   const unguarded = {
     ...INT,
     explicit: { ...INT.explicit, levels: INT.explicit.levels.map((l) => (l.id === "explicit" ? { ...l, adultOnly: false } : l)) },
@@ -465,7 +467,7 @@ test("an AU world deals a place of its own: never a canon place, explicit rooms 
   }
   // a CHOSEN high school steps the rating down instead — it's kids
   const hs = generateIntermediatePrompt(INT, { seed: "hsx", seasonId: adult, worldId: "high-school", explicitLevel: "explicit" });
-  assert.equal(hs.explicitLevel, "suggestive");
+  assert.equal(hs.explicitLevel, "none");
   assert.ok(!hs.selections.explicit && !/Kinks:/.test(hs.prompt));
   // a chosen world is honoured with its own place
   const r = generateIntermediatePrompt(INT, { seed: "cl", worldId: "cleradin" });
@@ -490,10 +492,9 @@ test("the explicit dropdowns pin the Kinks line: setup, dynamic, act and kink id
   assert.equal(sel.kinkIds[0], pins.kinkId, "the pinned kink leads its list");
   assert.equal(sel.registerId, undefined, "registers are deprecated: never dealt");
   assert.ok(new Set(sel.actIds).size === sel.actIds.length && new Set(sel.kinkIds).size === sel.kinkIds.length, "no repeats around a pin");
-  const minor = INT.seasons.find((s) => s.ageGroup === "minor").id;
-  const gated = generateIntermediatePrompt(INT, { seed: "pins2", seasonId: minor, explicitLevel: "explicit", ...pins });
+  const gated = generateIntermediatePrompt(INT, { seed: "pins2", seasonId: "s3", explicitLevel: "explicit", ...pins });
   assert.equal(gated.selections.explicit, undefined, "under the gate the pins are moot");
-  assert.equal(generateIntermediatePrompt(INT, { seed: "pins3", seasonId: adult, explicitLevel: "suggestive", ...pins }).selections.explicit, undefined, "and suggestive never deals a Kinks line");
+  assert.equal(generateIntermediatePrompt(INT, { seed: "pins3", seasonId: adult, explicitLevel: "suggestive", ...pins }).selections.explicit, undefined, "and the deprecated suggestive reads as none");
 });
 
 test("switching a part off leaves it out: no Tone line, no tone chip; an explicit part off never reaches the Kinks line; all four off leaves Rating alone", () => {
@@ -560,4 +561,17 @@ test("a pinned AU room is honoured under its world; a room from another world, o
   assert.ok(INT.auPlaces.find((p) => p.id === r2.selections.placeId).requiresTags.includes("au-cleradin"), "still one of Cleradin's own");
   const r3 = generateIntermediatePrompt(INT, { seed: "room3", canonId: "au", worldId: "cleradin", placeId: INT.places[0].id });
   assert.ok(INT.auPlaces.some((p) => p.id === r3.selections.placeId), "a generic place never lands under a world");
+});
+
+test("explicit on a Random season lands only on S4, S5 or the future fic; the earlier seasons carry the explicit exclusion the menu greys on", () => {
+  for (const id of ["pre-canon", "s1", "s2", "s3"]) assert.ok(idOf(INT.seasons, id).incompatibleTags.includes("explicit"), id);
+  for (const id of ["s4", "s5"]) assert.ok(idOf(INT.seasons, id).tags.includes("explicit-ok"), id);
+  const seen = new Set();
+  for (let i = 0; i < 120; i++) {
+    const r = generateIntermediatePrompt(INT, { seed: "rnd" + i, explicitLevel: "explicit" });
+    assert.ok(["s4", "s5", "post-canon"].includes(r.selections.seasonId), r.selections.seasonId);
+    assert.equal(r.explicitLevel, "explicit");
+    seen.add(r.selections.seasonId);
+  }
+  assert.ok(seen.size >= 2, "more than one of them gets dealt");
 });
