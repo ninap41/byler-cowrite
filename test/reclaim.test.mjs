@@ -317,9 +317,9 @@ test("make-host hands the game — and the original-host rights — to another w
   assert.equal((await ctx.emit(A, "pause-game", {})).ok, false);
   assert.equal((await ctx.emit(B, "pause-game", {})).ok, true);
   // and the dashboard/archive agree on who hosts
-  const mine = await ctx.api("/api/games/" + code, null, mike.token, "GET");
-  assert.equal(mine.data.hosted, true);
-  const old = await ctx.api("/api/games/" + code, null, host.token, "GET");
-  assert.equal(old.data.hosted, false);
+  const mine = await ctx.api("/api/games", null, mike.token, "GET");
+  assert.equal(mine.data.find((g) => g.code === code).hosted, true);
+  const old = await ctx.api("/api/games", null, host.token, "GET");
+  assert.equal(old.data.find((g) => g.code === code).hosted, false);
   S.disconnect();
 });
