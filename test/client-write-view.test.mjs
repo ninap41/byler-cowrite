@@ -450,3 +450,12 @@ test("the write page carries the Prompt? chip (author only), the roller modal wi
   assert.ok(src.includes('insertAfterHeading($("docEditor"), promptInsertHtml(rolled.prompt))'));
   assert.ok(/insertAfterHeading\(\$\("docEditor"\), promptInsertHtml\(rolled\.prompt\)\)\s*onEdit\(\{ immediate: true \}\)\s*closePromptModal\(\)/.test(src), "an insert is an edit (dirty, undo step) and closes the modal");
 });
+
+test("the prompt roller's card is one list of category | value rows and the modal scrolls instead of overflowing", () => {
+  const css = readFileSync(new URL("../public/css/base.css", import.meta.url), "utf-8");
+  const card = css.match(/\.prompt-roll-card \{[^}]*\}/)[0];
+  assert.match(card, /max-height: calc\(100vh - 32px\)/);
+  assert.match(card, /overflow-y: auto/);
+  assert.ok(css.includes(".prompt-roll-card .prompt-roll-result .prompt-grid { grid-template-columns: max-content 1fr; }"), "never the two-pair ballot layout");
+  assert.match(css.match(/\.prompt-roll-card \.prompt-roll-result \{[^}]*\}/)[0], /overflow-wrap: anywhere/);
+});
