@@ -109,7 +109,7 @@ store for every document above. You only have to attach the database.
 3. **Deploy → Reserved VM** (`.replit` already says `deploymentTarget = "vm"`),
    run command `npm start`. Make sure the deployment inherits `DATABASE_URL`
    (Replit includes it by default; check the deployment's Secrets pane if in
-   doubt). Add the five `SMTP_*` secrets too (Brevo — see “Storage” above)
+   doubt). Add the five `SMTP_*` secrets too (Brevo — see “Where data lives” above)
    if you want real password-reset emails.
 4. Deploy, then check the deployment logs for:
    ```
@@ -122,6 +122,40 @@ store for every document above. You only have to attach the database.
    last failed write, if any.
 5. Verify end-to-end once: sign up a test account, play a line or two,
    **redeploy**, and confirm the account and game are still there.
+
+### What survives a redeploy — and what the Reserved VM is for
+
+A Reserved VM is **rebuilt on every publish**: its filesystem resets to the
+build snapshot, so anything written locally (JSON files, uploads, temp data) is
+gone. Reserved VM is about running ONE instance; it is not persistent disk.
+
+What persists — everything in PostgreSQL, because `DATABASE_URL` is set:
+
+- accounts, sessions and reset tokens (`users/users`)
+- every game snapshot — paused, finished, or mid-write as of its last
+  committed line (`save/<CODE>`)
+- solo-write documents (`doc/<id>`)
+- content-pack and writers'-reference edits made in `/admin`
+
+What does NOT persist — the in-memory state that needs a single process:
+
+- **live games**: `src/game.js` keeps active sessions in a `Map` — players,
+  turn order, votes, the paused flag, the current writer's live typing
+- **turn timers**: the countdown that commits a line at the deadline runs as a
+  `setTimeout` inside the process
+- **Socket.IO rooms**: live typing, chat, turn changes, presence and gimmicks
+  fan out through rooms on this one server; there is no multi-instance adapter
+- **presence**: connected sockets, who's online, who is viewing a document
+
+So a redeploy interrupts games in progress: players are disconnected, and when
+they come back the game rehydrates from its last snapshot (paused, at the last
+committed line — an unsent line is lost) and the host resumes it. That is the
+same recovery path as a server restart, and it is why the app snapshots on
+every committed line rather than only at the end.
+
+This is also why Autoscale is wrong for this app: with two instances, two
+players in the same game could land on different servers and never see each
+other. The Reserved VM keeps every player and every room on one instance.
 
 ### How the store works
 
