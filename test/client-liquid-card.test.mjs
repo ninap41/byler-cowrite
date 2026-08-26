@@ -50,13 +50,17 @@ test("mountLiquidCard: slips the svg behind the content, paints theme colours, m
   const m = mountLiquidCard(el);
   assert.ok(el.classList.contains("liquid"));
   assert.equal(el.firstElementChild.getAttribute("class"), "liquid-svg", "the water goes first, behind the content");
-  assert.equal(el.querySelector("p").textContent, "hi", "content untouched");
+  assert.equal(el.querySelector(".lq-content > p").textContent, "hi", "content moved into the clipped wrapper");
+  assert.match(el.querySelector(".lq-content").style.clipPath, /url\("?#lq-mask-\d+"?\)/, "the content is clipped to the water");
+  assert.ok(m.svg.querySelector(".lq-mask").getAttribute("d").startsWith("M"), "the mask path is painted with the surface");
   assert.equal(m.svg.querySelector(".lq-c2").getAttribute("stop-color"), "#ff3ea5", "the surface is the theme's accent");
   assert.match(m.svg.getAttribute("viewBox"), /^0 0 [\d.]+ [\d.]+$/, "sized to the card (+PAD)");
   assert.ok(m.svg.querySelector(".lq-surface").getAttribute("d").startsWith("M"), "painted at least once");
   assert.equal(mountLiquidCard(el), null, "a second mount is a no-op");
   m.destroy();
   assert.equal(el.querySelector(".liquid-svg"), null);
+  assert.equal(el.querySelector(".lq-content"), null, "the wrapper is unwound");
+  assert.equal(el.querySelector("p").textContent, "hi");
   assert.ok(!el.classList.contains("liquid"));
   assert.ok(PAD > 0);
 });

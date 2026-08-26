@@ -83,6 +83,9 @@ export function liquidSvgHtml(key) {
 		`<radialGradient id="lq-sheen-${key}" cx="0.5" cy="0.5" r="0.5"><stop offset="0%" class="lq-s" stop-opacity="0.34"/><stop offset="100%" class="lq-s" stop-opacity="0"/></radialGradient>` +
 		`<filter id="lq-bloom-${key}" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="16"/></filter>` +
 		`<clipPath id="lq-clip-${key}"><path class="lq-clip" d=""/></clipPath>` +
+		// the same blob in the CARD's own pixel space (the svg sits PAD outside
+		// it), so the content wrapper can be clipped to the water via CSS
+		`<clipPath id="lq-mask-${key}" clipPathUnits="userSpaceOnUse"><path class="lq-mask" d="" transform="translate(${-PAD},${-PAD})"/></clipPath>` +
 		`</defs>` +
 		`<path class="lq-glow" d="" filter="url(#lq-bloom-${key})"/>` +
 		`<path class="lq-under" d=""/>` +
@@ -105,10 +108,17 @@ export function mountLiquidCard(el, { amp = 9, rate = 1, doc = document, win = w
 	if (!el || el.querySelector(":scope > .liquid-svg")) return null
 	const key = ++seq
 	el.classList.add("liquid")
+	// the content moves into a wrapper clipped to the water, so text that
+	// reaches past the blob's edge is masked by it
+	const content = doc.createElement("div")
+	content.className = "lq-content"
+	while (el.firstChild) content.appendChild(el.firstChild)
+	el.appendChild(content)
+	content.style.clipPath = `url(#lq-mask-${key})`
 	el.insertAdjacentHTML("afterbegin", liquidSvgHtml(key))
 	const svg = el.querySelector(":scope > .liquid-svg")
 	const q = (c) => svg.querySelector("." + c)
-	const nodes = { glow: q("lq-glow"), under: q("lq-under"), surface: q("lq-surface"), clip: q("lq-clip"), glint: q("lq-glint") }
+	const nodes = { glow: q("lq-glow"), under: q("lq-under"), surface: q("lq-surface"), clip: q("lq-clip"), mask: q("lq-mask"), glint: q("lq-glint") }
 
 	let W = 0, H = 0, base = [], norm = []
 	function paintTheme() {
@@ -154,7 +164,7 @@ export function mountLiquidCard(el, { amp = 9, rate = 1, doc = document, win = w
 		const surface = shape({ base, norm, amp, t: clock, now, pointer, rings })
 		const under = shape({ base, norm, amp, t: clock * 0.82, phase: 2.1, swell: 5, now })
 		const path = toPath(surface)
-		for (const n of [nodes.surface, nodes.clip, nodes.glow]) n.setAttribute("d", path)
+		for (const n of [nodes.surface, nodes.clip, nodes.mask, nodes.glow]) n.setAttribute("d", path)
 		nodes.under.setAttribute("d", toPath(under))
 		nodes.glint.setAttribute("cx", W / 2 - 60 + Math.sin(clock * 0.32) * 90)
 		nodes.glint.setAttribute("cy", H / 2 - 70 + Math.cos(clock * 0.24) * 46)
@@ -185,6 +195,10 @@ export function mountLiquidCard(el, { amp = 9, rate = 1, doc = document, win = w
 	return {
 		svg,
 		refresh: () => { paintTheme(); measure() },
-		destroy() { alive = false; if (raf) win.cancelAnimationFrame?.(raf); ro?.disconnect(); mo?.disconnect(); svg.remove(); el.classList.remove("liquid") },
+		destroy() {
+			alive = false; if (raf) win.cancelAnimationFrame?.(raf); ro?.disconnect(); mo?.disconnect(); svg.remove()
+			while (content.firstChild) el.appendChild(content.firstChild)
+			content.remove(); el.classList.remove("liquid")
+		},
 	}
 }

@@ -9368,7 +9368,7 @@ html.vcx-live[data-theme="vecna"] #vc-pend {
    transparent and lets the surface be its body. Fill opacities keep the
    theme's ink readable over the theme's accent. */
 .card.liquid { position: relative; padding: 24px 30px; background: transparent; border-color: transparent; box-shadow: none; overflow: visible; isolation: isolate; }
-.card.liquid > * { position: relative; z-index: 1; }
+.card.liquid > .lq-content { position: relative; z-index: 1; }
 .card.liquid > .liquid-svg { position: absolute; inset: -100px; width: calc(100% + 190px); height: calc(100% + 190px); z-index: 0; pointer-events: none; overflow: visible; }
 .card.liquid, .card.liquid .ann-glimpse-tag, .card.liquid .ann-glimpse-text { color: var(--ink); }
 .card.liquid .ann-glimpse-tag, .card.liquid .ann-glimpse-text { opacity: 0.86; }
