@@ -477,3 +477,30 @@ test("the two gates agree: an early season takes Explicit off the menu, and Expl
   assert.deepEqual([...root.querySelector("#gExplicit").options].map((o) => o.value), ["none"], "and an early season takes Explicit off");
   assert.equal(root.querySelector("#gExplicit").querySelector('option[value="suggestive"]'), null, "suggestive never appears");
 });
+
+test("a kink count sits beside the Kink menu: default 1, offered 1–3, rides in the controls, disabled with the menu, painted back by setState", () => {
+  const root = mount("");
+  const pm = mountPromptModes(root, { prefix: "kc" }).setMenus(MENUS);
+  fire(root.querySelector("#kcMode-intermediate"));
+  const kn = root.querySelector("#kcKinkN");
+  assert.ok(kn, "the count exists");
+  assert.deepEqual([...kn.options].map((o) => o.value), ["1", "2", "3"]);
+  assert.equal(kn.value, "1", "default one");
+  assert.equal(pm.values().promptControls.kinkCount, 1);
+  root.querySelector("#kcSeason").value = "post-canon";
+  fire(root.querySelector("#kcSeason"), "change");
+  root.querySelector("#kcExplicit").value = "explicit";
+  fire(root.querySelector("#kcExplicit"), "change");
+  assert.equal(kn.disabled, false);
+  kn.value = "3";
+  fire(kn, "change");
+  assert.equal(pm.values().promptControls.kinkCount, 3);
+  root.querySelector("#kcKinkOff").checked = true;
+  fire(root.querySelector("#kcKinkOff"), "change");
+  assert.equal(kn.disabled, true, "no kinks, no count");
+  root.querySelector("#kcKinkOff").checked = false;
+  fire(root.querySelector("#kcKinkOff"), "change");
+  const pm2 = mountPromptModes(mount(""), { prefix: "kd" }).setMenus(MENUS);
+  pm2.setState("intermediate", { seasonId: "post-canon", explicitLevel: "explicit", kinkCount: 2 });
+  assert.equal(pm2.values().promptControls.kinkCount, 2);
+});

@@ -1,5 +1,7 @@
 // The pure prompt-generation rules (lib/prompt-gen.js) plus a validation pass
 // over the hand-edited axes + trope bank in prompts.json.
+const require_gen = () => GEN;
+import * as GEN from "../lib/prompt-gen.js";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -574,4 +576,20 @@ test("explicit on a Random season lands only on S4, S5 or the future fic; the ea
     seen.add(r.selections.seasonId);
   }
   assert.ok(seen.size >= 2, "more than one of them gets dealt");
+});
+
+test("kinkCount: one kink by default, exactly as many as asked up to MAX_KINKS, the pinned one leading; junk reads as one", () => {
+  const { MAX_KINKS } = require_gen();
+  const base = { seasonId: "post-canon", explicitLevel: "explicit", toneId: "angst" };
+  for (let i = 0; i < 30; i++) assert.equal(generateIntermediatePrompt(INT, { seed: "k1-" + i, ...base }).selections.explicit.kinkIds.length, 1, "default one");
+  for (let i = 0; i < 20; i++) {
+    assert.equal(generateIntermediatePrompt(INT, { seed: "k2-" + i, ...base, kinkCount: 2 }).selections.explicit.kinkIds.length, 2);
+    assert.equal(generateIntermediatePrompt(INT, { seed: "k3-" + i, ...base, kinkCount: 3 }).selections.explicit.kinkIds.length, 3);
+  }
+  assert.equal(generateIntermediatePrompt(INT, { seed: "k9", ...base, kinkCount: 9 }).selections.explicit.kinkIds.length, MAX_KINKS, "capped");
+  assert.equal(generateIntermediatePrompt(INT, { seed: "kx", ...base, kinkCount: "lots" }).selections.explicit.kinkIds.length, 1, "junk is one");
+  const pin = INT.explicit.kinks[3].id;
+  const r = generateIntermediatePrompt(INT, { seed: "kp", ...base, kinkCount: 2, kinkId: pin });
+  assert.equal(r.selections.explicit.kinkIds[0], pin);
+  assert.equal(new Set(r.selections.explicit.kinkIds).size, 2);
 });

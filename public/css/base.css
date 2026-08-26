@@ -9416,3 +9416,8 @@ html.vcx-live[data-theme="vecna"] #vc-pend {
 .prompt-roll-row { align-items: center; gap: 12px; margin: 12px 0 0; }
 .prompt-roll-result { display: block; margin: 12px 0 0; cursor: default; }
 .prompt-roll-card .share-foot { justify-content: flex-end; gap: 8px; }
+
+/* the kink count beside the Kink menu: a narrow select on the same row */
+.guided-controls label:has(> .pm-count) { display: grid; grid-template-columns: 1fr auto; column-gap: 6px; }
+.guided-controls label:has(> .pm-count) > .pm-lab { grid-column: 1 / -1; }
+.guided-controls .pm-count { width: 3.4em; min-width: 0; padding-left: 6px; padding-right: 6px; }

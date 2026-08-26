@@ -363,3 +363,15 @@ test("/api/prompt-options ships every world's rooms as auPlaces rows keyed by th
   assert.ok(cleradin.length >= 30, "Cleradin has its rooms");
   assert.ok(cleradin.some((p) => p.requires.includes("explicit") && p.adultOnly), "including explicit ones, marked");
 });
+
+test("kinkCount survives the wire (1..3, else 1) and every dealt explicit option carries exactly that many kinks", async () => {
+  const { A, state } = await choosing();
+  await ctx.emit(A, "set-prompt-mode", { mode: "intermediate", controls: { seasonId: "post-canon", toneId: "angst", explicitLevel: "explicit", kinkCount: 3 } });
+  await ctx.wait(120);
+  assert.equal(state.current.promptControls.kinkCount, 3);
+  for (const m of state.current.optionMeta.filter(Boolean)) assert.equal(m.selections.explicit.kinkIds.length, 3);
+  await ctx.emit(A, "set-prompt-mode", { mode: "intermediate", controls: { kinkCount: 42 } });
+  await ctx.wait(120);
+  assert.equal(state.current.promptControls.kinkCount, 1, "out of range reads as one");
+  for (const m of state.current.optionMeta.filter(Boolean)) assert.equal(m.selections.explicit.kinkIds.length, 1);
+});

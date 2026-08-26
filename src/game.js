@@ -8,7 +8,7 @@ import { cleanGimmickId, rollOutcome, describeRoll, galagaOutcome, describeGalag
 import { PALETTE, cleanColor, cleanHex, sanitizeRich, stripTags, httpUrl, sanitizeDoc, CID_RE } from "./sanitize.js";
 import { store, saveStore, userByToken, makeMsg, isAdmin } from "./store.js";
 import { storage, getJson } from "./storage.js";
-import { generateSimplePrompt, generateIntermediatePrompt, validateIntermediateData, EXPLICIT_LEVELS, MODES } from "../lib/prompt-gen.js";
+import { generateSimplePrompt, generateIntermediatePrompt, validateIntermediateData, EXPLICIT_LEVELS, MODES, MAX_KINKS } from "../lib/prompt-gen.js";
 import { readContent, writeContent } from "./content.js";
 import { randomTitle } from "../lib/titles.js";
 import { readDoc, writeDoc, canView, canEdit, canComment, anchorCids, anchorText, stripAnchor, applySuggestion } from "./docs.js";
@@ -63,6 +63,8 @@ function cleanPromptControls(c = {}) {
     dynamicId: id(c.dynamicId),
     actId: id(c.actId),
     kinkId: id(c.kinkId),
+    // How many kinks on the line: 1 unless the host asks for more (never random)
+    kinkCount: Number.isInteger(Number(c.kinkCount)) && Number(c.kinkCount) >= 1 && Number(c.kinkCount) <= MAX_KINKS ? Number(c.kinkCount) : 1,
     // Parts the host switched off: never drawn, never on the card.
     situationOff: c.situationOff === true,
     toneOff: c.toneOff === true,

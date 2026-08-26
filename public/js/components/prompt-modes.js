@@ -31,6 +31,7 @@ export const GUIDED_FIELDS = [
 	{ key: "actId", suffix: "Act", label: "Act", menu: "acts", onlyWhen: { explicitLevel: ["explicit"] }, explicitOnly: true, off: "actOff" },
 	{ key: "kinkId", suffix: "Kink", label: "Kink", menu: "kinks", onlyWhen: { explicitLevel: ["explicit"] }, explicitOnly: true, off: "kinkOff" },
 ]
+export const KINK_COUNTS = [1, 2, 3]
 export const OFF_KEYS = GUIDED_FIELDS.filter((f) => f.off).map((f) => f.off)
 // The fallback when /api/prompt-options carries no levels; the wire copy wins.
 export const EXPLICIT_LEVELS = [
@@ -58,6 +59,7 @@ export const DEFAULT_CONTROLS = {
 	dynamicOff: false,
 	actOff: false,
 	kinkOff: false,
+	kinkCount: 1,
 }
 
 // "forced-proximity" -> "Forced proximity", for any pool authored as bare ids.
@@ -151,7 +153,12 @@ export function promptModeHtml(prefix, { reroll = false } = {}) {
 			`<span class="pm-lab">${esc(f.label)}${
 				f.off ? `<input type="checkbox" class="pm-off" id="${p}${f.suffix}Off" title="Leave ${esc(f.label)} out of the prompt" aria-label="Leave ${esc(f.label)} out">` : ""
 			}</span>` +
-			`<select id="${p}${f.suffix}"></select></label>`,
+			`<select id="${p}${f.suffix}"></select>` +
+			// how many kinks the line carries: beside the Kink menu, default one
+			(f.key === "kinkId"
+				? `<select id="${p}KinkN" class="pm-count" title="How many kinks on the line" aria-label="How many kinks">${KINK_COUNTS.map((n) => `<option value="${n}"${n === 1 ? " selected" : ""}>${n}</option>`).join("")}</select>`
+				: "") +
+			`</label>`,
 	).join("")
 	return `<div class="mode-row" id="${p}Row">
 	<span class="subtle">Scenarios:</span>${modes}
@@ -179,6 +186,7 @@ export function mountPromptModes(root, { prefix = "pm", onChange, onReroll } = {
 		...Object.fromEntries(GUIDED_FIELDS.map((f) => [f.key, el(f.suffix).value || "random"])),
 		...Object.fromEntries(GUIDED_FIELDS.filter((f) => f.off).map((f) => [f.off, !!el(f.suffix + "Off")?.checked])),
 		explicitLevel: el("Explicit").value || "none",
+		kinkCount: Number(el("KinkN")?.value) || 1,
 	})
 	function paint() {
 		// Advanced is only offerable once we know the component pools exist.
@@ -226,6 +234,8 @@ export function mountPromptModes(root, { prefix = "pm", onChange, onReroll } = {
 			if (box?.checked) { el(f.suffix).value = "random"; el(f.suffix).disabled = true; el(f.suffix).title = f.label + " is left out" }
 			else if (!f.explicitOnly) { el(f.suffix).disabled = false; el(f.suffix).title = "" }
 		}
+		const kn = el("KinkN")
+		if (kn) kn.disabled = el("Kink").disabled
 	}
 	// Grey out what can't go with the rest. Each menu is judged against the
 	// OTHER choices (not its own), so the current pick never disables itself;
@@ -312,6 +322,7 @@ export function mountPromptModes(root, { prefix = "pm", onChange, onReroll } = {
 				controls = { ...controls, ...nextControls }
 				for (const f of GUIDED_FIELDS) if (el(f.suffix).options.length) el(f.suffix).value = controls[f.key]
 				for (const f of GUIDED_FIELDS) if (f.off && el(f.suffix + "Off")) el(f.suffix + "Off").checked = !!controls[f.off]
+				if (el("KinkN")) el("KinkN").value = String(controls.kinkCount || 1)
 				paintLevels()
 				paintDependents()
 				paintCompat()
