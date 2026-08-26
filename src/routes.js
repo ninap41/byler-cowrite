@@ -969,7 +969,7 @@ export function registerRoutes(app, game) {
   });
   app.post("/api/admin/announcements", (req, res) => {
     if (!requireAdmin(req, res)) return;
-    const r = addPost({ title: req.body?.title, body: req.body?.body }, authedUser(req));
+    const r = addPost({ html: req.body?.html }, authedUser(req));
     if (r.error) return res.status(400).json({ error: r.error });
     res.json({ ok: true, post: r.post });
   });

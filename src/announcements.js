@@ -1,15 +1,18 @@
 // Announcements — the admin's blog on /announcements. One JSON document
 // (announcements/announcements in src/storage.js: data/announcements.json
-// locally, a Postgres row on Replit), newest post first. Posts are plain
-// text: a title and a body whose blank lines become paragraphs on the page.
-// Only admins add or delete (enforced in routes.js next to the other admin
-// routes); every signed-in account can read.
+// locally, a Postgres row on Replit), newest post first. A post is RICH TEXT
+// written in the shared WYSIWYG toolbar and sanitized here with
+// sanitizeRich() — the story-line subset, no links or images, which is
+// exactly what that toolbar offers — and its title is derived, not typed:
+// the first heading in the post, else its opening words. Only admins add or
+// delete (enforced in routes.js next to the other admin routes); every
+// signed-in account can read.
 import { randomUUID } from "crypto";
 import { storage, getJson } from "./storage.js";
-import { stripTags } from "./sanitize.js";
+import { sanitizeRich, stripTags } from "./sanitize.js";
 
 export const TITLE_MAX = 120;
-export const BODY_MAX = 5000;
+export const HTML_MAX = 40_000;
 export const POSTS_MAX = 500;
 
 let posts = [];
@@ -22,27 +25,23 @@ const save = () => storage.put("announcements", "announcements", JSON.stringify(
 
 export const listPosts = () => posts.map((p) => ({ ...p }));
 
-// Body keeps its line breaks (they're the paragraphing) but nothing else:
-// tags are stripped per line, runs of blank lines collapse to one.
-export const cleanBody = (s) =>
-  String(s ?? "")
-    .replace(/\r\n?/g, "\n")
-    .split("\n")
-    .map((l) => stripTags(l).replace(/[ \t]+/g, " ").trim())
-    .join("\n")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim()
-    .slice(0, BODY_MAX);
+const squash = (s) => stripTags(String(s ?? "")).replace(/\s+/g, " ").trim();
 
-export const cleanTitle = (s) => stripTags(String(s ?? "")).replace(/\s+/g, " ").trim().slice(0, TITLE_MAX);
+// The title is the first heading's text; a post without one is titled by
+// its first words. Runs on already-sanitized html.
+export function titleOf(html) {
+  const m = /<h[1-3]\b[^>]*>([\s\S]*?)<\/h[1-3]>/i.exec(String(html ?? ""));
+  const fromHeading = m ? squash(m[1]) : "";
+  if (fromHeading) return fromHeading.slice(0, TITLE_MAX);
+  const words = squash(String(html ?? "").replace(/<\/(p|h[1-3]|li|blockquote|div)>|<br\s*\/?>/gi, " "));
+  return words.length > TITLE_MAX ? words.slice(0, TITLE_MAX - 1).replace(/\s+\S*$/, "") + "…" : words;
+}
 
 // Returns {post} or {error}. `by` is the admin's public identity.
-export function addPost({ title, body }, by) {
-  const t = cleanTitle(title);
-  const b = cleanBody(body);
-  if (!t) return { error: "A post needs a title." };
-  if (!b) return { error: "A post needs some words." };
-  const post = { id: randomUUID(), title: t, body: b, at: Date.now(), byId: by?.id ?? null, byName: by?.username ?? "" };
+export function addPost({ html }, by) {
+  const clean = sanitizeRich(String(html ?? "").slice(0, HTML_MAX));
+  if (!squash(clean)) return { error: "A post needs some words." };
+  const post = { id: randomUUID(), title: titleOf(clean), html: clean, at: Date.now(), byId: by?.id ?? null, byName: by?.username ?? "" };
   posts = [post, ...posts].slice(0, POSTS_MAX);
   save();
   return { post };
@@ -55,6 +54,3 @@ export function deletePost(id) {
   save();
   return true;
 }
-
-// tests only
-export function _resetPosts() { posts = []; save(); }

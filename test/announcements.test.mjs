@@ -27,31 +27,33 @@ test("reading needs an account; the payload says whether the reader is an admin"
 });
 
 test("an admin posts; a normal account can't; everyone then reads it, newest first", async () => {
-  const denied = await ctx.api("/api/admin/announcements", { title: "Nope", body: "no" }, normie.token);
+  const denied = await ctx.api("/api/admin/announcements", { html: "<h1>Nope</h1>" }, normie.token);
   assert.equal(denied.status, 403);
-  const first = await ctx.api("/api/admin/announcements", { title: "  Welcome  ", body: "Hello\n\n\n\nworld <b>bold</b>" }, admin.token);
+  const first = await ctx.api("/api/admin/announcements", { html: '<h2>  Welcome <i>all</i> </h2><p>Hello <b>world</b></p><img src=x onerror=1><script>x()</script>' }, admin.token);
   assert.equal(first.status, 200);
-  assert.equal(first.data.post.title, "Welcome", "title is trimmed");
-  assert.equal(first.data.post.body, "Hello\n\nworld bold", "tags stripped, blank-line runs collapsed");
+  assert.equal(first.data.post.title, "Welcome all", "the first heading, as text, is the title");
+  assert.ok(first.data.post.html.includes("<h2>") && first.data.post.html.includes("<b>world</b>"), "formatting kept");
+  assert.ok(!first.data.post.html.includes("<img") && !first.data.post.html.includes("<script>"), "sanitizeRich ran");
   assert.equal(first.data.post.byName, "ninaadmin");
-  const second = await ctx.api("/api/admin/announcements", { title: "Second", body: "Later." }, admin.token);
+  const second = await ctx.api("/api/admin/announcements", { html: "<p>Second</p>" }, admin.token);
   assert.equal(second.status, 200);
   const r = await ctx.api("/api/announcements", undefined, normie.token);
-  assert.deepEqual(r.data.posts.map((p) => p.title), ["Second", "Welcome"]);
+  assert.deepEqual(r.data.posts.map((p) => p.title), ["Second", "Welcome all"]);
   assert.ok(r.data.posts.every((p) => /^[0-9a-f-]{36}$/.test(p.id) && p.at > 0));
   // persisted: the file is the store under test
   const doc = JSON.parse(readFileSync(join(ctx.dataDir, "announcements.json"), "utf-8"));
   assert.equal(doc.posts.length, 2);
 });
 
-test("a post needs a title and a body; markup in a title is stripped, never stored", async () => {
-  const noTitle = await ctx.api("/api/admin/announcements", { title: " ", body: "x" }, admin.token);
-  assert.equal(noTitle.status, 400);
-  const noBody = await ctx.api("/api/admin/announcements", { title: "x", body: "<img src=x>" }, admin.token);
-  assert.equal(noBody.status, 400, "a body that is only markup is empty");
-  const r = await ctx.api("/api/admin/announcements", { title: "<script>alert(1)</script>Hi", body: "ok" }, admin.token);
-  assert.equal(r.data.post.title, "alert(1)Hi");
+test("a post needs words; without a heading the opening words become the title", async () => {
+  const empty = await ctx.api("/api/admin/announcements", { html: "<p> </p><br><h2></h2>" }, admin.token);
+  assert.equal(empty.status, 400, "markup with no text is empty");
+  const r = await ctx.api("/api/admin/announcements", { html: "<p>No heading here,</p><p>just a paragraph or two.</p>" }, admin.token);
+  assert.equal(r.data.post.title, "No heading here, just a paragraph or two.");
+  const long = await ctx.api("/api/admin/announcements", { html: "<p>" + "word ".repeat(60) + "</p>" }, admin.token);
+  assert.ok(long.data.post.title.length <= 120 && long.data.post.title.endsWith("…"), "cut on a word with an ellipsis");
   await ctx.api(`/api/admin/announcements/${r.data.post.id}`, null, admin.token, "DELETE");
+  await ctx.api(`/api/admin/announcements/${long.data.post.id}`, null, admin.token, "DELETE");
 });
 
 test("an admin deletes; a normal account can't; an unknown id is a 404", async () => {

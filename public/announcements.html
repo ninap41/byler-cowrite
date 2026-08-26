@@ -34,6 +34,8 @@
 			import { requireAuth } from "/js/auth-guard.js"
 			import { mountChrome, setUserChip } from "/js/chrome.js"
 			import { postListHtml, composerHtml } from "/js/announcements-view.js"
+			import { mountRichToolbar } from "/js/components/rich-toolbar.js"
+			import { cleanHtml } from "/js/components/editor.js"
 
 			mountChrome({ page: "announcements" })
 			const me = await requireAuth()
@@ -50,19 +52,20 @@
 				if (admin && !$("annComposer")) {
 					$("annCompose").innerHTML = composerHtml()
 					$("annCompose").classList.remove("hidden")
+					mountRichToolbar($("annEditor"), $("annToolbar"), { idPrefix: "ann" })
 				}
 			}
 			await load()
 
-			document.addEventListener("submit", async (e) => {
-				if (e.target.id !== "annComposer") return
-				e.preventDefault()
-				const btn = e.target.querySelector("button[type=submit]")
+			// Same cleaning as a story line: sanitizeRich() on the server is the
+			// real boundary, cleanHtml() just sends the tidy subset it expects.
+			document.addEventListener("click", async (e) => {
+				if (e.target.id !== "annPost") return
+				const btn = e.target
 				btn.disabled = true
 				try {
-					await api("/api/admin/announcements", { title: $("annTitle").value, body: $("annBody").value })
-					$("annTitle").value = ""
-					$("annBody").value = ""
+					await api("/api/admin/announcements", { html: cleanHtml($("annEditor"), { doc: true, urls: false }) })
+					$("annEditor").innerHTML = ""
 					await load()
 				} catch (err) {
 					alert(err.message || "That didn't post.")

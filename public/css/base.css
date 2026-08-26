@@ -9334,13 +9334,15 @@ html.vcx-live[data-theme="vecna"] #vc-pend {
 .admin-search .gc-meta { flex: none; }
 .admin-scroll { max-height: 60vh; overflow-y: auto; overscroll-behavior: contain; padding-right: 4px; }
 
-/* /announcements: the admin's blog — one article per post, the composer
-   (admin only) above the list. */
-.ann-composer { margin: 0 0 22px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 14px; }
-.ann-composer input, .ann-composer textarea { width: 100%; margin: 0; }
+/* /announcements: the admin's blog — one article per post, the shared
+   WYSIWYG composer (admin only) above the list. The post's own first
+   heading is its title, so the head row is just the date and Delete. */
+.ann-composer { margin: 0 0 22px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; }
+.ann-editor { min-height: 180px; }
 .ann-post { padding: 16px 0 18px; border-bottom: 1px solid var(--line); }
-.ann-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin: 0 0 6px; }
-.ann-head h3 { margin: 0; flex: 1 1 auto; }
+.ann-head { display: flex; align-items: baseline; gap: 12px; margin: 0 0 6px; }
 .ann-head .ann-del { flex: none; margin-left: auto; }
-.ann-body p { margin: 0 0 0.8em; text-align: left; }
-.ann-body p:last-child { margin-bottom: 0; }
+.ann-body { text-align: left; }
+.ann-body :is(h1, h2, h3) { margin: 0 0 0.4em; }
+.ann-body p { margin: 0 0 0.8em; }
+.ann-body > :last-child { margin-bottom: 0; }

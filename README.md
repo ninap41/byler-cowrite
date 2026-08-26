@@ -39,8 +39,9 @@ turns adding one line each under a ticking clock.
   Reject. Live presence shows who's looking.
 - **Dashboard** — signed in, see who's online and join games in progress.
 - **Announcements** — `/announcements`, the admins' blog: anyone signed in
-  reads it; only admins see the composer and Delete, and the server enforces
-  the same rule on the API.
+  reads it; only admins see the composer (the shared WYSIWYG — the first
+  heading is the post's title) and Delete, and the server enforces the same
+  rule on the API.
 - **Docked chat, sounds, three themes, GSAP-animated everything.**
 - **Export** — copy the finished story as formatted rich text or download a
   clean styled HTML file.
