@@ -70,7 +70,22 @@ isolated). With it, the database is the store — see “Deploying on Replit”.
 
 To send real password-reset emails, set `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`,
 `SMTP_PASS`, `SMTP_FROM`. Without them, reset links are logged to the server
-console.
+console (an admin can copy one to a user by hand).
+
+The deployed site uses **Brevo** (free tier, 300 emails/day) as the SMTP
+relay. In the Brevo dashboard verify a sender address and create an SMTP key
+(Settings → SMTP & API → SMTP), then set:
+
+```
+SMTP_HOST=smtp-relay.brevo.com
+SMTP_PORT=587
+SMTP_USER=<your Brevo login email>
+SMTP_PASS=<the SMTP key — not your Brevo password>
+SMTP_FROM=<the verified sender address>
+```
+
+On Replit these go in **Secrets**, for the workspace and the deployment both,
+then redeploy. Test with “Forgot password” on a real account.
 
 ## Deploying on Replit
 
@@ -94,7 +109,8 @@ store for every document above. You only have to attach the database.
 3. **Deploy → Reserved VM** (`.replit` already says `deploymentTarget = "vm"`),
    run command `npm start`. Make sure the deployment inherits `DATABASE_URL`
    (Replit includes it by default; check the deployment's Secrets pane if in
-   doubt). Add the `SMTP_*` secrets too if you want real password-reset emails.
+   doubt). Add the five `SMTP_*` secrets too (Brevo — see “Storage” above)
+   if you want real password-reset emails.
 4. Deploy, then check the deployment logs for:
    ```
    storage: postgres (users 1, saves N, docs N, content 5, reference 6, seeded N)
