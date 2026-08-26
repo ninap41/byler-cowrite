@@ -244,7 +244,7 @@ test("rejecting a suggestion keeps the words and drops the underline", async () 
   assert.equal(after.comments[0].accepted, false);
 });
 
-test("only the author decides — a beta reader cannot accept their own suggestion", async () => {
+test("only the author decides, a beta reader cannot accept their own suggestion", async () => {
   const doc = await commentableDoc();
   const B = await ctx.conn();
   B.emit("doc-open", { auth: bob.token, id: doc.id });
@@ -370,7 +370,7 @@ test("applySuggestion swaps the anchored words and removes the anchor", () => {
   );
 });
 
-test("applySuggestion escapes the proposed text — a suggestion is words, not markup", () => {
+test("applySuggestion escapes the proposed text, a suggestion is words, not markup", () => {
   const out = applySuggestion(`<p>${A("x")}</p>`, CID, '<img src=x onerror="alert(1)">');
   assert.ok(!out.includes("<img"), out);
   assert.ok(out.includes("&lt;img"), out);
@@ -550,7 +550,7 @@ test("an author's suggestion on their own words saves like any other comment", a
   assert.equal(after.comments[0].suggestion, "faded denim jacket");
 });
 
-test("a beta reader's comment lands while the author has unsaved work — without taking the author's edit", async () => {
+test("a beta reader's comment lands while the author has unsaved work, without taking the author's edit", async () => {
   const doc = await commentableDoc();
   const B = await ctx.conn();
   B.emit("doc-open", { auth: bob.token, id: doc.id });
@@ -585,7 +585,7 @@ test("saving strips an anchor whose comment no longer exists", async () => {
   const saved = await ctx.api("/api/docs/" + doc.id, { html }, alice.token, "PUT");
   assert.equal(saved.status, 200);
   assert.equal(anchorsIn(saved.data.doc.html), 0, "no comment, no anchor");
-  assert.ok(saved.data.doc.html.includes("striped shirt"), "the words stay — only the marker goes");
+  assert.ok(saved.data.doc.html.includes("striped shirt"), "the words stay, only the marker goes");
   assert.equal((await docOf(doc.id)).html.includes("data-cid"), false, "and it's gone from the stored data too");
 });
 
@@ -671,7 +671,7 @@ test("a resolved comment keeps its record, it just stops underlining", async () 
   assert.equal(anchorsIn(after.html), 0, "but nothing is underlined for it");
 });
 
-test("a writer's solo writes are LISTED on their profile and /stories?user= — private ones included — and `viewable` says who may open them", async () => {
+test("a writer's solo writes are LISTED on their profile and /stories?user=, private ones included, and `viewable` says who may open them", async () => {
   const priv = await newDoc(alice.token, "Alice private");
   const pub = await newDoc(alice.token, "Alice public");
   await ctx.api("/api/docs/" + pub.id + "/visibility", { visibility: "public" }, alice.token);

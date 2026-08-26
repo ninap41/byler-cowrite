@@ -38,7 +38,7 @@ test("undo walks back through recorded states and redo walks forward", () => {
   assert.equal(h.canRedo(), false);
 });
 
-test("a font-size rewrite undoes cleanly — no stranded empty span", () => {
+test("a font-size rewrite undoes cleanly, no stranded empty span", () => {
   // this is the exact case the browser's native undo got wrong
   const el = editor("<p>his striped shirt hangs</p>");
   const h = createHistory(el, { getSelection: () => null });

@@ -16,7 +16,7 @@
 				setTimeout(function () { document.documentElement.classList.remove("pre-anim") }, 1500)
 			}
 		</script>
-		<title>{{SITE_NAME}} — Game</title>
+		<title>{{SITE_NAME}}: Game</title>
 		<link rel="icon" type="image/x-icon" href="./favicon.ico?v=2" />
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link
@@ -52,7 +52,7 @@
 							&middot;&middot;&middot;&middot; &#x2398;
 						</button>
 					</div>
-					<p class="subtle">Game code — click it to copy, share it with your writers</p>
+					<p class="subtle">Game code: click it to copy, share it with your writers</p>
 					<div class="codechip" id="codeDisplay">----</div>
 					<ul class="roster" id="rosterList"></ul>
 					<div id="hostControls" class="hidden">
@@ -131,7 +131,7 @@
 							</div>
 							<div id="myTurn" class="hidden">
 						<!-- The same WYSIWYG row as the solo editor, from the shared
-						     component — see js/components/rich-toolbar.js. -->
+						     component: see js/components/rich-toolbar.js. -->
 						<div class="toolbar" id="gameToolbar"></div>
 						<div class="editor" id="writerEditor" contenteditable="true" data-placeholder="Add the next line…"></div>
 						<div class="hint">
@@ -154,7 +154,7 @@
 							</div>
 						</aside>
 						<!-- HOST CONTROLS: a drawer, and deliberately the same one the
-						     solo editor's comments use — same classes, same grip, same
+						     solo editor's comments use: same classes, same grip, same
 						     edge tab, same bottom sheet under 860px (see
 						     js/components/side-drawer.js). Settings are something you
 						     open when you mean to change them, not a panel parked beside
@@ -237,7 +237,7 @@
 
 		<!-- YOUR-TURN ALERT (persistent until dismissed or the turn ends) -->
 		<div id="turnToast" class="turn-toast hidden" role="alert">
-			<span>✒ It's your turn — write the next line!</span>
+			<span>✒ It's your turn: write the next line!</span>
 			<button type="button" id="turnToastClose" class="turn-toast-close" title="Dismiss">✕</button>
 		</div>
 
@@ -314,7 +314,7 @@
 			const PAGE_TITLES = { waiting: "Lobby", choosing: "Lobby", game: "Cowrite", over: "Cowrite" }
 			const onlyShow = (id) => {
 				;["waiting", "choosing", "game", "over"].forEach((x) => (x === id ? show(x) : hide(x)))
-				document.title = "{{SITE_NAME}} — " + (PAGE_TITLES[id] || "Game")
+				document.title = "{{SITE_NAME}}: " + (PAGE_TITLES[id] || "Game")
 			}
 
 			// ---- Docked chat panel (collapse/expand + unread badge) ----
@@ -347,7 +347,7 @@
 				if ("Notification" in window && Notification.permission === "granted" && document.visibilityState === "hidden") {
 					try {
 						turnNotif = new Notification("{{SITE_NAME}}", {
-							body: "It's your turn — write the next line!",
+							body: "It's your turn: write the next line!",
 							requireInteraction: true,
 						})
 						turnNotif.onclick = () => {
@@ -445,7 +445,7 @@
 				const el = document.createElement("div")
 				el.className = "gimmick-off-toast glass"
 				el.setAttribute("role", "status")
-				el.textContent = "💛 This is a friendly game now — gimmicks are off."
+				el.textContent = "💛 This is a friendly game now, gimmicks are off."
 				document.body.appendChild(el)
 				const g = window.gsap
 				if (g) {
@@ -617,7 +617,7 @@
 					return location.replace("/dashboard")
 				}
 				if (res.pending)
-					return gameMsg("This story was continued — waiting for the host to let you back in…")
+					return gameMsg("This story was continued, waiting for the host to let you back in…")
 				enterSession(res)
 			}
 			let entered = false
@@ -663,7 +663,7 @@
 				socket.emit("join-session", { code, auth: getToken() }, (res) => {
 					if (!res?.ok) return gameMsg(res?.error || "Could not join that game.")
 					if (res.pending)
-						return gameMsg("This story is underway — waiting for the host to let you in…")
+						return gameMsg("This story is underway, waiting for the host to let you in…")
 					enterSession(res)
 				})
 			}
@@ -810,7 +810,7 @@
 					}
 					box.appendChild(b)
 				})
-				$("voteProgress").textContent = `${st.voted} of ${st.total} voted — most votes wins`
+				$("voteProgress").textContent = `${st.voted} of ${st.total} voted, most votes wins`
 				$("hostVoteBtns").classList.toggle("hidden", myId !== hostId)
 				renderPromptControls(st)
 			}
@@ -897,7 +897,7 @@
 				$("whoTurn").innerHTML = st.paused
 					? "⏸ Host paused game…"
 					: myTurn
-						? "Your turn — write!"
+						? "Your turn: write!"
 						: `Waiting for ${statusDot(st.currentName)}${esc(st.currentName || "…")}`
 				$("whoTurn").style.color = st.paused ? "var(--muted)" : myTurn ? "var(--good)" : "var(--ink)"
 				$("myTurn").classList.toggle("hidden", !myTurn)
@@ -1108,7 +1108,7 @@
 					sel.innerHTML = friends.length
 						? `<option value="">Pick a friend…</option>` +
 							friends.map((f) => `<option value="${esc(f.username)}">${esc(f.username)}${f.online ? " · online" : ""}</option>`).join("")
-						: `<option value="">No friends yet — add some from a profile</option>`
+						: `<option value="">No friends yet: add some from a profile</option>`
 				} catch (e) {
 					sel.innerHTML = `<option value="">Couldn't load friends</option>`
 				}
@@ -1120,7 +1120,7 @@
 				if (!who || !myCode) return
 				try {
 					await authApi("/api/games/" + encodeURIComponent(myCode) + "/invite", { username: who })
-					note.textContent = `✉ Invited ${who} — they'll get a note with the code${friendsOnline(who) ? " and a toast right now" : ""}.`
+					note.textContent = `✉ Invited ${who}: they'll get a note with the code${friendsOnline(who) ? " and a toast right now" : ""}.`
 				} catch (e) {
 					note.textContent = e.message
 				}
@@ -1182,7 +1182,7 @@ $("pauseBtn").onclick = () =>
 			})
 			$("continueBtn").onclick = () =>
 				socket.emit("continue-writing", contRules.values(), (res) => {
-					if (!res?.ok) alert("Could not continue — only the host can, and someone must be here.")
+					if (!res?.ok) alert("Could not continue, only the host can, and someone must be here.")
 				})
 			// Exports (js/export.js): prose only, formatting preserved, NO usernames.
 			function rebuildExports(prompt, story) {
@@ -1200,7 +1200,7 @@ $("pauseBtn").onclick = () =>
 							"text/plain": new Blob([window._plain || ""], { type: "text/plain" }),
 						}),
 					])
-					btn.textContent = "Copied — paste into Docs/Word"
+					btn.textContent = "Copied: paste into Docs/Word"
 				} catch (e) {
 					try {
 						await navigator.clipboard.writeText(window._plain || "")
@@ -1234,7 +1234,7 @@ $("pauseBtn").onclick = () =>
 				turnAlert(false)
 				onlyShow("none")
 				hide("chatCard")
-				gameMsg(`💤 “${name || code}” went to sleep${by ? ` — ${by} tucked it in` : " — nobody's written for a while"}. Wake it up from the dashboard, or reload to pick it back up.`)
+				gameMsg(`💤 “${name || code}” went to sleep${by ? `, ${by} tucked it in` : ", nobody's written for a while"}. Wake it up from the dashboard, or reload to pick it back up.`)
 			})
 			socket.on("game-deleted", () => {
 				clearRejoin()

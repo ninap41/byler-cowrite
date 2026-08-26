@@ -168,7 +168,7 @@ test("newCid: distinct ids", () => {
 
 // ---- game lines carry the same formatting as a document, minus urls ----
 
-test("sanitizeRich: the game's formatting matches the document's — lists, quote, strike, sizes", () => {
+test("sanitizeRich: the game's formatting matches the document's: lists, quote, strike, sizes", () => {
   const rich = '<h2>t</h2><ul><li><b>a</b></li></ul><ol><li>b</li></ol>' +
     '<blockquote class="al-c">q</blockquote><p><s>gone</s> <span class="fs-24">big</span></p><hr>';
   assert.equal(sanitizeRich(rich), rich, "every one of them survives untouched");

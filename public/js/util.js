@@ -37,7 +37,7 @@ export const miniAvatar = (o) => {
 // and comes back as plain escaped text; nothing user-typed can become markup.
 // What each category means — the tooltip on its name.
 export const PROMPT_CAT_TIPS = {
-	Season: "When it's set — which season of the show, or after it. Fixes how old they are.",
+	Season: "When it's set, which season of the show, or after it. Fixes how old they are.",
 	Canon: "How close to the show: compliant, one thing diverges, or an alternate universe.",
 	Place: "Where the scene happens.",
 	Relationship: "Where they stand with each other when the story opens.",

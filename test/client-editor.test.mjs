@@ -10,7 +10,7 @@ const { cleanHtml, asterisksToTags, newCid } = await import("../public/js/compon
 // are pinned. cleanHtml is convenience, sanitizeRich() is the security control.
 const CASES = [
   ["plain text", "hello there", "hello there"],
-  ["text passes through RAW — the server escapes exactly once", `a <div>&"'</div>`, `a <p>&"'</p>`],
+  ["text passes through RAW, the server escapes exactly once", `a <div>&"'</div>`, `a <p>&"'</p>`],
   ["b/strong -> b, i/em -> i, u -> u", "<b>a</b><strong>b</strong><em>c</em><i>d</i><u>e</u>", "<b>a</b><b>b</b><i>c</i><i>d</i><u>e</u>"],
   ["DIV becomes p", "<div>line</div>", "<p>line</p>"],
   ["headings pass through", "<h1>t</h1><h2>u</h2><h3>v</h3>", "<h1>t</h1><h2>u</h2><h3>v</h3>"],
@@ -161,7 +161,7 @@ test("cleanHtml drops an anchor whose id isn't ours, keeping the words", () => {
   }
 });
 
-test("anchors are a document feature — game lines never keep them", () => {
+test("anchors are a document feature, game lines never keep them", () => {
   const el = mount('<p><span class="cmt" data-cid="0123456789ab">words</span></p>');
   assert.equal(cleanHtml(el), "<p>words</p>");
 });

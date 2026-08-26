@@ -61,9 +61,9 @@ export function galagaResultHtml({ score, kind, stole, declined = false, error =
 	const line =
 		kind === "highscore"
 			? stole
-				? "You beat " + GALAGA_TARGET + " — the turn is yours. Go write."
+				? "You beat " + GALAGA_TARGET + ", the turn is yours. Go write."
 				: declined
-					? "You beat " + GALAGA_TARGET + " — and let the writer keep the turn."
+					? "You beat " + GALAGA_TARGET + ", and let the writer keep the turn."
 					: "You beat " + GALAGA_TARGET + "!"
 			: "The fleet holds. " + GALAGA_TARGET + " steals the turn."
 	return `<b class="gg-final${kind === "highscore" ? " win" : ""}">${pts}</b><span class="gg-hint">${line}</span><button type="button" data-act="gg-again">Play again</button>`

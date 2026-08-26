@@ -144,8 +144,8 @@ const TOPBAR = `
 				<!-- The Font row: a per-browser override of the theme's body +
 				     story faces (display and mono stay the theme's). A flip
 				     menu (components/flip-select.js) so every face previews
-				     itself in its own letterforms; it opens as a PORTAL —
-				     lifted to <body> while open — so it escapes this menu's
+				     itself in its own letterforms; it opens as a PORTAL
+				     lifted to <body> while open, so it escapes this menu's
 				     overflow and scrolls on its own when the list is long.
 				     initTheme() mounts it into #themeFontPick. -->
 				<hr class="theme-sep" />
@@ -262,7 +262,7 @@ export function mountChrome({ page = "", nav = true, kofi = true } = {}) {
 		h1.classList.add("brand-link")
 		h1.setAttribute("role", "link")
 		h1.setAttribute("tabindex", "0")
-		h1.title = siteName() + " — home"
+		h1.title = siteName() + ", home"
 		const go = () => (location.href = "/")
 		h1.addEventListener("click", go)
 		h1.addEventListener("keydown", (e) => {

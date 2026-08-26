@@ -46,7 +46,7 @@ async function sendResetEmail(to, link) {
   await transport.sendMail({
     from: SMTP_FROM || SMTP_USER,
     to,
-    subject: `${SITE.name} — reset your password`,
+    subject: `${SITE.name}: reset your password`,
     text: `Someone (hopefully you) asked to reset your ${SITE.name} password.\n\nReset it here: ${link}\n\nThis link expires in 30 minutes. If you didn't ask, ignore this email.`,
   });
 }
@@ -139,7 +139,7 @@ export function registerRoutes(app, game) {
     // Cap check comes first: once we're full, every signup attempt gets the
     // waiting-list wall (capReached tells the client to show it).
     if (store.users.length >= USER_CAP)
-      return res.status(403).json({ error: "Sign-ups are closed for now — join the waiting list!", capReached: true });
+      return res.status(403).json({ error: "Sign-ups are closed for now, join the waiting list!", capReached: true });
     const { email, username, password, color } = req.body || {};
     const em = String(email || "").toLowerCase().trim();
     const un = String(username || "").trim();
@@ -147,7 +147,7 @@ export function registerRoutes(app, game) {
     if (un.length < 4 || un.length > 24)
       return res.status(400).json({ error: "Username must be 4–24 characters." });
     if (un.includes("@"))
-      return res.status(400).json({ error: "Usernames can't contain @ — that's for emails." });
+      return res.status(400).json({ error: "Usernames can't contain @: that's for emails." });
     if (String(password || "").length < 4)
       return res.status(400).json({ error: "Password must be at least 4 characters." });
     if (findByEmail(em)) return res.status(400).json({ error: "That email already has an account." });
@@ -174,7 +174,7 @@ export function registerRoutes(app, game) {
   app.post("/api/waitlist", (req, res) => {
     const em = String(req.body?.email || "").toLowerCase().trim();
     if (!EMAIL_RE.test(em)) return res.status(400).json({ error: "Enter a valid email." });
-    if (findByEmail(em)) return res.status(400).json({ error: "That email already has an account — just log in!" });
+    if (findByEmail(em)) return res.status(400).json({ error: "That email already has an account, just log in!" });
     if (!store.waitlist.some((w) => w.email === em)) {
       store.waitlist.push({ email: em, accessGranted: false, signupLink: null, addedAt: Date.now() });
       saveStore();
@@ -227,7 +227,7 @@ export function registerRoutes(app, game) {
     if (un.length < 4 || un.length > 24)
       return res.status(400).json({ error: "Username must be 4–24 characters." });
     if (un.includes("@"))
-      return res.status(400).json({ error: "Usernames can't contain @ — that's for emails." });
+      return res.status(400).json({ error: "Usernames can't contain @: that's for emails." });
     const taken = findByUsername(un);
     if (taken && taken.id !== u.id) return res.status(400).json({ error: "That username is taken." });
     u.username = un;
@@ -488,7 +488,7 @@ export function registerRoutes(app, game) {
   app.post("/api/help", (req, res) => {
     const u = authedUser(req);
     if (!u) return res.status(401).json({ error: "Sign in first." });
-    if (isAdmin(u)) return res.status(400).json({ error: "You are the admin — questions land in your inbox." });
+    if (isAdmin(u)) return res.status(400).json({ error: "You are the admin, questions land in your inbox." });
     const text = stripTags(String(req.body?.text || "")).trim().slice(0, HELP_MAX);
     if (text.length < 2) return res.status(400).json({ error: "Type your question first." });
     const admins = store.users.filter(isAdmin);
@@ -589,7 +589,7 @@ export function registerRoutes(app, game) {
     if (areFriends(u, target)) return res.status(400).json({ error: "You're already friends." });
     if (pendingReqFrom(target, u.id)) return res.status(400).json({ error: "Request already sent." });
     if (pendingReqFrom(u, target.id))
-      return res.status(400).json({ error: "They already sent you a request — check your inbox!" });
+      return res.status(400).json({ error: "They already sent you a request, check your inbox!" });
     target.inbox = target.inbox || [];
     target.inbox.unshift(makeMsg("friend-request", u.id, `${u.username} wants to be your friend.`));
     saveStore();
@@ -644,7 +644,7 @@ export function registerRoutes(app, game) {
     const em = String(req.body?.email || "").toLowerCase().trim();
     if (!EMAIL_RE.test(em)) return res.status(400).json({ error: "Enter a valid email." });
     const u = findByEmail(em);
-    if (!u) return res.status(404).json({ error: "There's no username under that email — no account exists." });
+    if (!u) return res.status(404).json({ error: "There's no username under that email, no account exists." });
     res.json({ username: u.username });
   });
 
@@ -652,7 +652,7 @@ export function registerRoutes(app, game) {
     const em = String(req.body?.email || "").toLowerCase().trim();
     if (!EMAIL_RE.test(em)) return res.status(400).json({ error: "Enter a valid email." });
     const u = findByEmail(em);
-    if (!u) return res.status(404).json({ error: "There's no username under that email — no account exists." });
+    if (!u) return res.status(404).json({ error: "There's no username under that email, no account exists." });
     // one live reset token per user
     for (const [t, r] of Object.entries(store.resets))
       if (r.userId === u.id || r.exp < Date.now()) delete store.resets[t];

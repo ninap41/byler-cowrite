@@ -135,7 +135,7 @@ test("formatSource never breaks inline runs or text", () => {
   assert.ok(!/[^>]\n/.test(out), "every newline follows a closing angle bracket");
 });
 
-test("unformatSource(formatSource(x)) === x — the round trip is exact", () => {
+test("unformatSource(formatSource(x)) === x: the round trip is exact", () => {
   for (const html of [DOC_HTML, "<p>solo</p>", "<p>a</p><p>b</p>", "", "<p>text with < angle</p>"]) {
     assert.equal(unformatSource(formatSource(html)), html, html);
   }
@@ -178,7 +178,7 @@ test("plainBlockHtml drops alignment and rules", () => {
   assert.equal(plainBlockHtml('<p class="al-c" style="text-align:center">mid</p><hr><p>after</p>'), "<p>mid</p><p>after</p>");
 });
 
-test("plainBlockHtml keeps line breaks — clearing formatting must not join lines", () => {
+test("plainBlockHtml keeps line breaks, clearing formatting must not join lines", () => {
   assert.equal(plainBlockHtml("<p>one<br>two</p>"), "<p>one<br>two</p>");
 });
 
@@ -302,7 +302,7 @@ test("scrollTargetFor centres the words in the space the sticky head leaves", ()
   // to sit 330px below the head.
   const at = (rectTop, extra = {}) =>
     scrollTargetFor({ rectTop, rectH: 20, scrollY: 0, viewportH: 800, headH: 120, maxScroll: 5000, ...extra });
-  assert.equal(at(450), 0, "already in the middle — don't move");
+  assert.equal(at(450), 0, "already in the middle, don't move");
   assert.equal(at(1450), 1000, "further down the page scrolls down");
   assert.equal(at(-550), 0, "above the viewport, but the page can't go past the top");
   assert.equal(scrollTargetFor({ rectTop: 1450, rectH: 20, scrollY: 200, viewportH: 800, headH: 120, maxScroll: 5000 }), 1200,

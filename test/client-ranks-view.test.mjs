@@ -88,7 +88,7 @@ test("word badges: secret ones hide their descriptions until earned, open ones n
   assert.equal(cards.length, 3);
   assert.match(cards[0].textContent, /puppy/, "an earned secret badge shows its real description");
   assert.ok(cards[0].classList.contains("earned"));
-  assert.match(cards[1].textContent, /Secret —/, "an unearned secret badge stays a mystery");
+  assert.match(cards[1].textContent, /Secret: /, "an unearned secret badge stays a mystery");
   assert.ok(cards[1].classList.contains("mystery"));
   assert.match(cards[2].textContent, /once upon a time/, "open badges always show their description");
   // signed out: secrets are all mysteries
@@ -133,7 +133,7 @@ test("the live registry ships what the page needs: every gimmick has an icon, ev
 test("an admin's payload shows every badge's description and trigger recipe; anyone else's keeps the mystery", async () => {
   const { usageListHtml, recipeText } = await import("../public/js/ranks-view.js");
   const secretForAll = usageListHtml({ usage: [{ name: "🐺 Omega" }], usageOpen: [] }, null);
-  assert.ok(secretForAll.includes("Secret —") && secretForAll.includes("mystery"));
+  assert.ok(secretForAll.includes("Secret: ") && secretForAll.includes("mystery"));
   const forAdmin = usageListHtml({ usage: [{ name: "🐺 Omega", desc: "Write puppy.", triggers: ["puppy"], combos: [["good", "boy"]] }], usageOpen: [] }, null);
   assert.ok(forAdmin.includes("Write puppy.") && forAdmin.includes("Unlocks with: puppy · good + boy"));
   assert.ok(!forAdmin.includes("mystery"));

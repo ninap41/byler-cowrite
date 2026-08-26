@@ -277,7 +277,7 @@ test("the vote card's mount gets a 🎲 Reroll all button; the lobby's doesn't",
   assert.match(html, /onReroll: \(\) => \{[\s\S]*?socket\.emit\("shuffle-options"\)/);
 });
 
-test("Simple mode shows no guided knobs — and the stylesheet agrees", async () => {
+test("Simple mode shows no guided knobs, and the stylesheet agrees", async () => {
   const root = mount("");
   const pm = mountPromptModes(root, { prefix: "s1" }).setMenus(MENUS);
   const controls = root.querySelector("#s1Controls");

@@ -79,7 +79,7 @@ test("files: a module that reads before init gets the environment's directories"
   }
 });
 
-test("postgres: rows are the store — loaded at boot, read from memory, written in order, never on disk", async () => {
+test("postgres: rows are the store, loaded at boot, read from memory, written in order, never on disk", async () => {
   delete process.env.DATABASE_URL;
   const root = tmp();
   const dirs = dirsIn(root);
@@ -134,7 +134,7 @@ test("postgres: first boot seeds every kind from disk once; afterwards the datab
   const pool = fakePool([{ kind: "content", name: "prompts", doc: '{"prompts":["edited in /admin"]}' }]);
   try {
     await storage.init({ ...dirs, pool });
-    assert.equal(storage.seeded, 7, "users, announcements, save, doc, site, index, romance — not the README, not prompts");
+    assert.equal(storage.seeded, 7, "users, announcements, save, doc, site, index, romance, not the README, not prompts");
     await storage.flush();
     assert.deepEqual(getJson("users", "users"), { users: [{ id: "disk" }] });
     assert.deepEqual(storage.list("save"), ["OLDG"]);
@@ -172,7 +172,7 @@ test("postgres: a failed query is remembered on lastError instead of crashing th
     await storage.put("save", "BOOM", "{}");
     await storage.put("save", "FINE", "{}");
     assert.match(storage.lastError, /save\/BOOM: connection reset/);
-    assert.equal(storage.get("save", "BOOM"), "{}", "the cache still holds it — the app keeps working");
+    assert.equal(storage.get("save", "BOOM"), "{}", "the cache still holds it, the app keeps working");
     assert.ok(pool.rows.has("save/FINE"), "other writes are unaffected");
   } finally {
     storage._reset();

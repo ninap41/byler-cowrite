@@ -117,7 +117,7 @@ async function postgresBackend(dirs, pool) {
     const key = kind + "/" + name;
     const next = (chains.get(key) ?? Promise.resolve()).then(job).catch((e) => {
       lastError = `${new Date().toISOString()} ${key}: ${e.message}`;
-      console.error("storage: query failed —", key, e.message);
+      console.error("storage: query failed: ", key, e.message);
     });
     chains.set(key, next);
     return next;

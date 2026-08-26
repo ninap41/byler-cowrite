@@ -104,7 +104,7 @@ export function wireAuthForms(root, { api, onSignedIn, onCapReached }) {
 	$("fgSend").onclick = async () => {
 		try {
 			await api("/api/send-reset", { email: $("fgEmail").value.trim() })
-			$("fgSend").textContent = "Link sent — check your email"
+			$("fgSend").textContent = "Link sent: check your email"
 			$("fgSend").disabled = true
 		} catch (e) {
 			$("authErr").textContent = e.message

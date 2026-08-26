@@ -73,12 +73,12 @@ test("createDie builds 20 faces into the host and rollTo lands on the asked valu
 const gate = { catalogue: [{ id: "d20", name: "Hellfire d20", desc: "d", theme: "hellfire" }], locks: { d20: { tier: "sorcerer", name: "🧙 Sorcerer", min: 20000 } } };
 
 test("menuHtml: friendly game / unseated / locked-but-playable / play", () => {
-  assert.match(menuHtml({ ...gate, friendly: true }), /friendly game — gimmicks are off/);
+  assert.match(menuHtml({ ...gate, friendly: true }), /friendly game, gimmicks are off/);
   assert.match(menuHtml({ ...gate, friendly: false, seated: false }), /Take a seat/);
   const locked = menuHtml({ ...gate, friendly: false, unlocked: [] });
   assert.match(locked, /🔒 Hellfire d20/);
   assert.match(locked, /Unlocks at 🧙 Sorcerer · 20,000 words · or play it while a tablemate has it/);
-  assert.match(locked, /data-act="play"/, "a locked row still tries — a tablemate's rank may let it through");
+  assert.match(locked, /data-act="play"/, "a locked row still tries, a tablemate's rank may let it through");
   assert.match(menuHtml({ ...gate, friendly: false, unlocked: ["d20"] }), /data-act="play">🎲 Hellfire d20 · Play/);
   assert.match(menuHtml({ ...gate, friendly: false, admin: true }), /🎲 Hellfire d20 · Play/, "admins have every gimmick");
 });
@@ -127,7 +127,7 @@ test("mountGimmickDice: menu → my die is out (reported to the room), a click r
   assert.ok(t.open, "playing puts my die out");
   assert.ok(menu.classList.contains("hidden"));
   assert.ok(!layer.classList.contains("hidden"));
-  assert.ok(!document.body.classList.contains("ui-peek"), "no peek: the game UI stays — that's the point");
+  assert.ok(!document.body.classList.contains("ui-peek"), "no peek: the game UI stays, that's the point");
   assert.match(document.getElementById("gdTitle").textContent, /Hellfire d20/);
   assert.equal(document.querySelectorAll("#gdDie .d20-face").length, 20, "a die is built into the layer");
   assert.match(btn.textContent, /Put the die away/);
@@ -186,7 +186,7 @@ test("mountGimmickDice: menu → my die is out (reported to the room), a click r
 
 test("a refused roll shows the server's reason and unlocks the die", async () => {
   document.body.innerHTML = `<button class="foot-btn" id="gimmickBtn"></button>`;
-  const socket = fakeSocket(() => ({ ok: false, error: "This is a friendly game — gimmicks are off." }));
+  const socket = fakeSocket(() => ({ ok: false, error: "This is a friendly game, gimmicks are off." }));
   const t = mountGimmickDice({ socket, isFriendly: () => false });
   t.setGate(gate);
   t.enter("d20");

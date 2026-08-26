@@ -14,7 +14,7 @@ test("spectator identity: Stranger Things name + number, minted once, kept in lo
   const n = Number(m[2]);
   assert.ok(n >= 1 && n <= 99, "number in range");
   assert.equal(localStorage.getItem("cowriteSpecName"), name, "persisted client-side");
-  assert.equal(getSpectatorName(), name, "stable across calls — one identity per browser");
+  assert.equal(getSpectatorName(), name, "stable across calls: one identity per browser");
 });
 
 test("spectator name list is non-trivial and unique", () => {

@@ -27,7 +27,7 @@ test("an admin's page carries Delete on every post and the shared toolbar in the
 
 test("the post's html is injected as-is (it was sanitized when posted), the head is date + author, escaped", () => {
   const html = postHtml(post, { admin: true });
-  assert.ok(html.includes("<h2>Big news</h2><p>First <b>para</b></p>"), "the heading IS the title — nothing repeats it");
+  assert.ok(html.includes("<h2>Big news</h2><p>First <b>para</b></p>"), "the heading IS the title, nothing repeats it");
   assert.ok(!html.includes("<h3>Big news</h3>"));
   assert.ok(html.includes("nina&lt;admin&gt;"));
   assert.match(postListHtml([]), /Nothing announced yet/);

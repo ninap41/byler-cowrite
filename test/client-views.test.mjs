@@ -64,7 +64,7 @@ test("avatarHtml carries the fit preference", async () => {
   assert.ok(avatarHtml({ username: "w", avatar: "https://i.com/a.png" }).includes("fit-cover"));
 });
 
-test("chatMessageHtml: minimal person tag — avatar + name + (host); text escaped", () => {
+test("chatMessageHtml: minimal person tag, avatar + name + (host); text escaped", () => {
   const out = chatMessageHtml({ name: "will", color: "#6c8cff", badge: "✏️ <b>", text: "<script>hi" });
   assert.ok(out.includes("&lt;script&gt;hi"), "text escaped");
   assert.ok(!out.includes("badge-chip"), "no badge chip in chat");

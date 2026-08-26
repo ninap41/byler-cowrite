@@ -16,7 +16,7 @@
 				setTimeout(function () { document.documentElement.classList.remove("pre-anim") }, 1500)
 			}
 		</script>
-		<title>{{SITE_NAME}} — Settings</title>
+		<title>{{SITE_NAME}}: Settings</title>
 		<link rel="icon" type="image/x-icon" href="./favicon.ico?v=2" />
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link
@@ -114,13 +114,13 @@
 						<label for="setAbout" style="margin-top: 10px">About you (shown on your public profile)</label>
 						<textarea id="setAbout" maxlength="2000" rows="5" style="width: 100%; resize: vertical"></textarea>
 						<p class="subtle" style="text-align: left; margin: 6px 0 0; font-size: 0.78rem">
-							Embed images inline with <code>&lt;img src="https://…"&gt;</code> — other html shows as plain text.
+							Embed images inline with <code>&lt;img src="https://…"&gt;</code>, other html shows as plain text.
 						</p>
 						<label style="margin-top: 10px">Links (up to three)</label>
 						<div id="linkChips" class="tag-chips"></div>
 						<div class="row" style="justify-content: flex-start; margin-top: 8px">
 							<button type="button" class="ghost" id="addLinkBtn">Add link +</button>
-							<span class="subtle hidden" id="linkMax" style="font-size: 0.78rem">3 links max — remove one to add another.</span>
+							<span class="subtle hidden" id="linkMax" style="font-size: 0.78rem">3 links max: remove one to add another.</span>
 						</div>
 						<!-- the save button ends the profile form -->
 						<div class="row"><button class="primary" id="saveProfile">Save profile</button></div>
@@ -246,7 +246,7 @@
 				links.push({ label: label || url.slice(0, 40), url })
 				renderLinks()
 				closeLinkModal()
-				say(true, "Link added — hit Save profile to keep it.")
+				say(true, "Link added: hit Save profile to keep it.")
 			}
 
 			function fill() {
@@ -341,7 +341,7 @@
 				try {
 					await api("/api/account/password", { oldPassword: $("oldPass").value, newPassword: $("newPass").value })
 					$("oldPass").value = $("newPass").value = ""
-					say(true, "Password changed — other devices were signed out.")
+					say(true, "Password changed: other devices were signed out.")
 				} catch (e) {
 					say(false, e.message)
 				}

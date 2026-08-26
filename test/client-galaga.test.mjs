@@ -38,7 +38,7 @@ test("galagaResultHtml: every ending", () => {
   assert.match(galagaResultHtml({ score: 3200, kind: "highscore", stole: true }), /win">3,200[\s\S]*the turn is yours/);
   assert.match(galagaResultHtml({ score: 3200, kind: "highscore", stole: false, declined: true }), /let the writer keep the turn/);
   assert.match(galagaResultHtml({ score: 8200, kind: "highscore", stole: false }), /You beat 8000!/);
-  assert.match(galagaResultHtml({ error: "This is a friendly game — gimmicks are off." }), /friendly game/);
+  assert.match(galagaResultHtml({ error: "This is a friendly game, gimmicks are off." }), /friendly game/);
   assert.match(galagaResultHtml({ score: 350, kind: "plain" }), /data-act="gg-again"/);
 });
 
@@ -138,7 +138,7 @@ test("others' battles: relayed ships/bees/shots are painted in their colour, mov
 
 test("a refused run (friendly game) paints the error instead of a score", () => {
   document.body.innerHTML = "";
-  const socket = fakeSocket((data) => (data?.score !== undefined ? { ok: false, error: "This is a friendly game — gimmicks are off." } : undefined));
+  const socket = fakeSocket((data) => (data?.score !== undefined ? { ok: false, error: "This is a friendly game, gimmicks are off." } : undefined));
   const g = mountGalaga({ socket, getMyUserId: () => "u1", document });
   g.start();
   g.finishNow();

@@ -109,7 +109,7 @@ test("setPrefs gates chat/story/clock independently; legacy boolean fans out", (
   assert.deepEqual(kit.prefs, { chat: false, story: false, clock: false, gimmick: false });
 });
 
-test("the gimmick pref gates a chat ping played under the gimmick category — and only that", () => {
+test("the gimmick pref gates a chat ping played under the gimmick category, and only that", () => {
   const kit = createSounds(FakeAudio);
   kit.setPrefs({ chat: true, story: true, clock: true, gimmick: false });
   kit.play("incomingmessage", "gimmick");

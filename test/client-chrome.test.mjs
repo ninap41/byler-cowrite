@@ -87,7 +87,7 @@ test("the theme menu's Font row overrides the site font: data-font + storage, su
   const theme = mountChrome({ page: "dashboard" });
   const pick = document.getElementById("themeFont");
   assert.ok(pick && document.getElementById("themeMenu").contains(pick), "the flip select lives inside the theme menu");
-  assert.ok(pick.classList.contains("flip-select"), "a flip menu, not a native select — each row previews its own face");
+  assert.ok(pick.classList.contains("flip-select"), "a flip menu, not a native select, each row previews its own face");
   assert.ok(!pick.closest("[data-theme-btn]"), "and is not a theme row (setGate never rewrites it)");
   const rows = [...document.querySelectorAll("#themeFontMenu [data-val]")];
   assert.equal(rows[0].dataset.val, "theme");
@@ -252,7 +252,7 @@ test("setGate marks unearned themes locked and leaves earned ones alone", () => 
   assert.equal(themeBtn("vecna").querySelector("span").textContent, THEME_LABELS.vecna);
 });
 
-test("a locked theme can't be worn — by click, by call, or by stale localStorage", () => {
+test("a locked theme can't be worn: by click, by call, or by stale localStorage", () => {
   document.body.innerHTML = "";
   localStorage.clear();
   const theme = mountChrome();

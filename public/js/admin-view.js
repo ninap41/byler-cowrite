@@ -89,7 +89,7 @@ export const PROMPT_POOLS = [
 	{ path: ["intermediate", "situations"], title: "Situations", kind: "items" },
 	{ path: ["intermediate", "relationships"], title: "Relationships", kind: "items" },
 	{ path: ["intermediate", "tones"], title: "Tones", kind: "items" },
-	{ path: ["intermediate", "tropes"], title: "Tropes", kind: "items", fields: ["group"], hint: "Every trope but the AU worlds — those have their own section below, with their places." },
+	{ path: ["intermediate", "tropes"], title: "Tropes", kind: "items", fields: ["group"], hint: "Every trope but the AU worlds, those have their own section below, with their places." },
 	{ path: ["intermediate", "explicit", "levels"], title: "Explicit · levels", kind: "items" },
 	{ path: ["intermediate", "explicit", "setups"], title: "Explicit · setups", kind: "items", fields: ["who"] },
 	{ path: ["intermediate", "explicit", "dynamics"], title: "Explicit · dynamics", kind: "items", fields: ["who", "only"] },
@@ -162,7 +162,7 @@ export function promptPoolHtml(pool, doc) {
 	const groups = doc.intermediate?.tropeGroups || {}
 	const heads = ["Label", "Weight", ...(pool.fields || []).map((f) => ({ group: "Group", ageGroup: "Age", who: "Role (who)", only: "Always" })[f] || f), "Rules (JSON)", ""]
 	return `<details class="pe-pool" data-pool="${esc(key)}"><summary>${esc(pool.title)} <span class="subtle">(${list.length})</span></summary>
-	<p class="subtle">${esc(pool.hint || "Label is what the menus and prompt show; weight biases the draw (blank = 1); rules is the entry's other fields as JSON — tags, compatibleAgeGroups, compatibleCanon, requiresTags, incompatibleTags, adultOnly.")}</p>
+	<p class="subtle">${esc(pool.hint || "Label is what the menus and prompt show; weight biases the draw (blank = 1); rules is the entry's other fields as JSON, tags, compatibleAgeGroups, compatibleCanon, requiresTags, incompatibleTags, adultOnly.")}</p>
 	<table class="pe-table"><thead><tr>${heads.map((h) => `<th>${esc(h)}</th>`).join("")}</tr></thead>
 	<tbody>${list.map((it) => promptRowHtml(it, pool, groups)).join("")}</tbody></table>
 	<button type="button" class="ghost pe-add">+ Add</button>
@@ -172,7 +172,7 @@ export function promptPoolHtml(pool, doc) {
 // The tags the GENERATOR itself puts into play (they're not authored on an
 // entry; the draw adds them as it goes), with what each one means.
 export const BUILTIN_TAGS = {
-	explicit: "added when the rating came out explicit — a tone that lists it in incompatibleTags (fluff, crack) steps aside",
+	explicit: "added when the rating came out explicit, a tone that lists it in incompatibleTags (fluff, crack) steps aside",
 	"no-explicit": "a tone that carries it forces an explicit request down to suggestive",
 }
 
@@ -195,11 +195,11 @@ export function tagIndex(doc) {
 export function promptRulesHtml(doc) {
 	const row = (k, v) => `<tr><td><code>${esc(k)}</code></td><td>${v}</td></tr>`
 	const tags = tagIndex(doc)
-	return `<details class="pe-pool pe-doc" data-doc="1"><summary>📖 How the rules work — fields, tags, and the order of the draw</summary>
+	return `<details class="pe-pool pe-doc" data-doc="1"><summary>📖 How the rules work, fields, tags, and the order of the draw</summary>
 	<h4>Every row</h4>
 	<table class="pe-doc-table">
 	${row("Label", "what the menus, chips and prompt show. The clause text is the label lowercased (an existing row keeps a custom clause if you don't change its label).")}
-	${row("Weight", "how often it's drawn — 1 is normal, 5 is five times as likely, blank is 1. Ids dealt earlier on the same ballot are damped (÷3), not banned.")}
+	${row("Weight", "how often it's drawn: 1 is normal, 5 is five times as likely, blank is 1. Ids dealt earlier on the same ballot are damped (÷3), not banned.")}
 	${row("Rules (JSON)", "the entry's other fields, as one JSON object. Example: <code>{&quot;tags&quot;:[&quot;fantasy&quot;],&quot;compatibleAgeGroups&quot;:[&quot;adult&quot;]}</code>")}
 	</table>
 	<h4>What Rules can hold</h4>
@@ -207,27 +207,27 @@ export function promptRulesHtml(doc) {
 	${row("tags", "strings this entry <em>puts into play</em> once drawn. Later draws check their rules against everything in play so far.")}
 	${row("requiresTags", "draw this only if <em>every</em> listed tag is already in play (Cleradin's tropes: <code>[&quot;cleradin&quot;]</code>; domestic bliss: <code>[&quot;together&quot;]</code>).")}
 	${row("incompatibleTags", "never draw this if <em>any</em> listed tag is in play (a phone call in a fantasy world: <code>[&quot;fantasy&quot;]</code>; a first kiss on a couple: <code>[&quot;together&quot;]</code>).")}
-	${row("compatibleAgeGroups", "<code>[&quot;minor&quot;]</code> or <code>[&quot;adult&quot;]</code> — the season's age group must match. Age comes from the season, nowhere else.")}
-	${row("adultOnly", "<code>true</code> — never on a minor season, whatever else says. The explicit level carries it.")}
-	${row("compatibleCanon", "which canon ids admit this — every world is <code>[&quot;au&quot;]</code>, fix-it is <code>[&quot;canon-divergent&quot;]</code>.")}
-	${row("who", "explicit dynamics/setups only — names the role: <code>&quot;{name} is the brat&quot;</code> renders <em>brat taming (Will is the brat)</em>. Has its own column.")}
-	${row("only", "explicit dynamics only — the one character the role always lands on (service top: <code>Mike</code>). The <em>Always</em> column.")}
-	${row("group", "tropes only — must be one of the Trope groups below. <code>setting-au</code> entries are worlds: an AU draws one onto the Canon line and skips the Place.")}
-	${row("ageGroup", "seasons only — <code>minor</code> or <code>adult</code>. Only an adult season can be explicit.")}
+	${row("compatibleAgeGroups", "<code>[&quot;minor&quot;]</code> or <code>[&quot;adult&quot;]</code>, the season's age group must match. Age comes from the season, nowhere else.")}
+	${row("adultOnly", "<code>true</code>, never on a minor season, whatever else says. The explicit level carries it.")}
+	${row("compatibleCanon", "which canon ids admit this, every world is <code>[&quot;au&quot;]</code>, fix-it is <code>[&quot;canon-divergent&quot;]</code>.")}
+	${row("who", "explicit dynamics/setups only: names the role: <code>&quot;{name} is the brat&quot;</code> renders <em>brat taming (Will is the brat)</em>. Has its own column.")}
+	${row("only", "explicit dynamics only: the one character the role always lands on (service top: <code>Mike</code>). The <em>Always</em> column.")}
+	${row("group", "tropes only: must be one of the Trope groups below. <code>setting-au</code> entries are worlds: an AU draws one onto the Canon line and skips the Place.")}
+	${row("ageGroup", "seasons only: <code>minor</code> or <code>adult</code>. Only an adult season can be explicit.")}
 	</table>
 	<h4>The order of the draw</h4>
 	<ol class="pe-doc-list">
-	<li><b>Season</b> — fixes the age. Explicit on a Random season narrows to adult seasons; a chosen minor season is kept and the rating drops to suggestive.</li>
-	<li><b>Canon</b> — in an AU, one world from <code>setting-au</code> (its tags go into play — <code>fantasy</code>, <code>cleradin</code>…); Place is then skipped.</li>
-	<li><b>Relationship</b>, <b>Situation</b>, <b>Tone</b> — each checked against the tags in play (<code>explicit</code> is in play by now if the rating is explicit).</li>
-	<li><b>Trope</b> — exactly one, from every group but the worlds.</li>
-	<li><b>Place</b> — only when no world was drawn.</li>
-	<li><b>Explicit layer</b> — adult season and rating explicit only: setup · dynamic · 1–2 acts · 1–2 kinks · register on one Kinks line, roles naming a character.</li>
+	<li><b>Season</b>, fixes the age. Explicit on a Random season narrows to adult seasons; a chosen minor season is kept and the rating drops to suggestive.</li>
+	<li><b>Canon</b>, in an AU, one world from <code>setting-au</code> (its tags go into play, <code>fantasy</code>, <code>cleradin</code>…); Place is then skipped.</li>
+	<li><b>Relationship</b>, <b>Situation</b>, <b>Tone</b>, each checked against the tags in play (<code>explicit</code> is in play by now if the rating is explicit).</li>
+	<li><b>Trope</b>, exactly one, from every group but the worlds.</li>
+	<li><b>Place</b>, only when no world was drawn.</li>
+	<li><b>Explicit layer</b>, adult season and rating explicit only: setup · dynamic · 1–2 acts · 1–2 kinks · register on one Kinks line, roles naming a character.</li>
 	</ol>
 	<h4>Tags in this library</h4>
-	<p class="subtle">Authored on entries (with who carries them), plus the two the generator adds itself. Any new string is a valid tag — it only means something once another entry requires or excludes it.</p>
+	<p class="subtle">Authored on entries (with who carries them), plus the two the generator adds itself. Any new string is a valid tag, it only means something once another entry requires or excludes it.</p>
 	<table class="pe-doc-table">
-	${Object.entries(BUILTIN_TAGS).map(([t, d]) => row(t, `<em>generator</em> — ${esc(d)}`)).join("")}
+	${Object.entries(BUILTIN_TAGS).map(([t, d]) => row(t, `<em>generator</em>, ${esc(d)}`)).join("")}
 	${tags.map(([t, where]) => row(t, esc(where.length > 6 ? where.slice(0, 6).join(", ") + ` … (${where.length})` : where.join(", ")))).join("")}
 	</table>
 </details>`
@@ -460,8 +460,8 @@ export function readRefGroup(groupEl) {
 // catalogue stores and what every chip shows. Triggers are comma-separated;
 // combos are one combination per line, its words joined with "+".
 export const BADGE_POOLS = [
-	{ key: "wordTiers", title: "Ranks — the word-count ladder", kind: "tiers", hint: "Awarded at `words` total words written. One rank must start at 0 — it's the badge a new account wears. Themes and gimmicks are tied to rank ids in the pack's themeUnlocks." },
-	{ key: "usage", title: "Secret badges", kind: "usage", hint: "Earned the first time a committed story line matches. Triggers and descriptions stay hidden until earned — the ranks page shows them only to admins. A badge with no triggers can only be awarded by the code (💩 Resume it, Stupid)." },
+	{ key: "wordTiers", title: "Ranks: the word-count ladder", kind: "tiers", hint: "Awarded at `words` total words written. One rank must start at 0, it's the badge a new account wears. Themes and gimmicks are tied to rank ids in the pack's themeUnlocks." },
+	{ key: "usage", title: "Secret badges", kind: "usage", hint: "Earned the first time a committed story line matches. Triggers and descriptions stay hidden until earned, the ranks page shows them only to admins. A badge with no triggers can only be awarded by the code (💩 Resume it, Stupid)." },
 	{ key: "usageOpen", title: "Open badges", kind: "usage", hint: "Same rule, but the description is public on the ranks page." },
 ]
 

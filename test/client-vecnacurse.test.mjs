@@ -80,7 +80,7 @@ test("the veil falls only on the VICTIM; typing CURSE_LIFT_CHARS characters sing
   socket.fire("gimmick-curse", { byName: "Mike", byColor: "#e63946", targetUserId: "u1", targetName: "me", duration: 60000 });
   assert.ok(!veil.classList.contains("hidden"), "the veil falls on me");
   assert.equal(chime.rang, 1, "the clock strikes for me");
-  assert.ok(document.documentElement.classList.contains("vcx-taken"), "and my page runs backwards — mirrored, the Upside Down's way");
+  assert.ok(document.documentElement.classList.contains("vcx-taken"), "and my page runs backwards, mirrored, the Upside Down's way");
   for (let i = 0; i < CURSE_LIFT_CHARS - 1; i++) document.dispatchEvent(key("x"));
   assert.ok(!socket.sent.some(([ev]) => ev === "gimmick-uncurse"), "one short of the song");
   document.dispatchEvent(key("!"));

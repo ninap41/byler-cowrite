@@ -7,7 +7,7 @@
 			// Apply the saved theme before first paint (initTheme() re-validates it later)
 			try { var _t = localStorage.getItem("cowriteTheme"); if (_t) document.documentElement.setAttribute("data-theme", _t); var _f = localStorage.getItem("cowriteFont"); if (_f) document.documentElement.setAttribute("data-font", _f) } catch (e) {}
 		</script>
-		<title>{{SITE_NAME}} — Ranks &amp; Unlocks</title>
+		<title>{{SITE_NAME}}: Ranks &amp; Unlocks</title>
 		<link rel="icon" type="image/x-icon" href="./favicon.ico?v=2" />
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link
@@ -24,19 +24,19 @@
 					<h2>Ranks &amp; Unlocks</h2>
 				</div>
 				<p class="subtle" style="text-align: left; margin: 0 0 8px">
-					Every word you write in a game climbs the ladder. Ranks are badges; most carry a theme for your whole site, and some themes bring a gimmick — a toy you play over a live game.
+					Every word you write in a game climbs the ladder. Ranks are badges; most carry a theme for your whole site, and some themes bring a gimmick, a toy you play over a live game.
 				</p>
 				<div id="rkProgress"></div>
 
 				<h3 class="rk-section">🏅 The rank ladder</h3>
 				<div id="rkLadder" class="rk-ladder"><p class="subtle">Loading…</p></div>
 
-				<h3 class="rk-section">🎁 Free themes — everyone starts with these</h3>
+				<h3 class="rk-section">🎁 Free themes: everyone starts with these</h3>
 				<div id="rkFree" class="rk-themes rk-free"></div>
 
-				<h3 class="rk-section">🎲 The gimmicks — what each one does</h3>
+				<h3 class="rk-section">🎲 The gimmicks: what each one does</h3>
 				<p class="subtle" style="text-align: left; margin: 0 0 10px">
-					Gimmicks only come out in <b>non-friendly</b> games — and if one person at the table has one, everyone can play it.
+					Gimmicks only come out in <b>non-friendly</b> games, and if one person at the table has one, everyone can play it.
 				</p>
 				<div id="rkGimmicks" class="rk-gimmick-grid"></div>
 

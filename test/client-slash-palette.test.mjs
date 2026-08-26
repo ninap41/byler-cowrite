@@ -162,7 +162,7 @@ test("the thesaurus link opens safely in a new tab", () => {
   assert.match(html, /rel="noopener noreferrer"/, "no window.opener handed to another origin");
 });
 
-test("an empty bank still offers the thesaurus — that's when you need it most", () => {
+test("an empty bank still offers the thesaurus, that's when you need it most", () => {
   const html = paletteHtml(createPaletteState({ groups: [] }));
   assert.ok(html.includes("No matches"));
   assert.ok(html.includes(THESAURUS_URL));

@@ -83,7 +83,7 @@ test("others' guns are painted + tagged and leave; a relayed squirt spawns a bou
   assert.ok(m.dropCount > 0, "the water flies from the relay");
   const one = m.dropCount;
   for (let i = 0; i < 5; i++) socket.fire("gimmick-squirt", { userId: "u2", color: "#e63946", x: 0.5, y: 0.5, angle: -20, seed: i });
-  assert.ok(m.dropCount <= one * 3, "concurrent bursts are capped — the oldest dries first");
+  assert.ok(m.dropCount <= one * 3, "concurrent bursts are capped, the oldest dries first");
   socket.fire("gimmick-gun", { userId: "u2", on: false });
   socket.fire("gimmick-gun", { userId: "u3", on: false });
   assert.deepEqual(m.others, [], "the guns leave");

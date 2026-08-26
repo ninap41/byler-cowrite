@@ -12,7 +12,7 @@
 				if (_f) document.documentElement.setAttribute("data-font", _f)
 			} catch (e) {}
 		</script>
-		<title>{{SITE_NAME}} — Solo Write</title>
+		<title>{{SITE_NAME}}: Solo Write</title>
 		<link rel="icon" type="image/x-icon" href="./favicon.ico?v=2" />
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link
@@ -47,13 +47,13 @@
 								<button class="head-chip" id="shareBtn" type="button" data-tip="Beta readers">👥 Readers</button>
 								<!-- Sprint: press to start the clock, press again to stop and log
 								     how many words were written in between. Leaving the page
-								     stops it too. Author only — it's a habit tool, not a reader's. -->
+								     stops it too. Author only: it's a habit tool, not a reader's. -->
 								<button
 									class="head-chip hidden"
 									id="sprintBtn"
 									type="button"
 									aria-pressed="false"
-									data-tip="Sprint — time a burst of writing and log the words"
+									data-tip="Sprint: time a burst of writing and log the words"
 								>
 									⏱ Sprint
 								</button>
@@ -63,8 +63,8 @@
 									type="button"
 									aria-pressed="false"
 									aria-label="Comment mode"
-									title="Comment mode — leave notes on the words instead of editing them"
-									data-tip="Comment mode — leave notes on the words instead of editing them"
+									title="Comment mode: leave notes on the words instead of editing them"
+									data-tip="Comment mode: leave notes on the words instead of editing them"
 								>
 									💬 Comment
 								</button>
@@ -128,7 +128,7 @@
 							<span class="tb-group">
 								<button class="ghost" id="linkBtn" title="Insert link" type="button">🔗</button>
 								<button class="ghost" id="imgBtn" title="Insert image" type="button">🖼</button>
-								<button class="ghost" id="emDashBtn" title="Insert em dash" type="button">—</button>
+								<button class="ghost" id="emDashBtn" title="Insert em dash" type="button">, </button>
 								<button class="ghost" data-cmd="insertHorizontalRule" title="Horizontal rule" type="button">HR</button>
 								<button class="ghost" id="clearFmtBtn" title="Clear formatting" type="button">Tx</button>
 							</span>
@@ -137,13 +137,13 @@
 						<!-- Line spacing, typeface and paper are VIEW preferences: they
 						     never enter the html, never reach the server, and are
 						     remembered per browser. They live OUTSIDE #docToolbar because
-						     they are not editing controls — a beta reader keeps them when
+						     they are not editing controls, a beta reader keeps them when
 						     the formatting toolbar goes away. -->
 						<span class="toolbar tb-group doc-view-prefs" id="docViewPrefs">
 							<span
 								class="stepper pref-stepper"
 								id="lineStepper"
-								data-tip="Line spacing — your view only, not saved into the story"
+								data-tip="Line spacing: your view only, not saved into the story"
 							>
 								<span class="step-label">↕</span>
 								<button class="step-btn" id="lsDown" type="button" aria-label="Tighter line spacing">−</button>
@@ -157,13 +157,13 @@
 							<span
 								id="fontSelect"
 								class="pref-pick"
-								data-tip="Typeface for this page — your view only, not saved into the story"
+								data-tip="Typeface for this page, your view only, not saved into the story"
 							></span>
 							<select
 								id="paperSelect"
 								class="ghost"
 								aria-label="Paper colour"
-								data-tip="Paper colour — your view only, not saved into the story"
+								data-tip="Paper colour: your view only, not saved into the story"
 							>
 								<option value="theme">🎨 Theme</option>
 								<option value="light">🌕 Light</option>
@@ -213,7 +213,7 @@
 					</div>
 
 					<!-- The comments rail is a DRAWER: it opens and closes, and its
-					     size is yours to set — drag the grip on its inner edge for
+					     size is yours to set, drag the grip on its inner edge for
 					     width (bottom-sheet height on a phone). Both live in the
 					     editor prefs, so the page comes back the way you left it. -->
 					<aside class="doc-side" id="docSide">
@@ -260,9 +260,9 @@
 		<div class="confirm-modal hidden" id="shareModal">
 			<div class="confirm-card share-card">
 				<h3>👥 Beta readers</h3>
-				<p class="subtle share-blurb">They can read your draft and comment on it — never edit it.</p>
+				<p class="subtle share-blurb">They can read your draft and comment on it, never edit it.</p>
 				<p class="subtle share-warn hidden" id="sharePrivateNote">
-					This write is <b>🔒 Private</b> — the readers below can't open it yet.
+					This write is <b>🔒 Private</b>, the readers below can't open it yet.
 					<button class="linky" id="shareGoReaders" type="button">Share it with them</button>
 				</p>
 
@@ -285,7 +285,7 @@
 						/>
 						<div class="pick-list" id="readerList" role="listbox"></div>
 					</div>
-					<p class="subtle pick-foot">Only friends can be invited — a draft is a trust decision.</p>
+					<p class="subtle pick-foot">Only friends can be invited, a draft is a trust decision.</p>
 				</div>
 
 				<div class="err" id="shareErr"></div>
@@ -957,7 +957,7 @@
 			$("emDashBtn").addEventListener("mousedown", (e) => {
 				e.preventDefault()
 				$("docEditor").focus()
-				document.execCommand("insertText", false, "—")
+				document.execCommand("insertText", false, ", ")
 				onEdit({ immediate: true })
 			})
 			// The range the size box will act on, remembered while the editor still
@@ -1005,7 +1005,7 @@
 				$("fontStepper").dataset.tip = inHeading
 					? "The heading style sets this text's size"
 					: "Font size of the selected text"
-				if (inHeading) $("fsInput").value = "—"
+				if (inHeading) $("fsInput").value = ", "
 				else if (sizes.length > 1) $("fsInput").value = "Multi"
 				else if (sizes.length === 1) $("fsInput").value = sizes[0]
 				try {
@@ -1345,7 +1345,7 @@
 				$("modeRich").setAttribute("aria-pressed", String(!toSource))
 				$("modeHtml").setAttribute("aria-pressed", String(toSource))
 				$("editorHint").innerHTML = toSource
-					? "Editing raw HTML — unsupported tags are stripped when you switch back or save."
+					? "Editing raw HTML: unsupported tags are stripped when you switch back or save."
 					: "Type <b>/</b> for action verbs, dialogue tags and more · Ctrl/⌘+S to save · autosaved locally every 30s"
 				if (!toSource) updateWords()
 				;(toSource ? $("docSource") : $("docEditor")).focus()
@@ -1457,7 +1457,7 @@
 					.then((r) => r.json())
 					.then((d) => {
 						if (d?.doc) doc = { ...doc, sprintWords: d.doc.sprintWords, sprints: d.doc.sprints }
-						$("saveState").textContent = `Sprint logged — ${words} word${words === 1 ? "" : "s"} in ${fmtClock(seconds * 1000)}`
+						$("saveState").textContent = `Sprint logged: ${words} word${words === 1 ? "" : "s"} in ${fmtClock(seconds * 1000)}`
 					})
 					.catch(() => {})
 			}
@@ -1536,7 +1536,7 @@
 					const line =
 						`Anyone with an account will be able to read “${doc.title || "Untitled"}”.` +
 						(readers
-							? `\n\nYour ${readers} beta reader${readers === 1 ? "" : "s"} keep${readers === 1 ? "s" : ""} their comments — nobody else can comment.`
+							? `\n\nYour ${readers} beta reader${readers === 1 ? "" : "s"} keep${readers === 1 ? "s" : ""} their comments: nobody else can comment.`
 							: "") +
 						`\n\nYou can make it private again at any time.`
 					if (!window.confirm(line)) return
@@ -1548,7 +1548,7 @@
 					// going private boots whoever was reading — say so rather than
 					// letting a beta reader vanish mid-sentence unexplained
 					if (next === "private" && (doc.readerRows?.length || 0))
-						setStatus(`Now private — your beta readers were closed out.`)
+						setStatus(`Now private: your beta readers were closed out.`)
 					else setStatus(`Now ${visOf(next).label.toLowerCase()}.`)
 				} catch (e) {
 					$("docErr").textContent = e.message
@@ -1671,7 +1671,7 @@
 					if (id !== docId) return
 					doc.html = html
 					if (dirty && doc.mine) {
-						$("docErr").textContent = "New comments arrived — save to see them underlined in place."
+						$("docErr").textContent = "New comments arrived: save to see them underlined in place."
 						return
 					}
 					$("docEditor").innerHTML = html || ""

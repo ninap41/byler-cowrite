@@ -7,7 +7,7 @@
 			// Apply the saved theme before first paint (initTheme() re-validates it later)
 			try { var _t = localStorage.getItem("cowriteTheme"); if (_t) document.documentElement.setAttribute("data-theme", _t); var _f = localStorage.getItem("cowriteFont"); if (_f) document.documentElement.setAttribute("data-font", _f) } catch (e) {}
 		</script>
-		<title>{{SITE_NAME}} — Previous Games</title>
+		<title>{{SITE_NAME}}: Previous Games</title>
 		<link rel="icon" type="image/x-icon" href="./favicon.ico?v=2" />
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link
@@ -24,7 +24,7 @@
 					<h2>Previous Games</h2>
 				</div>
 				<!-- how many covers per row: the same picker, and the same saved
-				     choice, as the all-stories shelf. Its own row, not the head —
+				     choice, as the all-stories shelf. Its own row, not the head
 				     the head's right-hand corner belongs to the fixed topbar. -->
 				<div class="arch-tools"><span id="archViewWrap"></span></div>
 				<p class="hidden" id="archNotice" style="color: var(--good); text-align: left; margin: 0 0 12px"></p>
@@ -55,7 +55,7 @@
 			<div class="confirm-card">
 				<h3>Delete “<span id="delName"></span>”?</h3>
 				<p class="subtle" style="text-align: left">
-					This permanently removes the story and its code — for every writer in it. Maybe keep a copy first?
+					This permanently removes the story and its code, for every writer in it. Maybe keep a copy first?
 				</p>
 				<div class="row">
 					<button class="ghost" id="delHtml">⬇ Download .html</button>
@@ -111,7 +111,7 @@
 				const list = $("archiveList")
 				if (!games.length) {
 					list.innerHTML =
-						'<p class="archive-empty">No saved games yet — finish (or pause) a game and it will show up here.</p>'
+						'<p class="archive-empty">No saved games yet, finish (or pause) a game and it will show up here.</p>'
 					return
 				}
 				list.innerHTML = ""
@@ -326,7 +326,7 @@
 					const b = document.createElement("b")
 					b.textContent = "🗑 Story deleted"
 					const s = document.createElement("span")
-					s.textContent = `“${title}” is gone — for everyone, forever.`
+					s.textContent = `“${title}” is gone: for everyone, forever.`
 					pop.append(b, s)
 					document.body.appendChild(pop)
 					setTimeout(() => pop.classList.add("gone"), 3600)

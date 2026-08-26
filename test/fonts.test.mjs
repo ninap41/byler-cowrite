@@ -55,7 +55,7 @@ test("every family a theme names is actually loaded, and nothing is loaded in va
   }
 });
 
-test("every page requests the same font set — one stale <head> would change a theme's look", () => {
+test("every page requests the same font set, one stale <head> would change a theme's look", () => {
   const pages = ["index", "dashboard", "game", "archive", "stories", "profile", "settings", "write", "writes", "admin", "reset"];
   for (const p of pages) {
     const html = read(`public/${p}.html`);

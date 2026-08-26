@@ -108,7 +108,7 @@ test("the dashboard holds no messages at all; /inbox holds the conversation", as
   const panel = await fetch(ctx.url + "/js/inbox-panel.js").then((r) => r.text());
   assert.match(panel, /reply: replies && !!t\.replyTo/, "the composer is only built where replies live");
   assert.match(panel, /chain: replies \? t\.messages\.slice\(1\) : \[\]/, "and so is the chain");
-  assert.ok(!/textContent = "Reply"/.test(panel), "there is no Reply button anywhere — the box is simply there");
+  assert.ok(!/textContent = "Reply"/.test(panel), "there is no Reply button anywhere, the box is simply there");
   assert.match(panel, /if \(replies && t\.replyTo\) wireReply/, "the open composer is wired instead");
   assert.match(panel, /ib-compact/, "the preview row is marked as the compact one");
 });
@@ -138,7 +138,7 @@ test("the ✕ is a borderless corner control on every inbox surface", async () =
   assert.match(css.slice(css.indexOf("\n.ib-row {"), css.indexOf("\n.ib-row.unread")), /position: relative/, "the card is what it is positioned in");
 });
 
-test("the inbox ✕ asks first — the same confirm modal as every other delete", async () => {
+test("the inbox ✕ asks first, the same confirm modal as every other delete", async () => {
   const panel = await fetch(ctx.url + "/js/inbox-panel.js").then((r) => r.text());
   const comp = await fetch(ctx.url + "/js/components/confirm-delete.js").then((r) => r.text());
   assert.match(panel, /import \{ confirmInboxDelete \} from "\/js\/components\/confirm-delete\.js"/);

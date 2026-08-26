@@ -76,7 +76,7 @@ test("coverArt is deterministic per code and palette-bound", () => {
 test("myGameStatus covers every phase", () => {
   assert.equal(myGameStatus({ phase: "waiting" }).text, "Gathering writers");
   assert.equal(myGameStatus({ phase: "choosing" }).text, "Voting on a scenario");
-  assert.deepEqual(myGameStatus({ phase: "writing", myTurn: true }), { text: "● Your turn — write!", cls: "is-turn" });
+  assert.deepEqual(myGameStatus({ phase: "writing", myTurn: true }), { text: "● Your turn: write!", cls: "is-turn" });
   assert.equal(myGameStatus({ phase: "writing", paused: true }).cls, "is-paused");
   assert.equal(myGameStatus({ phase: "writing", currentName: "mike" }).text, "Waiting for mike");
   assert.equal(myGameStatus({ phase: "writing" }).text, "In progress");
@@ -168,10 +168,10 @@ test("a conversation carries an open composer; system notes carry none", () => {
   const from = { username: "ninaadmin", color: "#6c8cff", badge: "", avatar: "", avatarFit: "cover" };
   const row = inboxMsgHtml({ id: "1", type: "note", text: "hello", read: true, ts: Date.now(), from });
   assert.ok(row.includes("ib-reply"), "the composer ships with the row");
-  assert.ok(!row.includes("ib-reply hidden"), "already open — there is no Reply button to press");
+  assert.ok(!row.includes("ib-reply hidden"), "already open: there is no Reply button to press");
   assert.ok(row.includes("<textarea"), "an inline textarea, not a browser prompt");
   assert.ok(row.includes("ib-reply-send"), "send");
-  assert.ok(!row.includes("ib-reply-cancel"), "and no cancel — nothing to close");
+  assert.ok(!row.includes("ib-reply-cancel"), "and no cancel: nothing to close");
   assert.ok(row.includes('maxlength="1000"'), "matched to the server's limit");
   // it sits after the conversation, addressed to whoever spoke last
   const other = { username: "mikewheeler", color: "#e63946" };
@@ -186,7 +186,7 @@ test("a conversation carries an open composer; system notes carry none", () => {
   assert.ok(!system.includes("ib-reply"), "there is nobody to answer a system note");
 });
 
-test("a preview row carries no composer at all — replies live in the inbox", () => {
+test("a preview row carries no composer at all, replies live in the inbox", () => {
   const from = { username: "ninaadmin", color: "#6c8cff", badge: "", avatar: "", avatarFit: "cover" };
   const m = { id: "1", type: "note", text: "hello", read: true, ts: Date.now(), from };
   const preview = inboxMsgHtml(m, { reply: false });
@@ -275,7 +275,7 @@ test("dashboard: the host's card menu offers End & reveal and Delete behind conf
   assert.ok(!/mg-del\b/.test(html), "the bare Delete button is gone");
 });
 
-test("archive: only the host may continue a story — canContinue is host-only, by username", async () => {
+test("archive: only the host may continue a story, canContinue is host-only, by username", async () => {
   const { canContinue } = await import("../public/js/archive-view.js");
   assert.equal(canContinue({ hostName: "mikewheeler" }, "mikewheeler"), true, "the host can continue");
   assert.equal(canContinue({ hostName: "mikewheeler" }, "willbyers"), false, "a contributor cannot");

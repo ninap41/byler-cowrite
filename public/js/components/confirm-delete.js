@@ -45,7 +45,7 @@ export const confirmInboxDelete = ({ conversation = false, count = 1, doc = docu
 	confirmDialog({
 		title: conversation ? "Delete this conversation?" : "Delete this message?",
 		text: conversation
-			? `All ${count} messages in it leave your inbox for good — the other person keeps their copy.`
+			? `All ${count} messages in it leave your inbox for good, the other person keeps their copy.`
 			: "It leaves your inbox for good.",
 		confirmLabel: "Delete",
 		doc,

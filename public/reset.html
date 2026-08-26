@@ -7,7 +7,7 @@
 			// Apply the saved theme before first paint (initTheme() re-validates it later)
 			try { var _t = localStorage.getItem("cowriteTheme"); if (_t) document.documentElement.setAttribute("data-theme", _t); var _f = localStorage.getItem("cowriteFont"); if (_f) document.documentElement.setAttribute("data-font", _f) } catch (e) {}
 		</script>
-		<title>Reset password — {{SITE_NAME}}</title>
+		<title>Reset password: {{SITE_NAME}}</title>
 		<link rel="icon" type="image/x-icon" href="./favicon.ico?v=2" />
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link
@@ -133,7 +133,7 @@
 		<script>
 			const $ = (id) => document.getElementById(id)
 			const token = new URLSearchParams(location.search).get("token")
-			if (!token) $("err").textContent = "This reset link is missing its token — use the link from your email."
+			if (!token) $("err").textContent = "This reset link is missing its token, use the link from your email."
 			$("go").onclick = async () => {
 				const pw = $("pw").value
 				if (pw.length < 4) return ($("err").textContent = "Password must be at least 4 characters.")

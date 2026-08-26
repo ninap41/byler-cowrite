@@ -16,7 +16,7 @@
 				setTimeout(function () { document.documentElement.classList.remove("pre-anim") }, 1500)
 			}
 		</script>
-		<title>{{SITE_NAME}} — Profile</title>
+		<title>{{SITE_NAME}}: Profile</title>
 		<link rel="icon" type="image/x-icon" href="./favicon.ico?v=2" />
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link
@@ -62,7 +62,7 @@
 							<button class="primary" id="msgSend">Send</button>
 						</div>
 						<div class="err" id="msgErr"></div>
-						<p class="subtle hidden" id="msgOk" style="text-align:left;margin:6px 0 0">✓ Sent — it's in their inbox.</p>
+						<p class="subtle hidden" id="msgOk" style="text-align:left;margin:6px 0 0">✓ Sent: it's in their inbox.</p>
 					</div>
 				</div>
 							</div>
@@ -111,7 +111,7 @@
 					<!-- word ladder -->
 					<div class="card">
 						<h3 class="dash-h" style="margin-top: 0">Word-count ranks</h3>
-						<p class="subtle" style="text-align: left; margin: 4px 0 0">Every word committed to a story climbs this ladder — unlock cool features, themes, and badges to annoy your friends with.</p>
+						<p class="subtle" style="text-align: left; margin: 4px 0 0">Every word committed to a story climbs this ladder, unlock cool features, themes, and badges to annoy your friends with.</p>
 						<div id="ladder"></div>
 					</div>
 				</div>
@@ -120,7 +120,7 @@
 					<!-- open (non-secret) usage badges -->
 					<div class="card">
 						<h3 class="dash-h" style="margin-top: 0">Badges</h3>
-						<p class="subtle" style="text-align: left; margin: 4px 0 0">Earned by writing the right thing — hover a badge for the how.</p>
+						<p class="subtle" style="text-align: left; margin: 4px 0 0">Earned by writing the right thing, hover a badge for the how.</p>
 						<div class="ach-strip" id="openCase"></div>
 					</div>
 
@@ -184,7 +184,7 @@
 					$("profErr").textContent = e.message
 				}
 				if (p) {
-					document.title = `{{SITE_NAME}} — ${p.username}`
+					document.title = `{{SITE_NAME}}: ${p.username}`
 					$("meName").textContent = p.username
 					$("meName").style.color = safeColor(p.color)
 					$("meBadge").textContent = p.currentBadge || "no badge yet"
@@ -193,11 +193,11 @@
 					$("onlineChip").classList.toggle("hidden", itsMe || !p.online)
 					$("profileSub").textContent = p.nextBadge
 						? `${(p.nextBadge.min - p.wordCount).toLocaleString()} words to ${p.nextBadge.name}`
-						: "Top of the ladder — a true legend."
+						: "Top of the ladder, a true legend."
 					// their newest committed story line, typed out character by character
 					if (lastLine?.text) {
 						$("lastLineBox").classList.remove("hidden")
-						$("lastLineMeta").textContent = `— their last line, from “${lastLine.name || lastLine.code}”`
+						$("lastLineMeta").textContent = `, their last line, from “${lastLine.name || lastLine.code}”`
 						const full = `“${lastLine.text}”`
 						const el = $("lastLineText")
 						const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches

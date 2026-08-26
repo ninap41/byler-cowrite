@@ -22,7 +22,7 @@ const lockTip = (lock) => `Unlocks at ${lock.name}${lock.min ? " · " + lock.min
 //                rank lets everyone play (the server has the final word)
 export function menuHtml({ catalogue = [], unlocked = [], admin = false, locks = {}, friendly = true, seated = true }) {
 	if (!seated) return `<div class="gd-menu-note">Take a seat in a game to play a gimmick.</div>`
-	if (friendly) return `<div class="gd-menu-note">💛 This is a friendly game — gimmicks are off.</div>`
+	if (friendly) return `<div class="gd-menu-note">💛 This is a friendly game, gimmicks are off.</div>`
 	if (!catalogue.length) return `<div class="gd-menu-note">No gimmicks yet.</div>`
 	return catalogue
 		.map((g) => {
@@ -41,7 +41,7 @@ export function resultHtml({ value, kind, stole, declined = false }) {
 	if (kind === "crit")
 		return (
 			`<b class="gd-result crit">Natural 20!</b><span class="gd-hint">` +
-			(stole ? "You stole the turn — go write." : declined ? "You let the writer keep the turn." : "…but the turn wasn't anyone else's to take.") +
+			(stole ? "You stole the turn, go write." : declined ? "You let the writer keep the turn." : "…but the turn wasn't anyone else's to take.") +
 			`</span>`
 		)
 	if (kind === "fumble") return `<b class="gd-result fumble">Natural 1</b><span class="gd-hint">Fumble. Everyone saw that.</span>`

@@ -1,27 +1,27 @@
 {
 	"dialogue-tags": {
-		"desc": "Verbs that attribute speech — alternatives to \"said\", grouped by what they signal: volume, emotion, tone, pacing, confidence, questioning, persuasion, deception, affection, authority, hesitation, and more.",
+		"desc": "Verbs that attribute speech, alternatives to \"said\", grouped by what they signal: volume, emotion, tone, pacing, confidence, questioning, persuasion, deception, affection, authority, hesitation, and more.",
 		"path": "./dialogue-tags.json",
 		"prefix": "/dialogue"
 	},
 	"action-verbs": {
-		"desc": "Physical beats and body language for action lines between dialogue — gaze, facial expressions, gestures, posture, movement, touch, nervous habits, startle reactions, and object interaction.",
+		"desc": "Physical beats and body language for action lines between dialogue, gaze, facial expressions, gestures, posture, movement, touch, nervous habits, startle reactions, and object interaction.",
 		"path": "./action-verbs.json",
 		"prefix": "/action"
 	},
 	"delivery-modifiers": {
-		"desc": "Adverbs describing HOW a line is spoken (\"…he said, softly\"), grouped by mood — warm, cold, sharp, sarcastic, playful, nervous, reluctant, firm, calm, impatient, sad, or excited.",
+		"desc": "Adverbs describing HOW a line is spoken (\"…he said, softly\"), grouped by mood, warm, cold, sharp, sarcastic, playful, nervous, reluctant, firm, calm, impatient, sad, or excited.",
 		"path": "./delivery-modifiers.json",
 		"prefix": "/delivery",
 		"root": "delivery_modifiers"
 	},
 	"internal-sensations": {
-		"desc": "What emotions physically feel like from the inside — racing hearts, dropped stomachs, caught breath, prickling skin — grouped by body part and by feeling (longing, dread, grief, relief).",
+		"desc": "What emotions physically feel like from the inside, racing hearts, dropped stomachs, caught breath, prickling skin, grouped by body part and by feeling (longing, dread, grief, relief).",
 		"path": "./internal-sensations.json",
 		"prefix": "/feel"
 	},
 	"romance": {
-		"desc": "The slow-burn toolkit — pining, charged eye contact, almost-moments, first touches, kisses, confessions, flustered disasters, and the soft aftermath.",
+		"desc": "The slow-burn toolkit: pining, charged eye contact, almost-moments, first touches, kisses, confessions, flustered disasters, and the soft aftermath.",
 		"path": "./romance.json",
 		"prefix": "/spice"
 	},

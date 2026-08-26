@@ -89,7 +89,7 @@ export function mountInbox({ list, unreadChip, readAllBtn, moreLink, limit = 0, 
 			moreLink.textContent = all.length > shown.length ? `See all ${all.length} messages →` : "Open your inbox →"
 		list.innerHTML = ""
 		if (!all.length) {
-			list.innerHTML = '<p class="subtle" style="text-align:left;margin:8px 0 0">Nothing here — inbox zero. ✨</p>'
+			list.innerHTML = '<p class="subtle" style="text-align:left;margin:8px 0 0">Nothing here: inbox zero. ✨</p>'
 			return
 		}
 		shown.forEach((t) => {

@@ -157,7 +157,7 @@ test("pause/resume host-only and clock freezing", async () => {
   assert.equal(state.current.paused, false);
 });
 
-test("timeout commits RAW typed text — quotes escape exactly once", async () => {
+test("timeout commits RAW typed text, quotes escape exactly once", async () => {
   const { A, B, state } = await startedGame(ctx, { turnSeconds: 10, rounds: 1 });
   const cur = state.current.currentId === A.id ? A : B;
   cur.emit("typing", { text: '"What?" Mike said & stared.' });
@@ -258,7 +258,7 @@ test("idle sleep: a live game with no activity for the window goes to SLEEP (not
   }
 });
 
-test("idle sleep: real activity resets the window — a game being written in never sleeps", async () => {
+test("idle sleep: real activity resets the window, a game being written in never sleeps", async () => {
   const idleCtx = await startServer({ COWRITE_IDLE_SLEEP_MS: "700" });
   try {
     const { A, B, state } = await startedGame(idleCtx);
@@ -328,7 +328,7 @@ test("host leaving mid-writing pauses the game and announces it", async () => {
   await ctx.wait(300);
   assert.equal(stB.current.paused, true, "clock frozen");
   assert.ok(stB.current.remaining > 0, "remaining time stashed");
-  assert.ok(chats.some((m) => m.sys && /stepped away — game paused/.test(m.text)), "pause announced");
+  assert.ok(chats.some((m) => m.sys && /stepped away: game paused/.test(m.text)), "pause announced");
 });
 
 test("chat: length cap, echo id, host flag", async () => {

@@ -6,7 +6,7 @@ let ctx;
 before(async () => (ctx = await startServer()));
 after(async () => ctx.stop());
 
-test("there is no cap on stories in progress — they can all run at once", async () => {
+test("there is no cap on stories in progress, they can all run at once", async () => {
   const capCtx = await startServer();
   try {
     const u = await signup(capCtx, "caphost1", "cap@x.com");

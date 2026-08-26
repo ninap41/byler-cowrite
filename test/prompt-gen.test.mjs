@@ -294,7 +294,7 @@ test("a role lands on a character: power bottom names Mike or Will", () => {
   }
 });
 
-test("Cleradin: sorcerer Will, paladin Mike — its own tropes, and nothing modern ever reaches it", () => {
+test("Cleradin: sorcerer Will, paladin Mike, its own tropes, and nothing modern ever reaches it", () => {
   const world = idOf(INT.tropes, "cleradin");
   assert.equal(world.group, "setting-au");
   assert.ok(world.tags.includes("fantasy") && world.tags.includes("cleradin"));

@@ -26,7 +26,7 @@ test("round-trips a preference", () => {
   assert.equal(loadPrefs(s).lineHeight, 2.0);
 });
 
-test("the ladder bottoms out at 0.8 — tight line spacing is allowed", () => {
+test("the ladder bottoms out at 0.8, tight line spacing is allowed", () => {
   const s = mem();
   assert.equal(LINE_STEPS[0], 0.8);
   assert.equal(savePrefs({ lineHeight: 0.8 }, s).lineHeight, 0.8, "0.8 is valid, not clamped away");
@@ -91,7 +91,7 @@ test("an unknown paper falls back to the theme instead of a blank surface", () =
   assert.equal(loadPrefs(s).paper, "theme", "and it can never reach the DOM as markup");
 });
 
-test("the two preferences are stored together — saving one keeps the other", () => {
+test("the two preferences are stored together, saving one keeps the other", () => {
   const s = mem();
   savePrefs({ lineHeight: 2.0, paper: "dark" }, s);
   const both = loadPrefs(s);
@@ -163,7 +163,7 @@ test("all three view preferences live together and survive each other", () => {
 test("the comments drawer remembers its state, and its width can't be dragged useless", async () => {
   const { loadPrefs, savePrefs, clampSide, SIDE_MIN, SIDE_MAX, DEFAULT_SIDE } = await import("../public/js/doc-prefs.js");
   const s = mem();
-  assert.equal(loadPrefs(s).sideOpen, true, "open is the default — the rail is where comments live");
+  assert.equal(loadPrefs(s).sideOpen, true, "open is the default, the rail is where comments live");
   assert.equal(loadPrefs(s).sideWidth, DEFAULT_SIDE);
 
   savePrefs({ ...loadPrefs(s), sideOpen: false, sideWidth: 420 }, s);

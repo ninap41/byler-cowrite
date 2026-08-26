@@ -50,7 +50,7 @@ function loadBundle() {
       if (categories.length) groups.push({ slug, label: label(slug.replace(/-/g, "_")), desc: meta.desc || "", prefix: meta.prefix || "/" + slug, categories });
     } catch (e) {
       // one bad file degrades its own group, never the boot
-      console.error(`reference: skipping ${slug} —`, e.message);
+      console.error(`reference: skipping ${slug}: `, e.message);
     }
   }
   return { groups };

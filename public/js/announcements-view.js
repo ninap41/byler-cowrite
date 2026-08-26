@@ -31,7 +31,7 @@ export function composerHtml() {
 	return (
 		`<div id="annComposer" class="ann-composer">` +
 		`<div class="toolbar" id="annToolbar">${toolbarHtml("ann")}</div>` +
-		`<div class="editor ann-editor" id="annEditor" contenteditable="true" data-placeholder="Start with a heading — it becomes the title."></div>` +
+		`<div class="editor ann-editor" id="annEditor" contenteditable="true" data-placeholder="Start with a heading, it becomes the title."></div>` +
 		`<div class="row" style="justify-content:flex-end;gap:8px;margin-top:10px">` +
 		`<button type="button" class="primary" id="annPost">Post announcement</button></div>` +
 		`</div>`

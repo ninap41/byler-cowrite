@@ -8,7 +8,7 @@ const { adminGamesHtml, adminUsersHtml, agoLabel, filterAdminUsers, adminUserCou
 const DAY = 86_400_000;
 const NOW = 1_700_000_000_000;
 
-test("finished games are not offered for ending — only live ones are listed", () => {
+test("finished games are not offered for ending, only live ones are listed", () => {
   const html = adminGamesHtml([
     { code: "AAAA", name: "Snow Ball", phase: "writing", players: 3, lines: 12, hostName: "will" },
     { code: "BBBB", name: "", phase: "over", players: 2, lines: 40, hostName: "mike" },
@@ -53,7 +53,7 @@ test("the accounts search matches username or email, case-insensitively, and the
   assert.equal(adminUserCount(1, 1), "1 account");
 });
 
-test("names, emails and titles are escaped — a moderator's page is not an injection surface", () => {
+test("names, emails and titles are escaped, a moderator's page is not an injection surface", () => {
   const g = adminGamesHtml([{ code: "CCCC", name: "<img src=x onerror=1>", phase: "writing", players: 1, lines: 0, hostName: "<b>x</b>" }]);
   assert.ok(!g.includes("<img") && !g.includes("<b>x</b>"));
   const u = adminUsersHtml([{ username: "<script>", email: "<b>@x.com", admin: false, wordCount: 0, games: 0, lastSeen: NOW }], NOW);
@@ -129,7 +129,7 @@ test("the editor round-trips the library byte-for-byte, and edits read back", ()
   assert.match(readPromptEditor(root, LIB).errors[0], /isn't "id = Name"/);
 });
 
-test("the admin page READS its lists with GET — api() defaults to POST, which those routes don't answer", () => {
+test("the admin page READS its lists with GET, api() defaults to POST, which those routes don't answer", () => {
   const html = readFileSync(new URL("../public/admin.html", import.meta.url), "utf-8");
   for (const path of ["/api/admin/games", "/api/admin/users", "/api/admin/prompts"])
     assert.match(html, new RegExp(`api\\("${path}", null, "GET"\\)`), path + " is fetched with GET");

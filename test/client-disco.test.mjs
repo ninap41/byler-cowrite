@@ -117,7 +117,7 @@ test("a relayed spin spawns one bounded show per owner (repeat replaces, cap tri
   assert.equal(m.spotCount, 16, "the cap trims the oldest show");
 });
 
-test("the lights hang from the ball: putting a ball away — mine or a tablemate's — ends its owner's show", () => {
+test("the lights hang from the ball: putting a ball away, mine or a tablemate's, ends its owner's show", () => {
   document.body.innerHTML = "";
   const socket = fakeSocket();
   const m = mountDiscoBall({ socket, getMyUserId: () => "u1", getMyColor: () => "#6c8cff", document });

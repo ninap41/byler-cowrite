@@ -19,7 +19,7 @@ test("the toolbar ships every control, grouped and borderless", () => {
   for (const cmd of ["bold", "italic", "underline", "strikeThrough", "insertHorizontalRule"])
     assert.ok(html.includes(`data-cmd="${cmd}"`), cmd + " is on the toolbar");
   assert.equal((html.match(/class="tb-group"/g) || []).length, 6, "grouped, not one flat run");
-  assert.ok(!html.includes("<a "), "no link button — sanitizeRich would strip it anyway");
+  assert.ok(!html.includes("<a "), "no link button: sanitizeRich would strip it anyway");
   assert.ok(!html.includes("imgBtn"), "and no image button");
 });
 
@@ -54,7 +54,7 @@ test("the game's editor emits the same subset it can produce, minus urls", () =>
   for (const c of calls) assert.match(c, /doc: true, urls: false/, "every call asks for the same subset: " + c);
 });
 
-test("both editors offer the same controls — this is the drift guard", () => {
+test("both editors offer the same controls, this is the drift guard", () => {
   const write = read("public/write.html");
   const shared = toolbarHtml();
   for (const id of ["undoBtn", "redoBtn", "blockFormat", "fsInput", "fsUp", "fsDown", "listSelect", "alignSelect", "emDashBtn", "clearFmtBtn"])

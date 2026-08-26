@@ -120,7 +120,7 @@ export function createGame(io) {
       const title = s.name || s.code;
       u.inbox = u.inbox || [];
       u.inbox.unshift({
-        ...makeMsg("game-invite", hostUserId, `“${title}” is being continued — jump back in and keep writing!`),
+        ...makeMsg("game-invite", hostUserId, `“${title}” is being continued, jump back in and keep writing!`),
         code: s.code,
       });
       for (const sid of socketIds)
@@ -204,7 +204,7 @@ export function createGame(io) {
     const until = s.denied?.get(key);
     if (!until || until <= Date.now()) return null;
     const min = Math.ceil((until - Date.now()) / 60_000);
-    return `The host turned you away — you can ask again in ${min} minute${min === 1 ? "" : "s"}.`;
+    return `The host turned you away, you can ask again in ${min} minute${min === 1 ? "" : "s"}.`;
   }
 
   const connectedCount = (s) => [...s.writers.values()].filter((w) => w.connected).length;
@@ -399,7 +399,7 @@ export function createGame(io) {
       // any out, as a plain congratulation when it doesn't.
       if (!Array.isArray(u.inbox)) u.inbox = [];
       u.inbox.unshift(makeMsg("system", null,
-        `🎉 You reached ${writer.badge}` + (what ? ` — that unlocks ${what}.` : `! ${badgeDesc(u.currentBadge) || ""}`.trimEnd()) +
+        `🎉 You reached ${writer.badge}` + (what ? `, that unlocks ${what}.` : `! ${badgeDesc(u.currentBadge) || ""}`.trimEnd()) +
         (unlocks.themes.length ? " Find your new theme in the 🎨 menu at the foot of any page." : ""),
         { unlocks }));
     }
@@ -426,7 +426,7 @@ export function createGame(io) {
       clearTimeout(s.timer);
       armIdleSleep(s);
       saveSnapshot(s);
-      announce(s, w, "stepped away — game paused");
+      announce(s, w, "stepped away: game paused");
     }
     if (s.hostId === id) {
       const entries = [...s.writers.entries()];
@@ -592,7 +592,7 @@ export function createGame(io) {
     if (s.phase === "over") return;
     s.idleTimer = setTimeout(() => {
       if (!sessions.has(s.code) || s.phase === "over") return;
-      sleepGame(s, null, `— no one's written for ${Math.round(IDLE_SLEEP_MS / 60_000)} minutes, so the story went to sleep. Wake it up any time from the dashboard.`);
+      sleepGame(s, null, `, no one's written for ${Math.round(IDLE_SLEEP_MS / 60_000)} minutes, so the story went to sleep. Wake it up any time from the dashboard.`);
     }, IDLE_SLEEP_MS);
   }
   const touch = (s) => s && armIdleSleep(s);
@@ -1360,7 +1360,7 @@ export function createGame(io) {
       const s = mySession();
       const w = s?.writers.get(socket.id);
       if (!s || !w) return ack?.({ ok: false, error: "You're not seated in a game." });
-      if (s.friendly !== false) return ack?.({ ok: false, error: "This is a friendly game — gimmicks are off." });
+      if (s.friendly !== false) return ack?.({ ok: false, error: "This is a friendly game, gimmicks are off." });
       const gid = cleanGimmickId(id ?? "d20");
       if (!gid) return ack?.({ ok: false, error: "Unknown gimmick." });
       if (!tableHasGimmick(s, gid)) return ack?.({ ok: false, error: "Nobody at this table has unlocked that gimmick yet." });
@@ -1449,7 +1449,7 @@ export function createGame(io) {
       const s = mySession();
       const w = s?.writers.get(socket.id);
       if (!s || !w) return ack?.({ ok: false, error: "You're not seated in a game." });
-      if (s.friendly !== false) return ack?.({ ok: false, error: "This is a friendly game — gimmicks are off." });
+      if (s.friendly !== false) return ack?.({ ok: false, error: "This is a friendly game, gimmicks are off." });
       if (!tableHasGimmick(s, "milkshake")) return ack?.({ ok: false, error: "Nobody at this table has unlocked that gimmick yet." });
       const now = Date.now();
       s.gimmickPours ??= new Map();
@@ -1483,7 +1483,7 @@ export function createGame(io) {
       const s = mySession();
       const w = s?.writers.get(socket.id);
       if (!s || !w) return ack?.({ ok: false, error: "You're not seated in a game." });
-      if (s.friendly !== false) return ack?.({ ok: false, error: "This is a friendly game — gimmicks are off." });
+      if (s.friendly !== false) return ack?.({ ok: false, error: "This is a friendly game, gimmicks are off." });
       if (!tableHasGimmick(s, "disco")) return ack?.({ ok: false, error: "Nobody at this table has unlocked that gimmick yet." });
       const now = Date.now();
       s.gimmickSpins ??= new Map();
@@ -1565,7 +1565,7 @@ export function createGame(io) {
       const s = mySession();
       const w = s?.writers.get(socket.id);
       if (!s || !w) return ack?.({ ok: false, error: "You're not seated in a game." });
-      if (s.friendly !== false) return ack?.({ ok: false, error: "This is a friendly game — gimmicks are off." });
+      if (s.friendly !== false) return ack?.({ ok: false, error: "This is a friendly game, gimmicks are off." });
       if (!tableHasGimmick(s, "artroom")) return ack?.({ ok: false, error: "Nobody at this table has unlocked that gimmick yet." });
       const now = Date.now();
       s.gimmickPaints ??= new Map();
@@ -1606,7 +1606,7 @@ export function createGame(io) {
       const s = mySession();
       const w = s?.writers.get(socket.id);
       if (!s || !w) return ack?.({ ok: false, error: "You're not seated in a game." });
-      if (s.friendly !== false) return ack?.({ ok: false, error: "This is a friendly game — gimmicks are off." });
+      if (s.friendly !== false) return ack?.({ ok: false, error: "This is a friendly game, gimmicks are off." });
       if (!tableHasGimmick(s, "supersoaker")) return ack?.({ ok: false, error: "Nobody at this table has unlocked that gimmick yet." });
       const now = Date.now();
       s.gimmickSquirts ??= new Map();
@@ -1628,7 +1628,7 @@ export function createGame(io) {
       const s = mySession();
       const w = s?.writers.get(socket.id);
       if (!s || !w) return ack?.({ ok: false, error: "You're not seated in a game." });
-      if (s.friendly !== false) return ack?.({ ok: false, error: "This is a friendly game — gimmicks are off." });
+      if (s.friendly !== false) return ack?.({ ok: false, error: "This is a friendly game, gimmicks are off." });
       if (!tableHasGimmick(s, "curse")) return ack?.({ ok: false, error: "Nobody at this table has unlocked that gimmick yet." });
       const target = [...s.writers.values()].find((x) => x.userId === targetUserId);
       if (!target || target.connected === false) return ack?.({ ok: false, error: "That writer isn't at the table." });
@@ -1674,7 +1674,7 @@ export function createGame(io) {
       const s = mySession();
       const w = s?.writers.get(socket.id);
       if (!s || !w) return ack?.({ ok: false, error: "You're not seated in a game." });
-      if (s.friendly !== false) return ack?.({ ok: false, error: "This is a friendly game — gimmicks are off." });
+      if (s.friendly !== false) return ack?.({ ok: false, error: "This is a friendly game, gimmicks are off." });
       if (!tableHasGimmick(s, "galaga")) return ack?.({ ok: false, error: "Nobody at this table has unlocked that gimmick yet." });
       const now = Date.now();
       s.gimmickRolls ??= new Map(); // shared cooldown ledger with the dice
@@ -2083,7 +2083,7 @@ export function createGame(io) {
   function sleepGameByCode(code, by) {
     const s = sessions.get(String(code || "").toUpperCase());
     if (!s || s.phase === "over") return false;
-    return sleepGame(s, by, "put the story to sleep — wake it up any time from the dashboard.");
+    return sleepGame(s, by, "put the story to sleep, wake it up any time from the dashboard.");
   }
   // Invite a friend to a session: an inbox game-invite (with the code) and a
   // live toast if they're online. Host-only, friends-only (routes.js checks).
@@ -2092,7 +2092,7 @@ export function createGame(io) {
     const name = s?.name || "";
     friend.inbox = friend.inbox || [];
     friend.inbox.unshift({
-      ...makeMsg("game-invite", host.id, `“${name || code}” — ${host.username} invited you to come write!`),
+      ...makeMsg("game-invite", host.id, `“${name || code}”: ${host.username} invited you to come write!`),
       code,
     });
     saveStore();

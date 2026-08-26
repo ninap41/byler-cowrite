@@ -77,7 +77,7 @@ test("cleaners + outcomes: ids off the wire, nat 20 wants the turn, nat 1 fumble
   assert.equal(rollOutcome(99).value, 20, "clamped to the die");
   assert.equal(rollOutcome("junk").value, 1);
   assert.equal(describeRoll(rollOutcome(13)), "rolled a 13 🎲");
-  assert.equal(describeRoll(rollOutcome(1)), "rolled a natural 1 🎲 — fumble.");
+  assert.equal(describeRoll(rollOutcome(1)), "rolled a natural 1 🎲, fumble.");
   assert.equal(describeRoll(rollOutcome(20)), "rolled a NATURAL 20 🎲");
   assert.equal(describeRoll(rollOutcome(20), { stole: true, from: "Mike" }), "rolled a NATURAL 20 🎲 and stole the turn from Mike!");
   assert.equal(describeRoll(rollOutcome(20), { stole: true }), "rolled a NATURAL 20 🎲 and stole the turn!");
@@ -104,10 +104,10 @@ test("galagaOutcome: beating 8000 wants the turn, 8000 exactly does not, junk cl
   assert.equal(galagaOutcome("junk").score, 0);
   assert.equal(galagaOutcome(1e9).score, GALAGA_MAX_SCORE, "a run can't claim the moon");
   assert.equal(describeGalaga(galagaOutcome(350)), "scored 350 on the Galaga fleet 👾");
-  assert.equal(describeGalaga(galagaOutcome(8200), { stole: true, from: "Mike" }), "blasted the fleet for 8,200 👾 — beat 8,000 and stole the turn from Mike!");
-  assert.equal(describeGalaga(galagaOutcome(8200), { declined: true }), "blasted the fleet for 8,200 👾 — beat 8,000, and let the writer keep the turn.");
-  assert.equal(describeGalaga(galagaOutcome(8200)), "blasted the fleet for 8,200 👾 — beat 8,000!");
-  assert.equal(describeGalaga(galagaOutcome(8200), { beaten: true, by: "Will" }), "blasted the fleet for 8,200 👾 — beat 8,000, but Will's higher run holds the turn.");
+  assert.equal(describeGalaga(galagaOutcome(8200), { stole: true, from: "Mike" }), "blasted the fleet for 8,200 👾, beat 8,000 and stole the turn from Mike!");
+  assert.equal(describeGalaga(galagaOutcome(8200), { declined: true }), "blasted the fleet for 8,200 👾, beat 8,000, and let the writer keep the turn.");
+  assert.equal(describeGalaga(galagaOutcome(8200)), "blasted the fleet for 8,200 👾, beat 8,000!");
+  assert.equal(describeGalaga(galagaOutcome(8200), { beaten: true, by: "Will" }), "blasted the fleet for 8,200 👾, beat 8,000, but Will's higher run holds the turn.");
 });
 
 // ---- the endpoint ----
@@ -192,7 +192,7 @@ test("a table with one ranked seat lets everyone roll; a natural 20 steals the t
   assert.equal(f.stole, false);
   await ctx.wait(100);
   assert.equal(game.currentId, B.id);
-  assert.ok(chat.some((m) => m.sys && /natural 1 🎲 — fumble/.test(m.text)));
+  assert.ok(chat.some((m) => m.sys && /natural 1 🎲, fumble/.test(m.text)));
   // then random: in range, announced
   const p = await ctx.emit(A, "gimmick-roll", { id: "d20" });
   assert.equal(p.ok, true);
@@ -340,7 +340,7 @@ test("gimmick-galaga: friendly/unranked refused; a run over 8000 steals the turn
     assert.equal(game.currentId, B.id, "the turn changed hands");
     assert.equal(runs.at(-1).userId, mike.user.id);
     assert.equal(runs.at(-1).stole, true);
-    const call = chat.find((m) => m.sys && /blasted the fleet for 8,200 👾 — beat 8,000 and stole the turn from diceadmin!/.test(m.text));
+    const call = chat.find((m) => m.sys && /blasted the fleet for 8,200 👾, beat 8,000 and stole the turn from diceadmin!/.test(m.text));
     assert.ok(call, "the steal is called in chat");
     assert.equal(call.chime, true, "and it rings like a natural 20");
     // a spectator has no seat, no run
@@ -452,7 +452,7 @@ test("galaga steals STACK: the best run holds the turn, a lower run past the tar
     await local.wait(150);
     assert.equal(game.currentId, B.id, "Mike still holds it");
     assert.ok(
-      chat.some((m) => m.sys && /8,100 👾 — beat 8,000, but stackmike's higher run holds the turn\./.test(m.text)),
+      chat.some((m) => m.sys && /8,100 👾, beat 8,000, but stackmike's higher run holds the turn\./.test(m.text)),
       "the bounce is called in chat, naming the holder"
     );
     // Will comes back over the top: 9,000 beats 8,200 and takes it
@@ -581,7 +581,7 @@ test("gimmick-stroke / gimmick-paint: strokes are relayed (clamped, color-valida
     await local.wait(100);
     const call = chat.find((m) => m.sys && /voidwill/.test(m.name) && /painting all over the game 🎨/.test(m.text));
     assert.ok(call, "the brush is called in chat");
-    assert.notEqual(call.chime, true, "no chime — pure distraction");
+    assert.notEqual(call.chime, true, "no chime: pure distraction");
     assert.match((await local.emit(B, "gimmick-paint", {})).error, /wet/, "cooldown");
     // the brush goes away — the PAINT STAYS
     B.emit("gimmick-stroke", { on: false });
@@ -620,7 +620,7 @@ test("gimmick-stroke: an unranked table's strokes are ignored", async () => {
   assert.equal(seen.length, 0, "the stroke IS the visible effect, so the rank gate holds on it too");
 });
 
-test("the SuperSoaker unlocks with the Inkwell theme at outloud — the 0-word tier, so every account has it", () => {
+test("the SuperSoaker unlocks with the Inkwell theme at outloud, the 0-word tier, so every account has it", () => {
   assert.equal(THEME_UNLOCKS.ink, "outloud");
   assert.equal(tierForGimmick("supersoaker"), "outloud");
   const r = rewardsForTier("outloud");
@@ -676,7 +676,7 @@ test("gimmick-gun / gimmick-squirt: the gun is relayed (clamped), the shot is se
     await local.wait(100);
     const call = chat.find((m) => m.sys && /soakmike/.test(m.name) && /soaked the game with the SuperSoaker 💦/.test(m.text));
     assert.ok(call, "the shot is called in chat");
-    assert.notEqual(call.chime, true, "no chime — pure soak");
+    assert.notEqual(call.chime, true, "no chime: pure soak");
     assert.equal(shots.at(-1).userId, mike.user.id);
     assert.equal(shots.at(-1).x, 0.3);
     assert.ok(Number.isInteger(shots.at(-1).seed), "the relay carries a seed for every viewer's identical burst");
@@ -793,7 +793,7 @@ test("gimmick-ball / gimmick-spin: the ball is relayed (clamped), the spin is ca
     await local.wait(100);
     const call = chat.find((m) => m.sys && /rinkmike/.test(m.name) && /turned on the disco ball 🪩/.test(m.text));
     assert.ok(call, "the spin is called in chat");
-    assert.notEqual(call.chime, true, "no chime — pure distraction");
+    assert.notEqual(call.chime, true, "no chime: pure distraction");
     assert.equal(spins.at(-1).userId, mike.user.id);
     assert.equal(spins.at(-1).color, "#e63946");
     assert.ok(spins.at(-1).duration > 0, "the relay carries the show's length");
@@ -852,7 +852,7 @@ test("gimmick-cup / gimmick-pour: the cup is relayed (clamped), the pour is call
     await local.wait(100);
     const call = chat.find((m) => m.sys && /shakemike/.test(m.name) && /tipped a milkshake over the game 🥤/.test(m.text));
     assert.ok(call, "the pour is called in chat");
-    assert.notEqual(call.chime, true, "no chime — pure distraction");
+    assert.notEqual(call.chime, true, "no chime: pure distraction");
     assert.equal((await local.emit(B, "gimmick-pour", {})).ok, false, "cooldown");
     // a spectator arriving now gets the cups already out
     const S = await local.conn();

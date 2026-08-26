@@ -20,7 +20,7 @@ test("a font tag becomes an fs-* span at the requested ladder size", () => {
   assert.equal(made[0].className, "fs-24");
 });
 
-test("a mixed-size selection is overwritten, not nested — the old sizes are stripped", () => {
+test("a mixed-size selection is overwritten, not nested, the old sizes are stripped", () => {
   // execCommand wraps the whole selection, leaving the old sizes INSIDE.
   // The nearest ancestor wins, so without stripping them the resize would
   // silently do nothing to the already-sized words.
@@ -54,7 +54,7 @@ test("an off-ladder number snaps to the nearest rung", () => {
   assert.equal(nearestSize(999), FONT_SIZES[FONT_SIZES.length - 1]);
 });
 
-test("6px is on the ladder and reachable — it is the smallest size", () => {
+test("6px is on the ladder and reachable, it is the smallest size", () => {
   assert.equal(FONT_SIZES[0], 6);
   assert.equal(nearestSize(6), 6);
   assert.equal(nearestSize(2), 6);
@@ -81,7 +81,7 @@ test("sizeOf reports the nearest fs ancestor, and the base size for bare text", 
   assert.equal(sizeOf(b.firstChild, root), 36);
 });
 
-test("sizesInRange reports every size under the selection — that is what says Multi", () => {
+test("sizesInRange reports every size under the selection, that is what says Multi", () => {
   const root = mount('<p><span class="fs-12">small</span> plain <span class="fs-36">big</span></p>');
   const range = document.createRange();
   range.selectNodeContents(root);
@@ -113,7 +113,7 @@ test("resizing twice in a row lands on the second size, with no leftover spans",
   assert.equal(root.innerHTML, '<p><span class="fs-48">words</span></p>');
 });
 
-test("letters are trimmed out of the size box — the number is what counts", () => {
+test("letters are trimmed out of the size box, the number is what counts", () => {
   // People type units, and pasting from a stylesheet brings a whole
   // declaration. Every one of these means 24, not "unparseable".
   for (const raw of ["24", "24px", "24 px", " 24PX ", "24pt", "font-size: 24px;", "24em", "x24y"])
@@ -121,7 +121,7 @@ test("letters are trimmed out of the size box — the number is what counts", ()
   assert.equal(parseSize("18.5px"), 18.5, "a decimal survives, to be snapped later");
 });
 
-test("a box with no number in it yields null — the caller keeps the current size", () => {
+test("a box with no number in it yields null, the caller keeps the current size", () => {
   // This is the whole point: NaN used to slide through nearestSize and land on
   // the smallest rung, silently shrinking text the user never meant to touch.
   for (const raw of ["Multi", "", "   ", "px", "abc", null, undefined, "0"])

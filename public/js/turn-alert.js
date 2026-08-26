@@ -18,7 +18,7 @@ export function showInviteToast({ code, name, host }) {
 	el.dataset.invite = code
 	el.setAttribute("role", "alert")
 	el.innerHTML =
-		`<span>📖 “${esc(name || code)}” is being continued${host ? ` by ${esc(host)}` : ""} — you're invited back!</span>` +
+		`<span>📖 “${esc(name || code)}” is being continued${host ? ` by ${esc(host)}` : ""}: you're invited back!</span>` +
 		`<a class="turn-toast-go" href="/game?code=${encodeURIComponent(code)}">Rejoin →</a>` +
 		`<button type="button" class="turn-toast-close" title="Dismiss">✕</button>`
 	el.querySelector(".turn-toast-close").onclick = () => el.remove()

@@ -39,7 +39,7 @@ test("the theme registry lists themes in unlock order: free first, then rung by 
   assert.deepEqual(costs, [...costs].sort((a, b) => a - b), "the menu reads as the reward track: " + THEMES.map((t) => `${t}:${cost(t)}`).join(" "));
 });
 
-test("an unlisted theme — or one pointing at a tier that no longer exists — is free", () => {
+test("an unlisted theme, or one pointing at a tier that no longer exists, is free", () => {
   assert.equal(tierForTheme("neon"), null);
   assert.equal(tierForTheme("a-theme-nobody-made"), null);
   assert.equal(canUseTheme({ badges: [] }, "neon"), true);

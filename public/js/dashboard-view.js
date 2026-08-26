@@ -196,7 +196,7 @@ export const coverStyle = (g) =>
 export function myGameStatus(g) {
 	if (g.phase === "waiting") return { text: "Gathering writers", cls: "" }
 	if (g.phase === "choosing") return { text: "Voting on a scenario", cls: "" }
-	if (g.myTurn) return { text: "● Your turn — write!", cls: "is-turn" }
+	if (g.myTurn) return { text: "● Your turn: write!", cls: "is-turn" }
 	if (g.paused) return { text: "⏸ Paused", cls: "is-paused" }
 	return { text: g.currentName ? `Waiting for ${g.currentName}` : "In progress", cls: "" }
 }

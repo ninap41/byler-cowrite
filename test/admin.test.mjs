@@ -239,7 +239,7 @@ test("help questions are sanitized, non-empty, signed-in, and rate-limited", asy
   }
 });
 
-test("the admin is not offered the help box — the route says so", async () => {
+test("the admin is not offered the help box, the route says so", async () => {
   const c = await startServer();
   try {
     const admin = await makeAdmin(c);
@@ -301,7 +301,7 @@ test("the inbox reply composer is inline markup on the page, not a browser promp
   const body = await fetch(ctx.url + "/js/inbox-panel.js").then((r) => r.text());
   assert.ok(!body.includes("window.prompt"), "no modal prompt anywhere in the inbox");
   assert.ok(body.includes("ib-reply-send"), "the composer is wired")
-  assert.ok(!body.includes("Reply\"") && !body.includes("ib-reply-cancel"), "no Reply button, no Cancel — the box is simply there");
+  assert.ok(!body.includes("Reply\"") && !body.includes("ib-reply-cancel"), "no Reply button, no Cancel, the box is simply there");
   assert.ok(body.includes("/api/inbox/reply"), "wired to the reply route");
   assert.ok(body.includes('e.key === "Escape"'), "Escape clears it");
   assert.ok(body.includes("metaKey || e.ctrlKey"), "and Ctrl/Cmd+Enter sends");
@@ -410,7 +410,7 @@ test("the writers' reference is editable by category from /admin, and only by an
   }
 });
 
-test("GET /api/admin/storage says where the data lives — files under test — and a normal account can't see it", async () => {
+test("GET /api/admin/storage says where the data lives, files under test, and a normal account can't see it", async () => {
   const admin = await makeAdmin(ctx, "storageadmin");
   const normie = await signup(ctx, "storagenormie", "sn@example.com");
   const denied = await ctx.api("/api/admin/storage", undefined, normie.token);

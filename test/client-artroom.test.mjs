@@ -86,7 +86,7 @@ test("a hard refusal shows the server's reason and the brush goes back away; a c
   assert.equal(document.getElementById("arHint").textContent, error);
   error = "The paint is still wet…";
   m.start();
-  assert.equal(m.open, true, "a cooldown just means 'again already?' — paint on");
+  assert.equal(m.open, true, "a cooldown just means 'again already?', paint on");
   m.exit();
 });
 

@@ -97,7 +97,7 @@ test("the editor offers a three-way paper colour beside line spacing", async () 
   assert.ok(body.includes("applyPaper"), "and is applied on load, not just on change");
 });
 
-test("the thesaurus is no longer a toolbar button — it moved into the reference palette", async () => {
+test("the thesaurus is no longer a toolbar button, it moved into the reference palette", async () => {
   const { body } = await page("/write");
   assert.ok(!body.includes("thesaurusLink"), "the toolbar button is gone");
   assert.ok(!body.includes("powerthesaurus"), "and the URL doesn't linger in the markup");
@@ -117,7 +117,7 @@ test("the toolbar is one borderless strip: no boxed groups, pressed state instea
   assert.ok(body.includes('classList.toggle("on"'), "bold/italic/underline follow the caret");
 });
 
-test("the write page's right-hand icons are borderless too — the mode switch is not", async () => {
+test("the write page's right-hand icons are borderless too, the mode switch is not", async () => {
   const css = await page("/css/base.css");
   assert.match(css.body, /\.toolbar-right > \.icon-btn \{[^}]*border: 0/, "the icon buttons lost their box");
   assert.match(css.body, /\.mode-switch \{[^}]*border: 1px solid/, "the segmented control keeps its track");
@@ -202,7 +202,7 @@ test("choosing a block format clears the sizes it supersedes, on both editors", 
   assert.ok(toolbar.body.includes("clearSizesInBlocks(editor"), "and the shared toolbar the game mounts");
 });
 
-test("a heading's size is the heading's — spans inside can't shrink it", async () => {
+test("a heading's size is the heading's: spans inside can't shrink it", async () => {
   const css = await page("/css/base.css");
   assert.match(css.body, /:is\(h1, h2, h3\) \[class\*="fs-"\][\s\S]{0,400}font-size: inherit/,
     "an fs span inside a heading renders at the heading's size");
@@ -239,7 +239,7 @@ test("a comment anchor can never wrap a block", async () => {
   assert.ok(body.includes("function clampToBlock"), "a cross-paragraph selection is clamped before it becomes an anchor");
   assert.ok(body.includes("pendingRange = clampToBlock("), "clamped where the quote is taken, so the preview matches");
   assert.ok(body.includes("a.querySelector(BLOCKS_SEL)"), "and existing block-wrapping anchors are repaired");
-  assert.ok(body.includes("if (canEditDoc()) {"), "by the author only — a reader's html must stay byte-identical");
+  assert.ok(body.includes("if (canEditDoc()) {"), "by the author only, a reader's html must stay byte-identical");
 });
 
 test("the composer's motion is GSAP, with a reduced-motion path", async () => {
@@ -247,7 +247,7 @@ test("the composer's motion is GSAP, with a reduced-motion path", async () => {
   assert.ok(body.includes("prefers-reduced-motion"), "motion is optional");
 
   assert.ok(!body.includes('id="commentHelp"'), "the how-to-start line is a tooltip, not a standing line of the rail");
-  assert.ok(body.includes('$("newComment").classList.toggle("hidden", on)'), "checking Suggest swaps the note out for the rewrite — a straight swap, no wobble");
+  assert.ok(body.includes('$("newComment").classList.toggle("hidden", on)'), "checking Suggest swaps the note out for the rewrite, a straight swap, no wobble");
 });
 
 test("the composer asks what you're leaving before it asks for the words", async () => {
@@ -378,7 +378,7 @@ test("the inbox has a page of its own, linked from the dashboard and the nav", a
   const inbox = await page("/inbox");
   assert.equal(inbox.status, 200);
   assert.ok(inbox.body.includes('id="inboxList"'), "the messages land here");
-  assert.ok(inbox.body.includes("mountInbox"), "the whole panel — rows, chains and composer");
+  assert.ok(inbox.body.includes("mountInbox"), "the whole panel: rows, chains and composer");
 
   // The dashboard doesn't preview messages: it carries the fact that some are
   // waiting, and the link to go and read them.
@@ -416,7 +416,7 @@ test("the comments rail is a drawer: it opens, it closes, and you can resize it"
   assert.match(css.body, /\.doc-main\.side-closed \{[^}]*grid-template-columns: minmax\(0, 1fr\);/, "closed, the prose gets the page");
 });
 
-test("prose stays selectable on a phone — highlighting it is how you comment", async () => {
+test("prose stays selectable on a phone, highlighting it is how you comment", async () => {
   const css = await page("/css/base.css");
   assert.match(css.body, /\.doc-editor \{[^}]*-webkit-user-select: text/s, "the surface says it is selectable");
   assert.match(css.body, /\.doc-editor \{[^}]*-webkit-touch-callout: default/s, "including the long-press callout iOS suppresses");

@@ -50,7 +50,7 @@ export const makeMsg = (type, fromId, text, extra = {}) =>
   ({ id: randomUUID(), type, fromId: fromId || null, text: String(text || ""), read: false, ts: Date.now(), ...extra });
 
 export const welcomeMsg = () =>
-  makeMsg("system", null, `Welcome to ${SITE.name}! This is your inbox — friend requests and notes land here. 📬`);
+  makeMsg("system", null, `Welcome to ${SITE.name}! This is your inbox, friend requests and notes land here. 📬`);
 
 // Init arrays on legacy accounts + seed sample messages: the welcome note,
 // plus a hello from an admin account when one exists (a "from a real user"
@@ -63,7 +63,7 @@ export const welcomeMsg = () =>
     if (!Array.isArray(u.inbox)) {
       u.inbox = [welcomeMsg()];
       if (greeter && greeter.id !== u.id)
-        u.inbox.unshift(makeMsg("note", greeter.id, "Hey! Glad you're here — start a game from the dashboard and send me a friend request. ✒"));
+        u.inbox.unshift(makeMsg("note", greeter.id, "Hey! Glad you're here: start a game from the dashboard and send me a friend request. ✒"));
       changed = true;
     }
   }

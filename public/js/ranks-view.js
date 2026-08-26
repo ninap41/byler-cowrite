@@ -86,10 +86,10 @@ export function ladderHtml(rows, { me = null, unlockedThemes = [] } = {}) {
 
 // The writer's own progress toward the next rung (null signed out or maxed).
 export function progressHtml(rows, me) {
-	if (!me) return `<p class="rk-signin subtle">Sign in to track your own climb — every word you write in a game counts.</p>`
+	if (!me) return `<p class="rk-signin subtle">Sign in to track your own climb, every word you write in a game counts.</p>`
 	const words = Number(me.wordCount || 0)
 	const next = rows.find((r) => r.min > words)
-	if (!next) return `<p class="rk-progress-line">🌀 ${fmtWords(words)} words — the ladder is yours. There's nothing left to unlock.</p>`
+	if (!next) return `<p class="rk-progress-line">🌀 ${fmtWords(words)} words: the ladder is yours. There's nothing left to unlock.</p>`
 	const prevMin = [...rows].reverse().find((r) => r.min <= words)?.min ?? 0
 	const pct = Math.max(0, Math.min(100, Math.round(((words - prevMin) / Math.max(1, next.min - prevMin)) * 100)))
 	return `<div class="rk-progress">
@@ -108,7 +108,7 @@ export const recipeText = ({ triggers = [], combos = [] } = {}) =>
 	[...triggers, ...combos.map((c) => (Array.isArray(c) ? c.join(" + ") : String(c)))].join(" · ")
 
 export function usageBadgeHtml({ name, desc = "", secret = false, earned = false, recipe = null }) {
-	const text = earned || !secret || recipe ? desc : "Secret — the right words in a story line unlock it."
+	const text = earned || !secret || recipe ? desc : "Secret: the right words in a story line unlock it."
 	const how = recipe && recipeText(recipe) ? `<p class="rk-recipe">🛡️ Unlocks with: ${esc(recipeText(recipe))}</p>` : ""
 	return `<article class="rk-usage${earned ? " earned" : ""}${secret && !earned && !recipe ? " mystery" : ""}">
 		<b>${esc(name)}</b>

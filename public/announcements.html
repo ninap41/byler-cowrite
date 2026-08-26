@@ -7,7 +7,7 @@
 			// Apply the saved theme before first paint (initTheme() re-validates it later)
 			try { var _t = localStorage.getItem("cowriteTheme"); if (_t) document.documentElement.setAttribute("data-theme", _t); var _f = localStorage.getItem("cowriteFont"); if (_f) document.documentElement.setAttribute("data-font", _f) } catch (e) {}
 		</script>
-		<title>{{SITE_NAME}} — Announcements</title>
+		<title>{{SITE_NAME}}: Announcements</title>
 		<link rel="icon" type="image/x-icon" href="./favicon.ico?v=2" />
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link
@@ -23,7 +23,7 @@
 					<a class="ghost" href="/dashboard" style="text-decoration: none; padding: 10px 16px; border-radius: 12px">← Back</a>
 					<h2>📣 Announcements</h2>
 				</div>
-				<p class="subtle" style="text-align: left; margin: 0 0 14px">News from the {{SITE_NAME}} admins — new features, changes, and the occasional plea for patience.</p>
+				<p class="subtle" style="text-align: left; margin: 0 0 14px">News from the {{SITE_NAME}} admins, new features, changes, and the occasional plea for patience.</p>
 				<div id="annCompose" class="hidden"></div>
 				<div id="annList"><p class="subtle" style="text-align:left">Loading…</p></div>
 			</div>

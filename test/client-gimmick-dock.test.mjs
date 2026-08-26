@@ -33,7 +33,7 @@ test("dockHtml + mount: one edge tab per gimmick, all hidden while nothing is ou
   assert.equal(dock.onStage, null);
 });
 
-test("an opening gimmick takes the stage; a second one folds the first — only one panel is ever open", async () => {
+test("an opening gimmick takes the stage; a second one folds the first, only one panel is ever open", async () => {
   const dock = mountWithHuds();
   const db = document.getElementById("dbHud");
   const ar = document.getElementById("arHud");

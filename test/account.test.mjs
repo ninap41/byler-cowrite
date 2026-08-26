@@ -70,7 +70,7 @@ test("usage badge awards once from a committed line and announces in chat", asyn
   await ctx.wait(200);
   await ctx.emit(cur(), "submit-line", { text: "a perfectly innocent line" });
   await ctx.wait(200);
-  await ctx.emit(cur(), "submit-line", { text: "Michael? again — no double award for moaning" });
+  await ctx.emit(cur(), "submit-line", { text: "Michael? again: no double award for moaning" });
   await ctx.wait(200);
   const meTok = hostFirst ? host.token : (await ctx.api("/api/login", { user: "mikewheeler", password: "1234" })).data.token;
   const me = (await ctx.api("/api/me", null, meTok, "GET")).data.user;

@@ -7,7 +7,7 @@
 			// Apply the saved theme before first paint (initTheme() re-validates it later)
 			try { var _t = localStorage.getItem("cowriteTheme"); if (_t) document.documentElement.setAttribute("data-theme", _t); var _f = localStorage.getItem("cowriteFont"); if (_f) document.documentElement.setAttribute("data-font", _f) } catch (e) {}
 		</script>
-		<title>{{SITE_NAME}} — Admin</title>
+		<title>{{SITE_NAME}}: Admin</title>
 		<link rel="icon" type="image/x-icon" href="./favicon.ico?v=2" />
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link
@@ -24,7 +24,7 @@
 					<h2>🛡️ Admin</h2>
 				</div>
 				<p class="subtle" id="adminSub" style="text-align: left; margin: 0 0 18px">
-					Moderation tools. Everything here acts on other people's work — there's no undo.
+					Moderation tools. Everything here acts on other people's work: there's no undo.
 				</p>
 
 				<h3 style="margin: 0 0 8px">Games in progress</h3>
@@ -47,7 +47,7 @@
 				<h3 style="margin: 26px 0 8px">Badges</h3>
 				<p class="subtle" style="text-align: left; margin: 0 0 10px">
 					The rank ladder and the collectible badges. Saving swaps the catalogue in at once: a new badge can be earned on the very next
-					story line, a new rank on the next word count. Ids are permanent once saved — they live in every account's badge list.
+					story line, a new rank on the next word count. Ids are permanent once saved, they live in every account's badge list.
 				</p>
 				<div id="adminBadges"></div>
 
@@ -61,7 +61,7 @@
 
 				<h3 style="margin: 26px 0 8px">Writers' reference</h3>
 				<p class="subtle" style="text-align: left; margin: 0 0 10px">
-					The word bank behind the "/" palette in solo writes, by category — one word or phrase per line.
+					The word bank behind the "/" palette in solo writes, by category, one word or phrase per line.
 					Empty a category to remove it. Each group saves on its own and applies the next time the palette opens.
 				</p>
 				<div id="adminRef"></div>
@@ -133,7 +133,7 @@
 					const r = await api("/api/admin/achievements", { data }, "PUT")
 					badgeDoc = r.data
 					$("adminBadges").innerHTML = badgeEditorHtml(badgeDoc)
-					$("adminBadges").querySelector(".be-status").textContent = "✓ Saved — live now."
+					$("adminBadges").querySelector(".be-status").textContent = "✓ Saved: live now."
 				} catch (err) {
 					status.textContent = "⚠ " + (err.data?.errors?.join(" · ") || err.message || "That didn't save.")
 					save.disabled = false
@@ -168,7 +168,7 @@
 				status.textContent = "Saving…"
 				try {
 					await api(`/api/admin/reference/${encodeURIComponent(group.dataset.slug)}`, { categories }, "PUT")
-					status.textContent = "✓ Saved — the palette uses it next time it opens."
+					status.textContent = "✓ Saved: the palette uses it next time it opens."
 				} catch (err) {
 					status.textContent = "⚠ " + (err.data?.errors?.join(" · ") || err.message || "That didn't save.")
 				}
@@ -209,7 +209,7 @@
 				status.textContent = "Saving…"
 				try {
 					await api("/api/admin/prompts", { data: doc }, "PUT")
-					status.textContent = "✓ Saved — the next ballot uses it."
+					status.textContent = "✓ Saved: the next ballot uses it."
 					promptDoc = doc
 				} catch (err) {
 					status.textContent = "⚠ " + (err.data?.errors?.join(" · ") || err.message || "That didn't save.")

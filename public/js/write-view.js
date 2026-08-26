@@ -132,7 +132,7 @@ export function docCardHtml(d) {
 
 export const docListHtml = (docs) =>
 	!docs || !docs.length
-		? `<p class="empty">Nothing written yet. Start something — no timer, no turns, just the page.</p>`
+		? `<p class="empty">Nothing written yet. Start something: no timer, no turns, just the page.</p>`
 		: docs.map(docCardHtml).join("")
 
 // The shelf holds two different relationships to a document — the ones you
@@ -142,7 +142,7 @@ export const docListHtml = (docs) =>
 // (a "no beta reads" box is noise on a shelf that is mostly your own work).
 export const DOC_GROUPS = [
 	{ key: "mine", title: "✒️ My solo writes", blurb: "Yours to edit. No timer, no turns." },
-	{ key: "reading", title: "📖 Beta reading", blurb: "Invited by someone else — you can comment, not edit." },
+	{ key: "reading", title: "📖 Beta reading", blurb: "Invited by someone else, you can comment, not edit." },
 ]
 
 export function docShelfHtml(docs) {
@@ -290,7 +290,7 @@ export function soloRowHtml(d) {
 			`<a class="ghost solo-open" href="${open}">Continue</a>` +
 			`<button type="button" class="ghost danger solo-del" data-id="${esc(d.id)}" data-title="${title}">Delete</button>`
 	else if (d.viewable) acts = `<a class="ghost solo-open" href="${open}">Read</a>`
-	else acts = `<span class="solo-lock" title="Private — only its author can open it">🔒 Private</span>`
+	else acts = `<span class="solo-lock" title="Private, only its author can open it">🔒 Private</span>`
 	const head = d.mine || d.viewable ? `<a class="solo-title" href="${open}">${title}</a>` : `<span class="solo-title locked">${title}</span>`
 	return (
 		`<div class="solo-row${d.mine || d.viewable ? "" : " locked"}" data-id="${esc(d.id)}">` +
@@ -362,7 +362,7 @@ export function sprintRowHtml(sp) {
 		`</div>`
 	)
 }
-export const sprintListHtml = (sprints, { total = 0, count = 0, empty = "No sprints yet — start one from the ⏱ button in a solo write." } = {}) =>
+export const sprintListHtml = (sprints, { total = 0, count = 0, empty = "No sprints yet: start one from the ⏱ button in a solo write." } = {}) =>
 	!sprints || !sprints.length
 		? `<p class="subtle" style="text-align:left;margin:0">${esc(empty)}</p>`
 		: `<p class="subtle" style="text-align:left;margin:0 0 8px">${esc(String(total))} word${total === 1 ? "" : "s"} across ${count} sprint${count === 1 ? "" : "s"}</p>` +

@@ -101,7 +101,7 @@ test("validateAchievements: ids are slugs and unique, ranks need a 0 rung and wo
   assert.ok(validateAchievements({ ...base, wordTiers: [...base.wordTiers, { id: "Bad Id", name: "x", min: 1 }] }).some((e) => /valid id/.test(e)));
   assert.ok(validateAchievements({ ...base, wordTiers: [...base.wordTiers, { id: base.wordTiers[0].id, name: "x", min: 1 }] }).some((e) => /used twice/.test(e)));
   assert.ok(validateAchievements({ ...base, wordTiers: [...base.wordTiers, { id: "newrank", name: "x", min: "lots" }] }).some((e) => /word count/.test(e)));
-  assert.deepEqual(validateAchievements({ ...base, usage: [...base.usage, { id: "quiet", name: "🤫 Quiet" }] }), [], "a trigger-less badge is legal — it can be awarded by an event");
+  assert.deepEqual(validateAchievements({ ...base, usage: [...base.usage, { id: "quiet", name: "🤫 Quiet" }] }), [], "a trigger-less badge is legal, it can be awarded by an event");
   assert.ok(validateAchievements({ ...base, usage: [...base.usage, { id: "quiet", name: "🤫 Quiet", triggers: "shh" }] }).some((e) => /list of words/.test(e)));
   assert.ok(validateAchievements({ ...base, usage: [...base.usage, { id: "nameless", triggers: ["x"] }] }).some((e) => /needs a name/.test(e)));
 });

@@ -7,9 +7,9 @@
 		"A thunderstorm knocks the power out during a campaign.",
 		"A thunderstorm knocks the power out during a campaign, the party goes home, except for Mike and Will.",
 		"Will overhears Mike on the phone with El, saying the words 'I don't think it was ever really about you.'",
-		"The painting. Will finally tells Mike the truth about who really commissioned it. Set it right after the van scene in season 4 — or wherever you want.",
+		"The painting. Will finally tells Mike the truth about who really commissioned it. Set it right after the van scene in season 4, or wherever you want.",
 		"Post-canon: they're moving into a tiny apartment together 'as roommates.' There is one bed.",
-		"Mike keeps the walkie-talkie under his pillow long after they should've outgrown it. One night, static — then Will's voice, calling him like it's 1983 again.",
+		"Mike keeps the walkie-talkie under his pillow long after they should've outgrown it. One night, static, then Will's voice, calling him like it's 1983 again.",
 		"Will teaches Mike how to paint. Mike is terrible at it. Neither of them cares, because Will keeps having to lean in to fix Mike's grip on the brush.",
 		"Truth or dare with the party, but Max is merciless and she has known about both of them for years.",
 		"It's Will's birthday, they're adults and Mike shows up with an unexpected gift.",
@@ -22,7 +22,7 @@
 		"Will draws Mike, in secret. Mike walks in before he can hide the sketchbook.",
 		"Mike writes a letter he never intends to send. Will finds it. Take it from there.",
 		"Christmas at the Wheelers'. Mistletoe.",
-		"They're both grown now — late twenties — and reunite at a party reunion after years apart.",
+		"They're both grown now, late twenties, and reunite at a party reunion after years apart.",
 		"Will is pulled somewhere into the Upside Down, and Mike is the only one who can hear him.",
 		"Mike gets jealous of someone new in Will's life in California.",
 		"Will is the cleric, Mike is the paladin. They are on a mysterious quest assigned by a king with the party.",
@@ -39,7 +39,7 @@
 		"The Hawkins arcade, closing shift, 1985. Mike has one quarter left and Will is the only person who's ever beaten his high score.",
 		"Coffee shop, present day. Will has written the same wrong name on the cup for a month and Mike has stopped correcting him.",
 		"Regency AU: a painter of no particular fortune and the heir who keeps commissioning portraits he does not need.",
-		"Ancient Greece — a soldier and the oracle who keeps seeing the same ending and refuses to say it out loud.",
+		"Ancient Greece: a soldier and the oracle who keeps seeing the same ending and refuses to say it out loud.",
 		"1800s expedition, somewhere cold and unmapped. Two men, one tent, and a journal that stops being about the survey around week six.",
 		"Season 5, Will teaches Mike how to shoot a gun.",
 		"Soulmate AU where the mark shows up the first time the other person says your name like it matters. Will's arrived when he was eight. Mike's took a lot longer.",
@@ -62,7 +62,7 @@
 		"Ghost-hunting AU: both boys work for Hawkins Paranormal, Murray is the tech guy in the van, and the house tonight is not the only thing that's haunted.",
 		"Erica enters the science fair and needs the help of her brother and his friends. Will and Mike get competitive about it.",
 		"Non-canon AU: Will Byers is the pastor's son, and he and Mike meet in church.",
-		"Spider-Man AU: Will Byers swings over New York City by night, and Mike Wheeler is his Mary Jane — the one on the fire escape who has almost figured it out."
+		"Spider-Man AU: Will Byers swings over New York City by night, and Mike Wheeler is his Mary Jane, the one on the fire escape who has almost figured it out."
 	],
 	"intermediate": {
 		"_readme": "The guided-mode axes. Each pool is a list of {id, label, text, weight?, tags?, compatibleAgeGroups?, compatibleCanon?}. Season is chosen FIRST and fixes the age; canon second and fixes whether AUs are possible. Text is the clause the prompt renders.",
@@ -1810,7 +1810,7 @@
 			},
 			{
 				"id": "cleradin",
-				"label": "Cleradin — sorcerer Will, paladin Mike",
+				"label": "Cleradin: sorcerer Will, paladin Mike",
 				"text": "Cleradin: Will the sorcerer, Mike the paladin",
 				"group": "setting-au",
 				"compatibleCanon": [
@@ -3246,7 +3246,7 @@
 					]
 				}
 			],
-			"_readme": "Only dealt when the chosen season's ageGroup is adult (post-canon / future-fic) — the gate runs before any weighting, and a minor season hides this whole layer. Weights on kinks are the AO3-style tag weighting; keep this list curated by hand (scraping AO3 is against their ToS)."
+			"_readme": "Only dealt when the chosen season's ageGroup is adult (post-canon / future-fic): the gate runs before any weighting, and a minor season hides this whole layer. Weights on kinks are the AO3-style tag weighting; keep this list curated by hand (scraping AO3 is against their ToS)."
 		},
 		"auPlaces": [
 			{
