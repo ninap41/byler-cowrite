@@ -203,6 +203,7 @@
 			import { showInviteToast } from "/js/turn-alert.js"
 			import { soloListHtml, wireSoloDeletes } from "/js/write-view.js"
 			import { confirmDialog } from "/js/components/confirm-delete.js"
+			import { mountLiquidCard } from "/js/components/liquid-card.js"
 
 			mountChrome({ page: "dashboard" })
 			const $ = (id) => document.getElementById(id)
@@ -569,6 +570,9 @@
 					if (!post) return
 					$("annCard").innerHTML = latestAnnouncementHtml(post)
 					$("annCard").classList.remove("hidden")
+					// the newest word from the admins arrives on water: the card's
+					// edges ripple in the theme's colour (components/liquid-card.js)
+					mountLiquidCard($("annCard"))
 				} catch (e) { /* no card */ }
 			}
 

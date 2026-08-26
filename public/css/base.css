@@ -4254,9 +4254,12 @@ button.danger,
 .bg-set.castlebyers .cbmound {
 	position: absolute;
 	left: 50%;
-	bottom: 0;
+	/* The blob's rounded base is pushed 220px below the screen edge (its top
+	   stays at calc(30% + 200px)), so the earth runs all the way to the
+	   bottom of the viewport instead of curving away above it. */
+	bottom: -220px;
 	width: min(1900px, 120vw);
-	height: calc(30% + 200px);
+	height: calc(30% + 420px);
 	background: url("/img/ground.svg") center top / 100% 100% no-repeat;
 	transform: translateX(calc(-50% + 200px)) var(--cb-par, translate3d(0, 0, 0));
 	will-change: transform;
@@ -4295,9 +4298,9 @@ button.danger,
 .bg-set.castlebyers .fortpic {
 	position: absolute;
 	left: 50%;
-	/* The mound's top is at calc(30% + 200px); the fort's base sits 70px
-	   below it so the walls stand IN the earth rather than on its rim. */
-	bottom: calc(30% + 130px);
+	/* The mound's top is at calc(30% + 200px); the fort's base sits 370px
+	   below it so the walls stand deep IN the earth rather than on its rim. */
+	bottom: calc(30% - 170px);
 	width: min(1085px, 67vw);
 	aspect-ratio: 1920 / 1072;
 	background: url("/img/castle-byers.svg") center bottom / contain no-repeat;
@@ -9359,3 +9362,23 @@ html.vcx-live[data-theme="vecna"] #vc-pend {
 .ann-glimpse-title { font-size: 1.02rem; }
 .ann-glimpse-text { margin: 0; color: var(--muted); font-size: 0.9rem; line-height: 1.4; }
 .ann-glimpse-more { justify-self: start; font-size: 0.85rem; font-weight: 600; }
+
+/* Liquid card (components/liquid-card.js): the SVG water sits behind the
+   card's content and may reach PAD past the box, so the card itself goes
+   transparent and lets the surface be its body. Fill opacities keep the
+   theme's ink readable over the theme's accent. */
+.card.liquid { position: relative; padding: 24px 30px; background: transparent; border-color: transparent; box-shadow: none; overflow: visible; isolation: isolate; }
+.card.liquid > * { position: relative; z-index: 1; }
+.card.liquid > .liquid-svg { position: absolute; inset: -60px; width: calc(100% + 120px); height: calc(100% + 120px); z-index: 0; pointer-events: none; overflow: visible; }
+.card.liquid, .card.liquid .ann-glimpse-tag, .card.liquid .ann-glimpse-text { color: var(--ink); }
+.card.liquid .ann-glimpse-tag, .card.liquid .ann-glimpse-text { opacity: 0.86; }
+/* a link on the water is always the theme's ink (a visited purple got lost on the accent) */
+.card.liquid a, .card.liquid a:visited { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+.liquid-svg .lq-glow { opacity: 0.26; }
+.liquid-svg .lq-under { opacity: 0.45; }
+.liquid-svg .lq-surface { opacity: 0.9; }
+/* the well is the theme's --panel-2 over the water: nearly solid, so the ink
+   keeps the contrast it has on every other card, with the accent showing at
+   the swelling edges and through the glint */
+.liquid-svg .lq-well { opacity: 0.92; }
+@media (prefers-reduced-motion: reduce) { .liquid-svg .lq-glow { opacity: 0.18; } }
