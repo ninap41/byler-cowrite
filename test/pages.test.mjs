@@ -606,3 +606,14 @@ test("the caret is visible inside a gradient-text heading in every editor", asyn
   const css = (await page("/css/base.css")).body;
   assert.match(css, /\.editor h1, \.doc-editor h1, \[contenteditable="true"\] h1,[\s\S]*?caret-color: var\(--accent-2\);/, "h1 in the game and solo editors names its caret");
 });
+
+test("nothing hard-codes the fandom: the repo pack renders as Byler Cowrite everywhere, no 'Fandom Cowrite' anywhere", async () => {
+  for (const p of ["/", "/dashboard", "/game", "/profile", "/reset.html"]) {
+    const html = (await page(p)).body;
+    assert.ok(html.includes("Byler Cowrite"), p + " is Byler Cowrite");
+    assert.ok(!html.includes("Fandom Cowrite"), p + " never says Fandom Cowrite");
+    assert.ok(!/<h1[^>]*>\s*Cowrite\s*<\/h1>/.test(html), p + " never falls back to the bare default");
+  }
+  const home = (await page("/")).body;
+  assert.ok(home.includes('y="110">Byler<') && home.includes('y="230">Cowrite<'), "the hero writes Byler / Cowrite");
+});
