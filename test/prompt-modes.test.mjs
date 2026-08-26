@@ -226,3 +226,51 @@ test("a part switched off never reaches the card: toneOff drops the Tone line an
   for (const p of st.options) assert.ok(!p.includes("Tone:") && !p.includes("Situation:"), "no Tone or Situation line on the card");
   for (const m of st.optionMeta.filter(Boolean)) assert.equal(m.labels.tone, undefined, "no tone chip");
 });
+
+test("each mode keeps its own ballot: switching Simple ⇄ Advanced brings back the set that mode had, votes included; only a knob change or a reroll deals afresh, and a reroll in one mode leaves the other's alone", async () => {
+  const { A, B, state } = await choosing();
+  const opts = () => [...state.current.options];
+  // deal an Advanced set and vote on it
+  await ctx.emit(A, "set-prompt-mode", { mode: "intermediate", controls: { seasonId: "s4", toneId: "angst" } });
+  await ctx.wait(120);
+  const advanced = opts();
+  assert.ok(advanced.every((p) => !CURATED.includes(p)), "an assembled ballot");
+  await ctx.emit(B, "vote", { prompt: advanced[0] });
+  await ctx.wait(80);
+  assert.equal(state.current.voted, 1);
+  // over to Simple: curated cards, no votes carried across
+  await ctx.emit(A, "set-prompt-mode", { mode: "simple" });
+  await ctx.wait(120);
+  const simple = opts();
+  assert.ok(simple.every((p) => CURATED.includes(p)), "the Simple cards");
+  assert.equal(state.current.voted, 0);
+  assert.notDeepEqual(simple, advanced);
+  // and back: the very same Advanced set, with the vote still on it
+  await ctx.emit(A, "set-prompt-mode", { mode: "intermediate" });
+  await ctx.wait(120);
+  assert.deepEqual(opts(), advanced, "nothing was redealt");
+  assert.equal(state.current.voted, 1, "the vote came back with its ballot");
+  assert.equal(state.current.optionMeta.filter(Boolean).length, advanced.length, "components rode along too");
+  // to Simple once more: still the same Simple set
+  await ctx.emit(A, "set-prompt-mode", { mode: "simple" });
+  await ctx.wait(120);
+  assert.deepEqual(opts(), simple, "the Simple set was kept too");
+  // a reroll in Simple deals Simple afresh but the Advanced set survives
+  await ctx.emit(A, "shuffle-options");
+  await ctx.wait(120);
+  const simple2 = opts();
+  assert.notDeepEqual(simple2, simple, "rerolled");
+  await ctx.emit(A, "set-prompt-mode", { mode: "intermediate" });
+  await ctx.wait(120);
+  assert.deepEqual(opts(), advanced, "the other mode's set was not touched by the reroll");
+  // a knob change in Advanced is a fresh deal
+  await ctx.emit(A, "set-prompt-mode", { mode: "intermediate", controls: { toneId: "fluff" } });
+  await ctx.wait(120);
+  assert.notDeepEqual(opts(), advanced, "new knobs, new ballot");
+  assert.equal(state.current.voted, 0);
+  // the same mode with the same knobs is a no-op, not a redeal
+  const now = opts();
+  await ctx.emit(A, "set-prompt-mode", { mode: "intermediate", controls: { toneId: "fluff" } });
+  await ctx.wait(120);
+  assert.deepEqual(opts(), now);
+});

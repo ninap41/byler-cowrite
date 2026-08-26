@@ -474,7 +474,22 @@ export function createGame(io) {
   // Fill a session's ballot. Simple mode deals curated prompts; guided
   // (intermediate) mode assembles them from compatible clauses and keeps the
   // component ids in s.optionMeta so the vote card can show chips.
+  // The other mode's ballot, kept while this one is on screen.
+  function stashOptions(s) {
+    (s.optionSets ||= {})[s.promptMode] = { options: [...s.options], optionMeta: [...(s.optionMeta || [])], votes: new Map(s.votes) };
+  }
+  function restoreOptions(s) {
+    const set = s.optionSets?.[s.promptMode];
+    if (!set) return false;
+    s.options = [...set.options];
+    s.optionMeta = [...set.optionMeta];
+    // only votes from seats still at the table come back
+    s.votes = new Map([...set.votes].filter(([id]) => s.writers.has(id)));
+    return true;
+  }
   function fillOptions(s, n = 4) {
+    // a fresh deal supersedes whatever this mode had stashed
+    if (s.optionSets) delete s.optionSets[s.promptMode];
     s.optionMeta = [];
     if (s.promptMode === "intermediate" && INTERMEDIATE) {
       const out = [];
@@ -1055,13 +1070,29 @@ export function createGame(io) {
 
     // Host-only: switch the generator mode (simple ↔ guided) or retune the
     // guided controls. Either way the ballot is redealt and votes reset.
+    // Each mode keeps its own dealt ballot: switching modes stashes the set
+    // on screen (options, components, votes) under the mode it belongs to
+    // and brings back the other mode's set if there is one, so flipping
+    // Simple ⇄ Advanced and back loses nothing. Only a knob change (the same
+    // mode with new controls) or a reroll deals afresh — and a reroll in one
+    // mode leaves the other mode's set alone.
     socket.on("set-prompt-mode", ({ mode, controls }, ack) => {
       const s = mySession();
       if (!s || s.hostId !== socket.id || s.phase !== "choosing") return ack?.({ ok: false });
-      if (mode != null) s.promptMode = cleanPromptMode(mode);
-      if (controls != null) s.promptControls = cleanPromptControls({ ...s.promptControls, ...controls });
-      fillOptions(s);
-      s.votes.clear();
+      const nextMode = mode != null ? cleanPromptMode(mode) : s.promptMode;
+      const nextControls = controls != null ? cleanPromptControls({ ...s.promptControls, ...controls }) : s.promptControls;
+      const modeChanged = nextMode !== s.promptMode;
+      const knobsChanged = JSON.stringify(nextControls) !== JSON.stringify(s.promptControls);
+      if (modeChanged) {
+        stashOptions(s);
+        s.promptMode = nextMode;
+        s.promptControls = nextControls;
+        if (!restoreOptions(s)) { fillOptions(s); s.votes.clear(); }
+      } else if (knobsChanged) {
+        s.promptControls = nextControls;
+        fillOptions(s);
+        s.votes.clear();
+      }
       broadcastGame(s);
       ack?.({ ok: true, mode: s.promptMode, controls: s.promptControls });
     });
