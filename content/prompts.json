@@ -980,7 +980,8 @@
 				"text": "second chance",
 				"group": "shape",
 				"incompatibleTags": [
-					"together"
+					"together",
+					"explicit"
 				],
 				"requiresTags": [
 					"exes"
@@ -1023,7 +1024,10 @@
 				"id": "found-family",
 				"label": "found family",
 				"text": "found family",
-				"group": "shape"
+				"group": "shape",
+				"incompatibleTags": [
+					"explicit"
+				]
 			},
 			{
 				"id": "mutual-pining-with-wrong-assumptions",
@@ -1049,16 +1053,6 @@
 				"text": "misdelivered letter",
 				"group": "miscommunication",
 				"incompatibleTags": [
-					"together"
-				]
-			},
-			{
-				"id": "wrong-number",
-				"label": "wrong number",
-				"text": "wrong number",
-				"group": "miscommunication",
-				"incompatibleTags": [
-					"fantasy",
 					"together"
 				]
 			},
@@ -1138,7 +1132,10 @@
 				"id": "who-did-this-to-you",
 				"label": "\"who did this to you\"",
 				"text": "\"who did this to you\"",
-				"group": "hurt-comfort"
+				"group": "hurt-comfort",
+				"incompatibleTags": [
+					"explicit"
+				]
 			},
 			{
 				"id": "recovery-fic",
@@ -1150,19 +1147,28 @@
 				"id": "sharing-a-jacket",
 				"label": "sharing a jacket",
 				"text": "sharing a jacket",
-				"group": "hurt-comfort"
+				"group": "hurt-comfort",
+				"incompatibleTags": [
+					"explicit"
+				]
 			},
 			{
 				"id": "hair-washing",
 				"label": "hair washing",
 				"text": "hair washing",
-				"group": "hurt-comfort"
+				"group": "hurt-comfort",
+				"incompatibleTags": [
+					"explicit"
+				]
 			},
 			{
 				"id": "carrying-them-home",
 				"label": "carrying them home",
 				"text": "carrying them home",
-				"group": "hurt-comfort"
+				"group": "hurt-comfort",
+				"incompatibleTags": [
+					"explicit"
+				]
 			},
 			{
 				"id": "domestic-bliss",
@@ -1174,6 +1180,9 @@
 				],
 				"requiresTags": [
 					"together"
+				],
+				"incompatibleTags": [
+					"explicit"
 				]
 			},
 			{
@@ -1206,7 +1215,8 @@
 				"text": "pet acquisition",
 				"group": "domestic",
 				"incompatibleTags": [
-					"fantasy"
+					"fantasy",
+					"explicit"
 				],
 				"requiresTags": [
 					"together"
@@ -1242,7 +1252,8 @@
 				"text": "birthday fic",
 				"group": "domestic",
 				"incompatibleTags": [
-					"fantasy"
+					"fantasy",
+					"explicit"
 				]
 			},
 			{
@@ -1252,15 +1263,9 @@
 				"group": "domestic",
 				"requiresTags": [
 					"together"
-				]
-			},
-			{
-				"id": "grocery-run-as-a-love-scene",
-				"label": "grocery run as a love scene",
-				"text": "grocery run as a love scene",
-				"group": "domestic",
+				],
 				"incompatibleTags": [
-					"fantasy"
+					"explicit"
 				]
 			},
 			{
@@ -1269,7 +1274,8 @@
 				"text": "dancing in the kitchen",
 				"group": "domestic",
 				"incompatibleTags": [
-					"fantasy"
+					"fantasy",
+					"explicit"
 				],
 				"requiresTags": [
 					"together"
@@ -1281,32 +1287,45 @@
 				"text": "learning their coffee order",
 				"group": "domestic",
 				"incompatibleTags": [
-					"fantasy"
+					"fantasy",
+					"explicit"
 				]
 			},
 			{
 				"id": "cuddling",
 				"label": "cuddling",
 				"text": "cuddling",
-				"group": "domestic"
+				"group": "domestic",
+				"incompatibleTags": [
+					"explicit"
+				]
 			},
 			{
 				"id": "hand-holding",
 				"label": "hand holding",
 				"text": "hand holding",
-				"group": "domestic"
+				"group": "domestic",
+				"incompatibleTags": [
+					"explicit"
+				]
 			},
 			{
 				"id": "forehead-touch",
 				"label": "forehead touch",
 				"text": "forehead touch",
-				"group": "domestic"
+				"group": "domestic",
+				"incompatibleTags": [
+					"explicit"
+				]
 			},
 			{
 				"id": "falling-asleep-on-their-shoulder",
 				"label": "falling asleep on their shoulder",
 				"text": "falling asleep on their shoulder",
-				"group": "domestic"
+				"group": "domestic",
+				"incompatibleTags": [
+					"explicit"
+				]
 			},
 			{
 				"id": "stargazing",
@@ -1368,7 +1387,8 @@
 				"text": "confession in the rain",
 				"group": "milestones",
 				"incompatibleTags": [
-					"together"
+					"together",
+					"explicit"
 				]
 			},
 			{
@@ -1377,7 +1397,8 @@
 				"text": "almost kiss",
 				"group": "milestones",
 				"incompatibleTags": [
-					"together"
+					"together",
+					"explicit"
 				]
 			},
 			{
@@ -1386,7 +1407,8 @@
 				"text": "first kiss",
 				"group": "milestones",
 				"incompatibleTags": [
-					"together"
+					"together",
+					"explicit"
 				]
 			},
 			{
@@ -1414,7 +1436,8 @@
 				"text": "meeting the family",
 				"group": "milestones",
 				"incompatibleTags": [
-					"fantasy"
+					"fantasy",
+					"explicit"
 				],
 				"requiresTags": [
 					"together"
@@ -1426,7 +1449,8 @@
 				"text": "going public",
 				"group": "milestones",
 				"incompatibleTags": [
-					"fantasy"
+					"fantasy",
+					"explicit"
 				],
 				"requiresTags": [
 					"together"
@@ -1442,6 +1466,9 @@
 				],
 				"requiresTags": [
 					"together"
+				],
+				"incompatibleTags": [
+					"explicit"
 				]
 			},
 			{
@@ -1459,7 +1486,8 @@
 				"text": "groundhog day confession",
 				"group": "structure",
 				"incompatibleTags": [
-					"fantasy"
+					"fantasy",
+					"explicit"
 				]
 			},
 			{
@@ -1468,7 +1496,8 @@
 				"text": "epistolary (letters, mixtapes, notes)",
 				"group": "structure",
 				"incompatibleTags": [
-					"fantasy"
+					"fantasy",
+					"explicit"
 				]
 			},
 			{
@@ -1477,19 +1506,14 @@
 				"text": "outsider pov",
 				"group": "structure",
 				"incompatibleTags": [
-					"fantasy"
+					"fantasy",
+					"explicit"
 				]
 			},
 			{
 				"id": "time-skip-years-later",
 				"label": "time skip / years later",
 				"text": "time skip / years later",
-				"group": "structure"
-			},
-			{
-				"id": "flashback-braid",
-				"label": "flashback braid",
-				"text": "flashback braid",
 				"group": "structure"
 			},
 			{
@@ -1505,15 +1529,9 @@
 				"group": "structure",
 				"compatibleCanon": [
 					"canon-divergent"
-				]
-			},
-			{
-				"id": "everybody-lives-au",
-				"label": "everybody lives AU",
-				"text": "everybody lives au",
-				"group": "structure",
-				"compatibleCanon": [
-					"canon-divergent"
+				],
+				"incompatibleTags": [
+					"explicit"
 				]
 			},
 			{
@@ -2049,6 +2067,9 @@
 				"group": "cleradin",
 				"requiresTags": [
 					"cleradin"
+				],
+				"incompatibleTags": [
+					"explicit"
 				]
 			},
 			{
@@ -2109,6 +2130,9 @@
 				"group": "cleradin",
 				"requiresTags": [
 					"cleradin"
+				],
+				"incompatibleTags": [
+					"explicit"
 				]
 			},
 			{
@@ -2129,6 +2153,9 @@
 				"group": "cleradin",
 				"requiresTags": [
 					"cleradin"
+				],
+				"incompatibleTags": [
+					"explicit"
 				]
 			},
 			{
@@ -2139,6 +2166,9 @@
 				"group": "cleradin",
 				"requiresTags": [
 					"cleradin"
+				],
+				"incompatibleTags": [
+					"explicit"
 				]
 			},
 			{
@@ -2149,6 +2179,9 @@
 				"group": "cleradin",
 				"requiresTags": [
 					"cleradin"
+				],
+				"incompatibleTags": [
+					"explicit"
 				]
 			},
 			{
@@ -2191,7 +2224,8 @@
 				"weight": 8,
 				"group": "crack",
 				"incompatibleTags": [
-					"fantasy"
+					"fantasy",
+					"explicit"
 				],
 				"requiresTags": [
 					"crack"
@@ -2266,7 +2300,8 @@
 				"weight": 8,
 				"group": "crack",
 				"incompatibleTags": [
-					"fantasy"
+					"fantasy",
+					"explicit"
 				],
 				"requiresTags": [
 					"crack"
@@ -2312,7 +2347,8 @@
 				"weight": 8,
 				"group": "crack",
 				"incompatibleTags": [
-					"fantasy"
+					"fantasy",
+					"explicit"
 				],
 				"requiresTags": [
 					"crack"
@@ -2382,7 +2418,10 @@
 				"id": "illness",
 				"label": "illness",
 				"text": "illness",
-				"group": "angst"
+				"group": "angst",
+				"incompatibleTags": [
+					"explicit"
+				]
 			},
 			{
 				"id": "deployment-distance",
@@ -2436,7 +2475,10 @@
 				"id": "sacrifice-for-the-other-s-sake",
 				"label": "sacrifice for the other's sake",
 				"text": "sacrifice for the other's sake",
-				"group": "angst"
+				"group": "angst",
+				"incompatibleTags": [
+					"explicit"
+				]
 			}
 		],
 		"explicit": {
