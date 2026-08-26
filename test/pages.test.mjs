@@ -582,3 +582,12 @@ test("the dashboard rail breaks below the column on a phone — the LAST word on
   assert.ok(twoCol.length, "and a two-column rule");
   for (const m of twoCol) assert.ok(m.index < lastCollapse, "every two-column rule precedes the final collapse");
 });
+
+test("touch devices get 16px fields, so iOS never zooms the page on focus", async () => {
+  const css = (await page("/css/base.css")).body;
+  assert.match(css, /@media \(hover: none\) and \(pointer: coarse\) \{\s*input,\s*select,\s*textarea,\s*\[contenteditable="true"\] \{\s*font-size: max\(1em, 16px\);/, "the rule is the last word on field size");
+  for (const p of ["/dashboard", "/inbox", "/game", "/profile"]) {
+    const html = (await page(p)).body;
+    assert.ok(!/maximum-scale|user-scalable=no/.test(html), p + " never forbids zooming");
+  }
+});
