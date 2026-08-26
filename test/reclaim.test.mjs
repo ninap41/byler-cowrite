@@ -222,3 +222,75 @@ test("a revealed story is continuable by whoever may end it — and by anyone se
     await ctx2.stop?.();
   }
 });
+
+test("continuing a story that is already being continued is harmless", async () => {
+  const ctx2 = await startServer({ COWRITE_GHOST_MS: "150" });
+  try {
+    const { host, mike, A, B, code, state } = await startedGame(ctx2);
+    const first = state.current.currentId === A.id ? A : B;
+    await ctx2.emit(first, "submit-line", { text: "a line" });
+    B.disconnect(); // Mike's seat expires; he stays a contributor by his line
+    await new Promise((r) => setTimeout(r, 600));
+    await ctx2.emit(A, "end-game", {});
+    // the host continues; a second continue (a double click, another tab)
+    // finds the game already writing and is refused, changing nothing
+    const c1 = await ctx2.emit(A, "continue-writing", { turnSeconds: 30, rounds: 2 });
+    assert.equal(c1.ok, true);
+    const stateP = new Promise((r) => A.once("game-state", r));
+    const c2 = await ctx2.emit(A, "continue-writing", { turnSeconds: 5, rounds: 1 });
+    assert.equal(c2.ok, false, "already continued");
+    const st = await Promise.race([stateP, new Promise((r) => setTimeout(() => r(null), 300))]);
+    if (st) assert.equal(st.phase, "writing");
+    const g = await ctx2.api("/api/games/" + code, null, host.token, "GET");
+    assert.equal(g.data.phase, "writing");
+    assert.equal(g.data.story.length, 1, "no line lost, none duplicated");
+
+    // Mike, seeing the story in his archive, presses Continue → join by code:
+    // the game is already running with the host present, so he becomes a
+    // join request for the host to approve, then writes again as himself
+    const M = await ctx2.conn();
+    const reqP = new Promise((r) => A.on("join-request", r));
+    const j = ctx2.emit(M, "join-session", { code, auth: mike.token });
+    const req = await reqP;
+    assert.equal(req.name, "mikewheeler");
+    const apprP = new Promise((r) => M.on("join-approved", r));
+    await ctx2.emit(A, "approve-join", { id: req.id, allow: true });
+    const jr = await j;
+    assert.equal(jr.ok, true);
+    assert.equal(jr.pending, true);
+    await apprP;
+    const after = await ctx2.api("/api/games/" + code, null, host.token, "GET");
+    assert.equal(after.data.phase, "writing", "still one running game");
+    assert.equal(after.data.writers.filter((w) => w.name === "mikewheeler").length, 1, "one seat for Mike, not two");
+    M.disconnect();
+    A.disconnect();
+  } finally {
+    await ctx2.stop?.();
+  }
+});
+
+test("two writers racing to continue a reveal: exactly one continues, the other is refused", async () => {
+  const ctx2 = await startServer({ COWRITE_GHOST_MS: "150" });
+  try {
+    const { A, B, code, host } = await startedGame(ctx2);
+    A.disconnect(); // host gone: Mike is acting host
+    await new Promise((r) => setTimeout(r, 600));
+    await ctx2.emit(B, "end-game", {});
+    // the original host comes back to the reveal; both may continue now
+    const H = await ctx2.conn();
+    const r = await ctx2.emit(H, "join-session", { code, auth: host.token });
+    assert.equal(r.ok, true);
+    const [x, y] = await Promise.all([
+      ctx2.emit(H, "continue-writing", { turnSeconds: 30, rounds: 1 }),
+      ctx2.emit(B, "continue-writing", { turnSeconds: 30, rounds: 1 }),
+    ]);
+    assert.equal([x.ok, y.ok].filter(Boolean).length, 1, "one wins");
+    const g = await ctx2.api("/api/games/" + code, null, host.token, "GET");
+    assert.equal(g.data.phase, "writing");
+    assert.equal(new Set(g.data.writers.map((w) => w.name)).size, g.data.writers.length, "no duplicate seats");
+    H.disconnect();
+    B.disconnect();
+  } finally {
+    await ctx2.stop?.();
+  }
+});

@@ -1321,6 +1321,7 @@ export function createGame(io) {
       s.votes.clear();
       s.phase = "writing";
       ack?.({ ok: true });
+      saveSnapshot(s); // the archive reads snapshots: a continued story must not stay listed as over
       inviteContributors(s);
       startTurn(s);
     });
