@@ -73,7 +73,7 @@ export function toPath(p) {
 	return d + "Z"
 }
 
-export const PAD = 60 // how far past the card box the water may reach
+export const PAD = 100 // how far past the card box the water may reach
 let seq = 0
 export function liquidSvgHtml(key) {
 	return (

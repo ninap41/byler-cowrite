@@ -290,8 +290,8 @@ export function latestAnnouncementHtml(post) {
 		`<div class="ann-glimpse">` +
 		`<span class="ann-glimpse-tag">📣 Announcement${when ? ` · ${esc(when)}` : ""}</span>` +
 		(headed ? `<b class="ann-glimpse-title">${esc(post.title || "")}</b>` : "") +
-		`<p class="ann-glimpse-text">${esc(previewText(post.html))}</p>` +
-		`<a class="ann-glimpse-more" href="/announcements">Read more →</a>` +
+		// Read more rides at the end of the preview's last line, not on its own
+		`<p class="ann-glimpse-text">${esc(previewText(post.html))} <a class="ann-glimpse-more" href="/announcements">Read more →</a></p>` +
 		`</div>`
 	)
 }

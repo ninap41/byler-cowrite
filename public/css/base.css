@@ -9361,7 +9361,7 @@ html.vcx-live[data-theme="vecna"] #vc-pend {
 .ann-glimpse-tag { font-size: 0.75rem; color: var(--muted); letter-spacing: 0.02em; }
 .ann-glimpse-title { font-size: 1.02rem; }
 .ann-glimpse-text { margin: 0; color: var(--muted); font-size: 0.9rem; line-height: 1.4; }
-.ann-glimpse-more { justify-self: start; font-size: 0.85rem; font-weight: 600; }
+.ann-glimpse-more { font-size: 0.85rem; font-weight: 600; white-space: nowrap; margin-left: 0.4em; }
 
 /* Liquid card (components/liquid-card.js): the SVG water sits behind the
    card's content and may reach PAD past the box, so the card itself goes
@@ -9369,7 +9369,7 @@ html.vcx-live[data-theme="vecna"] #vc-pend {
    theme's ink readable over the theme's accent. */
 .card.liquid { position: relative; padding: 24px 30px; background: transparent; border-color: transparent; box-shadow: none; overflow: visible; isolation: isolate; }
 .card.liquid > * { position: relative; z-index: 1; }
-.card.liquid > .liquid-svg { position: absolute; inset: -60px; width: calc(100% + 120px); height: calc(100% + 120px); z-index: 0; pointer-events: none; overflow: visible; }
+.card.liquid > .liquid-svg { position: absolute; inset: -100px; width: calc(100% + 190px); height: calc(100% + 190px); z-index: 0; pointer-events: none; overflow: visible; }
 .card.liquid, .card.liquid .ann-glimpse-tag, .card.liquid .ann-glimpse-text { color: var(--ink); }
 .card.liquid .ann-glimpse-tag, .card.liquid .ann-glimpse-text { opacity: 0.86; }
 /* a link on the water is always the theme's ink (a visited purple got lost on the accent) */
