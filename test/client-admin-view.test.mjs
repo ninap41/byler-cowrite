@@ -215,3 +215,41 @@ test("AU worlds are their own section: each with its places in two lists, read b
   assert.ok(pirate && pirate.compatibleCanon[0] === "au" && pirate.tags.includes("au-pirate-ship"));
   assert.ok(r3.places.some((p) => p.requiresTags[0] === "au-pirate-ship"));
 });
+
+test("the badge editor round-trips the catalogue: existing ids kept, new rows get a slug id, triggers and combos parsed", async () => {
+  const { badgeEditorHtml, badgeRowHtml, readBadgeEditor, badgeId, BADGE_POOLS } = await import("../public/js/admin-view.js");
+  const doc = {
+    _readme: "notes stay",
+    themeUnlocks: { neon: "puppymike" },
+    wordTiers: [{ id: "outloud", name: "🔫 Out Loud", min: 0, desc: "Made an account." }, { id: "puppymike", name: "🐶 Puppy Mike", min: 5000, desc: "5k" }],
+    usage: [{ id: "omega", name: "🐺 Omega", triggers: ["puppy"], desc: "Write puppy." }],
+    usageOpen: [{ id: "crazy", name: "🎲 Crazy Together", combos: [["crazy", "together"]], desc: "Both words." }],
+  };
+  document.body.innerHTML = `<div id="root">${badgeEditorHtml(doc)}</div>`;
+  const root = document.getElementById("root");
+  assert.equal(root.querySelectorAll(".be-pool").length, BADGE_POOLS.length);
+  assert.equal(root.querySelector('.be-pool[data-pool="usageOpen"] .be-combos').value, "crazy + together");
+  // add a rank and a secret badge
+  root.querySelector('.be-pool[data-pool="wordTiers"] tbody').insertAdjacentHTML("beforeend", badgeRowHtml({}, BADGE_POOLS[0]));
+  const tr = root.querySelector('.be-pool[data-pool="wordTiers"] tbody tr:last-child');
+  tr.querySelector(".be-name").value = "🧇 Eleven & Eggos";
+  tr.querySelector(".be-min").value = "11";
+  tr.querySelector(".be-desc").value = "Eleven words.";
+  root.querySelector('.be-pool[data-pool="usage"] tbody').insertAdjacentHTML("beforeend", badgeRowHtml({}, BADGE_POOLS[1]));
+  const ur = root.querySelector('.be-pool[data-pool="usage"] tbody tr:last-child');
+  ur.querySelector(".be-name").value = "👾 Demogorgon";
+  ur.querySelector(".be-triggers").value = "demogorgon, demo-dog";
+  ur.querySelector(".be-combos").value = "flowers + face\nupside + down";
+  const { data, errors } = readBadgeEditor(root, doc);
+  assert.deepEqual(errors, []);
+  assert.equal(data._readme, "notes stay");
+  assert.deepEqual(data.themeUnlocks, { neon: "puppymike" }, "untouched fields ride along");
+  assert.deepEqual(data.wordTiers.map((t) => t.id), ["outloud", "puppymike", "eleven-eggos"]);
+  assert.deepEqual(data.wordTiers[2], { id: "eleven-eggos", name: "🧇 Eleven & Eggos", min: 11, desc: "Eleven words." });
+  assert.deepEqual(data.usage[1], { id: "demogorgon", name: "👾 Demogorgon", triggers: ["demogorgon", "demo-dog"], combos: [["flowers", "face"], ["upside", "down"]], desc: "" });
+  assert.deepEqual(data.usageOpen[0].combos, [["crazy", "together"]]);
+  assert.equal(badgeId("🔫 There. Out Loud."), "there-out-loud");
+  // a nameless row is an error, not a silent drop
+  ur.querySelector(".be-name").value = "";
+  assert.ok(readBadgeEditor(root, doc).errors.some((e) => /no badge name/.test(e)));
+});

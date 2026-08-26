@@ -129,3 +129,14 @@ test("the live registry ships what the page needs: every gimmick has an icon, ev
   for (const id of THEMES)
     assert.doesNotThrow(() => readFileSync(new URL(`../public/img/themes/${id}.jpg`, import.meta.url)), id + ".jpg screenshot exists");
 });
+
+test("an admin's payload shows every badge's description and trigger recipe; anyone else's keeps the mystery", async () => {
+  const { usageListHtml, recipeText } = await import("../public/js/ranks-view.js");
+  const secretForAll = usageListHtml({ usage: [{ name: "🐺 Omega" }], usageOpen: [] }, null);
+  assert.ok(secretForAll.includes("Secret —") && secretForAll.includes("mystery"));
+  const forAdmin = usageListHtml({ usage: [{ name: "🐺 Omega", desc: "Write puppy.", triggers: ["puppy"], combos: [["good", "boy"]] }], usageOpen: [] }, null);
+  assert.ok(forAdmin.includes("Write puppy.") && forAdmin.includes("Unlocks with: puppy · good + boy"));
+  assert.ok(!forAdmin.includes("mystery"));
+  assert.equal(recipeText({ triggers: ["a"], combos: [["b", "c"]] }), "a · b + c");
+  assert.equal(recipeText({}), "");
+});

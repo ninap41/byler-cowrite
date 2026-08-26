@@ -6,7 +6,7 @@ import { storage, describeStorage } from "./storage.js";
 import { listPosts, addPost, deletePost } from "./announcements.js";
 import { SITE } from "./site.js";
 import { getPromptData, setPromptData } from "./game.js";
-import { WORD_TIERS, USAGE, USAGE_OPEN, badgeName, awardWordBadges, themeLocks, unlockedThemes, gimmickLocks, unlockedGimmicks } from "../lib/achievements.js";
+import { WORD_TIERS, USAGE, USAGE_OPEN, getAchievements, setAchievements, badgeName, awardWordBadges, themeLocks, unlockedThemes, gimmickLocks, unlockedGimmicks } from "../lib/achievements.js";
 import { GIMMICKS } from "../lib/gimmicks.js";
 import { cleanColor, stripTags, httpUrl, sanitizeAbout, sanitizeDoc } from "./sanitize.js";
 import {
@@ -285,14 +285,20 @@ export function registerRoutes(app, game) {
   // never ship — and SECRET usage badges don't even ship their descriptions
   // (those arrive per-user via badgeDescs once earned). Open usage badges are
   // the non-secret kind: their descriptions always show.
-  app.get("/api/achievements", (_req, res) => {
+  app.get("/api/achievements", (req, res) => {
+    // Secret badges keep their triggers and descriptions to themselves —
+    // except for an admin, who gets the whole recipe so the ranks page can
+    // show them how every badge is earned.
+    const admin = isAdmin(authedUser(req));
+    const recipe = (b) => (admin ? { desc: b.desc, triggers: b.triggers || [], combos: b.combos || [] } : {});
     res.json({
       // ids ride along so the ranks page can join tiers to themeUnlocks /
       // gimmick locks (they're not secret — UNLOCKS.md prints them)
       wordTiers: WORD_TIERS.map((t) => ({ id: t.id, name: t.name, min: t.min, desc: t.desc })),
-      usage: USAGE.map((b) => ({ name: b.name })),
-      usageOpen: USAGE_OPEN.map((b) => ({ name: b.name, desc: b.desc })),
+      usage: USAGE.map((b) => ({ name: b.name, ...recipe(b) })),
+      usageOpen: USAGE_OPEN.map((b) => ({ name: b.name, desc: b.desc, ...recipe(b) })),
       usageCount: USAGE.length,
+      admin,
     });
   });
 
@@ -986,6 +992,19 @@ export function registerRoutes(app, game) {
     const u = authedUser(req);
     if (!isAdmin(u)) return res.status(403).json({ error: "Admins only." });
     res.json({ mode: storage.mode, counts: storage.counts(), seeded: storage.seeded, lastError: storage.lastError, summary: describeStorage() });
+  });
+
+  // The badge catalogue editor: the whole achievements document in, the whole
+  // document out — validated and live at once (lib/achievements.js).
+  app.get("/api/admin/achievements", (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    res.json(getAchievements());
+  });
+  app.put("/api/admin/achievements", (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    const errors = setAchievements(req.body?.data);
+    if (errors.length) return res.status(400).json({ error: "The badge catalogue didn't validate.", errors });
+    res.json({ ok: true, data: getAchievements() });
   });
 
   app.get("/api/admin/reference", (req, res) => {

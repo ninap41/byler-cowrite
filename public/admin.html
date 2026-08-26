@@ -44,6 +44,13 @@
 				</div>
 				<div id="adminUsers" class="admin-scroll"></div>
 
+				<h3 style="margin: 26px 0 8px">Badges</h3>
+				<p class="subtle" style="text-align: left; margin: 0 0 10px">
+					The rank ladder and the collectible badges. Saving swaps the catalogue in at once: a new badge can be earned on the very next
+					story line, a new rank on the next word count. Ids are permanent once saved — they live in every account's badge list.
+				</p>
+				<div id="adminBadges"></div>
+
 				<h3 style="margin: 26px 0 8px">Prompt library</h3>
 				<p class="subtle" style="text-align: left; margin: 0 0 10px">
 					Everything the ballot is dealt from: the Simple-mode scenarios, every Advanced axis, the trope bank and
@@ -65,7 +72,7 @@
 			import { api } from "/js/api.js"
 			import { mountChrome, setUserChip } from "/js/chrome.js"
 			import { requireAuth } from "/js/auth-guard.js"
-			import { adminGamesHtml, adminUsersHtml, filterAdminUsers, adminUserCount, promptEditorHtml, promptRowHtml, readPromptEditor, PROMPT_POOLS, auWorldHtml, refEditorHtml, refCategoryHtml, refKey, readRefGroup } from "/js/admin-view.js"
+			import { adminGamesHtml, adminUsersHtml, filterAdminUsers, adminUserCount, promptEditorHtml, promptRowHtml, readPromptEditor, PROMPT_POOLS, auWorldHtml, refEditorHtml, refCategoryHtml, refKey, readRefGroup, badgeEditorHtml, badgeRowHtml, readBadgeEditor, BADGE_POOLS } from "/js/admin-view.js"
 
 			mountChrome({ page: "admin" })
 			const me = await requireAuth("/")
@@ -86,7 +93,42 @@
 				await refresh()
 				await loadPrompts()
 				await loadRef()
+				await loadBadges()
 			}
+
+			// ---- Badge catalogue editor ----
+			let badgeDoc = null
+			async function loadBadges() {
+				badgeDoc = await api("/api/admin/achievements", null, "GET")
+				$("adminBadges").innerHTML = badgeEditorHtml(badgeDoc)
+			}
+			$("adminBadges").addEventListener("click", async (e) => {
+				const del = e.target.closest(".be-del")
+				if (del) return del.closest("tr").remove()
+				const add = e.target.closest(".be-add")
+				if (add) {
+					const pool = BADGE_POOLS.find((p) => p.key === add.dataset.pool)
+					const body = add.closest(".be-pool").querySelector("tbody")
+					body.insertAdjacentHTML("beforeend", badgeRowHtml({}, pool))
+					return body.querySelector("tr:last-child .be-name").focus()
+				}
+				const save = e.target.closest(".be-save")
+				if (!save) return
+				const status = $("adminBadges").querySelector(".be-status")
+				const { data, errors } = readBadgeEditor($("adminBadges"), badgeDoc)
+				if (errors.length) return (status.textContent = "⚠ " + errors.join(" · "))
+				save.disabled = true
+				status.textContent = "Saving…"
+				try {
+					const r = await api("/api/admin/achievements", { data }, "PUT")
+					badgeDoc = r.data
+					$("adminBadges").innerHTML = badgeEditorHtml(badgeDoc)
+					$("adminBadges").querySelector(".be-status").textContent = "✓ Saved — live now."
+				} catch (err) {
+					status.textContent = "⚠ " + (err.data?.errors?.join(" · ") || err.message || "That didn't save.")
+					save.disabled = false
+				}
+			})
 
 			// ---- Writers' reference editor ----
 			async function loadRef() {

@@ -451,3 +451,89 @@ export function readRefGroup(groupEl) {
 	if (!categories.length) errors.push("A group needs at least one category with words.")
 	return { categories, errors }
 }
+
+// ---- The badge catalogue editor -------------------------------------------
+// content/achievements.json's three lists as tables — ranks (id · badge ·
+// words · description) and the two usage pools (id · badge · triggers ·
+// combos · description) — read back whole on Save. The badge column is the
+// emoji AND the name together ("🐶 Puppy Mike"), because that's what the
+// catalogue stores and what every chip shows. Triggers are comma-separated;
+// combos are one combination per line, its words joined with "+".
+export const BADGE_POOLS = [
+	{ key: "wordTiers", title: "Ranks — the word-count ladder", kind: "tiers", hint: "Awarded at `words` total words written. One rank must start at 0 — it's the badge a new account wears. Themes and gimmicks are tied to rank ids in the pack's themeUnlocks." },
+	{ key: "usage", title: "Secret badges", kind: "usage", hint: "Earned the first time a committed story line matches. Triggers and descriptions stay hidden until earned — the ranks page shows them only to admins. A badge with no triggers can only be awarded by the code (💩 Resume it, Stupid)." },
+	{ key: "usageOpen", title: "Open badges", kind: "usage", hint: "Same rule, but the description is public on the ranks page." },
+]
+
+export const badgeId = (name) =>
+	String(name || "")
+		.toLowerCase()
+		.replace(/[^\p{L}\p{N}]+/gu, "-")
+		.replace(/[^a-z0-9-]/g, "")
+		.replace(/-+/g, "-")
+		.replace(/^-|-$/g, "")
+		.slice(0, 40)
+
+const combosText = (combos) => (Array.isArray(combos) ? combos.map((c) => (Array.isArray(c) ? c : [c]).join(" + ")).join("\n") : "")
+
+export function badgeRowHtml(item, pool) {
+	const id = esc(item.id || "")
+	const cells =
+		pool.kind === "tiers"
+			? `<td><input class="be-name" value="${esc(item.name || "")}" placeholder="🐶 Badge name" /></td>` +
+				`<td><input class="be-min" type="number" min="0" step="1" value="${Number.isInteger(item.min) ? item.min : ""}" style="width:7em" /></td>`
+			: `<td><input class="be-name" value="${esc(item.name || "")}" placeholder="🔤 Badge name" /></td>` +
+				`<td><input class="be-triggers" value="${esc((item.triggers || []).join(", "))}" placeholder="word, another phrase" /></td>` +
+				`<td><textarea class="be-combos" rows="1" placeholder="crazy + together">${esc(combosText(item.combos))}</textarea></td>`
+	return (
+		`<tr data-id="${id}"><td class="be-id gc-meta">${id || "<i>new</i>"}</td>${cells}` +
+		`<td><input class="be-desc" value="${esc(item.desc || "")}" placeholder="How it's earned, in the writer's words" /></td>` +
+		`<td><button type="button" class="ghost danger be-del" title="Remove">✕</button></td></tr>`
+	)
+}
+
+export function badgeEditorHtml(doc) {
+	return (
+		BADGE_POOLS.map((pool) => {
+			const head = pool.kind === "tiers" ? "<th>id</th><th>Badge</th><th>Words</th><th>Description</th><th></th>" : "<th>id</th><th>Badge</th><th>Triggers</th><th>Combos</th><th>Description</th><th></th>"
+			const rows = (doc?.[pool.key] || []).map((b) => badgeRowHtml(b, pool)).join("")
+			return (
+				`<details class="pe-pool be-pool" data-pool="${pool.key}" open><summary>${esc(pool.title)} <span class="gc-meta">(${(doc?.[pool.key] || []).length})</span></summary>` +
+				`<p class="subtle" style="text-align:left;margin:6px 0">${esc(pool.hint)}</p>` +
+				`<div class="pe-scroll"><table class="pe-table"><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table></div>` +
+				`<button type="button" class="ghost be-add" data-pool="${pool.key}">+ Add</button></details>`
+			)
+		}).join("") +
+		`<div class="row" style="justify-content:flex-end;gap:10px;margin-top:12px"><span class="gc-meta be-status"></span>` +
+		`<button type="button" class="primary be-save">Save badges</button></div>`
+	)
+}
+
+// Read the tables back into the document the server validates. Existing rows
+// keep their id (it's in every account's badges); new rows get badgeId(name).
+// Fields the editor doesn't show (themeUnlocks, the _readme notes) come from
+// `base`, the document the editor was built from.
+export function readBadgeEditor(root, base) {
+	const errors = []
+	const out = { ...(base || {}) }
+	for (const pool of BADGE_POOLS) {
+		const list = []
+		for (const tr of root.querySelectorAll(`.be-pool[data-pool="${pool.key}"] tbody tr`)) {
+			const name = tr.querySelector(".be-name").value.trim()
+			if (!name) { errors.push(`${pool.title}: a row has no badge name.`); continue }
+			const id = tr.dataset.id || badgeId(name)
+			if (!id) { errors.push(`${pool.title}: "${name}" needs some letters or digits for its id.`); continue }
+			const desc = tr.querySelector(".be-desc").value.trim()
+			if (pool.kind === "tiers") {
+				const min = Number(tr.querySelector(".be-min").value)
+				list.push({ id, name, min: Number.isInteger(min) ? min : NaN, desc })
+			} else {
+				const triggers = tr.querySelector(".be-triggers").value.split(",").map((t) => t.trim()).filter(Boolean)
+				const combos = tr.querySelector(".be-combos").value.split("\n").map((l) => l.split("+").map((t) => t.trim()).filter(Boolean)).filter((c) => c.length)
+				list.push({ id, name, ...(triggers.length ? { triggers } : {}), ...(combos.length ? { combos } : {}), desc })
+			}
+		}
+		out[pool.key] = list
+	}
+	return { data: out, errors }
+}

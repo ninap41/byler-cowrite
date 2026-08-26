@@ -4295,8 +4295,10 @@ button.danger,
 .bg-set.castlebyers .fortpic {
 	position: absolute;
 	left: 50%;
-	bottom: calc(-4% + 300px);
-	width: min(1550px, 96vw);
+	/* The mound's top is at calc(30% + 200px); the fort's base sits 70px
+	   below it so the walls stand IN the earth rather than on its rim. */
+	bottom: calc(30% + 130px);
+	width: min(1085px, 67vw);
 	aspect-ratio: 1920 / 1072;
 	background: url("/img/castle-byers.svg") center bottom / contain no-repeat;
 	transform: translateX(calc(-50% + 200px)) var(--cb-par, translate3d(0, 0, 0));
@@ -9346,3 +9348,6 @@ html.vcx-live[data-theme="vecna"] #vc-pend {
 .ann-body :is(h1, h2, h3) { margin: 0 0 0.4em; }
 .ann-body p { margin: 0 0 0.8em; }
 .ann-body > :last-child { margin-bottom: 0; }
+
+/* /ranks, admin only: the trigger words under a badge's description */
+.rk-usage .rk-recipe { font-size: 0.8rem; color: var(--muted); margin: 4px 0 0; }

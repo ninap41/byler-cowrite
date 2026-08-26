@@ -1,9 +1,18 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import {
+import { mkdtempSync, cpSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+// setAchievements() WRITES the pack file, so this file runs against a temp
+// copy of content/ — the repo's achievements.json is never touched.
+const contentDir = join(mkdtempSync(join(tmpdir(), "cowrite-ach-")), "content");
+cpSync(new URL("../content", import.meta.url), contentDir, { recursive: true });
+process.env.COWRITE_CONTENT_DIR = contentDir;
+const {
   WORD_TIERS, USAGE, badgeName, isUsageId, usageMatches,
   awardWordBadges, nextTierFor, migrateBadges,
-} from "../lib/achievements.js";
+} = await import("../lib/achievements.js");
 
 // ---- trigger matcher ----
 test("usage matcher: word boundaries block cocktail/peacock", () => {
@@ -79,4 +88,48 @@ test("migrateBadges drops legacy ids and recomputes from wordCount", () => {
   assert.equal(badgeName(v.currentBadge), "🔫 There. Out Loud.");
   // idempotent
   assert.equal(migrateBadges(v), false);
+});
+
+// ---- the live catalogue ----
+test("validateAchievements: ids are slugs and unique, ranks need a 0 rung and word counts, trigger lists are lists", async () => {
+  const { validateAchievements, getAchievements } = await import("../lib/achievements.js");
+  const base = structuredClone(getAchievements());
+  assert.deepEqual(validateAchievements(base), [], "the shipped catalogue validates");
+  assert.ok(validateAchievements(null).length);
+  assert.ok(validateAchievements({ ...base, wordTiers: [] }).some((e) => /at least one rank/.test(e)));
+  assert.ok(validateAchievements({ ...base, wordTiers: base.wordTiers.filter((t) => t.min !== 0) }).some((e) => /start at 0/.test(e)));
+  assert.ok(validateAchievements({ ...base, wordTiers: [...base.wordTiers, { id: "Bad Id", name: "x", min: 1 }] }).some((e) => /valid id/.test(e)));
+  assert.ok(validateAchievements({ ...base, wordTiers: [...base.wordTiers, { id: base.wordTiers[0].id, name: "x", min: 1 }] }).some((e) => /used twice/.test(e)));
+  assert.ok(validateAchievements({ ...base, wordTiers: [...base.wordTiers, { id: "newrank", name: "x", min: "lots" }] }).some((e) => /word count/.test(e)));
+  assert.deepEqual(validateAchievements({ ...base, usage: [...base.usage, { id: "quiet", name: "🤫 Quiet" }] }), [], "a trigger-less badge is legal — it can be awarded by an event");
+  assert.ok(validateAchievements({ ...base, usage: [...base.usage, { id: "quiet", name: "🤫 Quiet", triggers: "shh" }] }).some((e) => /list of words/.test(e)));
+  assert.ok(validateAchievements({ ...base, usage: [...base.usage, { id: "nameless", triggers: ["x"] }] }).some((e) => /needs a name/.test(e)));
+});
+
+test("setAchievements swaps the catalogue in live: a new trigger matches at once, a new rank is on the ladder, and a bad document changes nothing", async () => {
+  const lib = await import("../lib/achievements.js");
+  const before = structuredClone(lib.getAchievements());
+  try {
+    assert.deepEqual(lib.usageMatches("the demogorgon is loose"), []);
+    const next = structuredClone(before);
+    next.usage.push({ id: "demogorgon", name: "👾 Demogorgon", triggers: ["demogorgon"], desc: "Name the monster." });
+    next.wordTiers.push({ id: "eleven", name: "🧇 Eleven", min: 11, desc: "Eleven words." });
+    assert.deepEqual(lib.setAchievements(next), []);
+    assert.deepEqual(lib.usageMatches("the demogorgon is loose"), ["demogorgon"], "the matcher was rebuilt");
+    assert.equal(lib.badgeName("demogorgon"), "👾 Demogorgon");
+    assert.ok(lib.isUsageId("demogorgon"));
+    assert.ok(lib.WORD_TIERS.some((t) => t.id === "eleven"), "the exported binding is live");
+    const u = { wordCount: 12, badges: [] };
+    lib.awardWordBadges(u);
+    assert.ok(u.badges.includes("eleven"), "a new rank awards from the word count");
+    assert.deepEqual(lib.WORD_TIERS.map((t) => t.min), [...lib.WORD_TIERS.map((t) => t.min)].sort((a, b) => a - b), "ranks are kept in ladder order");
+    // a bad document is refused and the live catalogue is untouched
+    const bad = structuredClone(lib.getAchievements());
+    bad.usage.push({ id: "nope" });
+    assert.ok(lib.setAchievements(bad).length);
+    assert.ok(lib.isUsageId("demogorgon") && !lib.isUsageId("nope"));
+  } finally {
+    lib.setAchievements(before);
+    assert.deepEqual(lib.usageMatches("the demogorgon is loose"), []);
+  }
 });

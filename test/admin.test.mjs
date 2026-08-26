@@ -422,3 +422,48 @@ test("GET /api/admin/storage says where the data lives — files under test — 
   assert.ok(r.data.counts.users >= 1 && r.data.counts.content >= 1 && r.data.counts.reference >= 1);
   assert.match(r.data.summary, /^storage: files/);
 });
+
+test("the badge editor: an admin saves the catalogue and a new badge is earned on the very next story line; a normal account can't read or write it", async () => {
+  const { startedGame } = await import("./helpers.mjs");
+  const c = await startServer();
+  try {
+    const admin = await makeAdmin(c, "badgeadmin");
+    const normie = await signup(c, "badgenormie", "bn@example.com");
+    assert.equal((await c.api("/api/admin/achievements", undefined, normie.token)).status, 403);
+    assert.equal((await c.api("/api/admin/achievements", { data: {} }, normie.token, "PUT")).status, 403);
+    const doc = (await c.api("/api/admin/achievements", undefined, admin.token)).data;
+    assert.ok(Array.isArray(doc.wordTiers) && Array.isArray(doc.usage));
+    // a broken catalogue is refused with the reasons
+    const broken = structuredClone(doc);
+    broken.usage.push({ id: "Not A Slug", name: "🚫 Nope" });
+    const bad = await c.api("/api/admin/achievements", { data: broken }, admin.token, "PUT");
+    assert.equal(bad.status, 400);
+    assert.ok(bad.data.errors.some((e) => /valid id/.test(e)));
+    // a new secret badge
+    const next = structuredClone(doc);
+    next.usage.push({ id: "mindflayer", name: "🕷️ Mind Flayer", triggers: ["mind flayer"], desc: "Write the mind flayer into a line." });
+    const ok = await c.api("/api/admin/achievements", { data: next }, admin.token, "PUT");
+    assert.equal(ok.status, 200);
+    assert.ok(ok.data.data.usage.some((b) => b.id === "mindflayer"));
+    // the public catalogue lists it by name only; an admin sees the recipe
+    const pub = await c.api("/api/achievements", undefined, normie.token);
+    const mine = pub.data.usage.find((b) => b.name === "🕷️ Mind Flayer");
+    assert.ok(mine && !("triggers" in mine) && !("desc" in mine), "secret stays secret");
+    assert.equal(pub.data.admin, false);
+    const adm = await c.api("/api/achievements", undefined, admin.token);
+    const seen = adm.data.usage.find((b) => b.name === "🕷️ Mind Flayer");
+    assert.deepEqual(seen.triggers, ["mind flayer"]);
+    assert.equal(seen.desc, "Write the mind flayer into a line.");
+    assert.equal(adm.data.admin, true);
+    // …and it is earned, live, on the next committed line — no restart
+    const { A, B } = await startedGame(c);
+    const toasts = [];
+    A.on("badge-earned", (b) => toasts.push(b));
+    B.on("badge-earned", (b) => toasts.push(b));
+    await c.emit(A, "submit-line", { text: "The mind flayer was waiting in the field." });
+    await c.wait(200);
+    assert.ok(toasts.some((t) => t.badge === "🕷️ Mind Flayer"), "the new badge fired: " + JSON.stringify(toasts.map((t) => t.badge)));
+  } finally {
+    await c.stop();
+  }
+});

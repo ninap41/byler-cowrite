@@ -38,6 +38,10 @@ turns adding one line each under a ticking clock.
   becomes a **suggestion** (`old → new`) that only the author can Accept or
   Reject. Live presence shows who's looking.
 - **Dashboard** — signed in, see who's online and join games in progress.
+- **Admin-editable badges** — `/admin` → Badges edits the rank ladder and the
+  collectible badges (emoji + name, word counts, trigger words and combos,
+  descriptions); saving is live, so a new badge is earned on the next story
+  line. Admins also see every badge's recipe on `/ranks`.
 - **Announcements** — `/announcements`, the admins' blog: anyone signed in
   reads it; only admins see the composer (the shared WYSIWYG — the first
   heading is the post's title) and Delete, and the server enforces the same

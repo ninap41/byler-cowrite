@@ -101,11 +101,18 @@ export function progressHtml(rows, me) {
 // ---- word badges (usage achievements) ----
 // Secret ones ship only a name until earned (the earned desc arrives on the
 // account as badgeDescs); open ones always show their descriptions.
-export function usageBadgeHtml({ name, desc = "", secret = false, earned = false }) {
-	const text = earned || !secret ? desc : "Secret — the right words in a story line unlock it."
-	return `<article class="rk-usage${earned ? " earned" : ""}${secret && !earned ? " mystery" : ""}">
+// `recipe` is the admin's view: the triggers/combos the server only sends
+// an admin, shown under the description so they can see how every badge is
+// earned — the page still keeps secrets from everyone else.
+export const recipeText = ({ triggers = [], combos = [] } = {}) =>
+	[...triggers, ...combos.map((c) => (Array.isArray(c) ? c.join(" + ") : String(c)))].join(" · ")
+
+export function usageBadgeHtml({ name, desc = "", secret = false, earned = false, recipe = null }) {
+	const text = earned || !secret || recipe ? desc : "Secret — the right words in a story line unlock it."
+	const how = recipe && recipeText(recipe) ? `<p class="rk-recipe">🛡️ Unlocks with: ${esc(recipeText(recipe))}</p>` : ""
+	return `<article class="rk-usage${earned ? " earned" : ""}${secret && !earned && !recipe ? " mystery" : ""}">
 		<b>${esc(name)}</b>
-		<p>${esc(text)}</p>
+		<p>${esc(text)}</p>${how}
 		${earned ? '<span class="rk-earned">✓ earned</span>' : ""}
 	</article>`
 }
@@ -113,9 +120,11 @@ export function usageBadgeHtml({ name, desc = "", secret = false, earned = false
 export function usageListHtml({ usage = [], usageOpen = [] }, me = null) {
 	const earnedNames = new Set(me?.badges || [])
 	const descs = me?.badgeDescs || {}
+	// an admin's payload carries desc + triggers on every badge; anyone else's doesn't
+	const recipeOf = (b) => (b.triggers || b.combos ? { triggers: b.triggers || [], combos: b.combos || [] } : null)
 	const cards = [
-		...usage.map((b) => ({ name: b.name, secret: true, earned: earnedNames.has(b.name), desc: descs[b.name] || "" })),
-		...usageOpen.map((b) => ({ name: b.name, secret: false, earned: earnedNames.has(b.name), desc: b.desc || "" })),
+		...usage.map((b) => ({ name: b.name, secret: true, earned: earnedNames.has(b.name), desc: descs[b.name] || b.desc || "", recipe: recipeOf(b) })),
+		...usageOpen.map((b) => ({ name: b.name, secret: false, earned: earnedNames.has(b.name), desc: b.desc || "", recipe: recipeOf(b) })),
 	]
 	return cards.map(usageBadgeHtml).join("")
 }
