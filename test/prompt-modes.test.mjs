@@ -214,7 +214,7 @@ test("a part switched off never reaches the card: toneOff drops the Tone line an
   const { A, state } = await choosing();
   const res = await ctx.emit(A, "set-prompt-mode", {
     mode: "intermediate",
-    controls: { toneId: "angst", toneOff: true, explicitLevel: "explicit", seasonId: "post-canon", kinkOff: "yes" },
+    controls: { toneId: "angst", toneOff: true, situationOff: true, explicitLevel: "explicit", seasonId: "post-canon", kinkOff: "yes" },
   });
   assert.equal(res.ok, true);
   await ctx.wait(120);
@@ -222,6 +222,7 @@ test("a part switched off never reaches the card: toneOff drops the Tone line an
   assert.equal(st.promptControls.toneOff, true);
   assert.equal(st.promptControls.kinkOff, false, "only a real boolean switches a part off");
   assert.equal(st.promptControls.registerId, undefined, "registers are gone from the controls");
-  for (const p of st.options) assert.ok(!p.includes("Tone:"), "no Tone line on the card");
+  assert.equal(st.promptControls.situationOff, true);
+  for (const p of st.options) assert.ok(!p.includes("Tone:") && !p.includes("Situation:"), "no Tone or Situation line on the card");
   for (const m of st.optionMeta.filter(Boolean)) assert.equal(m.labels.tone, undefined, "no tone chip");
 });

@@ -19,7 +19,7 @@ export const GUIDED_FIELDS = [
 	// only shown while Canon is Alternate universe — which world it is
 	{ key: "worldId", suffix: "World", label: "AU world", menu: "worlds", onlyWhen: { canonId: "au" } },
 	{ key: "placeId", suffix: "Place", label: "Place", menu: "places" },
-	{ key: "situationId", suffix: "Situation", label: "Situation", menu: "situations" },
+	{ key: "situationId", suffix: "Situation", label: "Situation", menu: "situations", off: "situationOff" },
 	{ key: "relationshipId", suffix: "Rel", label: "Relationship", menu: "relationships" },
 	// `off` names the control that leaves this part out entirely (a checkbox
 	// beside the label): switched off, the part is never drawn, so it never
@@ -52,6 +52,7 @@ export const DEFAULT_CONTROLS = {
 	dynamicId: "random",
 	actId: "random",
 	kinkId: "random",
+	situationOff: false,
 	toneOff: false,
 	setupOff: false,
 	dynamicOff: false,

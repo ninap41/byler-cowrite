@@ -64,6 +64,7 @@ function cleanPromptControls(c = {}) {
     actId: id(c.actId),
     kinkId: id(c.kinkId),
     // Parts the host switched off: never drawn, never on the card.
+    situationOff: c.situationOff === true,
     toneOff: c.toneOff === true,
     setupOff: c.setupOff === true,
     dynamicOff: c.dynamicOff === true,

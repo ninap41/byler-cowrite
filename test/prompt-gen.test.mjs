@@ -512,3 +512,12 @@ test("switching a part off leaves it out: no Tone line, no tone chip; an explici
   assert.ok(!kinksLine || /Kinks:\s*$/.test(kinksLine) === false, "no empty Kinks line");
   assert.ok(!bare.prompt.split("\n").some((l) => /^\W*Kinks:\s*\S/.test(l) && !/twist/i.test(l)) || true);
 });
+
+test("situationOff leaves the situation out: no line, no chip, no id", () => {
+  const adult = INT.seasons.find((s) => s.ageGroup === "adult").id;
+  const r = generateIntermediatePrompt(INT, { seed: "sit-off", seasonId: adult, situationId: INT.situations[0].id, situationOff: true });
+  assert.ok(!r.prompt.includes("Situation:"));
+  assert.equal(r.selections.situationId, undefined);
+  assert.equal(r.labels.situation, undefined);
+  assert.ok(r.prompt.includes("Relationship:"), "the other axes stay");
+});

@@ -341,7 +341,7 @@ test("a checkbox beside Tone and each explicit part leaves it out: the menu grey
   const pm = mountPromptModes(root, { prefix: "o" }).setMenus(MENUS);
   fire(root.querySelector("#oMode-intermediate"));
   const box = (s) => root.querySelector("#o" + s + "Off");
-  assert.ok(box("Tone") && box("Setup") && box("Dynamic") && box("Act") && box("Kink"), "one checkbox per switchable part");
+  assert.ok(box("Situation") && box("Tone") && box("Setup") && box("Dynamic") && box("Act") && box("Kink"), "one checkbox per switchable part");
   assert.equal(box("Season"), null, "season, canon, place… can't be left out");
   root.querySelector("#oTone").value = "angst";
   fire(root.querySelector("#oTone"), "change");
@@ -355,6 +355,12 @@ test("a checkbox beside Tone and each explicit part leaves it out: the menu grey
   box("Tone").checked = false;
   fire(box("Tone"), "change");
   assert.equal(root.querySelector("#oTone").disabled, false);
+  box("Situation").checked = true;
+  fire(box("Situation"), "change");
+  assert.equal(pm.values().promptControls.situationOff, true);
+  assert.equal(root.querySelector("#oSituation").disabled, true);
+  box("Situation").checked = false;
+  fire(box("Situation"), "change");
   // explicit parts: their boxes wake with the menus, at Explicit
   root.querySelector("#oSeason").value = "post-canon";
   fire(root.querySelector("#oSeason"), "change");
@@ -377,4 +383,13 @@ test("a checkbox beside Tone and each explicit part leaves it out: the menu grey
   const v = pm2.values().promptControls;
   assert.equal(v.toneOff, true);
   assert.equal(v.actOff, true);
+});
+
+test("the off checkbox is drawn from scratch so its mark sits dead centre", async () => {
+  const css = readFileSync(new URL("../public/css/base.css", import.meta.url), "utf-8");
+  const rule = css.match(/\.guided-controls \.pm-off \{[^}]*\}/)?.[0] || "";
+  assert.match(rule, /appearance: none/);
+  assert.match(rule, /display: inline-grid/);
+  assert.match(rule, /place-content: center/);
+  assert.ok(css.includes(".guided-controls .pm-off:checked::before { transform: scale(1); }"));
 });

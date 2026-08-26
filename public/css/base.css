@@ -9387,5 +9387,12 @@ html.vcx-live[data-theme="vecna"] #vc-pend {
 /* a guided knob's label row: the name and, beside it, the checkbox that
    leaves that part out of the prompt entirely */
 .guided-controls .pm-lab { display: inline-flex; align-items: center; gap: 6px; }
-.guided-controls .pm-off { margin: 0; width: 13px; height: 13px; accent-color: var(--accent); cursor: pointer; }
+/* a native checkbox with no appearance reset inherits the site's input
+   styling (padding, border-radius) and its mark drifts off-centre; drawn
+   from scratch it is a box with the mark centred by grid placement */
+.guided-controls .pm-off { appearance: none; -webkit-appearance: none; margin: 0; padding: 0; width: 14px; height: 14px; flex: none; border: 1px solid var(--line); border-radius: 3px; background: var(--panel); display: inline-grid; place-content: center; cursor: pointer; vertical-align: middle; }
+.guided-controls .pm-off::before { content: ""; width: 8px; height: 8px; border-radius: 2px; background: var(--accent); transform: scale(0); transition: transform 0.12s ease; }
+.guided-controls .pm-off:checked { border-color: var(--accent); }
+.guided-controls .pm-off:checked::before { transform: scale(1); }
+.guided-controls .pm-off:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
 .guided-controls select:disabled { opacity: 0.45; }
