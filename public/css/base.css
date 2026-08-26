@@ -9373,8 +9373,11 @@ html.vcx-live[data-theme="vecna"] #vc-pend {
 /* Announcement border (components/tendril-border.js): the card's frame
    draws itself in the theme's accent, then a gradient of accent-2 and ink
    sweeps along the stroke while the glow flashes with it. */
-.card.tendril { position: relative; isolation: isolate; border-radius: 14px; border-color: transparent; padding: 20px 28px 18px; }
-.card.tendril > *:not(.vine) { position: relative; z-index: 1; background: var(--panel); }
+/* the card itself is only the frame's box (the stroke sits 1px in); the content
+   block carries the panel colour and its own padding, rounded to the frame's
+   inner radius and clipped, so the colour never shows outside the stroke */
+.card.tendril { position: relative; isolation: isolate; border-radius: 14px; border-color: transparent; background: transparent; padding: 2px; overflow: hidden; }
+.card.tendril > *:not(.vine) { position: relative; z-index: 1; background: var(--panel); padding: 1rem; border-radius: 12px; overflow: hidden; }
 .card.tendril > .vine { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 0; }
 .vine .vine-line { fill: none; stroke: var(--accent); stroke-width: 1.4; stroke-linecap: round; }
 .vine .vine-glow { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; opacity: 0; filter: blur(5px); }
