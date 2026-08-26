@@ -23,8 +23,8 @@ const MENUS = {
     canon: [{ id: "au", label: "Alternate universe" }, { id: "canon-compliant", label: "Canon-compliant" }],
     worlds: [{ id: "cleradin", label: "Cleradin", tags: ["fantasy", "cleradin"] }, { id: "coffee-shop", label: "coffee shop" }, { id: "college", label: "college", ageGroups: ["adult"] }],
     places: [{ id: "church", label: "Church" }, { id: "nyc", label: "New York City" }],
-    situations: [{ id: "reunion", label: "Reunion" }, { id: "first-meeting", label: "First meeting", tags: ["first-meeting"] }],
-    relationships: [{ id: "pining", label: "Pining", tags: ["not-together"], excludes: ["first-meeting"] }, { id: "exes", label: "Exes", ageGroups: ["adult"], tags: ["exes"], excludes: ["first-meeting"] }],
+    situations: [{ id: "reunion", label: "Reunion", tags: ["reunion"] }, { id: "first-meeting", label: "First meeting", tags: ["first-meeting"] }],
+    relationships: [{ id: "pining", label: "Pining", tags: ["not-together"], excludes: ["first-meeting"] }, { id: "established", label: "Established", tags: ["together"], excludes: ["first-meeting", "reunion"] }, { id: "exes", label: "Exes", ageGroups: ["adult"], tags: ["exes"], excludes: ["first-meeting"] }],
     tones: [{ id: "angst", label: "Angst" }, { id: "fluff", label: "Fluff", tags: ["no-explicit"], excludes: ["explicit"] }],
     setups: [{ id: "hotel", label: "Hotel" }, { id: "car", label: "Car", excludes: ["fantasy"] }],
     dynamics: [{ id: "switch", label: "Switch" }],
@@ -411,4 +411,19 @@ test("First meeting switches the Relationship menu off: every row greyed, the se
   root.querySelector("#fmSituation").value = "reunion";
   fire(root.querySelector("#fmSituation"), "change");
   assert.equal(root.querySelector("#fmRel").disabled, false, "back with any other situation");
+});
+
+test("Reunion greys the couple relationships and drops such a pick back to Random", () => {
+  const root = mount("");
+  const pm = mountPromptModes(root, { prefix: "re" }).setMenus(MENUS);
+  fire(root.querySelector("#reMode-intermediate"));
+  root.querySelector("#reRel").value = "established";
+  fire(root.querySelector("#reRel"), "change");
+  assert.equal(pm.values().promptControls.relationshipId, "established");
+  root.querySelector("#reSituation").value = "reunion";
+  fire(root.querySelector("#reSituation"), "change");
+  assert.equal(root.querySelector('#reRel option[value="established"]').disabled, true);
+  assert.equal(root.querySelector('#reRel option[value="pining"]').disabled, false, "a not-together relationship is still on");
+  assert.equal(pm.values().promptControls.relationshipId, "random", "the impossible pick fell back");
+  assert.equal(root.querySelector("#reRel").disabled, false, "the menu itself stays usable, unlike a first meeting");
 });

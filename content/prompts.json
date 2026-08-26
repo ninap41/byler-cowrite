@@ -526,7 +526,10 @@
 				"id": "reunion",
 				"label": "Reunion",
 				"text": "reunion",
-				"weight": 4
+				"weight": 4,
+				"tags": [
+					"reunion"
+				]
 			},
 			{
 				"id": "crisis",
@@ -596,7 +599,8 @@
 					"new"
 				],
 				"incompatibleTags": [
-					"first-meeting"
+					"first-meeting",
+					"reunion"
 				]
 			},
 			{
@@ -609,7 +613,8 @@
 					"established"
 				],
 				"incompatibleTags": [
-					"first-meeting"
+					"first-meeting",
+					"reunion"
 				]
 			},
 			{
@@ -638,7 +643,8 @@
 					"secret"
 				],
 				"incompatibleTags": [
-					"first-meeting"
+					"first-meeting",
+					"reunion"
 				]
 			}
 		],

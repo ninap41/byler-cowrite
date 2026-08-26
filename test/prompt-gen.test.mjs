@@ -534,6 +534,18 @@ test("a first meeting has no relationship: the line is not dealt, a host's pick 
     assert.equal(r.labels.relationship, undefined, "no chip");
     assert.equal(r.selections.situationId, "first-meeting");
   }
-  const other = generateIntermediatePrompt(INT, { seed: "fm-x", situationId: INT.situations.find((s) => s.id !== "first-meeting").id, relationshipId: "established" });
+  const other = generateIntermediatePrompt(INT, { seed: "fm-x", situationId: INT.situations.find((s) => !(s.tags || []).length).id, relationshipId: "established" });
   assert.equal(other.selections.relationshipId, "established", "any other situation keeps the pick");
+});
+
+test("a reunion never opens on a couple: new couple, established and secret relationship refuse the reunion tag, and a pinned one is dealt around", () => {
+  assert.ok(INT.situations.find((s) => s.id === "reunion").tags.includes("reunion"));
+  for (const id of ["new-couple", "established", "secret-relationship"]) assert.ok(idOf(INT.relationships, id).incompatibleTags.includes("reunion"), id);
+  for (let i = 0; i < 12; i++) {
+    const r = generateIntermediatePrompt(INT, { seed: "reu" + i, situationId: "reunion", relationshipId: "established" });
+    assert.equal(r.selections.situationId, "reunion");
+    assert.ok(!["new-couple", "established", "secret-relationship"].includes(r.selections.relationshipId), r.selections.relationshipId);
+    assert.ok(r.selections.relationshipId, "a relationship is still dealt, just a fitting one");
+  }
+  assert.equal(generateIntermediatePrompt(INT, { seed: "reu-ok", situationId: "reunion", relationshipId: "exes", seasonId: "post-canon" }).selections.relationshipId, "exes", "a fitting pin is honoured");
 });
