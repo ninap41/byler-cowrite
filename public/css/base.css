@@ -862,6 +862,32 @@ a.solo-title:hover {
 		top: 12px;
 		right: 62px;
 	}
+	/* the fixed controls (theme switch, ☰) need their own band on a phone:
+	   without it they sit on the page title */
+	body {
+		padding-top: 72px;
+	}
+}
+/* "Forgot your password? · Forgot your username?": whole links wrap, never a
+   phrase mid-way, and the dot goes when they stack */
+.auth-links {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	align-items: center;
+	gap: 4px 10px;
+}
+.auth-links a {
+	white-space: nowrap;
+}
+@media (max-width: 480px) {
+	.auth-links {
+		flex-direction: column;
+		gap: 8px;
+	}
+	.auth-links .dot {
+		display: none;
+	}
 }
 
 /* ---------- flip-select: the theme switcher's dropdown, reusable ----------
