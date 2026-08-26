@@ -43,6 +43,11 @@ test("an admin posts; a normal account can't; everyone then reads it, newest fir
   // persisted: the file is the store under test
   const doc = JSON.parse(readFileSync(join(ctx.dataDir, "announcements.json"), "utf-8"));
   assert.equal(doc.posts.length, 2);
+  // and every account got a note about each post
+  const ib = await ctx.api("/api/inbox", undefined, normie.token);
+  const notes = ib.data.messages.filter((m) => m.type === "system" && /New announcement/.test(m.text));
+  assert.equal(notes.length, 2);
+  assert.match(notes[0].text, /“Second”/);
 });
 
 test("a post needs words; without a heading the opening words become the title", async () => {

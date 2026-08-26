@@ -567,13 +567,21 @@ a.rg-row {
 	transform: rotate(-90deg);
 }
 
-/* the reply composer, at the foot of a conversation — always open, because a
-   thread you can answer should not need a button pressed before you can type */
+/* the reply composer, at the foot of a conversation — folded until the row's
+   Reply button opens it */
 .ib-reply {
 	display: flex;
 	flex-direction: column;
 	gap: 6px;
 	margin-top: 8px;
+}
+.ib-reply.hidden {
+	display: none;
+}
+/* a friend request is answered under its words: Accept / Decline */
+.ib-acts.ib-answer {
+	margin-top: 8px;
+	justify-content: flex-start;
 }
 /* The message boxes are fixed-size on purpose: a drag handle in a card this
    narrow only ever breaks the layout, and the rows already size themselves. */

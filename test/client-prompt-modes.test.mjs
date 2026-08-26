@@ -372,6 +372,16 @@ test("a checkbox beside Tone and each explicit part leaves it out: the menu grey
   root.querySelector("#oExplicit").value = "explicit";
   fire(root.querySelector("#oExplicit"), "change");
   assert.equal(box("Kink").disabled, false);
+  // Setup has its own off switch, live with the level like the rest
+  assert.ok(box("Setup"), "a Setup off box exists");
+  assert.equal(box("Setup").disabled, false, "enabled once Explicit is chosen");
+  box("Setup").checked = true;
+  fire(box("Setup"), "change");
+  assert.equal(pm.values().promptControls.setupOff, true);
+  assert.equal(root.querySelector("#oSetup").disabled, true, "its menu greys while off");
+  box("Setup").checked = false;
+  fire(box("Setup"), "change");
+  assert.equal(root.querySelector("#oSetup").disabled, false, "and wakes when switched back on");
   box("Kink").checked = true;
   fire(box("Kink"), "change");
   c = pm.values().promptControls;

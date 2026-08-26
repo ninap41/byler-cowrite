@@ -168,7 +168,7 @@ test("a conversation carries an open composer; system notes carry none", () => {
   const from = { username: "ninaadmin", color: "#6c8cff", badge: "", avatar: "", avatarFit: "cover" };
   const row = inboxMsgHtml({ id: "1", type: "note", text: "hello", read: true, ts: Date.now(), from });
   assert.ok(row.includes("ib-reply"), "the composer ships with the row");
-  assert.ok(!row.includes("ib-reply hidden"), "already open: there is no Reply button to press");
+  assert.ok(row.includes("ib-reply hidden"), "folded until Reply is pressed");
   assert.ok(row.includes("<textarea"), "an inline textarea, not a browser prompt");
   assert.ok(row.includes("ib-reply-send"), "send");
   assert.ok(!row.includes("ib-reply-cancel"), "and no cancel: nothing to close");
@@ -184,6 +184,8 @@ test("a conversation carries an open composer; system notes carry none", () => {
 
   const system = inboxMsgHtml({ id: "2", type: "system", text: "welcome", read: true, ts: Date.now(), from: null });
   assert.ok(!system.includes("ib-reply"), "there is nobody to answer a system note");
+  const fr = inboxMsgHtml({ id: "3", type: "friend-request", text: "wants to be friends", read: false, ts: 1, from });
+  assert.ok(!fr.includes("ib-reply"), "a friend request is answered with Accept/Decline, not words");
 });
 
 test("a preview row carries no composer at all, replies live in the inbox", () => {

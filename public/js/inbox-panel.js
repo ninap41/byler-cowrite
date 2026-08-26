@@ -52,10 +52,10 @@ export function mountInbox({ list, unreadChip, readAllBtn, moreLink, limit = 0, 
 		if (!box) return
 		// the row itself marks-as-read on click; typing must not count
 		box.addEventListener("click", (e) => e.stopPropagation())
-		// Escape clears what you were writing, Ctrl/Cmd+Enter sends — the
-		// composer has no Cancel because there is nothing to close.
+		// Escape clears what you were writing and folds the composer away,
+		// Ctrl/Cmd+Enter sends.
 		text.addEventListener("keydown", (e) => {
-			if (e.key === "Escape") return clearReply(row)
+			if (e.key === "Escape") { clearReply(row); box.classList.add("hidden"); return }
 			if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) send.click()
 		})
 		send.onclick = async (e) => {
@@ -67,6 +67,7 @@ export function mountInbox({ list, unreadChip, readAllBtn, moreLink, limit = 0, 
 			try {
 				await api("/api/inbox/reply", { id: target.id, text: body })
 				clearReply(row)
+				box.classList.add("hidden")
 				reload() // the reply joins the chain; the original is read server-side
 			} catch (err) {
 				msg.textContent = err.message
@@ -102,11 +103,13 @@ export function mountInbox({ list, unreadChip, readAllBtn, moreLink, limit = 0, 
 			if (folds && !shownOpen) row.classList.add("ib-collapsed")
 			row.innerHTML = inboxMsgHtml(m, {
 				fold: folds,
-				reply: replies && !!t.replyTo,
+				// a friend request is answered with Accept/Decline, not words
+				reply: replies && !!t.replyTo && m.type !== "friend-request",
 				chain: replies ? t.messages.slice(1) : [],
 				replyTo: t.replyTo, // the composer answers whoever spoke last
 			})
-			if (replies && t.replyTo) wireReply(row, t.replyTo)
+			const canReply = replies && !!t.replyTo && m.type !== "friend-request"
+			if (canReply) wireReply(row, t.replyTo)
 			const fold = row.querySelector(".ib-fold")
 			if (fold) {
 				const paint = () => {
@@ -148,6 +151,8 @@ export function mountInbox({ list, unreadChip, readAllBtn, moreLink, limit = 0, 
 					act(() => api("/api/friends/respond", { id: m.id, accept: false }))
 				}
 				acts.append(yes, no)
+				acts.classList.add("ib-answer")
+				row.querySelector(".ib-info")?.appendChild(acts) // under the message, not beside it
 			} else {
 				if (m.type === "game-invite" && m.code) {
 					const go = document.createElement("button")
@@ -159,9 +164,25 @@ export function mountInbox({ list, unreadChip, readAllBtn, moreLink, limit = 0, 
 					}
 					acts.append(go)
 				}
-				// There is no Reply button: the composer is already at the foot of
-				// any conversation that can be answered (see wireReply above), so
-				// the only action left on a card is to be rid of it.
+				// Reply unfolds the composer at the foot of the conversation; it
+				// stays folded until asked for, so a list of messages reads as a
+				// list and not as a wall of empty boxes.
+				if (canReply) {
+					const rep = document.createElement("button")
+					rep.className = "ghost ib-reply-btn"
+					rep.textContent = "Reply"
+					rep.onclick = (e) => {
+						e.stopPropagation()
+						const { box, text } = replyParts(row)
+						if (!box) return
+						box.classList.toggle("hidden")
+						if (!box.classList.contains("hidden")) {
+							row.classList.remove("ib-collapsed")
+							text.focus()
+						}
+					}
+					acts.append(rep)
+				}
 				const del = document.createElement("button")
 				del.className = "ghost ib-del"
 				del.title = replies && t.messages.length > 1 ? "Delete conversation" : "Delete"

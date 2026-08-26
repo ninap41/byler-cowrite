@@ -170,3 +170,22 @@ test("pending join request survives host churn: handoff + host rejoin replay it"
   A2.disconnect();
   D.disconnect();
 });
+
+test("the original host whose seat expired re-enters a started game directly, as host", async () => {
+  // a short ghost window so the host's seat is really gone, not a ghost
+  const ctx2 = await startServer({ COWRITE_GHOST_MS: "150" });
+  try {
+    const { host, A, B, code } = await startedGame(ctx2);
+    A.disconnect(); // host leaves; the seat ghosts, then is removed
+    await new Promise((r) => setTimeout(r, 600));
+    const H = await ctx2.conn();
+    const r = await ctx2.emit(H, "join-session", { code, auth: host.token });
+    assert.equal(r.ok, true, r.error);
+    assert.equal(r.pending, undefined, "never asked to let themselves in");
+    assert.equal(r.hostId, H.id, "and hosts again");
+    H.disconnect();
+    B.disconnect();
+  } finally {
+    await ctx2.stop?.();
+  }
+});

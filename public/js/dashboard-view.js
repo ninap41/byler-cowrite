@@ -93,7 +93,7 @@ export function inboxMsgHtml(m, { reply = true, chain = [], replyTo = m, fold = 
 		`<span class="ib-text">${esc(m.text)}</span>` +
 		(fold && chain.length ? foldBtnHtml(chain.length) : "") +
 		(chain.length ? `<span class="ib-chain">${chain.map(chainMsgHtml).join("")}</span>` : "") +
-		(reply && replyTo?.from ? replyBoxHtml(replyTo) : "") +
+		(reply && replyTo?.from && m.type !== "friend-request" ? replyBoxHtml(replyTo) : "") +
 		`</span>`
 	)
 }
@@ -153,15 +153,16 @@ export function threadInbox(messages = []) {
 		.sort((a, b) => b.ts - a.ts)
 }
 
-// The reply composer, at the foot of the conversation it belongs to. It is
-// simply THERE — a thread you can answer shows the box, the way a chat does;
-// there is no Reply button to press first. Only messages from a real person
-// get one (there's nobody to answer a system note), and only /inbox builds
-// them at all. The page finds its parts by class within the row, so nothing
+// The reply composer, at the foot of the conversation it belongs to. It
+// ships folded (`hidden`) and the row's Reply button unfolds it — a message
+// is a note first and a conversation only once you choose to answer. Only
+// messages from a real person get one (there's nobody to answer a system
+// note), never a friend request (Accept/Decline is the answer), and only
+// /inbox builds them at all. The page finds its parts by class within the row, so nothing
 // here needs an id (ids would collide across rows).
 export function replyBoxHtml(m) {
 	return (
-		`<span class="ib-reply">` +
+		`<span class="ib-reply hidden">` +
 		`<textarea class="ib-reply-text" rows="2" maxlength="1000" ` +
 		`placeholder="Reply to ${esc(m.from.username)}…"></textarea>` +
 		`<span class="ib-reply-row">` +

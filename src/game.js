@@ -82,7 +82,7 @@ const CHAT_LIMIT = 200;
 const MAX_OPTIONS = 8;
 // Disconnected writers linger as reclaimable "ghosts" this long. The client
 // holds {code, token} in localStorage and rejoins via `rejoin-session`.
-const GHOST_MS = 90_000;
+const GHOST_MS = Number(process.env.COWRITE_GHOST_MS) || 90_000;
 // A denied join request can't retry for this long (anti-spam).
 // Keyed by account id — every writer is signed in.
 const DENY_COOLDOWN_MS = 5 * 60_000;
@@ -819,7 +819,7 @@ export function createGame(io) {
     w.approved = true;
     // The original host reclaims the role on return; otherwise the first
     // person back into a rehydrated game hosts until they do.
-    if (w.token === s.hostToken || !s.writers.has(s.hostId)) s.hostId = sock.id;
+    if (w.token === s.hostToken || (w.userId != null && w.userId === s.hostUserId) || !s.writers.has(s.hostId)) s.hostId = sock.id;
     sock.data.joinedCode = s.code;
     joinAsWriter(sock, s);
     ack?.({ ok: true, code: s.code, hostId: s.hostId, name: w.name, color: w.color, phase: s.phase, token: w.token });
@@ -845,7 +845,10 @@ export function createGame(io) {
   // hasn't been re-approved yet becomes a pending request instead of seating.
   function gateOrSeat(sock, s, oldId, w, ack) {
     const hostConnected = io.sockets.sockets.has(s.hostId) && s.writers.get(s.hostId)?.connected;
-    const isTrueHost = w.token === s.hostToken;
+    // the true host by device token OR by account: a host who continues a
+    // story from another device (or after a save that predates their token)
+    // must never be asked to let themselves in
+    const isTrueHost = w.token === s.hostToken || (w.userId != null && w.userId === s.hostUserId);
     const isMod = isAdmin(store.users.find((u) => u.id === w.userId));
     if (s.gated && !w.approved && !isTrueHost && !isMod && hostConnected) {
       const key = w.userId;
@@ -916,7 +919,10 @@ export function createGame(io) {
       // re-enter a running game by code — their account finds the seat.
       const mine = seatByAccount(s, auth);
       if (mine) return gateOrSeat(socket, s, mine[0], mine[1], ack);
-      if (s.phase !== "waiting" && !isAdmin(acct)) {
+      // The ORIGINAL host with no seat left (an old save, a seat that was
+      // removed) is still the host: seated straight in, never gated.
+      const isOrigHost = s.hostUserId != null && acct.id === s.hostUserId;
+      if (s.phase !== "waiting" && !isAdmin(acct) && !isOrigHost) {
         // Started games are gated: a NEW writer needs the host to let them in.
         // Admins are the exception — moderating a game means getting into it.
         const hostSock = io.sockets.sockets.get(s.hostId);
@@ -932,6 +938,7 @@ export function createGame(io) {
       const w = newWriter(acct);
       w.approved = true;
       s.writers.set(socket.id, w);
+      if (isOrigHost) { s.hostId = socket.id; s.hostToken = w.token; }
       if (s.phase === "choosing" || s.phase === "writing") s.turnOrder.push(socket.id);
       socket.data.joinedCode = code;
       joinAsWriter(socket, s);

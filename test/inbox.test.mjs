@@ -106,10 +106,10 @@ test("the dashboard holds no messages at all; /inbox holds the conversation", as
   assert.match(inbox, /mountInbox/, "the inbox page keeps the whole panel");
   // and the module honors it: no composer markup, no Reply button, no chain
   const panel = await fetch(ctx.url + "/js/inbox-panel.js").then((r) => r.text());
-  assert.match(panel, /reply: replies && !!t\.replyTo/, "the composer is only built where replies live");
+  assert.match(panel, /reply: replies && !!t\.replyTo && m\.type !== "friend-request"/, "the composer is only built where replies live, never on a friend request");
   assert.match(panel, /chain: replies \? t\.messages\.slice\(1\) : \[\]/, "and so is the chain");
-  assert.ok(!/textContent = "Reply"/.test(panel), "there is no Reply button anywhere, the box is simply there");
-  assert.match(panel, /if \(replies && t\.replyTo\) wireReply/, "the open composer is wired instead");
+  assert.match(panel, /textContent = "Reply"/, "a Reply button unfolds the folded composer");
+  assert.match(panel, /if \(canReply\) wireReply/, "which is wired only where it can answer");
   assert.match(panel, /ib-compact/, "the preview row is marked as the compact one");
 });
 

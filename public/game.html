@@ -148,6 +148,17 @@
 								<div class="players-row" id="playersRow"></div>
 								<p class="subtle" id="specCount" style="margin: 8px 0 0"></p>
 							</div>
+							<!-- invite a friend: an inbox note with the code (and a live
+							     toast if they're online). Friends only, host only — it sits
+							     beside the game, where the people are, not in the settings. -->
+							<div class="side-sec hidden" id="inviteSec">
+								<h4>Invite a friend</h4>
+								<div class="chat-row">
+									<select id="inviteFriend" aria-label="Friend to invite"><option value="">Loading friends…</option></select>
+									<button class="ghost" id="inviteBtn" style="flex: 0 0 auto; min-width: auto">Invite</button>
+								</div>
+								<p class="subtle hidden" id="inviteNote" style="text-align: left; margin: 6px 0 0"></p>
+							</div>
 							<div id="doomFx" aria-hidden="true">
 								<img class="doom-img" src="/img/demogorgon.gif" alt="" />
 								<span class="doom-text">Running out of time</span>
@@ -187,14 +198,6 @@
 										<button class="ghost" id="coverBtn2" style="flex: 0 0 auto; min-width: auto">Set</button>
 									</div>
 									<img id="coverPreview2" class="cover-preview hidden" alt="Cover preview" loading="lazy" />
-									<!-- invite a friend: an inbox note with the code (and a live
-									     toast if they're online). Friends only, host only. -->
-									<label for="inviteFriend" style="margin-top: 10px">Invite a friend</label>
-									<div class="chat-row">
-										<select id="inviteFriend" aria-label="Friend to invite"><option value="">Loading friends…</option></select>
-										<button class="ghost" id="inviteBtn" style="flex: 0 0 auto; min-width: auto">Invite</button>
-									</div>
-									<p class="subtle hidden" id="inviteNote" style="text-align: left; margin: 6px 0 0"></p>
 								</div>
 							</div>
 						</aside>
@@ -936,6 +939,7 @@
 				// One condition, three places: the drawer, the tab that opens it,
 				// and the two live actions in the session bar.
 				$("hostSide").classList.toggle("hidden", !host)
+				$("inviteSec").classList.toggle("hidden", !host)
 				$("hostOpen").classList.toggle("hidden", !host || hostDrawer.open)
 				$("hostGame").classList.toggle("hidden", !host)
 				liveRules.set(st)

@@ -301,7 +301,8 @@ test("the inbox reply composer is inline markup on the page, not a browser promp
   const body = await fetch(ctx.url + "/js/inbox-panel.js").then((r) => r.text());
   assert.ok(!body.includes("window.prompt"), "no modal prompt anywhere in the inbox");
   assert.ok(body.includes("ib-reply-send"), "the composer is wired")
-  assert.ok(!body.includes("Reply\"") && !body.includes("ib-reply-cancel"), "no Reply button, no Cancel, the box is simply there");
+  assert.ok(body.includes('textContent = "Reply"'), "a Reply button unfolds the composer");
+  assert.ok(!body.includes("ib-reply-cancel"), "Escape folds it, so no Cancel");
   assert.ok(body.includes("/api/inbox/reply"), "wired to the reply route");
   assert.ok(body.includes('e.key === "Escape"'), "Escape clears it");
   assert.ok(body.includes("metaKey || e.ctrlKey"), "and Ctrl/Cmd+Enter sends");

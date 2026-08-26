@@ -1023,6 +1023,13 @@ export function registerRoutes(app, game) {
     if (!requireAdmin(req, res)) return;
     const r = addPost({ html: req.body?.html }, authedUser(req));
     if (r.error) return res.status(400).json({ error: r.error });
+    // every account hears about it: a system note in each inbox naming the
+    // post, so nobody has to check /announcements to learn there is one
+    for (const u of store.users) {
+      u.inbox = u.inbox || [];
+      u.inbox.unshift(makeMsg("system", null, `📣 New announcement: “${r.post.title}” — read it on /announcements.`));
+    }
+    saveStore();
     res.json({ ok: true, post: r.post });
   });
   app.delete("/api/admin/announcements/:id", (req, res) => {
