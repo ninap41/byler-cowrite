@@ -185,7 +185,13 @@ other. The Reserved VM keeps every player and every room on one instance.
   npm run reseed-content            # or: npm run reseed-content -- reference
   ```
   against the deployment's `DATABASE_URL` (Replit's shell has it), then
-  restart. Deploys that touch only code need nothing.
+  restart. Deploys that touch only code need nothing. The script overwrites,
+  so any `/admin` edit made in production is replaced by the repo's copy.
+- **Backing up the live pack** goes the other way: the *Content backup*
+  section at the foot of `/admin` (⬇ Download content) zips every content
+  and writers'-reference document as the database holds them, in the repo's
+  own layout (`content/`, `writers-reference/`). Unzip it over the repo to
+  keep production's edits, commit, and `npm run reseed-content` puts them back.
 - A deploy that was using the older file-mirror version of this app upgrades
   seamlessly: same table, same keys.
 - Without `DATABASE_URL` (local dev, `npm test`) the files are the store and
