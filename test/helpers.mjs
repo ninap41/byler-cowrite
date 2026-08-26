@@ -28,6 +28,7 @@ export async function startServer(extraEnv = {}) {
       cwd: ROOT,
       env: {
         ...process.env,
+        DATABASE_URL: "", // a developer's shell must never point the suite at real Postgres
         PORT: String(port),
         COWRITE_DATA_DIR: dataDir,
         COWRITE_SAVE_DIR: saveDir,

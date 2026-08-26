@@ -6,7 +6,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "node --test \"test/**/*.test.mjs\""
+    "test": "node --test \"test/**/*.test.mjs\"",
+    "reseed-content": "node scripts/reseed-content.mjs"
   },
   "dependencies": {
     "express": "^4.21.2",

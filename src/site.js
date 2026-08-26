@@ -3,8 +3,7 @@
 // without touching a page. Pages carry {{SITE_NAME}} / {{FANDOM}} / {{TAGLINE}}
 // / {{BLURB}} tokens which renderPage() fills when the server serves them;
 // client modules read the name from the <meta name="site-name"> it injects.
-import { readFileSync } from "fs";
-import { contentPath } from "./content.js";
+import { readContent } from "./content.js";
 
 const DEFAULTS = {
   fandom: "Cowrite",
@@ -14,8 +13,7 @@ const DEFAULTS = {
 };
 
 function load() {
-  let raw = {};
-  try { raw = JSON.parse(readFileSync(contentPath("site.json"), "utf-8")); } catch { /* fall back */ }
+  const raw = readContent("site.json") || {};
   const out = { ...DEFAULTS };
   for (const k of Object.keys(DEFAULTS)) {
     if (typeof raw[k] === "string" && raw[k].trim()) out[k] = raw[k].trim().slice(0, 200);

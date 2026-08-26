@@ -6,16 +6,13 @@
 //
 // The bank is editable from /admin: setReferenceGroup() rewrites ONE group's
 // data file (categories + words, keys kept, the `root` wrapper honoured) and
-// reloads the bundle, so the next palette open serves the edit. The write is
-// mirrored like the prompt library (kind "reference"), restored at boot but
-// never seeded, so an unedited bank keeps following the repo.
-import { readFileSync, writeFileSync } from "fs";
-import { fileURLToPath } from "url";
-import { dirname, join } from "path";
-import { mirror } from "./persist.js";
+// reloads the bundle, so the next palette open serves the edit. Files are
+// read and written through src/storage.js (kind "reference", name = the
+// manifest path minus "./" and ".json"), so on Replit the bank lives in the
+// database — seeded from the repo on first boot, the database's copy after.
+import { storage, getJson } from "./storage.js";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-export const REF_DIR = process.env.COWRITE_REF_DIR || join(__dirname, "..", "writers-reference");
+const refName = (path) => String(path).replace(/^\.\//, "").replace(/\.json$/, "");
 
 // pining_and_tension -> "Pining and tension"
 const label = (key) => {
@@ -31,12 +28,9 @@ export const slugKey = (s) =>
   String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 60);
 
 function readManifest() {
-  try {
-    return JSON.parse(readFileSync(join(REF_DIR, "index.json"), "utf-8"));
-  } catch (e) {
-    console.error("reference: index.json unreadable —", e.message);
-    return null;
-  }
+  const m = getJson("reference", "index");
+  if (!m) console.error("reference: index.json unreadable");
+  return m;
 }
 
 function loadBundle() {
@@ -46,7 +40,8 @@ function loadBundle() {
   for (const [slug, meta] of Object.entries(manifest)) {
     if (slug.startsWith("!") || !meta || typeof meta !== "object" || !meta.path) continue;
     try {
-      const raw = JSON.parse(readFileSync(join(REF_DIR, meta.path), "utf-8"));
+      const raw = getJson("reference", refName(meta.path));
+      if (!raw) throw new Error("missing");
       const body = meta.root ? raw[meta.root] : raw;
       if (!body || typeof body !== "object") throw new Error("no categories");
       const categories = Object.entries(body)
@@ -87,14 +82,12 @@ export function setReferenceGroup(slug, categories) {
   if (errors.length) return errors;
   let out = body;
   if (meta.root) {
-    let raw = {};
-    try { raw = JSON.parse(readFileSync(join(REF_DIR, meta.path), "utf-8")); } catch { /* fresh */ }
+    const raw = getJson("reference", refName(meta.path)) || {};
     out = { ...raw, [meta.root]: body };
   }
   const json = JSON.stringify(out, null, "\t") + "\n";
   try {
-    writeFileSync(join(REF_DIR, meta.path), json);
-    mirror("reference", String(meta.path).replace(/^\.\//, "").replace(/\.json$/, ""), json);
+    storage.put("reference", refName(meta.path), json);
   } catch (e) {
     return ["Couldn't write the reference file: " + e.message];
   }

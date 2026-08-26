@@ -1,9 +1,8 @@
 // All HTTP API routes: accounts, profiles, achievements metadata, the
 // dashboard payload, and the private previous-games archive.
-import { readFileSync, readdirSync } from "fs";
 import { randomUUID } from "crypto";
-import { join } from "path";
-import { contentPath } from "./content.js";
+import { readContent } from "./content.js";
+import { storage, describeStorage } from "./storage.js";
 import { SITE } from "./site.js";
 import { getPromptData, setPromptData } from "./game.js";
 import { WORD_TIERS, USAGE, USAGE_OPEN, badgeName, awardWordBadges, themeLocks, unlockedThemes, gimmickLocks, unlockedGimmicks } from "../lib/achievements.js";
@@ -52,17 +51,13 @@ async function sendResetEmail(to, link) {
 }
 
 export function registerRoutes(app, game) {
-  const { sessions, onlineSockets, SAVE_DIR, gameSummary, freshStory, inGame, myGamesFor, recentGamesFor, deleteGame, endGameByCode, sleepGameByCode, inviteToGame, renameUser, setTags, commentRows, closeDocFor, closeDocReaders } = game;
+  const { sessions, onlineSockets, readSnapshot, allSnapshots, gameSummary, freshStory, inGame, myGamesFor, recentGamesFor, deleteGame, endGameByCode, sleepGameByCode, inviteToGame, renameUser, setTags, commentRows, closeDocFor, closeDocReaders } = game;
 
   // Random tagline quote for the homepage hero. content/quotes.json (one
-  // string per entry) is hand-editable and re-read on every request, so new
+  // string per entry) is hand-editable and read on every request, so new
   // quotes appear without a restart. Public — the homepage has no auth.
-  const QUOTES_PATH = contentPath("quotes.json");
   const readQuotes = () => {
-    let quotes = [];
-    try {
-      quotes = JSON.parse(readFileSync(QUOTES_PATH, "utf-8"));
-    } catch { /* missing/invalid file -> fall through to default */ }
+    let quotes = readContent("quotes.json");
     if (!Array.isArray(quotes) || !quotes.length)
       quotes = ["If we're both going crazy, we might as well write it down."];
     return quotes.map(String);
@@ -396,10 +391,8 @@ export function registerRoutes(app, game) {
     const hosted = [];
     const contributed = [];
     let lastLine = null; // the newest story line this user committed, as plain text
-    for (const f of readdirSync(SAVE_DIR)) {
-      if (!f.endsWith(".json")) continue;
-      try {
-        const d = JSON.parse(readFileSync(join(SAVE_DIR, f), "utf-8"));
+    for (const d of allSnapshots()) {
+      {
         const isHost = d.hostUserId === u.id;
         if (!isHost && !(d.writers || []).some((w) => w.userId === u.id)) continue;
         const live = sessions.get(d.code);
@@ -414,7 +407,7 @@ export function registerRoutes(app, game) {
             const text = stripTags(String(l.html || "")).trim().slice(0, 220);
             if (text) lastLine = { text, code: d.code, name: d.name || "", savedAt: d.savedAt || 0 };
           }
-      } catch { /* skip unreadable snapshot */ }
+      }
     }
     hosted.sort((a, b) => b.savedAt - a.savedAt);
     contributed.sort((a, b) => b.savedAt - a.savedAt);
@@ -702,16 +695,14 @@ export function registerRoutes(app, game) {
     const page = Math.max(1, Number(req.query.page) || 1);
     const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 12));
     const all = [];
-    for (const f of readdirSync(SAVE_DIR)) {
-      if (!f.endsWith(".json")) continue;
-      try {
-        const d = JSON.parse(readFileSync(join(SAVE_DIR, f), "utf-8"));
+    for (const d of allSnapshots()) {
+      {
         // "title" is what the cards show: the host-set name, else the prompt
         if (q && !`${d.name || ""} ${d.prompt || ""}`.toLowerCase().includes(q)) continue;
         if (tag && !(d.tags || []).some((t) => String(t).toLowerCase() === tag)) continue;
         if (forUser && !inGame(d, forUser) && d.hostUserId !== forUser.id) continue;
         all.push({ ...gameSummary(d), kind: "game", wordCount: storyWordCount(d) });
-      } catch { /* skip unreadable snapshot */ }
+      }
     }
     // Public solo writes are listed here too — "public" means listed, not
     // merely reachable by link. Private and reader-shared ones never appear
@@ -740,13 +731,10 @@ export function registerRoutes(app, game) {
     if (!authedUser(req)) return res.status(401).json({ error: "Sign in first." });
     const code = String(req.params.code || "").toUpperCase();
     if (!CODE_RE.test(code)) return res.status(400).json({ error: "Bad code." });
-    try {
-      // Story html in snapshots already passed through sanitizeRich() when written.
-      const d = JSON.parse(readFileSync(join(SAVE_DIR, code + ".json"), "utf-8"));
-      res.json({ ...gameSummary(d), wordCount: storyWordCount(d), story: freshStory(d.story) });
-    } catch {
-      res.status(404).json({ error: "Not found." });
-    }
+    // Story html in snapshots already passed through sanitizeRich() when written.
+    const d = readSnapshot(code);
+    if (!d) return res.status(404).json({ error: "Not found." });
+    res.json({ ...gameSummary(d), wordCount: storyWordCount(d), story: freshStory(d.story) });
   });
 
   // ---- Solo writes ----
@@ -970,6 +958,15 @@ export function registerRoutes(app, game) {
   // file. The editor edits a group at a time: PUT replaces that group's
   // categories whole (a category emptied is a category removed) and the next
   // palette open serves it — no restart, mirrored like the prompt library.
+  // Where the data lives and whether writes are landing: "files" locally,
+  // "postgres" on Replit. lastError surfaces a failed upsert that would
+  // otherwise only be a server log line.
+  app.get("/api/admin/storage", (req, res) => {
+    const u = authedUser(req);
+    if (!isAdmin(u)) return res.status(403).json({ error: "Admins only." });
+    res.json({ mode: storage.mode, counts: storage.counts(), seeded: storage.seeded, lastError: storage.lastError, summary: describeStorage() });
+  });
+
   app.get("/api/admin/reference", (req, res) => {
     if (!requireAdmin(req, res)) return;
     res.json(getReference());
@@ -998,12 +995,8 @@ export function registerRoutes(app, game) {
     if (!u) return res.status(401).json({ error: "Sign in first." });
     const code = String(req.params.code || "").toUpperCase();
     if (!CODE_RE.test(code)) return res.status(400).json({ error: "Bad code." });
-    let d;
-    try {
-      d = JSON.parse(readFileSync(join(SAVE_DIR, code + ".json"), "utf-8"));
-    } catch {
-      return res.status(404).json({ error: "Not found." });
-    }
+    const d = readSnapshot(code);
+    if (!d) return res.status(404).json({ error: "Not found." });
     if (d.hostUserId !== u.id && !isAdmin(u)) return res.status(403).json({ error: "Only the host can end this story." });
     if (!endGameByCode(code, u)) return res.status(409).json({ error: "That story is already over." });
     res.json({ ok: true });
@@ -1046,20 +1039,18 @@ export function registerRoutes(app, game) {
     res.json({ ok: true });
   });
 
-  // ---- Previous-games archive (read-only, backed by saves/*.json snapshots) ----
-  // No database on purpose: saveSnapshot() already persists every paused/finished
-  // game to disk, so the archive is just a directory listing + file reads.
+  // ---- Previous-games archive (read-only, backed by the save/<CODE> snapshots) ----
+  // saveSnapshot() already persists every paused/finished game, so the archive
+  // is just a listing of those snapshots.
 
   app.get("/api/games", (req, res) => {
     const u = authedUser(req);
     if (!u) return res.status(401).json({ error: "Sign in to see your previous games." });
     const out = [];
-    for (const f of readdirSync(SAVE_DIR)) {
-      if (!f.endsWith(".json")) continue;
-      try {
-        const d = JSON.parse(readFileSync(join(SAVE_DIR, f), "utf-8"));
+    for (const d of allSnapshots()) {
+      {
         if (inGame(d, u)) out.push({ ...gameSummary(d), hosted: d.hostUserId === u.id });
-      } catch { /* skip unreadable snapshot */ }
+      }
     }
     out.sort((a, b) => b.savedAt - a.savedAt);
     res.json(out);
@@ -1072,12 +1063,8 @@ export function registerRoutes(app, game) {
     if (!u) return res.status(401).json({ error: "Sign in first." });
     const code = String(req.params.code || "").toUpperCase();
     if (!CODE_RE.test(code)) return res.status(400).json({ error: "Bad code." });
-    let d;
-    try {
-      d = JSON.parse(readFileSync(join(SAVE_DIR, code + ".json"), "utf-8"));
-    } catch {
-      return res.status(404).json({ error: "Not found." });
-    }
+    const d = readSnapshot(code);
+    if (!d) return res.status(404).json({ error: "Not found." });
     if (!inGame(d, u) && d.hostUserId !== u.id && !isAdmin(u))
       return res.status(403).json({ error: "Only this story's writers can edit its tags." });
     const seen = new Set();
@@ -1095,12 +1082,8 @@ export function registerRoutes(app, game) {
     if (!u) return res.status(401).json({ error: "Sign in first." });
     const code = String(req.params.code || "").toUpperCase();
     if (!CODE_RE.test(code)) return res.status(400).json({ error: "Bad code." });
-    let d;
-    try {
-      d = JSON.parse(readFileSync(join(SAVE_DIR, code + ".json"), "utf-8"));
-    } catch {
-      return res.status(404).json({ error: "Not found." });
-    }
+    const d = readSnapshot(code);
+    if (!d) return res.status(404).json({ error: "Not found." });
     if (d.hostUserId !== u.id && !isAdmin(u))
       return res.status(403).json({ error: "Only the host can delete this story." });
     deleteGame(code, u); // the other writers hear who did it (inbox note)
@@ -1112,13 +1095,10 @@ export function registerRoutes(app, game) {
     if (!u) return res.status(401).json({ error: "Sign in to see your previous games." });
     const code = String(req.params.code || "").toUpperCase();
     if (!CODE_RE.test(code)) return res.status(400).json({ error: "Bad code." });
-    try {
-      // Story html in snapshots already passed through sanitizeRich() when written.
-      const d = JSON.parse(readFileSync(join(SAVE_DIR, code + ".json"), "utf-8"));
-      if (!inGame(d, u) && !isAdmin(u)) return res.status(403).json({ error: "That game isn't yours to view." });
-      res.json({ ...gameSummary(d), story: freshStory(d.story) });
-    } catch {
-      res.status(404).json({ error: "Not found." });
-    }
+    // Story html in snapshots already passed through sanitizeRich() when written.
+    const d = readSnapshot(code);
+    if (!d) return res.status(404).json({ error: "Not found." });
+    if (!inGame(d, u) && !isAdmin(u)) return res.status(403).json({ error: "That game isn't yours to view." });
+    res.json({ ...gameSummary(d), story: freshStory(d.story) });
   });
 }

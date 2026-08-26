@@ -1,33 +1,27 @@
 // The live game: session state machine, persistence (saves/*.json), and all
 // Socket.IO handlers. createGame(io) owns the in-memory maps and returns the
 // pieces the HTTP routes need (sessions, archive helpers, presence).
-import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync, unlinkSync } from "fs";
 import { randomUUID, randomInt } from "crypto";
-import { fileURLToPath } from "url";
-import { dirname, join } from "path";
 import { bumpStreak } from "../lib/streak.js";
 import { badgeName, badgeDesc, usageMatches, awardWordBadges, rewardsForTiers, describeRewards, unlockedThemes, unlockedGimmicks, canUseGimmick } from "../lib/achievements.js";
 import { cleanGimmickId, rollOutcome, describeRoll, galagaOutcome, describeGalaga, GALAGA_MAX_SCORE, ROLL_COOLDOWN_MS, SPIN_MS, DIE_SIDES, PAINT_MAX_STROKES, PAINT_MAX_PTS, CURSE_MS } from "../lib/gimmicks.js";
 import { PALETTE, cleanColor, cleanHex, sanitizeRich, stripTags, httpUrl, sanitizeDoc, CID_RE } from "./sanitize.js";
 import { store, saveStore, userByToken, makeMsg, isAdmin } from "./store.js";
-import { mirror, mirrorDelete } from "./persist.js";
+import { storage, getJson } from "./storage.js";
 import { generateSimplePrompt, generateIntermediatePrompt, validateIntermediateData, EXPLICIT_LEVELS, MODES } from "../lib/prompt-gen.js";
-import { contentPath } from "./content.js";
+import { readContent, writeContent } from "./content.js";
 import { randomTitle } from "../lib/titles.js";
 import { readDoc, writeDoc, canView, canEdit, canComment, anchorCids, anchorText, stripAnchor, applySuggestion } from "./docs.js";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-
 // Curated scenario prompts + the guided-mode component pools (edit
 // content/prompts.json freely — no code changes). See docs/PROMPT_GENERATION.md.
-let PROMPT_DATA = JSON.parse(readFileSync(contentPath("prompts.json"), "utf-8"));
+let PROMPT_DATA = readContent("prompts.json") || { prompts: [] };
 let PROMPT_BANK = PROMPT_DATA.prompts;
 let INTERMEDIATE = PROMPT_DATA.intermediate || null;
 export const getPromptData = () => PROMPT_DATA;
 // The title bank for sessions the host doesn't name (content/titles.json;
 // a pack without one gets "Untitled").
-let TITLE_BANK = null;
-try { TITLE_BANK = JSON.parse(readFileSync(contentPath("titles.json"), "utf-8")); } catch { }
+let TITLE_BANK = readContent("titles.json");
 // The admin editor's write path: validate the whole document, write it to
 // the pack, then swap it in — every ballot dealt from here on uses it.
 // Returns the validation errors (empty = saved).
@@ -39,8 +33,7 @@ export function setPromptData(next) {
   if (errors.length) return errors;
   const doc = { prompts: next.prompts.map((p) => p.trim()), ...(next.intermediate ? { intermediate: next.intermediate } : {}) };
   const text = JSON.stringify(doc, null, "\t") + "\n";
-  writeFileSync(contentPath("prompts.json"), text);
-  mirror("content", "prompts", text); // survives a Replit deploy like users/saves do
+  writeContent("prompts.json", text);
   PROMPT_DATA = doc;
   PROMPT_BANK = doc.prompts;
   INTERMEDIATE = doc.intermediate || null;
@@ -87,24 +80,20 @@ export function createGame(io) {
   // Purely ephemeral, like spectators — never snapshotted.
   const docViewers = new Map();
 
-  // Paused/finished games are snapshotted to disk so they survive a server
+  // Paused/finished games are snapshotted (save/<CODE> in src/storage.js —
+  // saves/*.json locally, Postgres rows on Replit) so they survive a server
   // restart and can be picked up later. Seats are identified by writer token.
-  const SAVE_DIR = process.env.COWRITE_SAVE_DIR || join(__dirname, "..", "saves");
-  mkdirSync(SAVE_DIR, { recursive: true });
+  // readSnapshot/allSnapshots are the ONLY readers; the HTTP routes use them too.
+  const readSnapshot = (code) => getJson("save", code);
+  const allSnapshots = () => storage.list("save").map(readSnapshot).filter(Boolean);
+  const writeSnapshot = (code, d) => storage.put("save", code, JSON.stringify(d));
 
   // One-time sweep: every existing snapshot gets an (empty) tags array so the
   // all-stories page can filter on it uniformly.
-  for (const f of readdirSync(SAVE_DIR)) {
-    if (!f.endsWith(".json")) continue;
-    try {
-      const p = join(SAVE_DIR, f);
-      const d = JSON.parse(readFileSync(p, "utf-8"));
-      if (Array.isArray(d.tags)) continue;
-      d.tags = [];
-      const doc = JSON.stringify(d);
-      writeFileSync(p, doc);
-      mirror("save", d.code || f.replace(/\.json$/, ""), doc);
-    } catch { /* skip unreadable snapshot */ }
+  for (const d of allSnapshots()) {
+    if (Array.isArray(d.tags) || !d.code) continue;
+    d.tags = [];
+    writeSnapshot(d.code, d);
   }
 
   // When a finished story gets continued, every previous contributor who is
@@ -162,8 +151,7 @@ export function createGame(io) {
         hostUserId: s.hostUserId ?? s.writers.get(s.hostId)?.userId ?? null,
         savedAt: Date.now(),
       });
-      writeFileSync(join(SAVE_DIR, s.code + ".json"), doc);
-      mirror("save", s.code, doc); // no-op without DATABASE_URL
+      storage.put("save", s.code, doc);
     } catch (e) {
       console.error("saveSnapshot failed:", e.message);
     }
@@ -173,12 +161,8 @@ export function createGame(io) {
   // its token; players reclaim seats via the normal rejoin flow. A saved writing
   // game wakes up paused; the first reclaimer becomes host and can resume.
   function loadSession(code) {
-    let d;
-    try {
-      d = JSON.parse(readFileSync(join(SAVE_DIR, code + ".json"), "utf-8"));
-    } catch {
-      return null;
-    }
+    const d = readSnapshot(code);
+    if (!d) return null;
     const writers = new Map(d.writers.map((w) => [
       "ghost:" + w.token,
       {
@@ -471,7 +455,7 @@ export function createGame(io) {
         alphabet[Math.floor(Math.random() * alphabet.length)]
       ).join("");
       // saved codes stay valid forever, so never hand one out twice
-    } while (sessions.has(code) || existsSync(join(SAVE_DIR, code + ".json")));
+    } while (sessions.has(code) || storage.has("save", code));
     return code;
   }
 
@@ -1980,17 +1964,11 @@ export function createGame(io) {
       saveSnapshot(s);
       return true;
     }
-    try {
-      const p = join(SAVE_DIR, code + ".json");
-      const d = JSON.parse(readFileSync(p, "utf-8"));
-      d.tags = tags;
-      const doc = JSON.stringify(d);
-      writeFileSync(p, doc);
-      mirror("save", code, doc);
-      return true;
-    } catch {
-      return false;
-    }
+    const d = readSnapshot(code);
+    if (!d) return false;
+    d.tags = tags;
+    writeSnapshot(code, d);
+    return true;
   }
 
   // A username change ripples into every live session the account sits in:
@@ -2029,20 +2007,16 @@ export function createGame(io) {
         lines: s.story.length, savedAt: Date.now(), live: true,
       });
     }
-    for (const f of readdirSync(SAVE_DIR)) {
-      if (!f.endsWith(".json")) continue;
-      const code = f.slice(0, -5);
+    for (const code of storage.list("save")) {
       if (out.has(code) || sessions.has(code)) continue;
-      try {
-        const d = JSON.parse(readFileSync(join(SAVE_DIR, f), "utf-8"));
-        if (d.phase === "over" || !(d.writers || []).some((w) => w.userId === u.id)) continue;
-        out.set(code, {
-          code, name: d.name || "", cover: d.cover || "", phase: d.phase, paused: true, myTurn: false, currentName: null,
-          hosted: d.hostUserId === u.id,
-          players: (d.writers || []).map((w) => ({ name: w.name, color: cleanColor(w.color), connected: false })),
-          lines: (d.story || []).length, savedAt: d.savedAt || 0, live: false,
-        });
-      } catch { /* skip unreadable snapshot */ }
+      const d = readSnapshot(code);
+      if (!d || d.phase === "over" || !(d.writers || []).some((w) => w.userId === u.id)) continue;
+      out.set(code, {
+        code, name: d.name || "", cover: d.cover || "", phase: d.phase, paused: true, myTurn: false, currentName: null,
+        hosted: d.hostUserId === u.id,
+        players: (d.writers || []).map((w) => ({ name: w.name, color: cleanColor(w.color), connected: false })),
+        lines: (d.story || []).length, savedAt: d.savedAt || 0, live: false,
+      });
     }
     return [...out.values()].sort((a, b) => b.savedAt - a.savedAt).slice(0, 8);
   }
@@ -2050,13 +2024,8 @@ export function createGame(io) {
   // Finished stories for the dashboard's compact "previous games" list.
   function recentGamesFor(u, cap = 5) {
     const out = [];
-    for (const f of readdirSync(SAVE_DIR)) {
-      if (!f.endsWith(".json")) continue;
-      try {
-        const d = JSON.parse(readFileSync(join(SAVE_DIR, f), "utf-8"));
-        if (d.phase === "over" && inGame(d, u)) out.push({ ...gameSummary(d), hosted: d.hostUserId === u.id });
-      } catch { /* skip unreadable snapshot */ }
-    }
+    for (const d of allSnapshots())
+      if (d.phase === "over" && inGame(d, u)) out.push({ ...gameSummary(d), hosted: d.hostUserId === u.id });
     out.sort((a, b) => b.savedAt - a.savedAt);
     return out.slice(0, cap);
   }
@@ -2085,11 +2054,8 @@ export function createGame(io) {
     const s = sessions.get(code);
     let name = s?.name || "", seats = s ? [...s.writers.values()] : [];
     if (!s) {
-      try {
-        const d = JSON.parse(readFileSync(join(SAVE_DIR, code + ".json"), "utf-8"));
-        name = d.name || "";
-        seats = d.writers || [];
-      } catch { /* nothing on disk either */ }
+      const d = readSnapshot(code);
+      if (d) { name = d.name || ""; seats = d.writers || []; }
     }
     if (s) {
       clearTimeout(s.timer);
@@ -2098,10 +2064,7 @@ export function createGame(io) {
       io.to(code).emit("game-deleted");
       sessions.delete(s.code);
     }
-    try {
-      unlinkSync(join(SAVE_DIR, code + ".json"));
-    } catch { /* already gone */ }
-    mirrorDelete("save", code); // no-op without DATABASE_URL
+    storage.del("save", code);
     if (by) {
       const told = new Set();
       for (const w of seats) {
@@ -2138,5 +2101,5 @@ export function createGame(io) {
     return true;
   }
 
-  return { sessions, onlineSockets, SAVE_DIR, gameSummary, freshStory, inGame, myGamesFor, recentGamesFor, deleteGame, endGameByCode, sleepGameByCode, inviteToGame, renameUser, setTags, commentRows, closeDocFor, closeDocReaders };
+  return { sessions, onlineSockets, readSnapshot, allSnapshots, gameSummary, freshStory, inGame, myGamesFor, recentGamesFor, deleteGame, endGameByCode, sleepGameByCode, inviteToGame, renameUser, setTags, commentRows, closeDocFor, closeDocReaders };
 }

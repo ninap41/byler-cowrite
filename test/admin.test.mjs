@@ -409,3 +409,16 @@ test("the writers' reference is editable by category from /admin, and only by an
     await c.stop();
   }
 });
+
+test("GET /api/admin/storage says where the data lives — files under test — and a normal account can't see it", async () => {
+  const admin = await makeAdmin(ctx, "storageadmin");
+  const normie = await signup(ctx, "storagenormie", "sn@example.com");
+  const denied = await ctx.api("/api/admin/storage", undefined, normie.token);
+  assert.equal(denied.status, 403);
+  const r = await ctx.api("/api/admin/storage", undefined, admin.token);
+  assert.equal(r.status, 200);
+  assert.equal(r.data.mode, "files", "the suite never runs against Postgres");
+  assert.equal(r.data.lastError, null);
+  assert.ok(r.data.counts.users >= 1 && r.data.counts.content >= 1 && r.data.counts.reference >= 1);
+  assert.match(r.data.summary, /^storage: files/);
+});

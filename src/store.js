@@ -1,30 +1,17 @@
-// User accounts — JSON file store (data/users.json), ~100 users; every
-// mutation just rewrites the file. When DATABASE_URL is set, src/persist.js
-// mirrors the file into Postgres so it survives Replit deploys.
-import { readFileSync, writeFileSync, mkdirSync } from "fs";
+// User accounts — one JSON document (data/users.json locally, the
+// users/users row in Postgres on Replit — see src/storage.js), ~100 users;
+// every mutation rewrites the whole document.
 import { randomUUID } from "crypto";
-import { fileURLToPath } from "url";
-import { dirname, join } from "path";
 import { badgeName, badgeDesc, isUsageId, isOpenUsageId, nextTierFor, migrateBadges, unlockedThemes, unlockedGimmicks } from "../lib/achievements.js";
-import { mirror } from "./persist.js";
+import { storage, getJson } from "./storage.js";
 import { SITE } from "./site.js";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-
-const DATA_DIR = process.env.COWRITE_DATA_DIR || join(__dirname, "..", "data");
-mkdirSync(DATA_DIR, { recursive: true });
-const USERS_PATH = join(DATA_DIR, "users.json");
-
 export let store = { users: [], sessions: {}, resets: {}, waitlist: [] };
-try {
-  store = { ...store, ...JSON.parse(readFileSync(USERS_PATH, "utf-8")) };
-} catch { /* first run */ }
+store = { ...store, ...(getJson("users", "users") || {}) }; // first run: nothing yet
 
 export const saveStore = () => {
   try {
-    const doc = JSON.stringify(store, null, 1);
-    writeFileSync(USERS_PATH, doc);
-    mirror("users", "users", doc); // no-op without DATABASE_URL
+    storage.put("users", "users", JSON.stringify(store, null, 1));
   } catch (e) {
     console.error("saveStore failed:", e.message);
   }

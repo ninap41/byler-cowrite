@@ -11,23 +11,16 @@ import { Server } from "socket.io";
 import { readFileSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
-import { initPersistence } from "./src/persist.js";
-import { SITE, renderPage } from "./src/site.js";
+import { storage, describeStorage } from "./src/storage.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-// With DATABASE_URL set (Replit Postgres), restore data/ and saves/ from the
-// blob mirror BEFORE store.js/game.js load — they read those files at import.
-const DATA_DIR = process.env.COWRITE_DATA_DIR || join(__dirname, "data");
-await initPersistence({
-  dataDir: DATA_DIR,
-  saveDir: process.env.COWRITE_SAVE_DIR || join(__dirname, "saves"),
-  docDir: process.env.COWRITE_DOC_DIR || join(DATA_DIR, "docs"),
-  // the admin's prompt-library edits are mirrored too (restored, never seeded)
-  contentDir: process.env.COWRITE_CONTENT_DIR || join(__dirname, "content"),
-  // and the writers-reference bank edited from /admin, the same way
-  refDir: process.env.COWRITE_REF_DIR || join(__dirname, "writers-reference"),
-});
+// Pick the store BEFORE store.js/game.js load — they read it at import.
+// DATABASE_URL set (Replit Postgres): the database is the store, loaded into
+// memory here. Unset (local dev, tests): the JSON files under data/ and saves/.
+await storage.init();
+console.log(describeStorage());
+const { SITE, renderPage } = await import("./src/site.js"); // reads the content pack — after init
 const { createGame } = await import("./src/game.js");
 const { registerRoutes } = await import("./src/routes.js");
 

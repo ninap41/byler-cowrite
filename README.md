@@ -52,22 +52,21 @@ npm test         # full unit test suite (node --test)
 
 ## Where data lives
 
-The working store is plain JSON files. Two directories hold everything:
+Everything the app keeps is a named JSON document, persisted by
+`src/storage.js` — **files locally, Postgres in production**:
 
-| Path | Contents | Written by |
-|---|---|---|
-| `data/users.json` | accounts, sessions, reset tokens | `saveStore()` in `server.js` |
-| `saves/<CODE>.json` | one snapshot per game (story, chat, seats, rules) | `saveSnapshot()` in `server.js` |
-| `data/docs/<id>.json` | one solo-write document (html, beta readers, comments) | `writeDoc()` in `src/docs.js` |
+| Kind | Local file | Contents | Written by |
+|---|---|---|---|
+| `users/users` | `data/users.json` | accounts, sessions, reset tokens, waitlist | `saveStore()` in `src/store.js` |
+| `save/<CODE>` | `saves/<CODE>.json` | one snapshot per game (story, chat, seats, rules) | `saveSnapshot()` in `src/game.js` |
+| `doc/<id>` | `data/docs/<id>.json` | one solo-write document (html, beta readers, comments) | `writeDoc()` in `src/docs.js` |
+| `content/<name>` | `content/<name>.json` | the fandom pack (prompts, site, quotes, titles, achievements) | `/admin` prompt editor |
+| `reference/<name>` | `writers-reference/<name>.json` | the `/` palette word banks + `index.json` | `/admin` reference editor |
 
-These paths can be relocated with the `COWRITE_DATA_DIR`, `COWRITE_SAVE_DIR`
-and `COWRITE_DOC_DIR` environment variables (the test suite uses this to stay
-isolated).
-
-**Deploy durability**: when `DATABASE_URL` is set, `src/persist.js` mirrors
-every file write into a Postgres blob table and restores the files at boot —
-see “Deploying on Replit” below. Without it (local dev, tests) the mirror is
-a no-op.
+Without `DATABASE_URL` the files are the store (paths relocatable with
+`COWRITE_DATA_DIR`, `COWRITE_SAVE_DIR`, `COWRITE_DOC_DIR`,
+`COWRITE_CONTENT_DIR`, `COWRITE_REF_DIR` — the test suite uses this to stay
+isolated). With it, the database is the store — see “Deploying on Replit”.
 
 To send real password-reset emails, set `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`,
 `SMTP_PASS`, `SMTP_FROM`. Without them, reset links are logged to the server
@@ -80,9 +79,9 @@ stateless copies, which breaks Socket.IO rooms and the in-memory session map.
 One small VM easily handles ~50 concurrent writers.
 
 Reserved VM filesystems are **ephemeral across redeploys**: every deploy
-resets the disk to the build snapshot, which would wipe `data/` and `saves/`.
-The fix is already built in — `src/persist.js` mirrors both into Replit's
-PostgreSQL and restores them at boot. You only have to attach the database.
+resets the disk to the build snapshot. So in production nothing is kept on
+disk — with `DATABASE_URL` set, `src/storage.js` makes Replit's PostgreSQL the
+store for every document above. You only have to attach the database.
 
 ### Steps
 
@@ -92,31 +91,42 @@ PostgreSQL and restores them at boot. You only have to attach the database.
 2. In the workspace, open **Tools → Database → PostgreSQL** and add it.
    Replit provisions the database and sets `DATABASE_URL` automatically —
    there is no other configuration.
-3. **Deploy → Reserved VM**, run command `npm start`. Make sure the
-   deployment inherits `DATABASE_URL` (Replit includes it by default; check
-   the deployment's Secrets pane if in doubt). Add the `SMTP_*` secrets too
-   if you want real password-reset emails.
+3. **Deploy → Reserved VM** (`.replit` already says `deploymentTarget = "vm"`),
+   run command `npm start`. Make sure the deployment inherits `DATABASE_URL`
+   (Replit includes it by default; check the deployment's Secrets pane if in
+   doubt). Add the `SMTP_*` secrets too if you want real password-reset emails.
 4. Deploy, then check the deployment logs for:
    ```
-   persistence: Postgres mirror active (N blobs restored)
+   storage: postgres (users 1, saves N, docs N, content 5, reference 6, seeded N)
    ```
-   If that line is missing, `DATABASE_URL` isn't reaching the process and
-   your data will NOT survive the next deploy. If the database is unreachable
-   at boot the server exits on purpose instead of running without durability.
+   If it says `storage: files` instead, `DATABASE_URL` isn't reaching the
+   process and your data will NOT survive the next deploy. If the database is
+   unreachable at boot the server exits on purpose instead of running without
+   durability. `/api/admin/storage` (admins) reports the same line plus the
+   last failed write, if any.
 5. Verify end-to-end once: sign up a test account, play a line or two,
    **redeploy**, and confirm the account and game are still there.
 
-### How the mirror works
+### How the store works
 
-- The JSON files stay the working store — all reads are local and synchronous.
-- On boot (before anything reads them), every blob in the `cowrite_blobs`
-  table is written back to `data/users.json` and `saves/*.json`. Any local
-  file the table doesn't know yet is uploaded, so a first deploy with
-  existing data seeds the database instead of losing it.
-- On every save, `saveStore()` / `saveSnapshot()` upsert the same bytes into
-  the table (write-through, ordered per key); deleting a game removes its row.
-- Without `DATABASE_URL` (local dev, `npm test`) the mirror is a perfect
-  no-op.
+- On boot every row of the `cowrite_blobs` table (`kind`, `name`, `doc`) is
+  loaded into memory; reads are served from that cache and every write updates
+  the cache and queues an upsert (ordered per row). Deleting a game or a doc
+  removes its row. `data/`, `saves/` and `data/docs/` are never written.
+- **First boot seeds, then the database wins.** Any key the table doesn't hold
+  yet is taken from disk once: a migrating deploy's `data/`/`saves/`, and the
+  repo's `content/*.json` and `writers-reference/*.json`. From then on the
+  database's copy is the one served — an edit made in `/admin` sticks across
+  deploys, and an edit made in the repo does NOT reach production until you run
+  ```
+  npm run reseed-content            # or: npm run reseed-content -- reference
+  ```
+  against the deployment's `DATABASE_URL` (Replit's shell has it), then
+  restart. Deploys that touch only code need nothing.
+- A deploy that was using the older file-mirror version of this app upgrades
+  seamlessly: same table, same keys.
+- Without `DATABASE_URL` (local dev, `npm test`) the files are the store and
+  the database code never loads.
 
 ### Cost
 

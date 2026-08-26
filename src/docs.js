@@ -1,20 +1,11 @@
-// Solo-write documents — one JSON file per doc in data/docs/, the same
-// "the file IS the store" approach as store.js/saves. Lives UNDER the data dir
-// so the test harness's temp COWRITE_DATA_DIR isolates docs for free.
-// When DATABASE_URL is set, persist.js mirrors each doc into Postgres.
-import { readFileSync, writeFileSync, readdirSync, mkdirSync, unlinkSync } from "fs";
+// Solo-write documents — one JSON blob per doc (data/docs/<id>.json locally,
+// a doc/<id> row in Postgres on Replit — see src/storage.js). The doc dir
+// lives UNDER the data dir so the test harness's temp COWRITE_DATA_DIR
+// isolates docs for free.
 import { randomUUID } from "crypto";
-import { fileURLToPath } from "url";
-import { dirname, join } from "path";
-import { mirror, mirrorDelete } from "./persist.js";
+import { storage, getJson } from "./storage.js";
 import { stripTags } from "./sanitize.js";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const DATA_DIR = process.env.COWRITE_DATA_DIR || join(__dirname, "..", "data");
-export const DOC_DIR = process.env.COWRITE_DOC_DIR || join(DATA_DIR, "docs");
-mkdirSync(DOC_DIR, { recursive: true });
-
-const pathOf = (id) => join(DOC_DIR, id + ".json");
 // Ids go straight into a filename — never trust one that isn't a plain uuid.
 export const ID_RE = /^[0-9a-f-]{36}$/i;
 
@@ -28,11 +19,7 @@ export const countWords = (html) => {
 
 export function readDoc(id) {
   if (!ID_RE.test(String(id || ""))) return null;
-  try {
-    return JSON.parse(readFileSync(pathOf(id), "utf-8"));
-  } catch {
-    return null;
-  }
+  return getJson("doc", id);
 }
 
 export function writeDoc(doc) {
@@ -46,8 +33,7 @@ export function writeDoc(doc) {
   doc.wordCount = countWords(doc.html);
   const json = JSON.stringify(doc, null, 1);
   try {
-    writeFileSync(pathOf(doc.id), json);
-    mirror("doc", doc.id, json); // no-op without DATABASE_URL
+    storage.put("doc", doc.id, json);
   } catch (e) {
     console.error("writeDoc failed:", e.message);
   }
@@ -65,22 +51,12 @@ export function createDoc(ownerId, title) {
 
 export function deleteDoc(id) {
   if (!ID_RE.test(String(id || ""))) return false;
-  try {
-    unlinkSync(pathOf(id));
-  } catch { /* already gone */ }
-  mirrorDelete("doc", id);
+  storage.del("doc", id);
   return true;
 }
 
 export const allDocs = () => {
-  try {
-    return readdirSync(DOC_DIR)
-      .filter((f) => f.endsWith(".json"))
-      .map((f) => readDoc(f.slice(0, -5)))
-      .filter(Boolean);
-  } catch {
-    return [];
-  }
+  return storage.list("doc").map(readDoc).filter(Boolean);
 };
 
 // Three visibility levels, narrowest first. "private" is invisible to everyone
