@@ -90,12 +90,15 @@ async function sendResetEmail(to, link) {
     return;
   }
   const transport = await smtpTransport();
-  await transport.sendMail({
+  const info = await transport.sendMail({
     from: SMTP_FROM || SMTP_USER,
     to,
     subject: `${SITE.name}: reset your password`,
     text: `Someone (hopefully you) asked to reset your ${SITE.name} password.\n\nReset it here: ${link}\n\nThis link expires in 30 minutes. If you didn't ask, ignore this email.`,
   });
+  // the production trail: who was mailed and the relay's acceptance id
+  // (never the link itself — that would put a live token in the log)
+  console.log(`[reset] Sent password reset email to ${to} via ${SMTP_HOST} (${info.messageId || "no id"}; ${info.response || "no response"})`);
 }
 
 export function registerRoutes(app, game) {
