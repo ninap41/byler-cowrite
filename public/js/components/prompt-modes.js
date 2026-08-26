@@ -22,6 +22,13 @@ export const GUIDED_FIELDS = [
 	{ key: "situationId", suffix: "Situation", label: "Situation", menu: "situations" },
 	{ key: "relationshipId", suffix: "Rel", label: "Relationship", menu: "relationships" },
 	{ key: "toneId", suffix: "Tone", label: "Tone", menu: "tones" },
+	// the explicit dropdowns: shown past None, enabled only at Explicit (the
+	// gate never deals a Kinks line under Suggestive)
+	{ key: "setupId", suffix: "Setup", label: "Setup", menu: "setups", onlyWhen: { explicitLevel: ["suggestive", "explicit"] }, explicitOnly: true },
+	{ key: "dynamicId", suffix: "Dynamic", label: "Dynamic", menu: "dynamics", onlyWhen: { explicitLevel: ["suggestive", "explicit"] }, explicitOnly: true },
+	{ key: "actId", suffix: "Act", label: "Act", menu: "acts", onlyWhen: { explicitLevel: ["suggestive", "explicit"] }, explicitOnly: true },
+	{ key: "kinkId", suffix: "Kink", label: "Kink", menu: "kinks", onlyWhen: { explicitLevel: ["suggestive", "explicit"] }, explicitOnly: true },
+	{ key: "registerId", suffix: "Register", label: "Register", menu: "registers", onlyWhen: { explicitLevel: ["suggestive", "explicit"] }, explicitOnly: true },
 ]
 // The fallback when /api/prompt-options carries no levels; the wire copy wins.
 export const EXPLICIT_LEVELS = [
@@ -38,6 +45,11 @@ export const DEFAULT_CONTROLS = {
 	relationshipId: "random",
 	toneId: "random",
 	explicitLevel: "none",
+	setupId: "random",
+	dynamicId: "random",
+	actId: "random",
+	kinkId: "random",
+	registerId: "random",
 }
 
 // "forced-proximity" -> "Forced proximity", for any pool authored as bare ids.
@@ -159,11 +171,20 @@ export function mountPromptModes(root, { prefix = "pm", onChange, onReroll } = {
 	// A dependent knob (the AU world) only shows while its condition holds;
 	// hidden, it reads as Random so a stale pick can't ride along.
 	function paintDependents() {
+		const valueOf = (k) => (k === "explicitLevel" ? el("Explicit")?.value || "none" : el(GUIDED_FIELDS.find((g) => g.key === k).suffix)?.value || "random")
 		for (const f of GUIDED_FIELDS) {
 			if (!f.onlyWhen) continue
-			const on = Object.entries(f.onlyWhen).every(([k, v]) => (el(GUIDED_FIELDS.find((g) => g.key === k).suffix)?.value || "random") === v)
+			const on = Object.entries(f.onlyWhen).every(([k, v]) => (Array.isArray(v) ? v : [v]).includes(valueOf(k)))
 			el(f.suffix + "Wrap").classList.toggle("hidden", !on)
 			if (!on) el(f.suffix).value = "random"
+			// listed under Suggestive so the host can see what Explicit offers,
+			// but only Explicit reads them
+			if (f.explicitOnly) {
+				const live = valueOf("explicitLevel") === "explicit"
+				el(f.suffix).disabled = !live
+				el(f.suffix).title = live ? "" : "Explicit only"
+				if (!live) el(f.suffix).value = "random"
+			}
 		}
 	}
 	// Grey out what can't go with the rest. Each menu is judged against the

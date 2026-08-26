@@ -100,6 +100,14 @@ export function registerRoutes(app, game) {
         relationships: menu(data.relationships),
         tones: menu(data.tones),
         explicitLevels: menu(data.explicit?.levels).map((x) => ({ ...x, adultOnly: !!x.adultOnly })),
+        // the explicit dropdowns (ids + labels + rules, never clause text);
+        // the client shows them only past None and the generator only reads
+        // them past the gate
+        setups: menu(data.explicit?.setups),
+        dynamics: menu(data.explicit?.dynamics),
+        acts: menu(data.explicit?.acts),
+        kinks: menu(data.explicit?.kinks),
+        registers: menu(data.explicit?.registers),
         tropeGroups: Object.entries(data.tropeGroups || {}).map(([id, label]) => ({ id, label })),
       },
     });

@@ -474,3 +474,22 @@ test("an AU world deals a place of its own: never a canon place, explicit rooms 
     if (r.selections.placeId) assert.ok(canonPlaceIds.has(r.selections.placeId));
   }
 });
+
+test("the explicit dropdowns pin the Kinks line: setup, dynamic, act, kink and register ids are honoured past the gate, ignored under it", () => {
+  const ex = INT.explicit;
+  const pins = { setupId: ex.setups[0].id, dynamicId: ex.dynamics[0].id, actId: ex.acts[0].id, kinkId: ex.kinks[0].id, registerId: ex.registers[0].id };
+  const adult = INT.seasons.find((s) => s.ageGroup === "adult").id;
+  const r = generateIntermediatePrompt(INT, { seed: "pins", seasonId: adult, explicitLevel: "explicit", toneId: "angst", ...pins });
+  assert.equal(r.explicitLevel, "explicit");
+  const sel = r.selections.explicit;
+  assert.equal(sel.setupId, pins.setupId);
+  assert.equal(sel.dynamicId, pins.dynamicId);
+  assert.equal(sel.actIds[0], pins.actId, "the pinned act leads its list");
+  assert.equal(sel.kinkIds[0], pins.kinkId, "the pinned kink leads its list");
+  assert.equal(sel.registerId, pins.registerId);
+  assert.ok(new Set(sel.actIds).size === sel.actIds.length && new Set(sel.kinkIds).size === sel.kinkIds.length, "no repeats around a pin");
+  const minor = INT.seasons.find((s) => s.ageGroup === "minor").id;
+  const gated = generateIntermediatePrompt(INT, { seed: "pins2", seasonId: minor, explicitLevel: "explicit", ...pins });
+  assert.equal(gated.selections.explicit, undefined, "under the gate the pins are moot");
+  assert.equal(generateIntermediatePrompt(INT, { seed: "pins3", seasonId: adult, explicitLevel: "suggestive", ...pins }).selections.explicit, undefined, "and suggestive never deals a Kinks line");
+});

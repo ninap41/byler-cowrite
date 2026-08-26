@@ -58,6 +58,12 @@ function cleanPromptControls(c = {}) {
     // The explicit level defaults to none, never to random: nobody gets an
     // explicit ballot they didn't ask for.
     explicitLevel: EXPLICIT_LEVELS.includes(c.explicitLevel) ? c.explicitLevel : "none",
+    // The explicit dropdowns: pins on the Kinks line, only read past the gate.
+    setupId: id(c.setupId),
+    dynamicId: id(c.dynamicId),
+    actId: id(c.actId),
+    kinkId: id(c.kinkId),
+    registerId: id(c.registerId),
   };
 }
 const cleanPromptMode = (m) => (MODES.includes(m) && (m !== "intermediate" || INTERMEDIATE) ? m : "simple");

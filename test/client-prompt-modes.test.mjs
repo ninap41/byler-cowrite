@@ -26,6 +26,11 @@ const MENUS = {
     situations: [{ id: "reunion", label: "Reunion" }],
     relationships: [{ id: "pining", label: "Pining", tags: ["not-together"] }, { id: "exes", label: "Exes", ageGroups: ["adult"], tags: ["exes"] }],
     tones: [{ id: "angst", label: "Angst" }, { id: "fluff", label: "Fluff", tags: ["no-explicit"], excludes: ["explicit"] }],
+    setups: [{ id: "hotel", label: "Hotel" }, { id: "car", label: "Car", excludes: ["fantasy"] }],
+    dynamics: [{ id: "switch", label: "Switch" }],
+    acts: [{ id: "kissing", label: "Kissing" }],
+    kinks: [{ id: "praise", label: "Praise" }],
+    registers: [{ id: "tender", label: "Tender" }],
     explicitLevels: [
       { id: "none", label: "None", adultOnly: false },
       { id: "suggestive", label: "Suggestive", adultOnly: false },
@@ -292,4 +297,41 @@ test("Simple mode shows no guided knobs, and the stylesheet agrees", async () =>
   const css = readFileSync(new URL("../public/css/base.css", import.meta.url), "utf-8");
   assert.ok(css.includes(".guided-controls.hidden"), "the hidden state is declared for this control");
   assert.ok(css.indexOf(".hidden {") < css.indexOf(".guided-controls.hidden"), "and it comes after the generic rule");
+});
+
+test("the explicit dropdowns appear past None, are enabled only at Explicit, and ride along in the controls", () => {
+  const root = mount("");
+  const pm = mountPromptModes(root, { prefix: "x" }).setMenus(MENUS);
+  fire(root.querySelector("#xMode-intermediate"));
+  const wrap = (s) => root.querySelector("#x" + s + "Wrap");
+  for (const s of ["Setup", "Dynamic", "Act", "Kink", "Register"]) assert.ok(wrap(s).classList.contains("hidden"), s + " hidden under None");
+  root.querySelector("#xSeason").value = "post-canon";
+  fire(root.querySelector("#xSeason"), "change");
+  root.querySelector("#xExplicit").value = "suggestive";
+  fire(root.querySelector("#xExplicit"), "change");
+  assert.ok(!wrap("Kink").classList.contains("hidden"), "listed under Suggestive");
+  assert.equal(root.querySelector("#xKink").disabled, true, "but only Explicit reads them");
+  assert.equal(root.querySelector("#xKink").title, "Explicit only");
+  root.querySelector("#xExplicit").value = "explicit";
+  fire(root.querySelector("#xExplicit"), "change");
+  assert.equal(root.querySelector("#xKink").disabled, false);
+  root.querySelector("#xKink").value = "praise";
+  fire(root.querySelector("#xKink"), "change");
+  root.querySelector("#xSetup").value = "hotel";
+  fire(root.querySelector("#xSetup"), "change");
+  const c = pm.values().promptControls;
+  assert.equal(c.kinkId, "praise");
+  assert.equal(c.setupId, "hotel");
+  assert.equal(c.dynamicId, "random");
+  // a modern setup is greyed under a fantasy world
+  root.querySelector("#xCanon").value = "au";
+  fire(root.querySelector("#xCanon"), "change");
+  root.querySelector("#xWorld").value = "cleradin";
+  fire(root.querySelector("#xWorld"), "change");
+  assert.equal(root.querySelector('#xSetup option[value="car"]').disabled, true);
+  // back to None: hidden again and forgotten
+  root.querySelector("#xExplicit").value = "none";
+  fire(root.querySelector("#xExplicit"), "change");
+  assert.ok(wrap("Setup").classList.contains("hidden"));
+  assert.equal(pm.values().promptControls.setupId, "random");
 });

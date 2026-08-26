@@ -353,3 +353,4 @@ test("a new session is born with a random title, ≤40 chars, until the host ren
   await ctx.wait(100);
   assert.equal(state.current.name, "Our story");
 });
+

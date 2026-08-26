@@ -184,3 +184,27 @@ test("the host rerolls one option and keeps the rest; votes on it drop; nobody e
   assert.ok(CURATED.includes(state.current.options[0]));
   assert.equal(state.current.optionMeta[0], null);
 });
+
+test("/api/prompt-options ships the explicit dropdown pools as ids + labels, never clause text; set-prompt-mode keeps the pins and the ballot honours them", async () => {
+  const r = await ctx.api("/api/prompt-options", undefined);
+  const d = r.data.intermediate;
+  for (const k of ["setups", "dynamics", "acts", "kinks", "registers"]) {
+    assert.ok(Array.isArray(d[k]) && d[k].length, k + " shipped");
+    assert.ok(d[k].every((x) => x.id && x.label && !("text" in x)), k + " rows are id/label/rules only");
+  }
+  const { A, state } = await choosing();
+  const adult = d.seasons.find((s) => s.ageGroup === "adult").id;
+  const kink = d.kinks[0].id;
+  const res = await ctx.emit(A, "set-prompt-mode", {
+    mode: "intermediate",
+    controls: { seasonId: adult, toneId: "angst", explicitLevel: "explicit", kinkId: kink, setupId: "<bad>" },
+  });
+  assert.equal(res.ok, true);
+  await ctx.wait(120);
+  const st = state.current;
+  assert.equal(st.promptControls.kinkId, kink);
+  assert.equal(st.promptControls.setupId, "random", "junk off the wire reads as random");
+  const dealt = st.optionMeta.filter(Boolean);
+  assert.ok(dealt.length, "guided options were dealt");
+  for (const m of dealt) if (m.selections.explicit) assert.equal(m.selections.explicit.kinkIds[0], kink, "every explicit option leads its kinks with the pin");
+});
