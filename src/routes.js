@@ -3,6 +3,7 @@
 import { randomUUID } from "crypto";
 import { readContent } from "./content.js";
 import { storage, describeStorage } from "./storage.js";
+import { listPosts, addPost, deletePost } from "./announcements.js";
 import { SITE } from "./site.js";
 import { getPromptData, setPromptData } from "./game.js";
 import { WORD_TIERS, USAGE, USAGE_OPEN, badgeName, awardWordBadges, themeLocks, unlockedThemes, gimmickLocks, unlockedGimmicks } from "../lib/achievements.js";
@@ -958,6 +959,26 @@ export function registerRoutes(app, game) {
   // file. The editor edits a group at a time: PUT replaces that group's
   // categories whole (a category emptied is a category removed) and the next
   // palette open serves it — no restart, mirrored like the prompt library.
+  // ---- Announcements: the admin's blog. Reading needs an account, writing
+  // needs admin — the page hides the composer and Delete for everyone else,
+  // and these checks are what actually enforces it.
+  app.get("/api/announcements", (req, res) => {
+    const u = authedUser(req);
+    if (!u) return res.status(401).json({ error: "Sign in to read announcements." });
+    res.json({ posts: listPosts(), admin: isAdmin(u) });
+  });
+  app.post("/api/admin/announcements", (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    const r = addPost({ title: req.body?.title, body: req.body?.body }, authedUser(req));
+    if (r.error) return res.status(400).json({ error: r.error });
+    res.json({ ok: true, post: r.post });
+  });
+  app.delete("/api/admin/announcements/:id", (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    if (!deletePost(String(req.params.id))) return res.status(404).json({ error: "No such post." });
+    res.json({ ok: true });
+  });
+
   // Where the data lives and whether writes are landing: "files" locally,
   // "postgres" on Replit. lastError surfaces a failed upsert that would
   // otherwise only be a server log line.

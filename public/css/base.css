@@ -9333,3 +9333,14 @@ html.vcx-live[data-theme="vecna"] #vc-pend {
 .admin-search input { flex: 1; min-width: 200px; margin: 0; }
 .admin-search .gc-meta { flex: none; }
 .admin-scroll { max-height: 60vh; overflow-y: auto; overscroll-behavior: contain; padding-right: 4px; }
+
+/* /announcements: the admin's blog — one article per post, the composer
+   (admin only) above the list. */
+.ann-composer { margin: 0 0 22px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 14px; }
+.ann-composer input, .ann-composer textarea { width: 100%; margin: 0; }
+.ann-post { padding: 16px 0 18px; border-bottom: 1px solid var(--line); }
+.ann-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin: 0 0 6px; }
+.ann-head h3 { margin: 0; flex: 1 1 auto; }
+.ann-head .ann-del { flex: none; margin-left: auto; }
+.ann-body p { margin: 0 0 0.8em; text-align: left; }
+.ann-body p:last-child { margin-bottom: 0; }

@@ -21,6 +21,17 @@ storage: postgres (...)
 If it reports `storage: files`, `DATABASE_URL` is not reaching the process and
 data will not survive a redeploy.
 
+## Announcements (admin blog)
+
+`/announcements` is the admins' blog. Its posts are ONE document,
+`announcements/announcements` in the `cowrite_blobs` table (locally
+`data/announcements.json`), written through `src/storage.js` like every other
+document — so **nothing to configure**: with `DATABASE_URL` set they are in
+PostgreSQL and survive redeploys. Do not add a separate table, file, or
+Replit storage bucket for them, and do not treat `data/announcements.json` as
+the store in production (the VM's disk resets on publish). The startup log's
+`announcements N` count confirms the row is loaded.
+
 ## Email
 
 Password-reset emails go out through **Brevo**'s SMTP relay. The five

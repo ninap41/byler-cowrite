@@ -38,6 +38,9 @@ turns adding one line each under a ticking clock.
   becomes a **suggestion** (`old → new`) that only the author can Accept or
   Reject. Live presence shows who's looking.
 - **Dashboard** — signed in, see who's online and join games in progress.
+- **Announcements** — `/announcements`, the admins' blog: anyone signed in
+  reads it; only admins see the composer and Delete, and the server enforces
+  the same rule on the API.
 - **Docked chat, sounds, three themes, GSAP-animated everything.**
 - **Export** — copy the finished story as formatted rich text or download a
   clean styled HTML file.
@@ -58,6 +61,7 @@ Everything the app keeps is a named JSON document, persisted by
 | Kind | Local file | Contents | Written by |
 |---|---|---|---|
 | `users/users` | `data/users.json` | accounts, sessions, reset tokens, waitlist | `saveStore()` in `src/store.js` |
+| `announcements/announcements` | `data/announcements.json` | the admins' blog posts on `/announcements` | `/announcements` (admins) |
 | `save/<CODE>` | `saves/<CODE>.json` | one snapshot per game (story, chat, seats, rules) | `saveSnapshot()` in `src/game.js` |
 | `doc/<id>` | `data/docs/<id>.json` | one solo-write document (html, beta readers, comments) | `writeDoc()` in `src/docs.js` |
 | `content/<name>` | `content/<name>.json` | the fandom pack (prompts, site, quotes, titles, achievements) | `/admin` prompt editor |
@@ -135,6 +139,7 @@ gone. Reserved VM is about running ONE instance; it is not persistent disk.
 What persists — everything in PostgreSQL, because `DATABASE_URL` is set:
 
 - accounts, sessions and reset tokens (`users/users`)
+- the admins' announcements (`announcements/announcements`)
 - every game snapshot — paused, finished, or mid-write as of its last
   committed line (`save/<CODE>`)
 - solo-write documents (`doc/<id>`)

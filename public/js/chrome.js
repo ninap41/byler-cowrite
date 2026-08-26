@@ -111,6 +111,7 @@ const NAV = (page) => `
 		<p class="nav-title">Menu</p>
 		<a href="/dashboard" ${page === "dashboard" ? 'aria-current="page"' : ""}>🏠 Dashboard</a>
 		<a href="/inbox" ${page === "inbox" ? 'aria-current="page"' : ""}>📬 Inbox</a>
+		<a href="/announcements" ${page === "announcements" ? 'aria-current="page"' : ""}>📣 Announcements</a>
 		<a href="/game" ${page === "game" ? 'aria-current="page"' : ""}>✍️ Current game</a>
 		<hr class="nav-sep" />
 		<a href="/writes" ${page === "writes" || page === "write" ? 'aria-current="page"' : ""}>✒️ Solo writes</a>

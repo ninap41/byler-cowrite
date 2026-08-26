@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en" data-theme="neon">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<script>
+			// Apply the saved theme before first paint (initTheme() re-validates it later)
+			try { var _t = localStorage.getItem("cowriteTheme"); if (_t) document.documentElement.setAttribute("data-theme", _t); var _f = localStorage.getItem("cowriteFont"); if (_f) document.documentElement.setAttribute("data-font", _f) } catch (e) {}
+		</script>
+		<title>{{SITE_NAME}} — Announcements</title>
+		<link rel="icon" type="image/x-icon" href="./favicon.ico?v=2" />
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,900;1,9..144,400;1,9..144,600&family=Inconsolata:wght@400;600;700&family=Orbitron:wght@500;700;900&family=Space+Grotesk:wght@400;500;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Tiny5&family=Jersey+15&display=swap"
+			rel="stylesheet"
+		/>
+		<link rel="stylesheet" href="/css/base.css" />
+	</head>
+	<body>
+		<div class="wrap">
+			<div class="archive-inner">
+				<div class="archive-head">
+					<a class="ghost" href="/dashboard" style="text-decoration: none; padding: 10px 16px; border-radius: 12px">← Back</a>
+					<h2>📣 Announcements</h2>
+				</div>
+				<p class="subtle" style="text-align: left; margin: 0 0 14px">News from the {{SITE_NAME}} admins — new features, changes, and the occasional plea for patience.</p>
+				<div id="annCompose" class="hidden"></div>
+				<div id="annList"><p class="subtle" style="text-align:left">Loading…</p></div>
+			</div>
+		</div>
+
+		<script type="module">
+			import { api } from "/js/api.js"
+			import { requireAuth } from "/js/auth-guard.js"
+			import { mountChrome, setUserChip } from "/js/chrome.js"
+			import { postListHtml, composerHtml } from "/js/announcements-view.js"
+
+			mountChrome({ page: "announcements" })
+			const me = await requireAuth()
+			setUserChip(me)
+			const $ = (id) => document.getElementById(id)
+
+			// The composer only ever exists for an admin: the server says who
+			// that is (it's the same flag it enforces on the write routes).
+			let admin = false
+			async function load() {
+				const d = await api("/api/announcements", null, "GET")
+				admin = !!d.admin
+				$("annList").innerHTML = postListHtml(d.posts, { admin })
+				if (admin && !$("annComposer")) {
+					$("annCompose").innerHTML = composerHtml()
+					$("annCompose").classList.remove("hidden")
+				}
+			}
+			await load()
+
+			document.addEventListener("submit", async (e) => {
+				if (e.target.id !== "annComposer") return
+				e.preventDefault()
+				const btn = e.target.querySelector("button[type=submit]")
+				btn.disabled = true
+				try {
+					await api("/api/admin/announcements", { title: $("annTitle").value, body: $("annBody").value })
+					$("annTitle").value = ""
+					$("annBody").value = ""
+					await load()
+				} catch (err) {
+					alert(err.message || "That didn't post.")
+				}
+				btn.disabled = false
+			})
+			document.addEventListener("click", async (e) => {
+				const b = e.target.closest("[data-ann-delete]")
+				if (!b) return
+				if (!window.confirm("Delete this announcement for everyone?")) return
+				b.disabled = true
+				try {
+					await api(`/api/admin/announcements/${encodeURIComponent(b.dataset.annDelete)}`, null, "DELETE")
+					await load()
+				} catch (err) {
+					b.disabled = false
+					alert(err.message || "That didn't work.")
+				}
+			})
+		</script>
+	</body>
+</html>

@@ -3,6 +3,7 @@
 // writers' reference — is a named JSON blob under a KIND:
 //
 //   users/users            data/users.json
+//   announcements/announcements  data/announcements.json (the admin's blog posts)
 //   save/<CODE>            saves/<CODE>.json
 //   doc/<uuid>             data/docs/<uuid>.json
 //   content/<name>         content/<name>.json        (prompts, site, quotes …)
@@ -32,7 +33,9 @@ import { dirname, join } from "path";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, "..");
 
-export const KINDS = ["users", "save", "doc", "content", "reference"];
+export const KINDS = ["users", "announcements", "save", "doc", "content", "reference"];
+// Kinds that are ONE document rather than a directory of them.
+const SINGLE = new Set(["users", "announcements"]);
 
 export function defaultDirs() {
   const dataDir = process.env.COWRITE_DATA_DIR || join(ROOT, "data");
@@ -46,12 +49,12 @@ export function defaultDirs() {
 }
 
 const dirFor = (dirs, kind) =>
-  kind === "users" ? dirs.dataDir
+  SINGLE.has(kind) ? dirs.dataDir
     : kind === "doc" ? dirs.docDir
       : kind === "content" ? dirs.contentDir
         : kind === "reference" ? dirs.refDir
           : dirs.saveDir;
-const pathFor = (dirs, kind, name) => join(dirFor(dirs, kind), (kind === "users" ? "users" : name) + ".json");
+const pathFor = (dirs, kind, name) => join(dirFor(dirs, kind), (SINGLE.has(kind) ? kind : name) + ".json");
 
 // Every *.json in a directory as {name, doc} — the file backend's list and
 // the postgres backend's seed both walk this.
@@ -76,7 +79,7 @@ function fileBackend(dirs) {
       try { return readFileSync(pathFor(dirs, kind, name), "utf-8"); } catch { return null; }
     },
     has: (kind, name) => existsSync(pathFor(dirs, kind, name)),
-    list: (kind) => (kind === "users" ? (existsSync(pathFor(dirs, "users", "users")) ? ["users"] : []) : readDir(dirFor(dirs, kind)).map((r) => r.name)),
+    list: (kind) => (SINGLE.has(kind) ? (existsSync(pathFor(dirs, kind, kind)) ? [kind] : []) : readDir(dirFor(dirs, kind)).map((r) => r.name)),
     async put(kind, name, doc) {
       const p = pathFor(dirs, kind, name);
       const tmp = p + ".tmp";
@@ -86,7 +89,7 @@ function fileBackend(dirs) {
     async del(kind, name) {
       try { unlinkSync(pathFor(dirs, kind, name)); } catch { /* already gone */ }
     },
-    counts: () => Object.fromEntries(KINDS.map((k) => [k, k === "users" ? (existsSync(pathFor(dirs, "users", "users")) ? 1 : 0) : readDir(dirFor(dirs, k)).length])),
+    counts: () => Object.fromEntries(KINDS.map((k) => [k, SINGLE.has(k) ? (existsSync(pathFor(dirs, k, k)) ? 1 : 0) : readDir(dirFor(dirs, k)).length])),
     async close() {},
   };
 }
@@ -137,13 +140,14 @@ async function postgresBackend(dirs, pool) {
       seeded++;
     }
   };
-  if (!cache.get("users").has("users")) {
+  for (const kind of SINGLE) {
+    if (cache.get(kind).has(kind)) continue;
     try {
-      const doc = readFileSync(pathFor(dirs, "users", "users"), "utf-8");
-      cache.get("users").set("users", doc);
-      upsert("users", "users", doc);
+      const doc = readFileSync(pathFor(dirs, kind, kind), "utf-8");
+      cache.get(kind).set(kind, doc);
+      upsert(kind, kind, doc);
       seeded++;
-    } catch { /* no local store */ }
+    } catch { /* no local file */ }
   }
   seedDir("save", dirs.saveDir);
   seedDir("doc", dirs.docDir);
@@ -216,5 +220,5 @@ export const getJson = (kind, name) => {
 
 export const describeStorage = () => {
   const c = storage.counts();
-  return `storage: ${storage.mode} (users ${c.users}, saves ${c.save}, docs ${c.doc}, content ${c.content}, reference ${c.reference}${storage.mode === "postgres" ? `, seeded ${storage.seeded}` : ""})`;
+  return `storage: ${storage.mode} (users ${c.users}, announcements ${c.announcements}, saves ${c.save}, docs ${c.doc}, content ${c.content}, reference ${c.reference}${storage.mode === "postgres" ? `, seeded ${storage.seeded}` : ""})`;
 };

@@ -38,7 +38,7 @@ app.use((req, res, next) => {
 // tokens from the content pack's site.json. Registered BEFORE the static
 // middleware so /index.html can't leak an unrendered copy. Auth is enforced
 // client-side + on every API/socket call — these are still just files.
-const PAGES = ["index", "dashboard", "game", "archive", "stories", "profile", "settings", "write", "writes", "inbox", "admin", "ranks", "reset"];
+const PAGES = ["index", "dashboard", "game", "archive", "stories", "profile", "settings", "write", "writes", "inbox", "admin", "ranks", "announcements", "reset"];
 const pageHtml = new Map();
 const servePage = (page) => (_req, res) => {
   if (!pageHtml.has(page)) pageHtml.set(page, renderPage(readFileSync(join(__dirname, "public", page + ".html"), "utf-8")));

@@ -56,7 +56,7 @@ test("files: no DATABASE_URL means the JSON files are the store", async () => {
     assert.ok(!storage.has("save", "ABCD"));
     assert.equal(storage.get("save", "ABCD"), null);
     assert.equal(storage.lastError, null);
-    assert.match(describeStorage(), /^storage: files \(users 1, saves 0, docs 1/);
+    assert.match(describeStorage(), /^storage: files \(users 1, announcements 0, saves 0, docs 1/);
   } finally {
     storage._reset();
     rmSync(root, { recursive: true, force: true });
@@ -108,7 +108,7 @@ test("postgres: rows are the store — loaded at boot, read from memory, written
     assert.ok(!existsSync(join(root, "saves")) || readdirSync(join(root, "saves")).length === 0, "saves/ untouched");
     assert.ok(!existsSync(join(root, "data", "users.json")), "users.json untouched");
     assert.equal(storage.lastError, null);
-    assert.match(describeStorage(), /^storage: postgres \(users 1, saves 1, docs 0, content 1, reference 0, seeded 0\)/);
+    assert.match(describeStorage(), /^storage: postgres \(users 1, announcements 0, saves 1, docs 0, content 1, reference 0, seeded 0\)/);
     assert.deepEqual(Object.keys(storage.counts()), KINDS);
   } finally {
     storage._reset();
@@ -122,6 +122,7 @@ test("postgres: first boot seeds every kind from disk once; afterwards the datab
   const dirs = dirsIn(root);
   for (const d of Object.values(dirs)) mkdirSync(d, { recursive: true });
   writeFileSync(join(dirs.dataDir, "users.json"), '{"users":[{"id":"disk"}]}');
+  writeFileSync(join(dirs.dataDir, "announcements.json"), '{"posts":[{"id":"p1","title":"Hi"}]}');
   writeFileSync(join(dirs.saveDir, "OLDG.json"), '{"code":"OLDG"}');
   writeFileSync(join(dirs.docDir, "doc1.json"), '{"id":"doc1"}');
   writeFileSync(join(dirs.contentDir, "prompts.json"), '{"prompts":["repo"]}');
@@ -133,15 +134,16 @@ test("postgres: first boot seeds every kind from disk once; afterwards the datab
   const pool = fakePool([{ kind: "content", name: "prompts", doc: '{"prompts":["edited in /admin"]}' }]);
   try {
     await storage.init({ ...dirs, pool });
-    assert.equal(storage.seeded, 6, "users, save, doc, site, index, romance — not the README, not prompts");
+    assert.equal(storage.seeded, 7, "users, announcements, save, doc, site, index, romance — not the README, not prompts");
     await storage.flush();
     assert.deepEqual(getJson("users", "users"), { users: [{ id: "disk" }] });
     assert.deepEqual(storage.list("save"), ["OLDG"]);
+    assert.deepEqual(getJson("announcements", "announcements"), { posts: [{ id: "p1", title: "Hi" }] }, "the admin's blog rides the same store");
     assert.deepEqual(storage.list("doc"), ["doc1"]);
     assert.deepEqual(getJson("content", "prompts"), { prompts: ["edited in /admin"] }, "the database's copy wins over the repo file");
     assert.deepEqual(getJson("content", "site"), { name: "Repo" });
     assert.deepEqual(storage.list("reference").sort(), ["index", "romance"]);
-    assert.equal(pool.rows.size, 7, "every seeded key is now a row");
+    assert.equal(pool.rows.size, 8, "every seeded key is now a row");
     assert.ok(!pool.rows.has("content/README"));
 
     // second boot against the same rows: nothing is re-seeded, the repo file is ignored
