@@ -330,9 +330,9 @@ export function auWorldHtml(world, doc) {
 		<label>Rules (JSON) <input data-field="rules" class="pe-rules" value="${esc(Object.keys(rules).length ? JSON.stringify(rules) : "")}" placeholder='{"tags":["fantasy"]}' /></label>
 		<button type="button" class="ghost au-del" title="Remove this world and its places">✕ Remove world</button>
 	</div>
-	<label class="au-lbl">Places — one per line, dealt on any ballot in this world</label>
+	<label class="au-lbl">Places</label>
 	<textarea class="pe-lines au-plain" rows="${Math.min(12, Math.max(3, plain.length + 1))}">${esc(plain.join("\n"))}</textarea>
-	<label class="au-lbl">Explicit places — only on an explicit ballot (adult season)</label>
+	<label class="au-lbl">Explicit places</label>
 	<textarea class="pe-lines au-explicit" rows="${Math.min(12, Math.max(3, explicit.length + 1))}">${esc(explicit.join("\n"))}</textarea>
 </details>`
 }
