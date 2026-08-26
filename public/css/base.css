@@ -1018,7 +1018,12 @@ a.solo-title:hover {
 	bottom: 0;
 	z-index: 65;
 	width: min(300px, 85vw);
-	padding: 76px 18px 18px;
+	/* the foot bar (z 100) sits over the drawer (z 65): the drawer's padding
+	   clears it so the last link is never hidden under it, and the list
+	   scrolls inside the drawer on a short screen */
+	padding: 76px 18px calc(var(--footbar-h, 0px) + 18px);
+	overflow-y: auto;
+	overscroll-behavior: contain;
 	background: var(--panel);
 	border-left: 1px solid var(--panel-brd);
 	box-shadow: var(--panel-glow);
@@ -1076,12 +1081,32 @@ a.solo-title:hover {
 	border-color: var(--accent-2);
 }
 /* logout pinned to the drawer's bottom-right corner */
+/* Log out is a plain text row pinned to the top of the drawer — icon + word,
+   not a button — so it stays put while the menu scrolls beneath it. */
 .nav-drawer .nav-logout {
-	margin-top: auto;
-	align-self: flex-end;
-	width: auto;
+	position: sticky;
+	top: 76px; /* the drawer scrolls itself; 76px keeps it clear of the ☰/✕ at the top */
+	z-index: 1;
+	margin: 0 0 6px;
+	width: 100%;
 	min-width: 0;
-	padding: 10px 16px;
+	padding: 6px 6px 8px;
+	background: var(--panel);
+	border: 0;
+	border-radius: 0;
+	box-shadow: none;
+	color: var(--muted);
+	font-size: 0.9rem;
+	text-align: left;
+	transform: none;
+	cursor: pointer;
+}
+.nav-drawer .nav-logout:hover {
+	color: var(--accent-2);
+	border: 0;
+	background: var(--panel);
+	transform: none;
+	box-shadow: none;
 }
 /* The current page is marked by ink alone — no ring around the row. */
 .nav-drawer a[aria-current="page"] {

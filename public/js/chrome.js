@@ -108,6 +108,7 @@ const NAV = (page) => `
 	</button>
 	<div class="nav-scrim" id="navScrim"></div>
 	<nav class="nav-drawer" id="navDrawer" aria-label="Main menu">
+		<button type="button" class="nav-logout" id="navLogout">🚪 Log out</button>
 		<p class="nav-title">Menu</p>
 		<a href="/dashboard" ${page === "dashboard" ? 'aria-current="page"' : ""}>🏠 Dashboard</a>
 		<a href="/inbox" ${page === "inbox" ? 'aria-current="page"' : ""}>📬 Inbox</a>
@@ -123,7 +124,6 @@ const NAV = (page) => `
 		<a href="/ranks" ${page === "ranks" ? 'aria-current="page"' : ""}>🏅 Ranks &amp; unlocks</a>
 		<a href="/settings" ${page === "settings" ? 'aria-current="page"' : ""}>⚙️ Settings</a>
 		<a href="/admin" class="hidden" id="navAdmin" ${page === "admin" ? 'aria-current="page"' : ""}>🛡️ Admin</a>
-		<button type="button" class="nav-logout" id="navLogout">🚪 Log out</button>
 	</nav>`
 
 const TOPBAR = `
@@ -277,7 +277,8 @@ export function mountChrome({ page = "", nav = true, kofi = true } = {}) {
 	document.body.insertAdjacentHTML("beforeend", FOOT_BAR)
 	const peekBtn = document.getElementById("peekBtn")
 	peekBtn.addEventListener("click", () => setPeek(!document.body.classList.contains("ui-peek")))
-	// Drawer logout (bottom-right): signed-out visitors just don't see it.
+	// Drawer logout (pinned at the top of the drawer as a plain text row):
+	// signed-out visitors just don't see it.
 	const navLogout = document.getElementById("navLogout")
 	if (navLogout) {
 		if (!getToken()) navLogout.classList.add("hidden")
