@@ -104,7 +104,7 @@ function themeInk(el, win) {
 	return { accent: v("--accent", "#2fa3a0"), accent2: v("--accent-2", "#a8e6d0"), deep: v("--bg-2", "#16414a"), panel: v("--panel-2", v("--panel", "#16414a")), ink: v("--ink", "#eaf6f2") }
 }
 
-export function mountLiquidCard(el, { amp = 9, rate = 1, doc = document, win = window } = {}) {
+export function mountLiquidCard(el, { amp = 9, rate = 1, maskSwell = 10, doc = document, win = window } = {}) {
 	if (!el || el.querySelector(":scope > .liquid-svg")) return null
 	const key = ++seq
 	el.classList.add("liquid")
@@ -164,7 +164,11 @@ export function mountLiquidCard(el, { amp = 9, rate = 1, doc = document, win = w
 		const surface = shape({ base, norm, amp, t: clock, now, pointer, rings })
 		const under = shape({ base, norm, amp, t: clock * 0.82, phase: 2.1, swell: 5, now })
 		const path = toPath(surface)
-		for (const n of [nodes.surface, nodes.clip, nodes.mask, nodes.glow]) n.setAttribute("d", path)
+		for (const n of [nodes.surface, nodes.clip, nodes.glow]) n.setAttribute("d", path)
+		// the content mask is the same water pushed maskSwell px outward, so a
+		// trough passing through the padding doesn't nibble the text; only what
+		// overhangs the surface by more than that is cut
+		nodes.mask.setAttribute("d", maskSwell ? toPath(shape({ base, norm, amp, t: clock, now, pointer, rings, swell: maskSwell })) : path)
 		nodes.under.setAttribute("d", toPath(under))
 		nodes.glint.setAttribute("cx", W / 2 - 60 + Math.sin(clock * 0.32) * 90)
 		nodes.glint.setAttribute("cy", H / 2 - 70 + Math.cos(clock * 0.24) * 46)
