@@ -307,6 +307,7 @@
 			})
 			let myId = null,
 				hostId = null,
+				hostUserId = null,
 				tickInterval = null,
 				myVote = null,
 				lastOptsKey = ""
@@ -700,15 +701,20 @@
 				const host = myId === hostId
 				$("hostControls").classList.toggle("hidden", !host)
 				$("waitingNote").classList.toggle("hidden", host)
-				// everyone sees the continue panel; only the host can drive it
+				// everyone sees the continue panel; it is driven by whoever the
+				// server would let continue (mirrors mayContinue in src/game.js):
+				// the acting host, the ORIGINAL host by account, or anyone seated
+				// when no connected seat holds the host role
+				const hostHere = (tableWriters || []).some((w) => w.isHost && w.connected)
+				const canCont = host || (me && me.id === hostUserId) || !hostHere
 				const cc = $("continueControls")
 				cc.classList.remove("hidden")
-				cc.classList.toggle("continue-locked", !host)
-				cc.title = host ? "" : "Only the host has the ability to continue the story."
+				cc.classList.toggle("continue-locked", !canCont)
+				cc.title = canCont ? "" : "Only the host has the ability to continue the story."
 				// (tags are exempt: every writer may tag, not just the host)
-				cc.querySelectorAll("input, select, button").forEach((el) => (el.disabled = !host && !el.closest("#overTags")))
+				cc.querySelectorAll("input, select, button").forEach((el) => (el.disabled = !canCont && !el.closest("#overTags")))
 				// the bulk enable above wipes the checkbox-driven disabled states
-				if (host) contRules.sync()
+				if (canCont) contRules.sync()
 			}
 
 			// ---- Rules forms (shared component: lobby, host panel, continue) ----
@@ -731,8 +737,10 @@
 					if (!res?.ok) alert(res?.error || "Could not start.")
 				})
 
-			socket.on("roster", ({ writers, code, name, cover }) => {
+			socket.on("roster", ({ writers, code, name, cover, hostUserId: hu }) => {
 				updateLiveStatus(writers)
+				if (hu !== undefined) hostUserId = hu
+				if (Array.isArray(writers)) tableWriters = writers
 				if (code) myCode = code
 				if (name != null) sessName = name
 				syncCover(cover)
@@ -767,6 +775,7 @@
 					tableWriters = st.writers
 				}
 				hostId = st.hostId ?? hostId
+				if (st.hostUserId !== undefined) hostUserId = st.hostUserId
 				if (st.code) myCode = st.code
 				if (st.name != null) sessName = st.name
 				if (st.friendly != null) sessFriendly = st.friendly
@@ -1213,7 +1222,7 @@ $("pauseBtn").onclick = () =>
 			})
 			$("continueBtn").onclick = () =>
 				socket.emit("continue-writing", contRules.values(), (res) => {
-					if (!res?.ok) alert("Could not continue, only the host can, and someone must be here.")
+					if (!res?.ok) alert("Could not continue: the host is here and only they can, or nobody is seated.")
 				})
 			// Exports (js/export.js): prose only, formatting preserved, NO usernames.
 			function rebuildExports(prompt, story) {

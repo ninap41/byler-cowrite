@@ -189,3 +189,36 @@ test("the original host whose seat expired re-enters a started game directly, as
     await ctx2.stop?.();
   }
 });
+
+test("a revealed story is continuable by whoever may end it — and by anyone seated once no host is here", async () => {
+  const ctx2 = await startServer({ COWRITE_GHOST_MS: "150" });
+  try {
+    const { A, B, code, mike } = await startedGame(ctx2);
+    A.disconnect(); // the true host drops out; Mike becomes acting host
+    await new Promise((r) => setTimeout(r, 600));
+    const over = new Promise((r) => B.on("game-over", r));
+    const e = await ctx2.emit(B, "end-game", {});
+    assert.equal(e.ok, true, "the acting host may end");
+    await over;
+    // the acting host may also continue — the same authority both ways
+    const c = await ctx2.emit(B, "continue-writing", { turnSeconds: 30, rounds: 1 });
+    assert.equal(c.ok, true, "the acting host continues");
+    // …and if the acting host leaves after a reveal, a seated writer can
+    await ctx2.emit(B, "end-game", {});
+    const C = await ctx2.conn();
+    // a third writer seated via the host's approval
+    const reqP = new Promise((r) => B.on("join-request", r));
+    const dustin = await signup(ctx2, "dustinhenderson", "dustin@hawkins.net");
+    const j = ctx2.emit(C, "join-session", { code, auth: dustin.token });
+    const req = await reqP;
+    await ctx2.emit(B, "approve-join", { id: req.id, allow: true });
+    await j;
+    B.disconnect();
+    await new Promise((r) => setTimeout(r, 600));
+    const c2 = await ctx2.emit(C, "continue-writing", { turnSeconds: 30, rounds: 1 });
+    assert.equal(c2.ok, true, "no connected host: a seated writer continues and hosts");
+    C.disconnect();
+  } finally {
+    await ctx2.stop?.();
+  }
+});

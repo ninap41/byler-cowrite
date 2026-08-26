@@ -538,7 +538,7 @@ export function createGame(io) {
     }));
   }
   const broadcastRoster = (s) =>
-    io.to(s.code).emit("roster", { writers: roster(s), code: s.code, name: s.name || "", cover: s.cover || "" });
+    io.to(s.code).emit("roster", { writers: roster(s), code: s.code, name: s.name || "", cover: s.cover || "", hostUserId: s.hostUserId ?? null });
 
   function tally(s) {
     const counts = s.options.map(() => 0);
@@ -599,6 +599,7 @@ export function createGame(io) {
       nextId: nextUpId(s),
       hostId: s.hostId,
       hostName: s.writers.get(s.hostId)?.name ?? null,
+      hostUserId: s.hostUserId ?? null, // the ORIGINAL host, who may always continue
       spectators: spectatorCount(s),
     });
   }
@@ -1292,9 +1293,23 @@ export function createGame(io) {
 
     // After a reveal, the host can pick the story back up with fresh rules.
     // Keeps prompt + story; the turn order rebuilds from connected writers.
+    // Who may continue a revealed story: the same authority that may END one
+    // (the acting host, an admin), the ORIGINAL host by account, and — when
+    // no connected seat holds the host role at all (the host was dropped
+    // and the acting host has since left) — whichever seated writer asks,
+    // who becomes acting host. Otherwise a story could be ended by an acting
+    // host and then be continuable by nobody in the room.
+    function mayContinue(s, sock) {
+      if (s.hostId === sock.id || adminSeat(s, sock.id)) return true;
+      const w = s.writers.get(sock.id);
+      if (!w) return false;
+      if (w.userId != null && w.userId === s.hostUserId) return true;
+      return !s.writers.get(s.hostId)?.connected;
+    }
     socket.on("continue-writing", ({ turnSeconds, rounds, friendly }, ack) => {
       const s = mySession();
-      if (!s || s.hostId !== socket.id || s.phase !== "over") return ack?.({ ok: false });
+      if (!s || s.phase !== "over" || !mayContinue(s, socket)) return ack?.({ ok: false });
+      s.hostId = socket.id; // whoever continues drives the continued game
       if (friendly != null) s.friendly = !!friendly;
       s.turnSeconds = cleanSeconds(turnSeconds, s.turnSeconds);
       s.turnOrder = [...s.writers.entries()].filter(([, w]) => w.connected).map(([id]) => id);
