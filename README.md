@@ -89,6 +89,9 @@ then redeploy. Test with “Forgot password” on a real account.
 
 ## Deploying on Replit
 
+(Short version for the Repl itself: [`replit.md`](replit.md) — run command,
+port, storage check, email.)
+
 The app must run as a **Reserved VM deployment** — Autoscale spins up multiple
 stateless copies, which breaks Socket.IO rooms and the in-memory session map.
 One small VM easily handles ~50 concurrent writers.
