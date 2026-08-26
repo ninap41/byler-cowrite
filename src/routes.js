@@ -24,24 +24,45 @@ import {
 
 const CODE_RE = /^[A-Z0-9]{4}$/;
 const RESET_TTL_MS = 30 * 60_000;
+const RESET_ORIGIN = (() => {
+  const configured = String(process.env.PUBLIC_APP_URL || "").trim();
+  if (!configured) {
+    if (process.env.SMTP_HOST)
+      throw new Error("PUBLIC_APP_URL is required when SMTP_HOST is configured");
+    return `http://localhost:${Number(process.env.PORT || 3000)}`;
+  }
+  let parsed;
+  try {
+    parsed = new URL(configured);
+  } catch {
+    throw new Error("PUBLIC_APP_URL must be a valid absolute URL");
+  }
+  if (parsed.protocol !== "https:" || parsed.username || parsed.password ||
+      parsed.pathname !== "/" || parsed.search || parsed.hash)
+    throw new Error("PUBLIC_APP_URL must be an HTTPS origin without credentials or a path");
+  return parsed.origin;
+})();
 // Alpha account cap: past this many accounts, signup closes and the homepage
 // offers the waiting list instead (COWRITE_MAX_USERS overrides — tests shrink it).
 const USER_CAP = Number(process.env.COWRITE_MAX_USERS || 100);
 
 // Forgot password: email a reset link (valid 30 minutes). Without SMTP env
-// vars the link is logged to the server console instead — it is never
-// returned to the browser.
+// vars the link is logged locally for development — it is never returned to
+// the browser.
 async function sendResetEmail(to, link) {
   const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM } = process.env;
   if (!SMTP_HOST) {
     console.log(`[reset] Password reset link for ${to}: ${link}`);
     return;
   }
+  const port = Number(SMTP_PORT || 587);
+  if (!Number.isInteger(port) || port < 1 || port > 65535)
+    throw new Error("SMTP_PORT must be an integer between 1 and 65535");
   const nodemailer = (await import("nodemailer")).default;
   const transport = nodemailer.createTransport({
     host: SMTP_HOST,
-    port: Number(SMTP_PORT || 587),
-    secure: Number(SMTP_PORT) === 465,
+    port,
+    secure: port === 465,
     auth: SMTP_USER ? { user: SMTP_USER, pass: SMTP_PASS } : undefined,
   });
   await transport.sendMail({
@@ -659,7 +680,7 @@ export function registerRoutes(app, game) {
     res.json({ username: u.username });
   });
 
-  app.post("/api/send-reset", (req, res) => {
+  app.post("/api/send-reset", async (req, res) => {
     const em = String(req.body?.email || "").toLowerCase().trim();
     if (!EMAIL_RE.test(em)) return res.status(400).json({ error: "Enter a valid email." });
     const u = findByEmail(em);
@@ -670,8 +691,15 @@ export function registerRoutes(app, game) {
     const token = randomUUID();
     store.resets[token] = { userId: u.id, exp: Date.now() + RESET_TTL_MS };
     saveStore();
-    const link = `${req.protocol}://${req.get("host")}/reset.html?token=${token}`;
-    sendResetEmail(u.email, link).catch((e) => console.error("sendResetEmail failed:", e.message));
+    const link = `${RESET_ORIGIN}/reset.html?token=${token}`;
+    try {
+      await sendResetEmail(u.email, link);
+    } catch (e) {
+      delete store.resets[token];
+      saveStore();
+      console.error("sendResetEmail failed:", e.message);
+      return res.status(502).json({ error: "We couldn't send the reset email. Please try again later." });
+    }
     res.json({ ok: true });
   });
 

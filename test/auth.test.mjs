@@ -1,12 +1,60 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { createServer } from "node:net";
 import { join } from "node:path";
 import { startServer, signup } from "./helpers.mjs";
 
 let ctx;
 before(async () => (ctx = await startServer()));
 after(async () => ctx.stop());
+
+async function startSmtpCapture() {
+  const messages = [];
+  let resolveMessage;
+  const nextMessage = new Promise((resolve) => (resolveMessage = resolve));
+  const server = createServer((socket) => {
+    let buffer = "";
+    let inData = false;
+    let message = "";
+    socket.write("220 test SMTP\r\n");
+    socket.on("data", (chunk) => {
+      buffer += String(chunk);
+      let end;
+      while ((end = buffer.indexOf("\r\n")) >= 0) {
+        const line = buffer.slice(0, end);
+        buffer = buffer.slice(end + 2);
+        if (inData) {
+          if (line === ".") {
+            messages.push(message);
+            resolveMessage(message);
+            message = "";
+            inData = false;
+            socket.write("250 queued\r\n");
+          } else {
+            message += line + "\r\n";
+          }
+          continue;
+        }
+        if (/^(EHLO|HELO) /i.test(line)) socket.write("250-test\r\n250-AUTH PLAIN LOGIN\r\n250 OK\r\n");
+        else if (/^AUTH /i.test(line)) socket.write("235 authenticated\r\n");
+        else if (/^(MAIL FROM:|RCPT TO:)/i.test(line)) socket.write("250 OK\r\n");
+        else if (/^DATA$/i.test(line)) {
+          inData = true;
+          socket.write("354 send message\r\n");
+        } else if (/^QUIT$/i.test(line)) socket.end("221 bye\r\n");
+        else socket.write("250 OK\r\n");
+      }
+    });
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  return {
+    port: server.address().port,
+    messages,
+    nextMessage,
+    close: () => new Promise((resolve) => server.close(resolve)),
+  };
+}
 
 test("signup validation: email, username, password, duplicates, @ ban", async () => {
   const bad = [
@@ -83,6 +131,37 @@ test("forgot username/password lookup + full reset cycle", async () => {
   assert.equal((await ctx.api("/api/login", { user: "willthewise", password: "newpass" })).status, 200);
   r = await ctx.api("/api/reset", { token: resetToken, password: "again" });
   assert.equal(r.status, 400, "reset token single-use");
+});
+
+test("reset emails always use the configured HTTPS origin", async () => {
+  const smtp = await startSmtpCapture();
+  const mailCtx = await startServer({
+    SMTP_HOST: "127.0.0.1",
+    SMTP_PORT: String(smtp.port),
+    SMTP_USER: "test-user",
+    SMTP_PASS: "test-pass",
+    SMTP_FROM: "sender@example.test",
+    PUBLIC_APP_URL: "https://cowrite.example.test",
+  });
+  try {
+    await signup(mailCtx, "resetlinkuser", "resetlink@example.test");
+    const response = await fetch(mailCtx.url + "/api/send-reset", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Host: "attacker.example.test",
+        "X-Forwarded-Proto": "http",
+      },
+      body: JSON.stringify({ email: "resetlink@example.test" }),
+    });
+    assert.equal(response.status, 200, await response.text());
+    const message = (await smtp.nextMessage).replace(/=\r?\n/g, "");
+    assert.match(message, /https:\/\/cowrite\.example\.test\/reset\.html\?token=/);
+    assert.doesNotMatch(message, /attacker\.example\.test/);
+  } finally {
+    await mailCtx.stop();
+    await smtp.close();
+  }
 });
 
 test("username change: validation, frees old name, archive label freshness", async () => {

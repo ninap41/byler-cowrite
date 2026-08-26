@@ -94,7 +94,13 @@ SMTP_FROM=<the verified sender address>
 ```
 
 On Replit these go in **Secrets**, for the workspace and the deployment both,
-then redeploy. Test with “Forgot password” on a real account.
+then redeploy. The app uses Nodemailer, supports standard SMTP providers, and
+uses port 587 when `SMTP_PORT` is omitted. When SMTP is configured, a failed
+send returns an error and removes the unused reset token so the user can retry.
+Also set the `PUBLIC_APP_URL` deployment secret to the app's canonical HTTPS
+origin (for example, `https://your-app.replit.app`). Reset links always use this
+fixed origin rather than request headers. Test with “Forgot password” on a real
+account.
 
 ## Deploying on Replit
 

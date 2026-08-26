@@ -13,6 +13,26 @@ deploymentTarget = "vm"
 localPort = 3000
 externalPort = 80
 
+[[ports]]
+localPort = 6556
+externalPort = 4200
+
+[[ports]]
+localPort = 8553
+externalPort = 3001
+
+[[ports]]
+localPort = 15010
+externalPort = 3002
+
+[[ports]]
+localPort = 16476
+externalPort = 3000
+
+[[ports]]
+localPort = 18990
+externalPort = 3003
+
 [workflows]
 runButton = "Project"
 

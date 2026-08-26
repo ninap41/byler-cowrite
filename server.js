@@ -25,6 +25,9 @@ const { createGame } = await import("./src/game.js");
 const { registerRoutes } = await import("./src/routes.js");
 
 const app = express();
+// Replit's HTTPS proxy forwards the original protocol in this header. Trust
+// the first proxy so req.protocol and generated password-reset links stay HTTPS.
+app.set("trust proxy", 1);
 const httpServer = createServer(app);
 const io = new Server(httpServer);
 // Pages, ES modules, and CSS must never be served stale: a cached old module

@@ -10,6 +10,12 @@ import { io } from "socket.io-client";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 export async function startServer(extraEnv = {}) {
+  // Tests must never inherit a developer's real mail configuration. Individual
+  // tests can provide local SMTP settings through extraEnv when needed.
+  const {
+    SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM, PUBLIC_APP_URL,
+    ...testEnv
+  } = process.env;
   const dataDir = mkdtempSync(join(tmpdir(), "cowrite-data-"));
   const saveDir = mkdtempSync(join(tmpdir(), "cowrite-saves-"));
   // The content pack is copied too: the admin prompt editor writes to it, and
@@ -27,7 +33,7 @@ export async function startServer(extraEnv = {}) {
     child = spawn("node", ["server.js"], {
       cwd: ROOT,
       env: {
-        ...process.env,
+        ...testEnv,
         DATABASE_URL: "", // a developer's shell must never point the suite at real Postgres
         PORT: String(port),
         COWRITE_DATA_DIR: dataDir,
