@@ -141,3 +141,27 @@ test("the host invites a friend to a live session: friends-only, host-only, an i
   assert.equal((await ctx.api(`/api/games/${code}/invite`, { username: "mikewheeler" }, host.token)).status, 409);
   assert.equal((await ctx.api(`/api/games/ZZZZ/invite`, { username: "carolstranger" }, host.token)).status, 404);
 });
+
+test("a contributor is a contributor: a writer whose seat expired still sees the story", async () => {
+  const ctx2 = await startServer({ COWRITE_GHOST_MS: "150" });
+  try {
+    const { host, mike, A, B, code, state } = await startedGame(ctx2);
+    // both write a line, so Mike is in the story by his words
+    const first = state.current.currentId === A.id ? A : B;
+    const second = first === A ? B : A;
+    await ctx2.emit(first, "submit-line", { text: "line one" });
+    await ctx2.emit(second, "submit-line", { text: "line two" });
+    B.disconnect(); // Mike leaves; his seat ghosts and is dropped
+    await new Promise((r) => setTimeout(r, 600));
+    // the host goes on without him, then ends and reveals
+    const dash = await ctx2.api("/api/dashboard", null, mike.token, "GET");
+    assert.ok(dash.data.myGames.some((g) => g.code === code), "still among his games while running");
+    await ctx2.emit(A, "end-game", {});
+    const list = await ctx2.api("/api/games", null, mike.token, "GET");
+    assert.ok(list.data.some((g) => g.code === code), "and in his previous games after the reveal");
+    assert.equal((await ctx2.api("/api/games/" + code, null, mike.token, "GET")).status, 200, "readable too");
+    A.disconnect();
+  } finally {
+    await ctx2.stop?.();
+  }
+});

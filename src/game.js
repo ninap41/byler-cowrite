@@ -2042,7 +2042,13 @@ export function createGame(io) {
       name: freshName(w.userId, w.name), color: cleanColor(w.color), isHost: d.hostUserId != null && w.userId === d.hostUserId,
     })),
   });
-  const inGame = (d, u) => (d.writers || []).some((w) => w.userId === u.id);
+  // A contributor is a contributor: holding a seat, having WRITTEN a line, or
+  // being the original host all count — a seat that expired (ghost dropped,
+  // the host went on without you) must not erase the story from your lists.
+  const inGame = (d, u) =>
+    (d.writers || []).some((w) => w.userId === u.id) ||
+    (d.story || []).some((l) => l.userId === u.id) ||
+    d.hostUserId === u.id;
 
   // Tag edits come over HTTP (routes.js) so they work on live AND finished
   // stories: update the live session when there is one, else rewrite the
@@ -2083,7 +2089,7 @@ export function createGame(io) {
     const out = new Map();
     for (const s of sessions.values()) {
       if (s.phase === "over") continue;
-      const mine = [...s.writers.values()].some((w) => w.userId === u.id);
+      const mine = inGame({ writers: [...s.writers.values()], story: s.story, hostUserId: s.hostUserId }, u);
       if (!mine) continue;
       const cur = s.phase === "writing" ? s.writers.get(s.turnOrder[s.currentIdx]) : null;
       out.set(s.code, {
@@ -2100,7 +2106,7 @@ export function createGame(io) {
     for (const code of storage.list("save")) {
       if (out.has(code) || sessions.has(code)) continue;
       const d = readSnapshot(code);
-      if (!d || d.phase === "over" || !(d.writers || []).some((w) => w.userId === u.id)) continue;
+      if (!d || d.phase === "over" || !inGame(d, u)) continue;
       out.set(code, {
         code, name: d.name || "", cover: d.cover || "", phase: d.phase, paused: true, myTurn: false, currentName: null,
         hosted: d.hostUserId === u.id,
