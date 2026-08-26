@@ -558,3 +558,12 @@ test("/games is the coming-soon page, linked from the nav drawer and the dashboa
   assert.match(readFileSync(new URL("../public/js/chrome.js", import.meta.url), "utf-8"), /href="\/games"[^>]*>🕹️ Games</, "the hamburger menu lists it");
   assert.match(readFileSync(new URL("../public/dashboard.html", import.meta.url), "utf-8"), /class="dnav" href="\/games"/, "the dashboard rail lists it");
 });
+
+test("the game page's tab title is the story's name, refreshed with the session bar, so a rename mid-vote shows at once", async () => {
+  const { readFileSync } = await import("node:fs");
+  const src = readFileSync(new URL("../public/game.html", import.meta.url), "utf-8");
+  assert.match(src, /const setPageTitle = \(\) => \{\s*document\.title = "\{\{SITE_NAME\}\}: " \+ \(sessName \|\| PAGE_TITLES\[shownCard\] \|\| "Game"\)/, "the name leads, the phase is the fallback");
+  const bar = src.slice(src.indexOf("function updateSessionBar()"), src.indexOf("async function copyCode"));
+  assert.ok(bar.includes("setPageTitle()"), "every session-bar repaint refreshes the title");
+  assert.ok(!/onlyShow[\s\S]{0,200}document\.title =/.test(src), "onlyShow no longer sets a phase-only title");
+});

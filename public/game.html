@@ -310,11 +310,18 @@
 			const $ = (id) => document.getElementById(id)
 			const show = (id) => $(id).classList.remove("hidden")
 			const hide = (id) => $(id).classList.add("hidden")
-			// Tab title follows the phase: Lobby while gathering/voting, Cowrite in play.
+			// Tab title is the story's name, refreshed whenever the session bar
+			// repaints (so a rename mid-vote shows at once); a nameless story
+			// falls back to the phase: Lobby while gathering/voting, Cowrite in play.
 			const PAGE_TITLES = { waiting: "Lobby", choosing: "Lobby", game: "Cowrite", over: "Cowrite" }
+			let shownCard = "waiting"
+			const setPageTitle = () => {
+				document.title = "{{SITE_NAME}}: " + (sessName || PAGE_TITLES[shownCard] || "Game")
+			}
 			const onlyShow = (id) => {
 				;["waiting", "choosing", "game", "over"].forEach((x) => (x === id ? show(x) : hide(x)))
-				document.title = "{{SITE_NAME}}: " + (PAGE_TITLES[id] || "Game")
+				shownCard = id
+				setPageTitle()
 			}
 
 			// ---- Docked chat panel (collapse/expand + unread badge) ----
@@ -481,6 +488,7 @@
 					el.textContent = sessName || "Untitled story"
 					el.classList.toggle("unnamed", !sessName)
 				})
+				setPageTitle()
 				document.querySelectorAll("[data-sess-code]").forEach((el) => {
 					if (!el.dataset.copied) el.textContent = (myCode || "····") + " ⧉"
 				})
