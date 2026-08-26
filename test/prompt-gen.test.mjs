@@ -461,6 +461,10 @@ test("an AU world deals a place of its own: never a canon place, explicit rooms 
     const r = generateIntermediatePrompt(INT, { seed: "hs" + i, seasonId: adult, canonId: "au", explicitLevel: "explicit" });
     assert.notEqual(r.selections.worldId, "high-school");
   }
+  // a CHOSEN high school steps the rating down instead — it's kids
+  const hs = generateIntermediatePrompt(INT, { seed: "hsx", seasonId: adult, worldId: "high-school", explicitLevel: "explicit" });
+  assert.equal(hs.explicitLevel, "suggestive");
+  assert.ok(!hs.selections.explicit && !/Kinks:/.test(hs.prompt));
   // a chosen world is honoured with its own place
   const r = generateIntermediatePrompt(INT, { seed: "cl", worldId: "cleradin" });
   assert.ok(INT.auPlaces.find((p) => p.id === r.selections.placeId)?.requiresTags.includes("au-cleradin"));

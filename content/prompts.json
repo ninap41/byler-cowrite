@@ -1978,7 +1978,7 @@
 			{
 				"id": "abo",
 				"label": "Alpha/Beta/Omega",
-				"text": "alpha/beta/omega",
+				"text": "Alpha/Beta/Omega",
 				"group": "setting-au",
 				"compatibleCanon": [
 					"au"
