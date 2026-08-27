@@ -521,15 +521,151 @@ body {
 }
 
 /* ---------- Dashboard (logged in) ---------- */
+/* A live game is a lit thing: a rail down its left edge with a bulb of the
+   theme's accent running the length of it, an aura that swells as the bulb
+   passes, a low sheen crossing the surface, a pulsing pip on the online
+   count — and on hover the row wakes (lifts, glows, the Join fills in).
+   Every colour is a theme token, so each theme lights its own way. */
 .live-game {
+	--lg-i: 0;
+	--lg-run: 5.2s;
+	position: relative;
 	display: flex;
 	align-items: center;
 	gap: 10px;
-	border: 1px solid var(--line);
+	border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--line));
 	border-radius: var(--r-md);
-	padding: 10px 12px;
+	padding: 12px 12px 12px 22px;
 	margin-bottom: 8px;
-	background: var(--panel-2);
+	background:
+		linear-gradient(100deg, color-mix(in srgb, var(--accent) 22%, transparent) 0%, transparent 46%),
+		var(--panel-2);
+	overflow: hidden;
+	isolation: isolate;
+	transition: border-color 0.4s ease, transform 0.4s cubic-bezier(0.2, 0.8, 0.3, 1), box-shadow 0.4s ease;
+}
+.live-game .lg-rail {
+	position: absolute;
+	left: 0;
+	top: 0;
+	bottom: 0;
+	width: 3px;
+	background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 30%, transparent), color-mix(in srgb, var(--accent) 60%, transparent), color-mix(in srgb, var(--accent) 30%, transparent));
+}
+.live-game .lg-bulb {
+	position: absolute;
+	left: -3px;
+	width: 9px;
+	height: 64%;
+	top: -90%;
+	border-radius: 6px;
+	background: linear-gradient(180deg, transparent, var(--accent-2) 45%, var(--accent-2) 55%, transparent);
+	box-shadow: 0 0 14px 4px var(--glow), 0 0 60px 22px color-mix(in srgb, var(--glow) 55%, transparent);
+	animation: lg-bulb var(--lg-run) cubic-bezier(0.45, 0, 0.55, 1) infinite;
+	animation-delay: calc(var(--lg-i) * 0.78s);
+}
+@keyframes lg-bulb {
+	0% { top: -90%; opacity: 0; }
+	12% { opacity: 1; }
+	72% { opacity: 1; }
+	88% { top: 118%; opacity: 0; }
+	100% { top: 118%; opacity: 0; }
+}
+.live-game .lg-aura {
+	position: absolute;
+	inset: 0;
+	background: radial-gradient(65% 140% at 0% 50%, color-mix(in srgb, var(--accent-2) 22%, transparent), transparent 70%);
+	opacity: 0;
+	animation: lg-aura var(--lg-run) ease-in-out infinite;
+	animation-delay: calc(var(--lg-i) * 0.78s);
+	pointer-events: none;
+}
+@keyframes lg-aura {
+	0%, 100% { opacity: 0; }
+	45% { opacity: 1; }
+}
+.live-game .lg-sheen {
+	position: absolute;
+	inset: 0;
+	background: linear-gradient(104deg, transparent 34%, color-mix(in srgb, var(--ink) 8%, transparent) 47%, color-mix(in srgb, var(--ink) 14%, transparent) 50%, color-mix(in srgb, var(--ink) 8%, transparent) 53%, transparent 66%);
+	transform: translateX(-140%);
+	animation: lg-sheen 9.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+	animation-delay: calc(var(--lg-i) * 1.4s + 0.6s);
+	pointer-events: none;
+}
+@keyframes lg-sheen {
+	0% { transform: translateX(-140%); }
+	42% { transform: translateX(140%); }
+	100% { transform: translateX(140%); }
+}
+.live-game .lg-info > b {
+	transition: text-shadow 0.4s ease;
+}
+.live-game .lg-pip {
+	display: inline-block;
+	width: 5px;
+	height: 5px;
+	margin-right: 5px;
+	border-radius: 50%;
+	background: var(--accent-2);
+	vertical-align: 1px;
+	animation: lg-pip 2.4s ease-out infinite;
+}
+@keyframes lg-pip {
+	0% { box-shadow: 0 0 0 0 var(--glow); }
+	70% { box-shadow: 0 0 0 7px transparent; }
+	100% { box-shadow: 0 0 0 0 transparent; }
+}
+.live-game > button {
+	position: relative;
+	overflow: hidden;
+	transition: background 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease, color 0.35s ease;
+}
+.live-game > button::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background: linear-gradient(100deg, transparent 40%, rgba(255, 255, 255, 0.35) 50%, transparent 60%);
+	transform: translateX(-160%);
+	transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.live-game:hover {
+	border-color: color-mix(in srgb, var(--accent-2) 55%, transparent);
+	transform: translateY(-2px);
+	box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-2) 12%, transparent), 0 10px 34px -12px var(--glow), 0 0 70px -20px var(--glow);
+}
+.live-game:hover .lg-info > b {
+	text-shadow: 0 0 18px var(--glow);
+}
+.live-game:hover .lg-aura {
+	animation-duration: calc(var(--lg-run) * 0.55);
+}
+.live-game:hover > button {
+	background: linear-gradient(180deg, var(--accent-2), var(--accent));
+	border-color: var(--accent-2);
+	color: var(--bg);
+	box-shadow: 0 0 24px -4px var(--glow);
+}
+.live-game:hover > button::after {
+	transform: translateX(160%);
+}
+@media (prefers-reduced-motion: reduce) {
+	.live-game .lg-bulb,
+	.live-game .lg-sheen,
+	.live-game .lg-aura,
+	.live-game .lg-pip {
+		animation: none;
+	}
+	.live-game .lg-aura {
+		opacity: 0.7;
+	}
+	.live-game .lg-bulb {
+		top: 18%;
+		opacity: 1;
+	}
+	.live-game .lg-sheen {
+		display: none;
+	}
 }
 /* Solo writes as rows (profile + dashboard; write-view.js soloRowHtml): the
    same shape as .live-game. A locked row is someone's private write — listed
@@ -627,53 +763,6 @@ a.solo-title:hover {
 @keyframes gather-glow {
 	0%, 100% { box-shadow: 0 0 4px 0 var(--glow); }
 	50% { box-shadow: 0 0 20px 4px var(--glow); }
-}
-/* a game being WRITTEN right now shimmers in the theme: a sheen of the
-   accent sweeping along its edge over a breathing glow — on the dashboard's
-   in-progress cards and the live-games rows alike */
-.mg-card.live,
-.live-game.live {
-	position: relative;
-	isolation: isolate;
-	border-color: var(--accent);
-	box-shadow: 0 0 14px 1px var(--glow);
-}
-.mg-card.live::after,
-.live-game.live::after {
-	content: "";
-	position: absolute;
-	inset: 0;
-	border-radius: inherit;
-	padding: 1.5px;
-	pointer-events: none;
-	background: conic-gradient(from var(--shimmer-a, 0deg), transparent 0 55%, var(--accent-2) 72%, #fff 76%, var(--accent) 80%, transparent 92%);
-	-webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-	mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-	-webkit-mask-composite: xor;
-	mask-composite: exclude;
-	opacity: 0.9;
-}
-@property --shimmer-a {
-	syntax: "<angle>";
-	inherits: false;
-	initial-value: 0deg;
-}
-@media (prefers-reduced-motion: no-preference) {
-	.mg-card.live::after,
-	.live-game.live::after {
-		animation: live-shimmer 3.2s linear infinite;
-	}
-	.mg-card.live,
-	.live-game.live {
-		animation: live-breathe 2.6s ease-in-out infinite;
-	}
-}
-@keyframes live-shimmer {
-	to { --shimmer-a: 360deg; }
-}
-@keyframes live-breathe {
-	0%, 100% { box-shadow: 0 0 10px 0 var(--glow); }
-	50% { box-shadow: 0 0 24px 4px var(--glow); }
 }
 .live-game .sparkle {
 	position: absolute;

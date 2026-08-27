@@ -19,9 +19,11 @@ const PHASES = { waiting: "gathering writers", choosing: "voting", writing: "wri
 export function liveGameInfoHtml(g) {
 	const on = g.players.filter((pl) => pl.connected).length
 	return (
+		// the lit rail, its running bulb, the aura and the sheen (all CSS)
+		`<span class="lg-rail" aria-hidden="true"><i class="lg-bulb"></i></span><span class="lg-aura" aria-hidden="true"></span><span class="lg-sheen" aria-hidden="true"></span>` +
 		`<span class="lg-info"><b>${esc(g.name || g.code)}</b>` +
 		`<span class="lg-sub">${esc(g.code)} · ${PHASES[g.phase] || g.phase}` +
-		`${g.hostName ? " · " + esc(g.hostName) + " (host)" : ""} · ${on}/${g.players.length} online · ` +
+		`${g.hostName ? " · " + esc(g.hostName) + " (host)" : ""} · <i class="lg-pip" aria-hidden="true"></i>${on}/${g.players.length} online · ` +
 		`${esc(g.players.map((pl) => pl.name).join(", "))}</span></span>`
 	)
 }

@@ -440,7 +440,7 @@
 				grid.innerHTML = ""
 				games.forEach((g) => {
 					const card = document.createElement("div")
-					card.className = "mg-card" + (g.live && !g.paused && g.phase === "writing" ? " live" : "")
+					card.className = "mg-card"
 					card.innerHTML = myGameCardHtml(g)
 					const btn = document.createElement("button")
 					btn.className = myGameStatus(g).cls === "is-turn" ? "primary" : "ghost"
@@ -664,14 +664,13 @@
 					box.innerHTML = '<p class="subtle" style="text-align:left;margin:0">No games running right now.</p>'
 				} else {
 					box.innerHTML = ""
-					d.liveGames.forEach((g) => {
+					d.liveGames.forEach((g, i) => {
 						const row = document.createElement("div")
 						row.className = "live-game"
+						row.style.setProperty("--lg-i", i) // staggers the bulb and sheen row by row
 						// a game still gathering writers glows + sparkles to pull
 						// OTHER members in (not if I'm already seated in it)
 						if (g.phase === "waiting" && !g.players.some((pl) => pl.name === me.username)) row.classList.add("gathering")
-						// a story being written this minute shimmers in the theme
-						if (g.phase === "writing" && !g.paused) row.classList.add("live")
 						row.innerHTML = liveGameInfoHtml(g)
 						const btn = document.createElement("button")
 						btn.className = "ghost"

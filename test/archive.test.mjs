@@ -166,14 +166,14 @@ test("a contributor is a contributor: a writer whose seat expired still sees the
   }
 });
 
-test("a game being written shimmers on the dashboard: liveGames carries paused, and the live/gathering classes are pinned in CSS", async () => {
+test("live games are lit: the rail/bulb/aura/sheen ride every row in theme tokens, rows are staggered, and liveGames carries paused", async () => {
   const { readFileSync } = await import("node:fs");
   const css = readFileSync(new URL("../public/css/base.css", import.meta.url), "utf-8");
-  assert.match(css, /\.mg-card\.live,\s*\.live-game\.live \{/);
-  assert.match(css, /@keyframes live-shimmer/);
+  for (const k of ["lg-bulb", "lg-aura", "lg-sheen", "lg-pip"]) assert.match(css, new RegExp(`@keyframes ${k}`), k);
+  const block = css.slice(css.indexOf("\n.live-game {"), css.indexOf("@media (prefers-reduced-motion: reduce) {\n\t.live-game .lg-bulb"));
+  assert.ok(!/#[0-9a-f]{3,8}\b/i.test(block.replace(/rgba\(255, 255, 255[^)]*\)/g, "")), "no hard-coded colours: every theme lights its own");
   const page = readFileSync(new URL("../public/dashboard.html", import.meta.url), "utf-8");
-  assert.match(page, /g\.live && !g\.paused && g\.phase === "writing" \? " live"/);
-  assert.match(page, /g\.phase === "writing" && !g\.paused\) row\.classList\.add\("live"\)/);
+  assert.match(page, /row\.style\.setProperty\("--lg-i", i\)/);
   const g = await startedGame(ctx, { turnSeconds: 60, rounds: 3 });
   const d = await ctx.api("/api/dashboard", undefined, g.host.token);
   const row = d.data.liveGames.find((x) => x.code === g.code);
