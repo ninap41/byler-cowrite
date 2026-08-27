@@ -633,3 +633,11 @@ test("every page carries Open Graph tags for link previews, and the banner exist
   const game = await fetch(ctx.url + "/game").then((r) => r.text());
   assert.ok(game.includes('property="og:description"'), "every rendered page, not just the homepage");
 });
+
+test("the homepage feature rundown never opens on a touch device while GSAP is loaded (it crashed mobile browsers)", async () => {
+  const { readFileSync } = await import("node:fs");
+  const src = readFileSync(new URL("../public/index.html", import.meta.url), "utf-8");
+  assert.match(src, /\(hover: none\) and \(pointer: coarse\)/);
+  assert.match(src, /featuresAllowed = \(\) => !\(touchDevice\(\) && typeof window\.gsap !== "undefined"\)/);
+  assert.match(src, /if \(featuresAllowed\(\)\) \$\("featuresModal"\)\.classList\.remove\("hidden"\)/);
+});

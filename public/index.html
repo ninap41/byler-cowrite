@@ -281,7 +281,18 @@
 					if (quote && !document.documentElement.classList.contains("og-capture")) $("heroTagText").textContent = quote
 				})
 				.catch(() => {})
-			$("heroTag").onclick = () => $("featuresModal").classList.remove("hidden")
+			// The feature rundown never opens on a touch device while GSAP is
+			// loaded — the modal over the tweening hero crashes mobile browsers.
+			// The tagline stays plain text there; the tour below covers it.
+			const touchDevice = () => window.matchMedia?.("(hover: none) and (pointer: coarse)").matches
+			const featuresAllowed = () => !(touchDevice() && typeof window.gsap !== "undefined")
+			if (!featuresAllowed()) {
+				$("heroTag").removeAttribute("title")
+				$("heroTag").style.cursor = "default"
+			}
+			$("heroTag").onclick = () => {
+				if (featuresAllowed()) $("featuresModal").classList.remove("hidden")
+			}
 			$("featuresClose").onclick = () => $("featuresModal").classList.add("hidden")
 			$("featuresModal").addEventListener("click", (e) => {
 				if (e.target === $("featuresModal")) $("featuresModal").classList.add("hidden")
