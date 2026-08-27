@@ -88,6 +88,15 @@ export function mountInbox({ list, unreadChip, readAllBtn, moreLink, limit = 0, 
 		const shown = limit ? all.slice(0, limit) : all
 		if (moreLink)
 			moreLink.textContent = all.length > shown.length ? `See all ${all.length} messages →` : "Open your inbox →"
+		// A poll must never eat what someone is typing: remember every open
+		// composer's draft (text, caret, focus) by thread and put it back after.
+		const drafts = new Map()
+		for (const row of list.querySelectorAll(".ib-row[data-thread]")) {
+			const ta = row.querySelector(".ib-reply-text")
+			if (!ta) continue
+			const focused = document.activeElement === ta
+			if (ta.value || focused) drafts.set(row.dataset.thread, { text: ta.value, focused, start: ta.selectionStart, end: ta.selectionEnd })
+		}
 		list.innerHTML = ""
 		if (!all.length) {
 			list.innerHTML = '<p class="subtle" style="text-align:left;margin:8px 0 0">Nothing here: inbox zero. ✨</p>'
@@ -97,6 +106,7 @@ export function mountInbox({ list, unreadChip, readAllBtn, moreLink, limit = 0, 
 			const m = t.head
 			const row = document.createElement("div")
 			row.className = "ib-row" + (t.unread ? " unread" : "") + (replies ? "" : " ib-compact")
+			row.dataset.thread = m.threadId || m.id
 			// The preview never chains and never composes — it is a notice board.
 			const folds = replies && t.messages.length > 1
 			const shownOpen = !folds || open.has(t.id)
@@ -200,6 +210,15 @@ export function mountInbox({ list, unreadChip, readAllBtn, moreLink, limit = 0, 
 			}
 			row.appendChild(acts)
 			list.appendChild(row)
+			const d = drafts.get(row.dataset.thread)
+			const ta = d && row.querySelector(".ib-reply-text")
+			if (ta) {
+				ta.value = d.text
+				if (d.focused) {
+					ta.focus()
+					try { ta.setSelectionRange(d.start, d.end) } catch (e) {}
+				}
+			}
 		})
 	}
 

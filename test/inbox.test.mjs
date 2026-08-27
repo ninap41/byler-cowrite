@@ -188,3 +188,11 @@ test("the profile page carries a Message button beside the friend button, hidden
   assert.match(html, /"\/api\/message", \{ username: p\.username, text \}/);
   assert.match(html, /msgBtn\.classList\.toggle\("hidden", itsMe\)/, "hidden on your own profile");
 });
+
+test("the inbox panel carries an open composer's draft across its 20s poll (text, focus, caret by thread)", async () => {
+  const { readFileSync } = await import("node:fs");
+  const src = readFileSync(new URL("../public/js/inbox-panel.js", import.meta.url), "utf-8");
+  assert.match(src, /row\.dataset\.thread = m\.threadId \|\| m\.id/, "rows are keyed by thread");
+  assert.match(src, /drafts\.set\(row\.dataset\.thread, \{ text: ta\.value, focused/, "drafts remembered before the list is rebuilt");
+  assert.match(src, /const d = drafts\.get\(row\.dataset\.thread\)[\s\S]*ta\.value = d\.text[\s\S]*ta\.focus\(\)/, "and restored, focus included, after");
+});
