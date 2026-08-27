@@ -264,10 +264,20 @@ export function mountArtRoom(opts) {
 		stroke = null
 	}
 
-	// painting: the catcher takes the pointer only while MY brush is out
+	// painting: the catcher takes the pointer only while MY brush is out.
+	// The chat dock is off-limits: it sits above the canvas (so a press there
+	// never reaches us), and a captured stroke dragged across it lifts the
+	// brush rather than painting under the chat.
+	const overChat = (x, y) => {
+		const dock = doc.querySelector(".chat-dock:not(.hidden)")
+		if (!dock) return false
+		const r = dock.getBoundingClientRect()
+		return r.width > 0 && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom
+	}
 	let painting = false
 	catcher.addEventListener("pointerdown", (e) => {
 		if (e.button != null && e.button !== 0) return
+		if (overChat(e.clientX, e.clientY)) return
 		painting = true
 		catcher.setPointerCapture?.(e.pointerId)
 		cursorAt = [fr(e.clientX / vw()), fr(e.clientY / vh())]
@@ -277,6 +287,7 @@ export function mountArtRoom(opts) {
 	catcher.addEventListener("pointermove", (e) => {
 		if (!open) return
 		cursorAt = [fr(e.clientX / vw()), fr(e.clientY / vh())]
+		if (painting && overChat(e.clientX, e.clientY)) return release(e) // the brush lifts at the chat's edge
 		if (painting) extendStroke(e.clientX, e.clientY)
 		else report()
 	})

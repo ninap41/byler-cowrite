@@ -220,3 +220,32 @@ test("black and white swatches paint as themselves (no palette fallback), and th
   assert.equal(m.color, "#f5f0e8");
   assert.equal(document.getElementById("arPick").value, "#f5f0e8");
 });
+
+test("the brush never paints over the chat dock: a press on it starts nothing, and a stroke dragged into it lifts", () => {
+  document.body.innerHTML = '<div class="chat-dock"></div>';
+  const dock = document.querySelector(".chat-dock");
+  dock.getBoundingClientRect = () => ({ left: 700, right: 1000, top: 500, bottom: 760, width: 300, height: 260 });
+  const socket = fakeSocket();
+  const m = mountArtRoom({ socket, getMyUserId: () => "u1", getMyColor: () => "#6c8cff", document });
+  m.start();
+  const catcher = document.getElementById("arCatch");
+  const ev = (type, x, y) => {
+    const e = new window.Event(type, { bubbles: true });
+    Object.assign(e, { clientX: x, clientY: y, button: 0, pointerId: 1 });
+    catcher.dispatchEvent(e);
+  };
+  ev("pointerdown", 800, 600); // on the chat
+  ev("pointermove", 820, 620);
+  ev("pointerup", 820, 620);
+  const strokesSent = () => socket.sent.filter(([e, d]) => e === "gimmick-stroke" && d?.stroke).length;
+  assert.equal(strokesSent(), 0, "a press on the chat paints nothing");
+  ev("pointerdown", 100, 100); // clear canvas
+  ev("pointermove", 150, 150);
+  ev("pointermove", 850, 650); // dragged into the chat: the brush lifts here
+  const before = strokesSent();
+  ev("pointermove", 860, 660);
+  assert.equal(strokesSent(), before, "no more of the stroke lands once it crossed into the chat");
+  assert.equal(m.strokesOf("u1"), 1, "the part painted outside the chat is kept");
+  const committed = socket.sent.filter(([e, d]) => e === "gimmick-stroke" && d?.stroke && d.live === false).at(-1)[1].stroke;
+  assert.ok(committed.pts.every(([x]) => x * window.innerWidth < 700), "and none of its points sit over the chat");
+});
