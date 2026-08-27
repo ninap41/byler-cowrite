@@ -45,9 +45,9 @@ export function statsText(u) {
 // as a share of the next rank's threshold.
 export function badgeProgress(u) {
 	if (!u.nextBadge) return { pct: 100, label: "top of the ladder" }
-	const toGo = Math.max(0, u.nextBadge.min - u.wordCount)
-	const banked = Math.max(0, u.wordCount - toGo)
-	const pct = Math.max(0, Math.min(99, Math.floor((banked / u.nextBadge.min) * 100)))
+	// the fill is what the label says: words so far over the next rank's cost
+	// (the old "banked = words − to-go" read 0 until halfway, so the bar sat at 1%)
+	const pct = Math.max(0, Math.min(99, Math.floor((u.wordCount / u.nextBadge.min) * 100)))
 	return {
 		pct: u.wordCount > 0 ? Math.max(pct, 1) : 0,
 		label: `${u.wordCount.toLocaleString()} / ${u.nextBadge.min.toLocaleString()} words to ${u.nextBadge.name}`,
