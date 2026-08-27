@@ -2,7 +2,20 @@
 // library. Discord calls US: slash commands arrive as signed HTTP POSTs at
 // /discord/interactions (verified with the app's Ed25519 public key, which is
 // what makes the endpoint safe to expose), and we call Discord's REST API with
-// the bot token to post messages into channels. Configuration is env:
+// the bot token to post messages into channels. Two things go out:
+//   - an announcement (POST /api/admin/announcements/:id/discord, the "Post to
+//     Discord" button on each post): its MARKDOWN verbatim — Discord renders
+//     markdown, which is why announcements are written in it — then the role
+//     mention on its own line at the end, so a leading heading stays one;
+//   - a live game share (POST /api/games/:code/discord, "Share to Discord" in
+//     the lobby under the code and in the host drawer): the role mention, then
+//     🌀☀️ title · bold host · writer count · bold code, with LINK buttons —
+//     "Join the lobby" for a lobby (from=discord, so the game page confirms
+//     before seating), "Ask to join" + "Spectate" once the game has started.
+// Everything is plain content + link buttons — no embeds — so the bot needs
+// only Send Messages / View Channels (and, to actually notify the role,
+// "Mention @everyone, @here and All Roles" or the role's own mention toggle);
+// link buttons always open in the viewer's browser. Configuration is env:
 //   DISCORD_PUBLIC_KEY          the app's public key (verifies interactions)
 //   DISCORD_APP_ID              the application id (command registration)
 //   DISCORD_BOT_TOKEN           the bot token (posting messages, registration)
@@ -11,7 +24,9 @@
 //   COWRITE_ROLE_ID             a role to @mention on every post, so its members get alerted
 //   PUBLIC_APP_URL              the site's origin, used in every link
 // Nothing here runs unless the relevant var is set; `discordStatus()` reports
-// which are (booleans, never values) for /admin.
+// which are (booleans, never values) for /admin. Link previews of the site
+// itself are Open Graph tags, not the bot's doing — see ogTags() in site.js.
+// Setup walkthrough: docs/DISCORD.md.
 import { verify as cryptoVerify, createPublicKey } from "node:crypto";
 
 const env = (k) => String(process.env[k] || "").trim();
@@ -69,11 +84,12 @@ export async function postToChannel(channelId, payload) {
   } catch (e) { return { error: e.message || "Couldn't reach Discord." }; }
 }
 
-// Every post opens with an @mention of COWRITE_ROLE_ID (when set) so the
-// role's members are alerted, and allowed_mentions names that role alone so
-// nothing else in the text — markdown or a game title — can ping anyone.
-// A game share leads with it; an announcement ends with it, on its own line
-// after the markdown, so a leading `## heading` stays a heading.
+// Every post @mentions COWRITE_ROLE_ID (when set) so the role's members are
+// alerted, and allowed_mentions names that role alone so nothing else in the
+// text — the markdown, a game title saying "@everyone" — can ping anyone.
+// A game share leads with it (`at` = "start"); an announcement ends with it,
+// on its own line after the markdown (`at` = "end"), so a leading
+// `## heading` stays a heading. Without a role, no mention is allowed at all.
 const withRole = (msg, at = "start") => {
   const role = env("COWRITE_ROLE_ID");
   if (!role) return { ...msg, allowed_mentions: { parse: [] } };
@@ -81,17 +97,21 @@ const withRole = (msg, at = "start") => {
   return { ...msg, content: content.slice(0, 2000), allowed_mentions: { roles: [role] } };
 };
 
-// The announcement's own markdown, verbatim — Discord renders markdown, which
-// is the whole reason announcements are written in it. 2000 is Discord's cap.
+// The announcement's own markdown, verbatim. Discord's cap is 2000 chars for
+// the whole message; 1970 leaves room for the role mention withRole() appends.
 export const announcementMessage = (post) => ({ content: String(post.markdown || post.title || "").slice(0, 1970) });
 export { withRole };
 export const postAnnouncement = (post) => postToChannel(env("DISCORD_ANNOUNCE_CHANNEL_ID"), withRole(announcementMessage(post), "end"));
 
-// A live game share: title, code, who's hosting, and the links that make
-// sense for its phase. A lobby ("gathering writers") gets Join alone — the
-// host gate only starts with the game, so a click seats them straight in,
-// and there is nothing to spectate yet. A started game gets Join (which is
-// a request the host approves) and Spectate.
+// A live game share: 🌀☀️, the title, the host's name in bold (Discord has no
+// text colour outside code blocks, so bold is how the name stands out), the
+// writer count, the code, and the link buttons that make sense for its phase.
+// A lobby ("gathering writers") gets "Join the lobby" alone — the host gate
+// only starts with the game, and there is nothing to spectate yet; a started
+// game gets "Ask to join" (a request the host approves) and "Spectate". The
+// Join link carries from=discord so the game page shows what the game is and
+// waits for a click before seating (public/js/join-confirm.js) — one tap on a
+// chat button shouldn't seat anyone by surprise.
 const link = (label, url) => ({ type: 2, style: 5, label, url });
 export const gameMessage = (s) => {
   const lobby = s.phase === "waiting";
