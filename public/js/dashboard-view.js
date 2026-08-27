@@ -53,13 +53,21 @@ export function badgeProgress(u) {
 }
 
 // A row in the writers directory (link wrapping is the page's job).
+// The tail of a row is where the caller stands with this writer: a friend, a
+// request already out, or a button to send one. Your own row carries none.
+export function friendStateHtml(u) {
+	if (u.me) return ""
+	if (u.friend) return `<span class="badge-chip friend">friend</span>`
+	if (u.requested) return `<span class="badge-chip requested">requested</span>`
+	return `<button type="button" class="ghost add-friend" data-add-friend="${esc(u.username)}">Add friend</button>`
+}
 export function writerRowHtml(u) {
 	return (
 		`<span class="st-dot ${u.online ? "on" : "off"}" title="${u.online ? "Online" : "Offline"}"></span>` +
 		miniAvatar(u) +
 		`<span class="rg-info"><b style="color:${safeColor(u.color)}">${esc(u.username)}</b>` +
 		`<span class="rg-sub">${u.wordCount.toLocaleString()} words</span></span>` +
-		`${u.badge ? `<span class="badge-chip">${esc(u.badge)}</span>` : ""}`
+		friendStateHtml(u)
 	)
 }
 

@@ -424,15 +424,27 @@ export function registerRoutes(app, game) {
     res.json({ user: publicUser(u) });
   });
 
+  // Friendship is mutual (both ids in both `friends` arrays); a pending
+  // request is just a friend-request message sitting in the target's inbox.
+  // (Declared here because the directory below reads them too.)
+  const areFriends = (a, b) => (a.friends || []).includes(b.id);
+  const pendingReqFrom = (target, senderId) =>
+    (target.inbox || []).find((m) => m.type === "friend-request" && m.fromId === senderId);
+
   // The writers directory: every account, with live online status.
   app.get("/api/users", (req, res) => {
-    if (!authedUser(req)) return res.status(401).json({ error: "Sign in first." });
+    const me = authedUser(req);
+    if (!me) return res.status(401).json({ error: "Sign in first." });
     const ids = new Set(onlineSockets.values());
     const users = store.users
       .map((x) => ({
         username: x.username, color: x.color, badge: badgeName(x.currentBadge),
         wordCount: x.wordCount, online: ids.has(x.id),
         avatar: x.avatar || "", avatarFit: x.avatarFit || "cover",
+        // where the caller stands with them: the directory row says so
+        me: x.id === me.id,
+        friend: x.id !== me.id && areFriends(me, x),
+        requested: x.id !== me.id && !!pendingReqFrom(x, me.id),
       }))
       .sort((a, b) => (b.online - a.online) || a.username.localeCompare(b.username));
     res.json({ users });
@@ -630,9 +642,6 @@ export function registerRoutes(app, game) {
   // ---- Friends ----
   // Friendship is mutual (both ids in both `friends` arrays); a pending
   // request is just a friend-request message sitting in the target's inbox.
-  const areFriends = (a, b) => (a.friends || []).includes(b.id);
-  const pendingReqFrom = (target, senderId) =>
-    (target.inbox || []).find((m) => m.type === "friend-request" && m.fromId === senderId);
 
   app.get("/api/friends", (req, res) => {
     const u = authedUser(req);

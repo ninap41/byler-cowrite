@@ -107,6 +107,21 @@ test("writers directory: auth-gated, everyone listed with online flags", async (
   assert.equal(users.findIndex((x) => x.online) < users.findIndex((x) => x.username === "diruser2"), true,
     "online writers sort first");
   assert.equal(JSON.stringify(users).includes("email"), false, "no emails in the directory");
+  // where I stand with each row: my own row, a stranger, a pending request, a friend
+  assert.equal(me.me, true);
+  assert.equal(other.me, false);
+  assert.equal(other.friend, false);
+  assert.equal(other.requested, false);
+  await ctx.api("/api/friends/request", { username: "diruser2" }, a.token);
+  const asked = (await ctx.api("/api/users", null, a.token, "GET")).data.users.find((x) => x.username === "diruser2");
+  assert.equal(asked.requested, true, "a sent request shows on their row");
+  assert.equal(asked.friend, false);
+  const b = (await ctx.api("/api/login", { user: "diruser2", password: "1234" })).data;
+  const req = (await ctx.api("/api/inbox", null, b.token, "GET")).data.messages.find((m) => m.type === "friend-request");
+  await ctx.api("/api/friends/respond", { id: req.id, accept: true }, b.token);
+  const pal = (await ctx.api("/api/users", null, a.token, "GET")).data.users.find((x) => x.username === "diruser2");
+  assert.equal(pal.friend, true, "accepted: a friend");
+  assert.equal(pal.requested, false);
   S.disconnect();
 });
 

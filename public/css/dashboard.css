@@ -1070,3 +1070,19 @@ a.rg-row {
 	backdrop-filter: blur(16px);
 	-webkit-backdrop-filter: blur(16px);
 }
+
+/* the writers directory: the row's tail says where you stand with them */
+.rg-row .add-friend {
+	flex: none;
+	margin-left: auto;
+	padding: 4px 10px;
+	font-size: 0.72rem;
+	min-width: 0;
+}
+.rg-row .badge-chip.friend,
+.rg-row .badge-chip.requested {
+	margin-left: auto;
+}
+.rg-row .badge-chip.requested {
+	opacity: 0.7;
+}
