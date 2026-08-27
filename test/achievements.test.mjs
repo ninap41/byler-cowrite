@@ -12,7 +12,26 @@ process.env.COWRITE_CONTENT_DIR = contentDir;
 const {
   WORD_TIERS, USAGE, badgeName, isUsageId, usageMatches,
   awardWordBadges, nextTierFor, migrateBadges,
+  FEATURE_UNLOCKS, FEATURE_LABELS, tierForFeature, canUseFeature, unlockedFeatures, featureLocks,
+  rewardsForTier, describeRewards, validateAchievements,
 } = await import("../lib/achievements.js");
+
+test("features are rank rewards like themes: the reference palette gates at puppymike, admins pass, unknown ids are free", () => {
+  assert.deepEqual(FEATURE_UNLOCKS, { reference: "puppymike" });
+  assert.equal(tierForFeature("reference"), "puppymike");
+  assert.equal(tierForFeature("nope"), null);
+  assert.equal(canUseFeature({ badges: [] }, "reference"), false);
+  assert.equal(canUseFeature({ badges: ["puppymike"] }, "reference"), true);
+  assert.equal(canUseFeature({ admin: true, badges: [] }, "reference"), true);
+  assert.equal(canUseFeature(null, "nope"), true);
+  assert.deepEqual(unlockedFeatures({ badges: [] }), []);
+  assert.deepEqual(unlockedFeatures({ badges: ["puppymike"] }), ["reference"]);
+  assert.equal(featureLocks().reference.min, 5000);
+  const r = rewardsForTier("puppymike");
+  assert.deepEqual(r.features, [{ id: "reference", name: FEATURE_LABELS.reference }]);
+  assert.match(describeRewards(r), /and the Writers' reference palette$/);
+  assert.equal(validateAchievements({ wordTiers: WORD_TIERS, featureUnlocks: "x" }).filter((e) => e.startsWith("featureUnlocks")).length, 1);
+});
 
 // ---- trigger matcher ----
 test("usage matcher: word boundaries block cocktail/peacock", () => {

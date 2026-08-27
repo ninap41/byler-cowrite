@@ -322,8 +322,19 @@ test("presence lists everyone viewing the doc", async () => {
   assert.deepEqual(final.viewers.map((v) => v.username), ["aliceauthor"]);
 });
 
-test("the reference bank is served for the slash palette", async () => {
-  const r = await ctx.api("/api/reference", null, alice.token, "GET");
+test("the reference bank is served for the slash palette — to a rank that has unlocked it", async () => {
+  // a rank reward (featureUnlocks.reference): a fresh account is refused,
+  // /api/me says so, an admin has every feature
+  const locked = await ctx.api("/api/reference", null, alice.token, "GET");
+  assert.equal(locked.status, 403);
+  const me = await ctx.api("/api/me", null, alice.token, "GET");
+  assert.deepEqual(me.data.user.features, []);
+  const feats = await ctx.api("/api/features", null, alice.token, "GET");
+  assert.equal(feats.data.locks.reference.tier, "puppymike");
+  assert.equal(feats.data.labels.reference, "Writers' reference palette");
+  const admin = await signup(ctx, "refadmin", "admin@cowrite.test");
+  assert.deepEqual((await ctx.api("/api/me", null, admin.token, "GET")).data.user.features, ["reference"]);
+  const r = await ctx.api("/api/reference", null, admin.token, "GET");
   assert.equal(r.status, 200);
   assert.equal(r.data.groups.length, 5, "all five reference files load");
   const action = r.data.groups.find((g) => g.prefix === "/action");

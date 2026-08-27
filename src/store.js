@@ -2,7 +2,7 @@
 // users/users row in Postgres on Replit — see src/storage.js), ~100 users;
 // every mutation rewrites the whole document.
 import { randomUUID } from "crypto";
-import { badgeName, badgeDesc, isUsageId, isOpenUsageId, nextTierFor, migrateBadges, unlockedThemes, unlockedGimmicks } from "../lib/achievements.js";
+import { badgeName, badgeDesc, isUsageId, isOpenUsageId, nextTierFor, migrateBadges, unlockedThemes, unlockedGimmicks, unlockedFeatures } from "../lib/achievements.js";
 import { storage, getJson } from "./storage.js";
 import { SITE } from "./site.js";
 
@@ -114,6 +114,7 @@ export const publicUser = (u) => ({
   // menu reads it straight off /api/me, no second request on page load
   themes: unlockedThemes(u),
   gimmicks: unlockedGimmicks(u), // same idea: the gimmicks this rank has earned
+  features: unlockedFeatures(u), // and the features (the "/" reference palette)
   currentBadge: badgeName(u.currentBadge), badges: u.badges.map(badgeName),
   wordBadges: u.badges.filter((id) => !isUsageId(id)).map(badgeName),
   usageBadges: u.badges.filter((id) => isUsageId(id) && !isOpenUsageId(id)).map(badgeName),

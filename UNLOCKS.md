@@ -1,4 +1,4 @@
-# Theme & gimmick unlocks
+# Theme, gimmick & feature unlocks
 
 A hand-editable reference of which themes unlock at which word-count ranks, and which gimmick rides each theme.
 
@@ -7,7 +7,8 @@ A hand-editable reference of which themes unlock at which word-count ranks, and 
 - Ranks are the `wordTiers` ladder (id, name, `min` words).
 - Theme gating is the `themeUnlocks` map: `theme id → tier id`. A theme not listed is free for everyone; a theme pointing at a tier id that doesn't exist falls back to free.
 - **There is no gimmick map.** A gimmick belongs to a theme (`lib/gimmicks.js`, the `theme` field) and unlocks with that theme — retier the theme and the gimmick moves with it. A gimmick on a free theme is free.
-- Admins have every theme and gimmick regardless of rank.
+- **Features** (`featureUnlocks`) are the third pool: `reference` (the solo editor's "/" writers' reference palette) unlocks at `puppymike`. Unlike a theme this lock is enforced — `/api/reference` refuses a locked account.
+- Admins have every theme, gimmick and feature regardless of rank.
 
 ## Rank ladder (`wordTiers`)
 
@@ -31,7 +32,7 @@ A hand-editable reference of which themes unlock at which word-count ranks, and 
 | Rank (tier id) | Words | Themes (theme id) | Gimmick that rides along |
 | --- | --: | --- | --- |
 | `outloud` | 0 | Inkwell (`ink`), The Wall (`wall`) | 🔫 SuperSoaker (`supersoaker`) |
-| `puppymike` | 5,000 | Rink-O-Mania (`rink`), Snow Ball Dance (`snowball`) | 🪩 Rink-O-Mania Disco Ball (`disco`) |
+| `puppymike` | 5,000 | Rink-O-Mania (`rink`), Snow Ball Dance (`snowball`) | 🪩 Rink-O-Mania Disco Ball (`disco`) — and the 📖 writers' reference palette (`reference` feature) |
 | `practice` | 10,000 | Starcourt (`starcourt`) | 🥤 Starcourt Milkshake (`milkshake`) |
 | `explorer` | 15,000 | Palace Arcade (`arcade`) | 👾 Palace Arcade Galaga (`galaga`) |
 | `sorcerer` | 20,000 | Hellfire Club (`hellfire`) | 🎲 Hellfire d20 (`d20`) |
