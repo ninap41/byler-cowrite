@@ -393,13 +393,13 @@ test("the writers' reference is editable by category from /admin, and only by an
     assert.equal(put.data.group.categories.at(-1).label, "Nervous habits");
 
     // the palette sees it with no restart
-    const ref = await c.api("/api/reference", undefined, admin.token); // the bank is a rank reward; admins have it
+    const ref = await c.api("/api/reference", undefined, normie.token);
     assert.equal(ref.data.groups.find((g) => g.slug === "dialogue-tags").categories.length, 3);
 
     // the root-wrapped group keeps its wrapper on disk
     const dput = await c.api("/api/admin/reference/delivery-modifiers", { categories: [{ key: "warm", words: ["softly"] }] }, admin.token, "PUT");
     assert.equal(dput.status, 200);
-    assert.deepEqual((await c.api("/api/reference", undefined, admin.token)).data.groups.find((g) => g.slug === "delivery-modifiers").categories, [{ key: "warm", label: "Warm", words: ["softly"] }]);
+    assert.deepEqual((await c.api("/api/reference", undefined, normie.token)).data.groups.find((g) => g.slug === "delivery-modifiers").categories, [{ key: "warm", label: "Warm", words: ["softly"] }]);
 
     // validation: bad keys, empty groups, unknown groups
     assert.equal((await c.api("/api/admin/reference/dialogue-tags", { categories: [{ key: "Bad Key", words: ["x"] }] }, admin.token, "PUT")).status, 400);
