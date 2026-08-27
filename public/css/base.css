@@ -8987,6 +8987,14 @@ body.game-page .session-bar .sess-name {
 	pointer-events: none;
 	display: block;
 }
+/* the water pools on the milkshake's ground line — just above the foot bar,
+   over the chat dock: the canvas is viewport-tall and overflows the layer,
+   exactly like .ms-layer canvas */
+.sk-layer canvas {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+}
 .sk-gunbtn {
 	position: absolute;
 	width: 64px;

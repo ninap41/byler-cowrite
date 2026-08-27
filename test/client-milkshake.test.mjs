@@ -113,3 +113,17 @@ test("gimmicksOff: a friendly switch sweeps every cup (and the mess) away and re
   assert.equal(document.querySelectorAll("#msOthers .ms-cup").length, 0);
   assert.ok(document.getElementById("msLayer").classList.contains("hidden"));
 });
+
+test("Wipe up mops only MY spill: another cup's pools stay on the floor", () => {
+  document.body.innerHTML = "";
+  const socket = fakeSocket();
+  const m = mountMilkshake({ socket, getMyUserId: () => "u1", getMyColor: () => "#6c8cff", document });
+  m.start();
+  const g = m.ground;
+  g.add(100, g.floorY, 4, "#6c8cff", "u1");
+  g.add(500, g.floorY, 4, "#e63946", "u2");
+  assert.equal(m.puddleCount, 2);
+  document.querySelector('[data-act="ms-wipe"]').click();
+  assert.equal(m.puddleCount, 1);
+  assert.equal(g.puddles[0].owner, "u2", "Mike's shake is still on the floor");
+});
