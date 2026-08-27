@@ -51,6 +51,19 @@ export function addPost({ markdown }, by) {
   return { post };
 }
 
+// Editing keeps the post's id and date (it is the same announcement, said
+// better) and re-renders the markdown through the same trust boundary.
+export function updatePost(id, { markdown }, by) {
+  const post = posts.find((p) => p.id === id);
+  if (!post) return { error: "No such post.", status: 404 };
+  const md = String(markdown ?? "").slice(0, MD_MAX).trim();
+  const clean = sanitizeRich(renderMarkdown(md).slice(0, HTML_MAX));
+  if (!squash(clean)) return { error: "A post needs some words." };
+  Object.assign(post, { markdown: md, html: clean, title: titleOf(clean), editedAt: Date.now(), editedBy: by?.username ?? "" });
+  save();
+  return { post: { ...post } };
+}
+
 export function deletePost(id) {
   const before = posts.length;
   posts = posts.filter((p) => p.id !== id);

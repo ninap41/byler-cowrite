@@ -12,11 +12,27 @@ export function postHtml(post, { admin = false } = {}) {
 	return (
 		`<article class="ann-post" data-post-id="${esc(post.id)}">` +
 		`<header class="ann-head"><span class="gc-meta">${esc(when(post.at))}${post.byName ? ` · ${esc(post.byName)}` : ""}</span>` +
+		(post.editedAt ? `<span class="gc-meta ann-edited" title="${esc(when(post.editedAt))}">edited</span>` : "") +
 		(admin ? `<span class="ann-acts"><button type="button" class="ghost ann-discord" data-ann-discord="${esc(post.id)}" title="Post this announcement's markdown to the admin Discord channel">Post to Discord</button>` +
+			`<button type="button" class="ghost ann-edit" data-ann-edit="${esc(post.id)}">Edit</button>` +
 			`<button type="button" class="ghost danger ann-del" data-ann-delete="${esc(post.id)}">Delete</button></span>` : "") +
 		`</header>` +
 		`<div class="ann-body story-line">${post.html || ""}</div>` +
+		(admin ? editorHtml(post) : "") +
 		`</article>`
+	)
+}
+
+// The in-place editor under a post (admin markup only): the post's own
+// markdown, folded until Edit unfolds it. Save PUTs it; Cancel folds it.
+export function editorHtml(post) {
+	return (
+		`<div class="ann-editbox hidden" data-ann-editbox="${esc(post.id)}">` +
+		`<textarea class="ann-editor" data-ann-editor="${esc(post.id)}" rows="10">${esc(post.markdown || "")}</textarea>` +
+		`<div class="row" style="justify-content:flex-end;gap:8px;margin-top:10px">` +
+		`<button type="button" class="ghost" data-ann-cancel="${esc(post.id)}">Cancel</button>` +
+		`<button type="button" class="primary" data-ann-save="${esc(post.id)}">Save</button></div>` +
+		`</div>`
 	)
 }
 

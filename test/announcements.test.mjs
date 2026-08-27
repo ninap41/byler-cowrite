@@ -80,3 +80,23 @@ test("the page is served at /announcements with the site name filled in", async 
   assert.ok(html.includes("announcements-view.js"));
   assert.ok(!html.includes("{{SITE_NAME}}"));
 });
+
+test("an admin can edit a post in place (same id and date, re-rendered and re-sanitized, marked edited); a normal account can't", async () => {
+  const normie = await signup(ctx, "annednormie", "annednormie@x.com");
+  const made = await ctx.api("/api/admin/announcements", { markdown: "# First\n\nhello" }, admin.token);
+  const id = made.data.post.id;
+  const denied = await ctx.api("/api/admin/announcements/" + id, { markdown: "# Hijack" }, normie.token, "PUT");
+  assert.equal(denied.status, 403);
+  const edited = await ctx.api("/api/admin/announcements/" + id, { markdown: "# Second\n\n**bold** <script>x()</script>" }, admin.token, "PUT");
+  assert.equal(edited.status, 200);
+  assert.equal(edited.data.post.id, id);
+  assert.equal(edited.data.post.at, made.data.post.at, "the date is the original's");
+  assert.equal(edited.data.post.title, "Second");
+  assert.ok(edited.data.post.html.includes("<b>bold</b>") && !edited.data.post.html.includes("<script>"));
+  assert.ok(edited.data.post.editedAt > 0);
+  const empty = await ctx.api("/api/admin/announcements/" + id, { markdown: "   " }, admin.token, "PUT");
+  assert.equal(empty.status, 400);
+  assert.equal((await ctx.api("/api/admin/announcements/nope", { markdown: "x" }, admin.token, "PUT")).status, 404);
+  const list = await ctx.api("/api/announcements", undefined, normie.token);
+  assert.equal(list.data.posts.find((p) => p.id === id).title, "Second");
+});

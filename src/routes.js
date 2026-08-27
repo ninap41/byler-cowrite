@@ -4,7 +4,7 @@ import { randomUUID } from "crypto";
 import { readContent } from "./content.js";
 import { storage, describeStorage } from "./storage.js";
 import { buildZip } from "./zip.js";
-import { listPosts, addPost, deletePost } from "./announcements.js";
+import { listPosts, addPost, deletePost, updatePost } from "./announcements.js";
 import { verifyInteraction, handleInteraction, postAnnouncement, postGame, discordStatus } from "./discord.js";
 import { SITE } from "./site.js";
 import { getPromptData, setPromptData } from "./game.js";
@@ -1104,6 +1104,12 @@ export function registerRoutes(app, game) {
     const r = await postAnnouncement(post);
     if (r.error) return res.status(502).json({ error: r.error });
     res.json({ ok: true });
+  });
+  app.put("/api/admin/announcements/:id", (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    const r = updatePost(String(req.params.id), { markdown: req.body?.markdown }, authedUser(req));
+    if (r.error) return res.status(r.status || 400).json({ error: r.error });
+    res.json({ ok: true, post: r.post });
   });
   app.delete("/api/admin/announcements/:id", (req, res) => {
     if (!requireAdmin(req, res)) return;

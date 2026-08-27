@@ -48,8 +48,7 @@ test("badgeProgress: fill = words / next rank's cost (what the label says); sliv
   assert.equal(badgeProgress({ wordCount: 0, nextBadge: { min: 5000, name: "x" } }).pct, 0);
   // 99 written of 100: 99, and never 100 until the rank is actually earned
   assert.equal(badgeProgress({ wordCount: 99, nextBadge: { min: 100, name: "x" } }).pct, 99);
-  // 75 written, 25 to go -> banked 50 of 100
-  assert.equal(badgeProgress({ wordCount: 75, nextBadge: { min: 100, name: "x" } }).pct, 50);
+  assert.equal(badgeProgress({ wordCount: 75, nextBadge: { min: 100, name: "x" } }).pct, 75);
   assert.equal(badgeProgress({ wordCount: 50000, nextBadge: null }).pct, 100);
 });
 

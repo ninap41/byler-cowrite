@@ -9682,6 +9682,9 @@ html.vcx-live[data-theme="vecna"] #vc-pend {
    heading is its title, so the head row is just the date and Delete. */
 .ann-composer { margin: 0 0 22px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; }
 .ann-editor { min-height: 180px; width: 100%; font-family: var(--font-mono); resize: vertical; }
+.ann-editbox { margin-top: 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; }
+.ann-editbox.hidden { display: none; }
+.ann-edited { margin-left: 8px; font-style: italic; }
 .ann-post { padding: 16px 0 18px; border-bottom: 1px solid var(--line); }
 .ann-head { display: flex; align-items: baseline; gap: 12px; margin: 0 0 6px; }
 .ann-head .ann-acts { flex: none; margin-left: auto; display: flex; gap: 6px; }

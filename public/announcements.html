@@ -87,6 +87,31 @@
 					setTimeout(() => { b.textContent = was }, 5000)
 				}
 			})
+			// Edit in place: unfold the post's own markdown, Save PUTs it and the
+			// list reloads with the re-rendered html; Cancel just folds it.
+			document.addEventListener("click", async (e) => {
+				const ed = e.target.closest("[data-ann-edit]")
+				if (ed) {
+					const box = document.querySelector(`[data-ann-editbox="${ed.dataset.annEdit}"]`)
+					box?.classList.toggle("hidden")
+					if (box && !box.classList.contains("hidden")) box.querySelector("textarea")?.focus()
+					return
+				}
+				const cancel = e.target.closest("[data-ann-cancel]")
+				if (cancel) return document.querySelector(`[data-ann-editbox="${cancel.dataset.annCancel}"]`)?.classList.add("hidden")
+				const save = e.target.closest("[data-ann-save]")
+				if (!save) return
+				const id = save.dataset.annSave
+				const ta = document.querySelector(`[data-ann-editor="${id}"]`)
+				save.disabled = true
+				try {
+					await api(`/api/admin/announcements/${encodeURIComponent(id)}`, { markdown: ta?.value ?? "" }, "PUT")
+					await load()
+				} catch (err) {
+					save.disabled = false
+					alert(err.message || "That didn't save.")
+				}
+			})
 			document.addEventListener("click", async (e) => {
 				const b = e.target.closest("[data-ann-delete]")
 				if (!b) return
