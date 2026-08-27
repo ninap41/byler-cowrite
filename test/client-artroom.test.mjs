@@ -161,3 +161,46 @@ test("gimmicksOff: a friendly switch sweeps every brush and stroke away and repo
   assert.equal(document.querySelectorAll("#arOthers .ar-brush").length, 0);
   assert.ok(document.getElementById("arLayer").classList.contains("hidden"));
 });
+
+test("every painter has a layer of their own: an eraser only takes its owner's paint, and the newest painter blits on top", () => {
+  document.body.innerHTML = "";
+  const socket = fakeSocket();
+  const m = mountArtRoom({ socket, getMyUserId: () => "u1", getMyColor: () => "#6c8cff", document });
+  socket.fire("gimmick-stroke", { userId: "u2", on: true, stroke: { color: "#e63946", size: 6, pts: [[0.1, 0.1], [0.2, 0.2]] }, live: false });
+  socket.fire("gimmick-stroke", { userId: "u3", on: true, stroke: { color: "#3ddc84", size: 6, pts: [[0.1, 0.1], [0.2, 0.2]] }, live: false });
+  assert.deepEqual(m.layerOrder, ["u2", "u3"], "later painter on top");
+  // u3 erases straight across u2's line: u2's paint is untouched — the erase
+  // lives on u3's own layer
+  socket.fire("gimmick-stroke", { userId: "u3", on: true, stroke: { color: "#3ddc84", size: 6, erase: true, pts: [[0.0, 0.2], [0.3, 0.0]] }, live: false });
+  assert.equal(m.strokesOf("u2"), 1, "u2's stroke is still theirs");
+  assert.equal(m.strokesOf("u3"), 2, "the erase is u3's own stroke");
+  // u2 paints again and comes to the top
+  socket.fire("gimmick-stroke", { userId: "u2", on: true, stroke: { color: "#e63946", size: 6, pts: [[0.5, 0.5]] }, live: true });
+  assert.deepEqual(m.layerOrder, ["u3", "u2"], "the newest stroke brings its painter's layer to the top");
+  // a wipe empties one layer and no other
+  socket.fire("gimmick-stroke", { userId: "u3", wipe: true });
+  assert.equal(m.strokesOf("u3"), 0);
+  assert.equal(m.strokesOf("u2"), 1);
+});
+
+test("swatch state: the picker becomes the selected swatch and the eraser lets go; a swatch click un-selects the picker", () => {
+  document.body.innerHTML = "";
+  const socket = fakeSocket();
+  const m = mountArtRoom({ socket, getMyUserId: () => "u1", getMyColor: () => "#6c8cff", document });
+  m.start();
+  const eraser = document.querySelector(".ar-eraser");
+  eraser.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+  assert.equal(m.erase, true);
+  assert.ok(eraser.classList.contains("on"));
+  const pick = document.getElementById("arPick");
+  pick.value = "#123456";
+  pick.dispatchEvent(new window.Event("input", { bubbles: true }));
+  assert.equal(m.erase, false, "picking a colour puts the eraser down");
+  assert.equal(m.color, "#123456");
+  assert.ok(pick.classList.contains("on"), "the picker is the selected swatch");
+  assert.ok(!eraser.classList.contains("on"));
+  const sw = document.querySelector(".ar-swatch[data-color]");
+  sw.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+  assert.ok(sw.classList.contains("on"));
+  assert.ok(!pick.classList.contains("on"), "a swatch click un-selects the picker");
+});
