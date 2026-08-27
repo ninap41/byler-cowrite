@@ -73,8 +73,13 @@ test("clean URLs serve each page", async () => {
   const arch = await page("/archive");
   assert.equal(arch.status, 200);
   assert.ok(arch.body.includes('id="archiveList"'));
-  for (const id of ["delModal", "archDelete", "delHtml", "delPdf", "delConfirm", "delCancel", "archNotice"])
+  for (const id of ["delModal", "archDelete", "delConfirm", "delCancel", "archNotice"])
     assert.ok(arch.body.includes(`id="${id}"`), id + " in the delete flow");
+  // exports live on the story itself, not inside the delete modal
+  for (const id of ["archExport", "archCopy", "archHtml", "archPdf"]) assert.ok(arch.body.includes(`id="${id}"`), id + " export row");
+  assert.ok(!arch.body.includes('id="delHtml"') && !arch.body.includes('id="delPdf"'), "no export inside the modal");
+  const modal = arch.body.slice(arch.body.indexOf('id="delModal"'));
+  assert.ok(!modal.includes('id="archHtml"'), "export row precedes the modal");
   const prof = await page("/profile");
   assert.equal(prof.status, 200);
   assert.ok(prof.body.includes('id="ladder"') && prof.body.includes('id="usageCase"'));
