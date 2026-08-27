@@ -88,3 +88,58 @@ test("edge tabs don't take the global button hover lift: the host tab keeps its 
   assert.match(css, /\.doc-side-tab:hover \{[^}]*transform: translateY\(-50%\)/);
   assert.match(css, /\.gk-tab:hover \{[^}]*transform: none/);
 });
+
+test("hudCtlHtml: the −/× corner controls; the HUD's own − folds it to its tab (the toy stays out)", async () => {
+  const { hudCtlHtml } = await import("../public/js/components/gimmick-dock.js");
+  assert.match(hudCtlHtml(), /class="gk-hud-ctl"/);
+  assert.match(hudCtlHtml(), /data-hud="min"[^>]*>−</);
+  assert.match(hudCtlHtml(), /data-hud="close"[^>]*>×</);
+  document.body.innerHTML = `
+    <div class="db-hud hidden" id="dbHud">${hudCtlHtml()}<b>disco</b></div>
+    <div class="ar-hud hidden" id="arHud">${hudCtlHtml()}<b>paint</b></div>`;
+  const dock = mountGimmickDock({
+    document,
+    items: [
+      { id: "disco", icon: "🪩", title: "Disco Ball", hud: "#dbHud" },
+      { id: "artroom", icon: "🎨", title: "Art Room", hud: "#arHud" },
+    ],
+  });
+  const db = document.getElementById("dbHud");
+  db.classList.remove("hidden");
+  await flush();
+  assert.equal(dock.onStage, "disco");
+  db.querySelector('[data-hud="min"]').dispatchEvent(new window.Event("click", { bubbles: true }));
+  assert.equal(dock.onStage, null, "− folds the panel");
+  assert.ok(db.classList.contains("gk-minned"));
+  assert.deepEqual(dock.tabs, ["disco"], "its tab stays — the gimmick is still out");
+  assert.ok(!db.classList.contains("hidden"), "and the dock never closes a gimmick");
+});
+
+test("every gimmick HUD carries the corner controls, and × closes the gimmick like its own exit", async () => {
+  const fake = () => {
+    const handlers = {};
+    return { sent: [], on: (ev, fn) => (handlers[ev] = fn), emit: (ev, d, ack) => ack?.({ ok: true }), fire: (ev, d) => handlers[ev]?.(d) };
+  };
+  const { mountDiscoBall } = await import("../public/js/components/disco-ball.js");
+  const { mountArtRoom } = await import("../public/js/components/art-room.js");
+  for (const [mount, hudId] of [
+    [() => mountDiscoBall({ socket: fake(), getMyUserId: () => "u1", getMyColor: () => "#e63946", document }), "dbHud"],
+    [() => mountArtRoom({ socket: fake(), getMyUserId: () => "u1", getMyColor: () => "#e63946", document }), "arHud"],
+  ]) {
+    document.body.innerHTML = "";
+    const m = mount();
+    const hud = document.getElementById(hudId);
+    assert.ok(hud.querySelector('.gk-hud-ctl [data-hud="min"]') && hud.querySelector('.gk-hud-ctl [data-hud="close"]'), hudId + " has −/×");
+    m.start();
+    assert.ok(!hud.classList.contains("hidden"), hudId + " opened");
+    hud.querySelector('[data-hud="close"]').dispatchEvent(new window.Event("click", { bubbles: true }));
+    assert.ok(hud.classList.contains("hidden"), hudId + ": × closes it, the toy leaves with it");
+  }
+  // every HUD builder carries the controls and wires ×
+  const { readFileSync } = await import("node:fs");
+  for (const f of ["gimmick-dice", "galaga-game", "milkshake-spill", "disco-ball", "art-room", "super-soaker", "vecna-curse"]) {
+    const src = readFileSync(new URL(`../public/js/components/${f}.js`, import.meta.url), "utf-8");
+    assert.match(src, /glass hidden" id="\w+">\$\{hudCtlHtml\(\)\}/, f + " HUD opens with hudCtlHtml()");
+    assert.match(src, /\[data-hud=\\?"close\\?"\]/, f + " handles ×");
+  }
+});

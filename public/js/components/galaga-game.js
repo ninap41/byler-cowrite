@@ -18,6 +18,7 @@
 // are exported for tests; mountGalaga() is the DOM + socket half. It owns no
 // rules — the server does.
 import { esc, safeColor } from "../util.js"
+import { hudCtlHtml } from "./gimmick-dock.js"
 
 export const GALAGA_TARGET = 8000 // beat this and the run steals the turn (server agrees)
 export const ROUND_SECS = 45
@@ -42,7 +43,7 @@ export const shipShadow = (color) => {
 export const galagaHtml = () => `<div class="gg-layer hidden" id="ggLayer" aria-label="Palace Arcade Galaga">
 	<div id="ggOthers"></div>
 	<div class="gg-battle hidden" id="ggMine"></div>
-	<div class="gg-hud glass hidden" id="ggHud">
+	<div class="gg-hud glass hidden" id="ggHud">${hudCtlHtml()}
 		<b class="gg-title">👾 Palace Arcade</b>
 		<div class="gg-row"><span class="gg-score" id="ggScore">0</span><span class="gg-meta">beat ${GALAGA_TARGET} to steal the turn</span><span class="gg-time" id="ggTime">${ROUND_SECS}</span></div>
 		<div class="gg-over hidden" id="ggOver"></div>
@@ -253,7 +254,7 @@ export function mountGalaga(opts) {
 		if (running) shipX = Math.max(0.03, Math.min(0.97, e.clientX / (vw() || 1)))
 	})
 	layer.addEventListener("click", (e) => {
-		if (e.target.closest('[data-act="gg-exit"]')) exit()
+		if ((e.target.closest('[data-act="gg-exit"]') || e.target.closest('[data-hud="close"]'))) exit()
 		else if (e.target.closest('[data-act="gg-again"]')) begin()
 		else if (e.target.closest('[data-act="gg-fire"]')) shoot()
 	})

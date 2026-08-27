@@ -17,6 +17,7 @@
 // Pure string builders (layerHtml, swatchRowHtml) are exported for tests;
 // mountArtRoom() is the DOM + socket half.
 import { esc, safeColor } from "../util.js"
+import { hudCtlHtml } from "./gimmick-dock.js"
 
 // a swatch may be any #rrggbb (black and white included) — only a junk
 // value falls back to the writer's palette colour
@@ -60,7 +61,7 @@ export const layerHtml = () => `<div class="ar-layer hidden" id="arLayer" aria-l
 	<canvas id="arCanvas"></canvas>
 	<div id="arOthers"></div>
 	<div id="arCatch" class="hidden"></div>
-	<div class="ar-hud glass hidden" id="arHud">
+	<div class="ar-hud glass hidden" id="arHud">${hudCtlHtml()}
 		<b class="ar-title">🎨 Will's Art Room</b>
 		<span class="ar-hint" id="arHint">Drag anywhere to paint · put the brush away to grab other gimmicks</span>
 		<div class="ar-row" id="arColors"></div>
@@ -319,7 +320,7 @@ export function mountArtRoom(opts) {
 			for (const b of colorsRow.querySelectorAll(".ar-swatch, #arPick")) b.classList.toggle("on", b === sw)
 			return
 		}
-		if (e.target.closest('[data-act="ar-exit"]')) exit()
+		if ((e.target.closest('[data-act="ar-exit"]') || e.target.closest('[data-hud="close"]'))) exit()
 		else if (e.target.closest('[data-act="ar-wipe"]')) wipe()
 	})
 	layer.addEventListener("input", (e) => {

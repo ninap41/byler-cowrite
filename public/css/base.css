@@ -8991,6 +8991,34 @@ body.game-page .session-bar .sess-name {
 	background: var(--chip);
 	border-color: color-mix(in srgb, var(--accent) 55%, var(--panel-brd));
 }
+/* the −/× in every HUD glass's top-right corner (hudCtlHtml) */
+.gk-hud-ctl {
+	position: absolute;
+	top: 6px;
+	right: 6px;
+	display: flex;
+	gap: 2px;
+	z-index: 1;
+}
+.gk-hud-ctl button {
+	width: 22px;
+	height: 22px;
+	min-width: 0;
+	padding: 0;
+	border: 0;
+	border-radius: 6px;
+	background: transparent;
+	color: var(--muted);
+	font-size: 15px;
+	line-height: 1;
+	cursor: pointer;
+	box-shadow: none;
+}
+.gk-hud-ctl button:hover {
+	transform: none; /* no global button lift inside a HUD */
+	background: var(--chip);
+	color: var(--ink);
+}
 /* ---- The SuperSoaker (components/super-soaker.js): a water gun over the
    live game. Same layer contract as the dice: fixed, z-60, no pointer —
    only my gun and the HUD glass take it. */

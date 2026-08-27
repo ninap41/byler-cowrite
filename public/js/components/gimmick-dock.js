@@ -14,6 +14,12 @@ import { esc } from "../util.js"
 
 export const dockHtml = () => `<div class="gk-tabs" id="gkTabs" aria-label="Gimmick panels"></div>`
 
+// The two corner controls every HUD glass carries: "−" folds the panel to
+// its edge tab (the dock handles it — the toy stays out), "×" closes the
+// gimmick (each component treats it exactly like its own "Put … away").
+export const hudCtlHtml = () =>
+	`<span class="gk-hud-ctl"><button type="button" data-hud="min" aria-label="Minimize" title="Minimize to the edge tab">−</button><button type="button" data-hud="close" aria-label="Close" title="Close">×</button></span>`
+
 // opts: { document, items: [{ id, icon, title, hud }] } — hud is a selector
 // or element for that gimmick's panel.
 export function mountGimmickDock(opts = {}) {
@@ -62,6 +68,10 @@ export function mountGimmickDock(opts = {}) {
 			stage(e.onStage ? null : item.id)
 		})
 		tabsBox.appendChild(tab)
+		// the HUD's own "−": fold this panel (the toy stays out)
+		hudEl.addEventListener("click", (e) => {
+			if (e.target.closest?.('[data-hud="min"]')) stage(null)
+		})
 		entries.set(item.id, { hudEl, tab, wasOpen: !hudEl.classList.contains("hidden"), onStage: false })
 		const win = doc.defaultView
 		if (win?.MutationObserver) {

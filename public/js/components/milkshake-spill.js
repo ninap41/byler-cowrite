@@ -15,6 +15,7 @@
 // mountMilkshake() is the DOM + socket half.
 import { esc, safeColor } from "../util.js"
 import { createGround, shade } from "./puddle-ground.js"
+import { hudCtlHtml } from "./gimmick-dock.js"
 export { shade }
 
 export const CUP_W = 150 // on-screen cup width (viewBox is 240x340)
@@ -68,7 +69,7 @@ export const layerHtml = () => `<div class="ms-layer hidden" id="msLayer" aria-l
 	<canvas id="msDrops"></canvas>
 	<div id="msOthers"></div>
 	<button type="button" class="ms-cup hidden" id="msCup" aria-label="Milkshake cup. Drag to move, click to tip and pour."></button>
-	<div class="ms-hud glass hidden" id="msHud">
+	<div class="ms-hud glass hidden" id="msHud">${hudCtlHtml()}
 		<b class="ms-title">🥤 Starcourt Milkshake</b>
 		<div class="ms-meter"><i id="msLevel"></i></div>
 		<span class="ms-hint" id="msHint">Drag to move · click to tip and pour · whip it to slosh</span>
@@ -384,7 +385,7 @@ export function mountMilkshake(opts) {
 
 	// ---- HUD ----
 	layer.addEventListener("click", (e) => {
-		if (e.target.closest('[data-act="ms-exit"]')) exit()
+		if (e.target.closest('[data-act="ms-exit"]') || e.target.closest('[data-hud="close"]')) exit()
 		else if (e.target.closest('[data-act="ms-wipe"]')) ground.wipe(myUserId()) // my own mess only
 		else if (e.target.closest('[data-act="ms-refill"]')) {
 			level = 1

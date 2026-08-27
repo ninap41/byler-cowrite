@@ -11,6 +11,7 @@
 // is pointer-events none, the text stays readable underneath. Cosmetic
 // dread, zero mechanical harm.
 import { esc, safeColor } from "../util.js"
+import { hudCtlHtml } from "./gimmick-dock.js"
 
 export const CURSE_LIFT_WORDS = 32 // mirrors lib/gimmicks.js (the server agrees)
 
@@ -20,7 +21,7 @@ export const layerHtml = () => `<div class="vcx-layer hidden" id="vcxLayer" aria
 		<i class="vcx-mote m4"></i><i class="vcx-mote m5"></i><i class="vcx-mote m6"></i>
 		<div class="vcx-word" id="vcxWord"></div>
 	</div>
-	<div class="vcx-hud glass hidden" id="vcxHud">
+	<div class="vcx-hud glass hidden" id="vcxHud">${hudCtlHtml()}
 		<b class="vcx-title">🕰️ Vecna's Curse</b>
 		<span class="vcx-hint" id="vcxHint">Choose who the clock strikes for</span>
 		<div class="vcx-row" id="vcxTargets"></div>
@@ -149,7 +150,7 @@ export function mountVecnaCurse(opts) {
 			})
 			return
 		}
-		if (e.target.closest('[data-act="vcx-exit"]')) exit()
+		if ((e.target.closest('[data-act="vcx-exit"]') || e.target.closest('[data-hud="close"]'))) exit()
 	})
 
 	function start() {
