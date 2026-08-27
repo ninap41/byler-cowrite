@@ -29,7 +29,8 @@ test("admin accounts are protected in the markup, everyone else gets a Remove bu
     ],
     NOW,
   );
-  assert.ok(!html.includes('data-admin-target="ninaadmin"'), "no Remove button for an admin");
+  assert.ok(!html.includes('data-admin-act="delete-user" data-admin-target="ninaadmin"'), "no Remove button for an admin");
+  assert.ok(html.includes('data-admin-act="demote-user" data-admin-target="ninaadmin"'), "an admin row offers Demote instead");
   assert.ok(html.includes("protected"));
   assert.ok(html.includes('data-admin-act="delete-user" data-admin-target="jonathanb"'));
   assert.ok(html.includes("1 month ago"), "inactivity is spelled out, not a raw timestamp");
