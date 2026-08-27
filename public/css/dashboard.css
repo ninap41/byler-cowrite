@@ -17,6 +17,9 @@
 	display: grid;
 	gap: 20px;
 	min-width: 0;
+	background-color: var(--story-bg);
+	border-radius: var(--r-md);
+	padding: 16px;
 }
 @media (max-width: 900px) {
 	.dash-wrap {
@@ -967,6 +970,9 @@ a.rg-row {
 }
 .dash-col {
 	gap: 26px;
+	background-color: var(--story-bg);
+	border-radius: var(--r-md);
+	padding: 16px;
 }
 .dash-col > .card {
 	background: none;

@@ -4219,6 +4219,9 @@ button.danger,
 .game-main {
 	position: relative;
 	min-width: 0;
+	background-color: var(--story-bg);
+	border-radius: var(--r-md);
+	padding: 16px;
 }
 .game-main > * {
 	position: relative;
