@@ -25,7 +25,7 @@ let TITLE_BANK = readContent("titles.json");
 // The admin editor's write path: validate the whole document, write it to
 // the pack, then swap it in — every ballot dealt from here on uses it.
 // Returns the validation errors (empty = saved).
-export function setPromptData(next) {
+export async function setPromptData(next) {
   const errors = [];
   if (!Array.isArray(next?.prompts) || !next.prompts.length) errors.push("prompts: need at least one curated scenario");
   else if (!next.prompts.every((p) => typeof p === "string" && p.trim())) errors.push("prompts: every entry is a non-empty string");
@@ -33,7 +33,7 @@ export function setPromptData(next) {
   if (errors.length) return errors;
   const doc = { prompts: next.prompts.map((p) => p.trim()), ...(next.intermediate ? { intermediate: next.intermediate } : {}) };
   const text = JSON.stringify(doc, null, "\t") + "\n";
-  writeContent("prompts.json", text);
+  await writeContent("prompts.json", text);
   PROMPT_DATA = doc;
   PROMPT_BANK = doc.prompts;
   INTERMEDIATE = doc.intermediate || null;

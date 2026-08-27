@@ -246,18 +246,23 @@
 				}
 				if (e.target.id !== "promptSave") return
 				const status = $("promptStatus")
-				const { doc, errors } = readPromptEditor($("promptEditor"), promptDoc)
-				if (errors.length) return (status.textContent = "⚠ " + errors.join(" · "))
-				e.target.disabled = true
-				status.textContent = "Saving…"
+				const button = e.target
+				button.disabled = true
 				try {
+					const { doc, errors } = readPromptEditor($("promptEditor"), promptDoc)
+					if (errors.length) {
+						status.textContent = "⚠ " + errors.join(" · ")
+						return
+					}
+					status.textContent = "Saving…"
 					await api("/api/admin/prompts", { data: doc }, "PUT")
 					status.textContent = "✓ Saved: the next ballot uses it."
 					promptDoc = doc
 				} catch (err) {
 					status.textContent = "⚠ " + (err.data?.errors?.join(" · ") || err.message || "That didn't save.")
+				} finally {
+					button.disabled = false
 				}
-				e.target.disabled = false
 			})
 
 			async function refresh() {

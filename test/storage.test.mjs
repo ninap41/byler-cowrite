@@ -158,7 +158,7 @@ test("postgres: first boot seeds every kind from disk once; afterwards the datab
   }
 });
 
-test("postgres: a failed query is remembered on lastError instead of crashing the app", async () => {
+test("postgres: a failed query is remembered and reported to an awaiting caller without stopping later writes", async () => {
   delete process.env.DATABASE_URL;
   const root = tmp();
   const pool = fakePool();
@@ -169,7 +169,7 @@ test("postgres: a failed query is remembered on lastError instead of crashing th
   };
   try {
     await storage.init({ ...dirsIn(root), pool });
-    await storage.put("save", "BOOM", "{}");
+    await assert.rejects(storage.put("save", "BOOM", "{}"), /connection reset/);
     await storage.put("save", "FINE", "{}");
     assert.match(storage.lastError, /save\/BOOM: connection reset/);
     assert.equal(storage.get("save", "BOOM"), "{}", "the cache still holds it, the app keeps working");

@@ -1063,11 +1063,16 @@ export function registerRoutes(app, game) {
     if (!requireAdmin(req, res)) return;
     res.json({ data: getPromptData() });
   });
-  app.put("/api/admin/prompts", (req, res) => {
+  app.put("/api/admin/prompts", async (req, res) => {
     if (!requireAdmin(req, res)) return;
-    const errors = setPromptData(req.body?.data);
-    if (errors.length) return res.status(400).json({ error: "The library didn't validate.", errors });
-    res.json({ ok: true });
+    try {
+      const errors = await setPromptData(req.body?.data);
+      if (errors.length) return res.status(400).json({ error: "The library didn't validate.", errors });
+      res.json({ ok: true });
+    } catch (err) {
+      console.error("prompt library save failed:", err.message);
+      res.status(500).json({ error: "The library couldn't be saved. Please try again." });
+    }
   });
 
   // The writers-reference bank behind the "/" palette, one group per data

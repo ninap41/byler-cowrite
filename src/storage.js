@@ -115,12 +115,15 @@ async function postgresBackend(dirs, pool) {
   let lastError = null;
   const enqueue = (kind, name, job) => {
     const key = kind + "/" + name;
-    const next = (chains.get(key) ?? Promise.resolve()).then(job).catch((e) => {
+    const operation = (chains.get(key) ?? Promise.resolve()).then(job);
+    const tracked = operation.catch((e) => {
       lastError = `${new Date().toISOString()} ${key}: ${e.message}`;
       console.error("storage: query failed: ", key, e.message);
     });
-    chains.set(key, next);
-    return next;
+    // Keep the queue alive after a failed write, while returning the original
+    // operation so callers that await persistence can report the failure.
+    chains.set(key, tracked);
+    return operation;
   };
   const upsert = (kind, name, doc) =>
     enqueue(kind, name, () =>
