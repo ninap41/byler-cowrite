@@ -126,7 +126,11 @@ export function mountFlipSelect(root, { id = "fs", rows = [], value = "", label 
 			onComplete: () => {
 				box.classList.remove("open")
 				menu.classList.remove("open")
-				gsap.set(menu, { clearProps: "all" })
+				// clear only what the tweens touched: clearProps "all" also took
+				// the inline transition:none, so every open after the first had
+				// GSAP fighting the CSS transition (a 0.35s visibility delay, a
+				// double-eased fold) — the list looked like it never opened
+				gsap.set(menu, { clearProps: "transform,opacity,visibility" })
 				land()
 			},
 		})

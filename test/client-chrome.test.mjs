@@ -375,3 +375,50 @@ test("anything the markup calls hidden can actually be hidden", () => {
       }
   assert.deepEqual([...offenders], [], "these classes outrank .hidden and need a `.CLASS.hidden { display: none }`");
 });
+
+test("with GSAP loaded, the Font list and the theme menu both keep transition:none across a close, so a second open is GSAP's alone; closing the theme menu lands the font list", () => {
+  // a synchronous stand-in: every tween completes on the spot
+  const calls = [];
+  window.gsap = {
+    to: (t, v) => { calls.push(["to", v]); v.onComplete?.(); return {}; },
+    fromTo: (t, a, v) => { calls.push(["fromTo", v]); v.onComplete?.(); return {}; },
+    set: (t, v) => {
+      calls.push(["set", v]);
+      const els = t?.nodeType === 1 ? [t] : typeof t === "string" ? [...document.querySelectorAll(t)] : [...(t || [])];
+      for (const el of els) {
+        if (v.clearProps === "all") el.removeAttribute("style");
+        else if (v.clearProps) for (const p of v.clearProps.split(",")) el.style[p.trim()] = "";
+        if (v.visibility) el.style.visibility = v.visibility;
+      }
+    },
+    killTweensOf: () => {},
+  };
+  try {
+    document.body.innerHTML = "";
+    localStorage.removeItem("cowriteFont");
+    mountChrome({ page: "dashboard" });
+    const sw = document.getElementById("themeSwitch");
+    const themeMenu = document.getElementById("themeMenu");
+    const pick = document.getElementById("themeFont");
+    const list = document.getElementById("themeFontMenu");
+    const toggle = pick.querySelector(".flip-toggle");
+    document.getElementById("themeToggle").click();
+    assert.ok(sw.classList.contains("open"));
+    toggle.click(); // open the font list
+    assert.equal(list.parentNode, document.body, "portaled while open");
+    toggle.click(); // close it
+    assert.equal(list.parentNode, pick, "home after close");
+    assert.equal(list.style.transition, "none", "the CSS fallback transition stays off under GSAP");
+    toggle.click(); // second open must still portal + open
+    assert.equal(list.parentNode, document.body);
+    assert.ok(list.classList.contains("open"));
+    // closing the theme menu takes the font list with it
+    document.getElementById("themeToggle").click();
+    assert.ok(!sw.classList.contains("open"));
+    assert.equal(list.parentNode, pick, "the font list never outlives the menu");
+    assert.equal(themeMenu.style.transition, "none", "the theme menu keeps transition:none too");
+    assert.ok(!calls.some(([, v]) => v.clearProps === "all"), "no tween clears every inline prop");
+  } finally {
+    delete window.gsap;
+  }
+});

@@ -378,6 +378,7 @@ export function initTheme() {
 	function closeMenu() {
 		menuOpen = false
 		toggle.setAttribute("aria-expanded", "false")
+		fontPick?.close() // a portaled font list must not outlive the menu it belongs to
 		if (hasGsap) {
 			gsap.killTweensOf([menu, menu.children])
 			gsap.to(menu, {
@@ -387,7 +388,9 @@ export function initTheme() {
 				ease: "power2.in",
 				onComplete: () => {
 					sw.classList.remove("open")
-					gsap.set(menu, { clearProps: "all" })
+					// not "all": that would clear the inline transition:none too, and
+					// the next open would run GSAP against the CSS fold-out transition
+					gsap.set(menu, { clearProps: "transform,opacity,visibility" })
 				},
 			})
 		} else {
