@@ -97,19 +97,41 @@ export function mountArtRoom(opts) {
 	}
 
 	// ---- the shared painting ----
-	// userId -> { strokes: [{color,size,pts}], live: stroke|null } — mine
-	// included, so a wipe or redraw treats every painter alike.
+	// userId -> { strokes: [{color,size,pts}], live: stroke|null, at, layer }
+	// — mine included, so a wipe or redraw treats every painter alike. EVERY
+	// PAINTER HAS A LAYER OF THEIR OWN: an offscreen canvas their strokes and
+	// erases composite onto, so an eraser only takes away its owner's paint;
+	// the visible canvas is the layers blitted in order of who painted most
+	// recently (`at`), the freshest on top.
 	const paint = new Map()
 	const strokeCount = () =>
 		[...paint.values()].reduce((n, p) => n + p.strokes.length + (p.live ? 1 : 0), 0)
 	// jsdom has no 2d context; state still tracks so tests can pin the wiring.
 	const ctx = canvas.getContext?.("2d") ?? null
+	let seq = 0 // orders painters by their newest stroke (jsdom has no reliable clock in tests)
 	function sizeCanvas() {
 		canvas.width = vw()
 		canvas.height = vh()
+		for (const p of paint.values()) sizeLayer(p)
 	}
-	function drawStroke(s) {
-		if (!ctx || !s?.pts?.length) return
+	function sizeLayer(p) {
+		if (!p.layer) return
+		p.layer.width = canvas.width
+		p.layer.height = canvas.height
+		p.dirty = true
+	}
+	const layerOf = (p) => {
+		if (!p.layer && ctx) {
+			p.layer = doc.createElement("canvas")
+			p.layer.width = canvas.width
+			p.layer.height = canvas.height
+			p.dirty = true
+		}
+		return p.layer
+	}
+	function drawStroke(s, target = ctx) {
+		if (!target || !s?.pts?.length) return
+		const ctx = target
 		// the eraser is a stroke that takes paint away instead of leaving it
 		ctx.globalCompositeOperation = s.erase ? "destination-out" : "source-over"
 		ctx.strokeStyle = s.erase ? "rgba(0,0,0,1)" : s.color
@@ -123,25 +145,48 @@ export function mountArtRoom(opts) {
 		ctx.stroke()
 		ctx.globalCompositeOperation = "source-over"
 	}
+	// replay one painter's strokes onto their own layer
+	function paintLayer(p) {
+		const l = layerOf(p)
+		const lctx = l?.getContext?.("2d")
+		if (!lctx) return
+		lctx.clearRect(0, 0, l.width, l.height)
+		for (const s of p.strokes) drawStroke(s, lctx)
+		if (p.live) drawStroke(p.live, lctx)
+		p.dirty = false
+	}
+	// the painters in blit order: the one who painted longest ago first
+	const blitOrder = () => [...paint.entries()].sort((a, b) => (a[1].at || 0) - (b[1].at || 0)).map(([uid]) => uid)
+	function blit() {
+		if (!ctx) return
+		ctx.globalCompositeOperation = "source-over"
+		ctx.clearRect(0, 0, canvas.width, canvas.height)
+		for (const uid of blitOrder()) {
+			const p = paint.get(uid)
+			if (p.layer) ctx.drawImage(p.layer, 0, 0)
+		}
+	}
 	function redraw() {
 		if (!ctx) return
 		// the canvas starts at the element default (300x150) until someone sizes
 		// it — a viewer who never opened the room would have every remote stroke
 		// land outside the bitmap and see nothing, so redraw sizes it on demand
 		if (canvas.width !== vw() || canvas.height !== vh()) sizeCanvas()
-		ctx.clearRect(0, 0, canvas.width, canvas.height)
-		for (const p of paint.values()) {
-			for (const s of p.strokes) drawStroke(s)
-			if (p.live) drawStroke(p.live)
-		}
+		for (const p of paint.values()) if (p.dirty !== false) paintLayer(p)
+		blit()
 	}
 	const painterOf = (userId) => {
 		let p = paint.get(userId)
 		if (!p) {
-			p = { strokes: [], live: null }
+			p = { strokes: [], live: null, at: 0, layer: null, dirty: true }
 			paint.set(userId, p)
 		}
 		return p
+	}
+	// a painter's newest stroke brings their layer to the top
+	const touch = (p) => {
+		p.at = ++seq
+		p.dirty = true
 	}
 
 	// ---- my brush ----
@@ -187,6 +232,7 @@ export function mountArtRoom(opts) {
 		stroke = { color: curColor, size: curSize, pts: [[fr(px / vw()), fr(py / vh())]], ...(curErase ? { erase: true } : {}) }
 		const p = painterOf(myUserId())
 		p.live = stroke
+		touch(p)
 		redraw()
 		report(true)
 	}
@@ -195,7 +241,10 @@ export function mountArtRoom(opts) {
 		stroke.pts.push([fr(px / vw()), fr(py / vh())])
 		if (ctx) {
 			const n = stroke.pts.length
-			drawStroke({ ...stroke, pts: stroke.pts.slice(n - 2) }) // just the new segment
+			const p = painterOf(myUserId())
+			const l = layerOf(p)
+			drawStroke({ ...stroke, pts: stroke.pts.slice(n - 2) }, l?.getContext?.("2d")) // just the new segment, on MY layer
+			blit()
 		}
 		if (stroke.pts.length >= MAX_PTS) return endStroke() // commit and keep painting
 		report()
@@ -248,7 +297,7 @@ export function mountArtRoom(opts) {
 		if (sw) {
 			curErase = sw.dataset.erase === "1"
 			if (!curErase) curColor = safeColor(sw.dataset.color)
-			for (const b of colorsRow.querySelectorAll(".ar-swatch")) b.classList.toggle("on", b === sw)
+			for (const b of colorsRow.querySelectorAll(".ar-swatch, #arPick")) b.classList.toggle("on", b === sw)
 			return
 		}
 		if (e.target.closest('[data-act="ar-exit"]')) exit()
@@ -260,7 +309,9 @@ export function mountArtRoom(opts) {
 		if (/^#[0-9a-fA-F]{6}$/.test(v)) {
 			curColor = v.toLowerCase()
 			curErase = false
+			// the picker is the selected swatch now (the eraser included lets go)
 			for (const b of colorsRow.querySelectorAll(".ar-swatch")) b.classList.remove("on")
+			e.target.classList.add("on")
 		}
 	})
 
@@ -269,6 +320,7 @@ export function mountArtRoom(opts) {
 		if (p) {
 			p.strokes = []
 			p.live = null
+			p.dirty = true
 		}
 		stroke = null
 		redraw()
@@ -373,6 +425,7 @@ export function mountArtRoom(opts) {
 			if (p) {
 				p.strokes = []
 				p.live = null
+				p.dirty = true
 			}
 			redraw()
 			syncLayer()
@@ -391,6 +444,7 @@ export function mountArtRoom(opts) {
 			} else {
 				p.live = d.stroke
 			}
+			touch(p)
 			redraw()
 		}
 		syncLayer()
@@ -401,6 +455,7 @@ export function mountArtRoom(opts) {
 			const p = painterOf(d.userId)
 			p.strokes = Array.isArray(d.strokes) ? d.strokes : []
 			p.live = d.live || null
+			touch(p)
 			if (d.on !== false && d.cursor) upsertCursor(d)
 		}
 		sizeCanvas()
@@ -432,6 +487,16 @@ export function mountArtRoom(opts) {
 		},
 		get size() {
 			return curSize
+		},
+		get erase() {
+			return curErase
+		},
+		// who is painted over whom: painters oldest-first (the last is on top)
+		get layerOrder() {
+			return blitOrder()
+		},
+		strokesOf(userId) {
+			return paint.get(userId)?.strokes.length ?? 0
 		},
 	}
 }
