@@ -354,3 +354,11 @@ test("a new session is born with a random title, ≤40 chars, until the host ren
   assert.equal(state.current.name, "Our story");
 });
 
+
+test("plainText / clip: a line's words with entities decoded, and a preview cut on a word with an ellipsis", async () => {
+  const { plainText, clip } = await import("../src/sanitize.js");
+  assert.equal(plainText("<p>It shouldn&#39;t matter, &quot;Mike&quot; &amp; Will&hellip;</p>"), "It shouldn't matter, \"Mike\" & Will&hellip;");
+  assert.equal(plainText("<b>one</b><i>two</i>"), "one two");
+  assert.equal(clip("short", 20), "short");
+  assert.equal(clip("the quick brown fox jumps", 17), "the quick brown…");
+});

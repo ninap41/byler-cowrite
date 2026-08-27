@@ -1002,7 +1002,7 @@ a.solo-title:hover {
 	justify-content: center;
 	gap: 5px;
 	background: var(--panel);
-	border: 1px solid var(--panel-brd);
+	border: 0;
 	border-radius: var(--r-md);
 	box-shadow: var(--panel-glow);
 	backdrop-filter: blur(14px);

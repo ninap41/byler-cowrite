@@ -41,6 +41,28 @@ export function sanitizeRich(html) {
 }
 
 export const stripTags = (html) => html.replace(/<[^>]+>/g, "").replace(/&[a-z#0-9]+;/gi, " ").trim();
+// The words a line actually says: tags gone, entities DECODED (stripTags
+// turns them into spaces, which read as "shouldn t" and count as two words).
+const ENTITIES = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " " };
+export const plainText = (html) =>
+  String(html || "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (m, e) => {
+      if (e[0] === "#") {
+        const n = e[1].toLowerCase() === "x" ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10);
+        return Number.isFinite(n) ? String.fromCodePoint(n) : m;
+      }
+      return ENTITIES[e.toLowerCase()] ?? m;
+    })
+    .replace(/\s+/g, " ")
+    .trim();
+// A preview cut on a word, with an ellipsis when something was left out.
+export const clip = (text, max) => {
+  const t = String(text || "").trim();
+  if (t.length <= max) return t;
+  const cut = t.slice(0, max).replace(/\s+\S*$/, "");
+  return (cut || t.slice(0, max)).trimEnd() + "…";
+};
 
 // Solo-write documents. Same escape-everything-then-re-enable shape as
 // sanitizeRich, but a document-sized cap and a wider allowlist (lists, quotes,

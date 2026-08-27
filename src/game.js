@@ -5,7 +5,7 @@ import { randomUUID, randomInt } from "crypto";
 import { bumpStreak } from "../lib/streak.js";
 import { badgeName, badgeDesc, usageMatches, awardWordBadges, rewardsForTiers, describeRewards, unlockedThemes, unlockedGimmicks, canUseGimmick } from "../lib/achievements.js";
 import { cleanGimmickId, rollOutcome, describeRoll, galagaOutcome, describeGalaga, GALAGA_MAX_SCORE, ROLL_COOLDOWN_MS, SPIN_MS, DIE_SIDES, PAINT_MAX_STROKES, PAINT_MAX_PTS, CURSE_MS, GIMMICK_IDS } from "../lib/gimmicks.js";
-import { PALETTE, cleanColor, cleanHex, sanitizeRich, stripTags, httpUrl, sanitizeDoc, CID_RE } from "./sanitize.js";
+import { PALETTE, cleanColor, cleanHex, sanitizeRich, stripTags, plainText, clip, httpUrl, sanitizeDoc, CID_RE } from "./sanitize.js";
 import { store, saveStore, userByToken, makeMsg, isAdmin } from "./store.js";
 import { storage, getJson } from "./storage.js";
 import { generateSimplePrompt, generateIntermediatePrompt, validateIntermediateData, EXPLICIT_LEVELS, MODES, MAX_KINKS } from "../lib/prompt-gen.js";
@@ -370,11 +370,11 @@ export function createGame(io) {
     if (!writer?.userId) return;
     const u = store.users.find((x) => x.id === writer.userId);
     if (!u) return;
-    const text = stripTags(cleanHtml);
+    const text = plainText(cleanHtml);
     const words = text.split(/\s+/).filter(Boolean).length;
     u.wordCount += words;
     // remember their newest line — creditLine saves the store anyway, so free
-    if (text.trim()) u.lastLine = { text: text.trim().slice(0, 220), code: s.code, name: s.name || "", at: Date.now() };
+    if (text) u.lastLine = { text: clip(text, 220), code: s.code, name: s.name || "", at: Date.now() };
     bumpStreak(u);
     if (!u.games.includes(s.code)) u.games.push(s.code);
     const before = u.currentBadge;

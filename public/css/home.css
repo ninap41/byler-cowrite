@@ -922,3 +922,8 @@ body.home-page {
 .og-capture :is(#heroBtns, #heroMore, #footBar, #tourBar, .home-start, #tour, .home-close) { display: none !important; }
 .og-capture .hero-tag { font-size: 1.15rem; }
 .og-capture #heroCaret { display: none; }
+
+/* the homepage tour bar sits the theme switch a touch higher */
+.home-page .theme-switch button {
+	margin-top: -8px;
+}

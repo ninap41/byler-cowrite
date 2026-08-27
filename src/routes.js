@@ -10,7 +10,7 @@ import { SITE } from "./site.js";
 import { getPromptData, setPromptData } from "./game.js";
 import { WORD_TIERS, USAGE, USAGE_OPEN, getAchievements, setAchievements, badgeName, awardWordBadges, themeLocks, unlockedThemes, gimmickLocks, unlockedGimmicks } from "../lib/achievements.js";
 import { GIMMICKS } from "../lib/gimmicks.js";
-import { cleanColor, stripTags, httpUrl, sanitizeAbout, sanitizeDoc } from "./sanitize.js";
+import { cleanColor, stripTags, plainText, clip, httpUrl, sanitizeAbout, sanitizeDoc } from "./sanitize.js";
 import {
   readDoc, writeDoc, createDoc, deleteDoc, listDocsFor, docSummary,
   canView, canEdit, canComment, isReader, cleanTitle, cleanVisibility, publicDocs, docsOwnedBy,
@@ -472,7 +472,7 @@ export function registerRoutes(app, game) {
         if ((d.savedAt || 0) >= (lastLine?.savedAt ?? -1))
           for (const l of d.story || []) {
             if (l.userId !== u.id) continue;
-            const text = stripTags(String(l.html || "")).trim().slice(0, 220);
+            const text = clip(plainText(l.html), 220);
             if (text) lastLine = { text, code: d.code, name: d.name || "", savedAt: d.savedAt || 0 };
           }
       }
