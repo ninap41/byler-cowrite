@@ -81,6 +81,8 @@ test("COWRITE_ROLE_ID is @mentioned at the head of every post, and is the only m
   assert.ok(m.content.startsWith("<@&123456789> "));
   assert.deepEqual(m.allowed_mentions, { roles: ["123456789"] }, "a title saying @everyone can't ping anyone");
   assert.ok(m.components, "the buttons survive");
+  const ann = withRole(announcementMessage({ markdown: "## Hi\n\nthere" }), "end");
+  assert.equal(ann.content, "## Hi\n\nthere\n\n<@&123456789>", "an announcement ends with the mention, so the heading stays a heading");
   process.env.COWRITE_ROLE_ID = "";
   const none = withRole(announcementMessage({ markdown: "# Hi" }));
   assert.equal(none.content, "# Hi");

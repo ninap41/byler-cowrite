@@ -72,17 +72,20 @@ export async function postToChannel(channelId, payload) {
 // Every post opens with an @mention of COWRITE_ROLE_ID (when set) so the
 // role's members are alerted, and allowed_mentions names that role alone so
 // nothing else in the text — markdown or a game title — can ping anyone.
-const withRole = (msg) => {
+// A game share leads with it; an announcement ends with it, on its own line
+// after the markdown, so a leading `## heading` stays a heading.
+const withRole = (msg, at = "start") => {
   const role = env("COWRITE_ROLE_ID");
   if (!role) return { ...msg, allowed_mentions: { parse: [] } };
-  return { ...msg, content: `<@&${role}> ${msg.content}`.slice(0, 2000), allowed_mentions: { roles: [role] } };
+  const content = at === "end" ? `${msg.content}\n\n<@&${role}>` : `<@&${role}> ${msg.content}`;
+  return { ...msg, content: content.slice(0, 2000), allowed_mentions: { roles: [role] } };
 };
 
 // The announcement's own markdown, verbatim — Discord renders markdown, which
 // is the whole reason announcements are written in it. 2000 is Discord's cap.
 export const announcementMessage = (post) => ({ content: String(post.markdown || post.title || "").slice(0, 1970) });
 export { withRole };
-export const postAnnouncement = (post) => postToChannel(env("DISCORD_ANNOUNCE_CHANNEL_ID"), withRole(announcementMessage(post)));
+export const postAnnouncement = (post) => postToChannel(env("DISCORD_ANNOUNCE_CHANNEL_ID"), withRole(announcementMessage(post), "end"));
 
 // A live game share: title, code, who's hosting, and the links that make
 // sense for its phase. A lobby ("gathering writers") gets Join alone — the
