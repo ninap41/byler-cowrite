@@ -9,8 +9,14 @@ import { startServer, signup, startedGame } from "./helpers.mjs";
 import {
   GIMMICKS, GIMMICK_IDS, cleanGimmickId, rollOutcome, describeRoll, DIE_SIDES,
   GALAGA_TARGET, GALAGA_MAX_SCORE, galagaOutcome, describeGalaga,
-  PAINT_MAX_STROKES, PAINT_MAX_PTS,
+  PAINT_MAX_STROKES, PAINT_MAX_PTS, CURSE_MS,
 } from "../lib/gimmicks.js";
+
+test("Vecna's curse holds for a full minute", () => {
+  assert.equal(CURSE_MS, 60000);
+  const client = readFileSync(new URL("../public/js/components/vecna-curse.js", import.meta.url), "utf-8");
+  assert.match(client, /\|\| 60000\)/, "the client fallback matches CURSE_MS");
+});
 import {
   WORD_TIERS, GIMMICK_UNLOCKS, THEME_UNLOCKS, tierForGimmick, canUseGimmick, unlockedGimmicks, gimmickLocks,
   rewardsForTier, describeRewards,

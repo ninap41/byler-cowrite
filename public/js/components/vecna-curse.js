@@ -94,7 +94,7 @@ export function mountVecnaCurse(opts) {
 		}
 		layer.classList.remove("hidden")
 		// every screen clears itself at the duration even if the lift is missed
-		cursed.timer = setTimeout(() => lift(), Math.max(1000, Number(d.duration) || 20000))
+		cursed.timer = setTimeout(() => lift(), Math.max(1000, Number(d.duration) || 60000))
 	}
 	function lift() {
 		if (!cursed) return

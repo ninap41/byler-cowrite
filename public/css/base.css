@@ -9001,6 +9001,11 @@ body.game-page .session-bar .sess-name {
 .sk-gunbtn.remote {
 	pointer-events: none;
 }
+/* the global button:hover lift would replace the centring translate and
+   throw the gun half a box away from the cursor: hover keeps it in place */
+button.sk-gunbtn:hover {
+	transform: translate(-50%, -50%);
+}
 .sk-gun3d {
 	position: relative;
 	display: block;

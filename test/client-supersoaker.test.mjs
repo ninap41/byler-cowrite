@@ -4,6 +4,7 @@
 // guards it, so here we pin the wiring, not the splash.
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { installDom } from "./dom.mjs";
 
 installDom();
@@ -102,4 +103,9 @@ test("gimmicksOff: a friendly switch sweeps every gun and drop away and reports 
   assert.equal(m.dropCount, 0);
   assert.equal(document.querySelectorAll("#skOthers .sk-gunbtn").length, 0);
   assert.ok(document.getElementById("skLayer").classList.contains("hidden"));
+});
+
+test("hovering the gun keeps its centring translate (the global button lift is overridden)", () => {
+  const css = readFileSync(new URL("../public/css/base.css", import.meta.url), "utf-8");
+  assert.match(css, /button\.sk-gunbtn:hover\s*\{[^}]*transform:\s*translate\(-50%,\s*-50%\)/);
 });
