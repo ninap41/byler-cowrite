@@ -916,3 +916,9 @@ body.home-page {
 	.ts-chatdock { display: none; }
 	.ts-game { padding-bottom: 22px; }
 }
+
+/* ?og=1 — the Open Graph banner capture (scripts/og-banner.sh): the hero
+   with its title and tagline only; buttons, foot bar and the tour hidden. */
+.og-capture :is(#heroBtns, #heroMore, #footBar, #tourBar, .home-start, #tour, .home-close) { display: none !important; }
+.og-capture .hero-tag { font-size: 1.15rem; }
+.og-capture #heroCaret { display: none; }

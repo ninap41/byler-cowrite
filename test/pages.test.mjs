@@ -617,3 +617,14 @@ test("nothing hard-codes the fandom: the repo pack renders as Byler Cowrite ever
   const home = (await page("/")).body;
   assert.ok(home.includes('y="110">Byler<') && home.includes('y="230">Cowrite<'), "the hero writes Byler / Cowrite");
 });
+
+test("every page carries Open Graph tags for link previews, and the banner exists at the path they name", async () => {
+  const { existsSync } = await import("node:fs");
+  const html = await fetch(ctx.url + "/").then((r) => r.text());
+  assert.ok(html.includes('property="og:title" content="Byler Cowrite"'));
+  assert.ok(html.includes('name="twitter:card" content="summary_large_image"'), "the wide banner layout");
+  assert.ok(html.includes('property="og:image" content="/img/og-banner.png"'), "no PUBLIC_APP_URL in tests → root-relative");
+  assert.ok(existsSync(new URL("../public/img/og-banner.png", import.meta.url)), "public/img/og-banner.png (scripts/og-banner.sh)");
+  const game = await fetch(ctx.url + "/game").then((r) => r.text());
+  assert.ok(game.includes('property="og:description"'), "every rendered page, not just the homepage");
+});

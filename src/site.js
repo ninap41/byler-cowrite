@@ -30,7 +30,33 @@ const escAttr = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<":
 
 const TOKENS = { SITE_NAME: "name", FANDOM: "fandom", TAGLINE: "tagline", BLURB: "blurb" };
 
+// Open Graph: the card Discord (Slack, iMessage…) draws when a link to the
+// site is pasted — title, description, and the banner at
+// public/img/og-banner.png (1200×630, captured by scripts/og-banner.sh).
+// The image and og:url must be ABSOLUTE, so they're built on PUBLIC_APP_URL;
+// without it (local dev, tests) the text tags still go out and the image
+// stays a root-relative path an unfurler will simply skip.
+export function ogTags(origin = String(process.env.PUBLIC_APP_URL || "").trim().replace(/\/$/, "")) {
+  const img = origin + "/img/og-banner.png";
+  const tags = [
+    ["property", "og:type", "website"],
+    ["property", "og:site_name", SITE.name],
+    ["property", "og:title", SITE.name],
+    ["property", "og:description", SITE.blurb],
+    ["property", "og:image", img],
+    ["property", "og:image:width", "1200"],
+    ["property", "og:image:height", "630"],
+    ...(origin ? [["property", "og:url", origin + "/"]] : []),
+    ["name", "description", SITE.blurb],
+    ["name", "twitter:card", "summary_large_image"],
+    ["name", "twitter:title", SITE.name],
+    ["name", "twitter:description", SITE.blurb],
+    ["name", "twitter:image", img],
+  ];
+  return tags.map(([k, n, v]) => `<meta ${k}="${n}" content="${escAttr(v)}" />`).join("\n\t\t");
+}
+
 export function renderPage(html) {
   const filled = html.replace(/\{\{(SITE_NAME|FANDOM|TAGLINE|BLURB)\}\}/g, (_, t) => escAttr(SITE[TOKENS[t]]));
-  return filled.replace(/<head(\s[^>]*)?>/i, (m) => `${m}\n\t\t<meta name="site-name" content="${escAttr(SITE.name)}" />`);
+  return filled.replace(/<head(\s[^>]*)?>/i, (m) => `${m}\n\t\t<meta name="site-name" content="${escAttr(SITE.name)}" />\n\t\t${ogTags()}`);
 }
