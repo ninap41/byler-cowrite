@@ -454,6 +454,16 @@ a.rg-row {
 	align-items: center;
 	gap: 8px;
 }
+.ib-who {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	min-width: 0;
+}
+.ib-arrow {
+	color: var(--muted);
+	font-size: 0.8rem;
+}
 .ib-when {
 	margin-left: auto;
 	margin-right: 16px; /* the date stops short of the corner ✕ */

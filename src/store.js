@@ -45,7 +45,8 @@ export const ADMIN_EMAILS = new Set(["admin2@cowrite.test", "admin@cowrite.test"
 // Friend requests ARE inbox messages — accepting/declining consumes them.
 // `extra` carries the optional fields: `threadId` (the conversation this
 // message belongs to — see /api/inbox/reply), `mine` (my own sent copy, kept
-// so a reply chain shows both halves), `code` (a game invite's code).
+// so a reply chain shows both halves), `code` (a game invite's code), `toId`
+// (the recipient's account id — who a person-to-person message was sent to).
 export const makeMsg = (type, fromId, text, extra = {}) =>
   ({ id: randomUUID(), type, fromId: fromId || null, text: String(text || ""), read: false, ts: Date.now(), ...extra });
 

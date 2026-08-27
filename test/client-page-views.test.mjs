@@ -164,6 +164,21 @@ test("inboxMsgHtml labels a help question and escapes what the asker typed", () 
   assert.ok(!note.includes("help question"), "an ordinary note wears no tag");
 });
 
+test("an inbox row says who a message is between: sender → recipient by username, 'You' on my side", () => {
+  const from = { username: "ninaadmin", color: "#6c8cff", badge: "", avatar: "", avatarFit: "cover" };
+  const to = { username: "mikester", color: "#ff6c6c", badge: "", avatar: "", avatarFit: "cover" };
+  const got = inboxMsgHtml({ id: "1", type: "note", text: "hi", read: true, ts: Date.now(), from, to });
+  assert.ok(got.includes('class="ib-who"'));
+  assert.ok(got.indexOf("ninaadmin") < got.indexOf("ib-arrow") && got.indexOf("ib-arrow") < got.indexOf("<b>You</b>"), "received: them → You");
+  const sent = chainMsgHtml({ id: "2", type: "note", text: "hi", read: true, ts: Date.now(), from, to, mine: true });
+  assert.ok(sent.indexOf("<b>You</b>") < sent.indexOf("ib-arrow") && sent.indexOf("ib-arrow") < sent.indexOf("mikester"), "sent: You → them");
+  assert.ok(!sent.includes("ninaadmin"), "my own name isn't spelled out on my sent copy");
+  const sys = inboxMsgHtml({ id: "3", type: "system", text: "welcome", read: true, ts: Date.now(), from: null });
+  assert.ok(!sys.includes("ib-who") && !sys.includes("ib-arrow"), "a system note names nobody");
+  const old = inboxMsgHtml({ id: "4", type: "note", text: "old", read: true, ts: Date.now(), from, mine: true, to: null });
+  assert.ok(old.includes("<b>You</b>") && !old.includes("ib-arrow"), "an old sent copy with no recipient stays 'You'");
+});
+
 test("a conversation carries an open composer; system notes carry none", () => {
   const from = { username: "ninaadmin", color: "#6c8cff", badge: "", avatar: "", avatarFit: "cover" };
   const row = inboxMsgHtml({ id: "1", type: "note", text: "hello", read: true, ts: Date.now(), from });
