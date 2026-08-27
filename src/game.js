@@ -1472,6 +1472,22 @@ export function createGame(io) {
     // non-friendly game, only from a seat, only when the table has the rank.
     // `steal: false` is the roller's opt-out: a natural 20 is still called
     // in chat, but the turn stays where it is.
+
+    // A stolen turn carries the victim's unsent line into the thief's editor:
+    // whatever the interrupted writer had typed, with an italic note naming
+    // the theft, becomes the thief's live text. Call AFTER startTurn() (which
+    // wipes lastTyping): the thief's socket gets `steal-carry`, everyone else a
+    // live-typing preview, so the ledger and every screen agree.
+    const escName = (t) => String(t || "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+    function carryStolen(s, thiefSocket, thief, victim, stolenRaw) {
+      const note = `<i>[- <b>${escName(thief?.name)}</b> stole from <b>${escName(victim)}</b> ]</i>`;
+      const raw = (stolenRaw || "").trim() ? `${stolenRaw} ${note}` : note;
+      s.lastTypingRaw = raw;
+      s.lastTyping = sanitizeRich(raw);
+      thiefSocket.emit("steal-carry", { html: s.lastTyping });
+      thiefSocket.to(s.code).emit("live-typing", { html: s.lastTyping });
+    }
+
     socket.on("gimmick-roll", ({ id, steal } = {}, ack) => {
       const s = mySession();
       const w = s?.writers.get(socket.id);
@@ -1497,9 +1513,13 @@ export function createGame(io) {
           stole = true;
         }
       }
+      const stolenRaw = stole ? s.lastTypingRaw : "";
       announce(s, w, describeRoll(outcome, { stole, from, declined }), { chime: outcome.kind === "crit" });
       io.to(s.code).emit("gimmick-roll", { userId: w.userId, name: w.name, color: w.color, value: outcome.value, kind: outcome.kind, stole });
-      if (stole) startTurn(s); // re-broadcasts game-state with the new current writer
+      if (stole) {
+        startTurn(s); // re-broadcasts game-state with the new current writer
+        carryStolen(s, socket, w, from, stolenRaw);
+      }
       ack?.({ ok: true, value: outcome.value, kind: outcome.kind, stole });
     });
     // A Galaga battle in progress (components/galaga-game.js): the player
@@ -1816,12 +1836,14 @@ export function createGame(io) {
           }
         }
       }
+      const stolenRaw = stole ? s.lastTypingRaw : "";
       announce(s, w, describeGalaga(outcome, { stole, from, declined, beaten, by: s.stealBy ?? "" }), { chime: outcome.kind === "highscore" });
       io.to(s.code).emit("gimmick-galaga", { userId: w.userId, name: w.name, color: w.color, score: outcome.score, kind: outcome.kind, stole });
       if (stole) {
         startTurn(s);
         s.stealScore = outcome.score; // after startTurn — it resets the ledger
         s.stealBy = w.name;
+        carryStolen(s, socket, w, from, stolenRaw);
       }
       ack?.({ ok: true, score: outcome.score, kind: outcome.kind, stole });
     });

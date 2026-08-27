@@ -176,6 +176,12 @@ test("a table with one ranked seat lets everyone roll; a natural 20 steals the t
 
   // Mike has no rank, but the admin at the table does — Mike may roll. The
   // die is fixed to land 20 first: it isn't Mike's turn, so he steals it.
+  const carried = [];
+  const previews = [];
+  B.on("steal-carry", (c) => carried.push(c));
+  A.on("live-typing", (t) => previews.push(t));
+  A.emit("typing", { text: "The flashlight <b>answered</b>" });
+  await ctx.wait(80);
   const r = await ctx.emit(B, "gimmick-roll", { id: "d20" });
   assert.equal(r.ok, true);
   assert.equal(r.value, 20);
@@ -187,6 +193,10 @@ test("a table with one ranked seat lets everyone roll; a natural 20 steals the t
   assert.equal(rolls.at(-1).userId, mike.user.id);
   assert.equal(rolls.at(-1).stole, true);
   assert.ok(chat.some((m) => m.sys && /dicemike/.test(m.name) && /NATURAL 20 🎲 and stole the turn from diceadmin!/.test(m.text)));
+  // the victim's unsent line rode into the thief's editor, theft noted
+  assert.equal(carried.length, 1);
+  assert.equal(carried[0].html, "The flashlight <b>answered</b> <i>[- <b>dicemike</b> stole from <b>diceadmin</b> ]</i>");
+  assert.equal(previews.at(-1).html, carried[0].html, "the table previews the carried line");
 
   const again = await ctx.emit(B, "gimmick-roll", { id: "d20" });
   assert.equal(again.ok, false, "cooldown");

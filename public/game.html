@@ -1173,6 +1173,22 @@
 				clearTimeout(typingTimer)
 				typingTimer = setTimeout(() => socket.emit("typing", { text: cleanHtml($("writerEditor"), { doc: true, urls: false }) }), 140)
 			})
+			// I stole the turn: the victim's unsent line (server-sanitized, with
+			// the theft noted in italics) lands in my editor, caret at the end.
+			socket.on("steal-carry", ({ html }) => {
+				const ed = $("writerEditor")
+				if (!ed) return
+				ed.innerHTML = html || ""
+				try {
+					const r = document.createRange()
+					r.selectNodeContents(ed)
+					r.collapse(false)
+					const sel = window.getSelection()
+					sel.removeAllRanges()
+					sel.addRange(r)
+				} catch (e) {}
+				ed.focus()
+			})
 			// Render another writer's live, in-progress line.
 			socket.on("live-typing", ({ html }) => {
 				const box = $("livePreview")
