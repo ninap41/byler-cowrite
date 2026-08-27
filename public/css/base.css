@@ -628,6 +628,53 @@ a.solo-title:hover {
 	0%, 100% { box-shadow: 0 0 4px 0 var(--glow); }
 	50% { box-shadow: 0 0 20px 4px var(--glow); }
 }
+/* a game being WRITTEN right now shimmers in the theme: a sheen of the
+   accent sweeping along its edge over a breathing glow — on the dashboard's
+   in-progress cards and the live-games rows alike */
+.mg-card.live,
+.live-game.live {
+	position: relative;
+	isolation: isolate;
+	border-color: var(--accent);
+	box-shadow: 0 0 14px 1px var(--glow);
+}
+.mg-card.live::after,
+.live-game.live::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	border-radius: inherit;
+	padding: 1.5px;
+	pointer-events: none;
+	background: conic-gradient(from var(--shimmer-a, 0deg), transparent 0 55%, var(--accent-2) 72%, #fff 76%, var(--accent) 80%, transparent 92%);
+	-webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+	mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+	-webkit-mask-composite: xor;
+	mask-composite: exclude;
+	opacity: 0.9;
+}
+@property --shimmer-a {
+	syntax: "<angle>";
+	inherits: false;
+	initial-value: 0deg;
+}
+@media (prefers-reduced-motion: no-preference) {
+	.mg-card.live::after,
+	.live-game.live::after {
+		animation: live-shimmer 3.2s linear infinite;
+	}
+	.mg-card.live,
+	.live-game.live {
+		animation: live-breathe 2.6s ease-in-out infinite;
+	}
+}
+@keyframes live-shimmer {
+	to { --shimmer-a: 360deg; }
+}
+@keyframes live-breathe {
+	0%, 100% { box-shadow: 0 0 10px 0 var(--glow); }
+	50% { box-shadow: 0 0 24px 4px var(--glow); }
+}
 .live-game .sparkle {
 	position: absolute;
 	pointer-events: none;

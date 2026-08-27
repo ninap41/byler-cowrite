@@ -165,3 +165,17 @@ test("a contributor is a contributor: a writer whose seat expired still sees the
     await ctx2.stop?.();
   }
 });
+
+test("a game being written shimmers on the dashboard: liveGames carries paused, and the live/gathering classes are pinned in CSS", async () => {
+  const { readFileSync } = await import("node:fs");
+  const css = readFileSync(new URL("../public/css/base.css", import.meta.url), "utf-8");
+  assert.match(css, /\.mg-card\.live,\s*\.live-game\.live \{/);
+  assert.match(css, /@keyframes live-shimmer/);
+  const page = readFileSync(new URL("../public/dashboard.html", import.meta.url), "utf-8");
+  assert.match(page, /g\.live && !g\.paused && g\.phase === "writing" \? " live"/);
+  assert.match(page, /g\.phase === "writing" && !g\.paused\) row\.classList\.add\("live"\)/);
+  const g = await startedGame(ctx, { turnSeconds: 60, rounds: 3 });
+  const d = await ctx.api("/api/dashboard", undefined, g.host.token);
+  const row = d.data.liveGames.find((x) => x.code === g.code);
+  assert.equal(row.paused, false);
+});

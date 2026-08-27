@@ -176,7 +176,7 @@ export function registerRoutes(app, game) {
     const liveGames = [...sessions.values()]
       .filter((g) => g.phase !== "over")
       .map((g) => ({
-        code: g.code, name: g.name || "", phase: g.phase,
+        code: g.code, name: g.name || "", phase: g.phase, paused: !!g.paused,
         hostName: g.writers.get(g.hostId)?.name ?? g.hostName ?? null,
         players: [...g.writers.values()].map((w) => ({ name: w.name, connected: w.connected !== false })),
       }));
