@@ -8,7 +8,7 @@ import { listPosts, addPost, deletePost } from "./announcements.js";
 import { verifyInteraction, handleInteraction, postAnnouncement, postGame, discordStatus } from "./discord.js";
 import { SITE } from "./site.js";
 import { getPromptData, setPromptData } from "./game.js";
-import { WORD_TIERS, USAGE, USAGE_OPEN, getAchievements, setAchievements, badgeName, awardWordBadges, themeLocks, unlockedThemes, gimmickLocks, unlockedGimmicks } from "../lib/achievements.js";
+import { WORD_TIERS, USAGE, USAGE_OPEN, getAchievements, setAchievements, badgeName, awardWordBadges, themeLocks, unlockedThemes, gimmickLocks, unlockedGimmicks, featureLocks, unlockedFeatures, canUseFeature, FEATURE_LABELS } from "../lib/achievements.js";
 import { GIMMICKS } from "../lib/gimmicks.js";
 import { cleanColor, stripTags, httpUrl, sanitizeAbout, sanitizeDoc } from "./sanitize.js";
 import {
@@ -340,6 +340,13 @@ export function registerRoutes(app, game) {
       catalogue: Object.values(GIMMICKS),
       locks: gimmickLocks(), unlocked: unlockedGimmicks(u), admin: isAdmin(u || {}) === true,
     });
+  });
+
+  // Which FEATURES this account has earned (the "/" reference palette). Same
+  // shape as /api/themes; the ranks page draws the chip from `labels`.
+  app.get("/api/features", (req, res) => {
+    const u = authedUser(req);
+    res.json({ labels: FEATURE_LABELS, locks: featureLocks(), unlocked: unlockedFeatures(u), admin: isAdmin(u || {}) === true });
   });
 
   // Public achievement metadata for the profile page. Raw trigger word lists
@@ -828,7 +835,10 @@ export function registerRoutes(app, game) {
   // The slash-command word bank. Static, auth'd only to keep it off the public
   // surface — it's read once at startup, so this is a cheap constant response.
   app.get("/api/reference", (req, res) => {
-    if (!authedUser(req)) return res.status(401).json({ error: "Sign in first." });
+    const u = authedUser(req);
+    if (!u) return res.status(401).json({ error: "Sign in first." });
+    // a rank reward, and a real one: the bank is data, so the lock is here
+    if (!canUseFeature(u, "reference")) return res.status(403).json({ error: "The writers' reference unlocks with rank." });
     res.json(getReference());
   });
 

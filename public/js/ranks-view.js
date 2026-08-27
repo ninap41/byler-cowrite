@@ -24,7 +24,9 @@ const fmtWords = (n) => Number(n || 0).toLocaleString()
 // hand-rolled fandom pack can ship the simpler shape.
 const lockTier = (v) => (typeof v === "string" ? v : v?.tier)
 
-export function buildLadder({ tiers = [], themeLocks = {}, themeLabels = {}, gimmicks = [] } = {}) {
+// features: /api/features — {labels: {id: name}, locks: {id: tier|{tier}}};
+// a feature is a rank reward that is neither theme nor gimmick.
+export function buildLadder({ tiers = [], themeLocks = {}, themeLabels = {}, gimmicks = [], features = null } = {}) {
 	const gimmickByTheme = new Map(gimmicks.map((g) => [g.theme, g]))
 	return tiers.map((t) => {
 		const themes = Object.entries(themeLocks)
@@ -34,7 +36,10 @@ export function buildLadder({ tiers = [], themeLocks = {}, themeLabels = {}, gim
 				label: themeLabels[themeId] || themeId,
 				gimmick: gimmickByTheme.get(themeId) || null,
 			}))
-		return { ...t, themes, gimmicks: themes.map((th) => th.gimmick).filter(Boolean) }
+		const feats = Object.entries(features?.locks || {})
+			.filter(([, v]) => lockTier(v) === t.id)
+			.map(([id]) => ({ id, name: features?.labels?.[id] || id }))
+		return { ...t, themes, gimmicks: themes.map((th) => th.gimmick).filter(Boolean), features: feats }
 	})
 }
 
@@ -55,6 +60,10 @@ export function gimmickChipHtml(g, { unlocked = false } = {}) {
 	return `<span class="rk-gimmick-chip${unlocked ? " unlocked" : ""}" title="${esc(g.desc || "")}">${esc(g.icon || "🎁")} ${esc(g.name)}</span>`
 }
 
+export function featureChipHtml(f, { unlocked = false } = {}) {
+	return `<span class="rk-gimmick-chip rk-feature-chip${unlocked ? " unlocked" : ""}">${esc(f.icon || "📖")} ${esc(f.name)}</span>`
+}
+
 // One rung of the ladder. `me` (optional): {wordCount} decides earned/next.
 export function tierCardHtml(tier, { me = null, unlockedThemes = [], current = false } = {}) {
 	const earned = me ? Number(me.wordCount || 0) >= tier.min : false
@@ -62,6 +71,7 @@ export function tierCardHtml(tier, { me = null, unlockedThemes = [], current = f
 		.map((th) => themeThumbHtml(th, { unlocked: unlockedThemes.includes(th.id) }))
 		.join("")
 	const gims = tier.gimmicks.map((g) => gimmickChipHtml(g, { unlocked: earned })).join("")
+		+ (tier.features || []).map((f) => featureChipHtml(f, { unlocked: earned })).join("")
 	return `<article class="rk-tier${earned ? " earned" : ""}${current ? " current" : ""}" data-tier="${esc(tier.id)}">
 		<header class="rk-tier-head">
 			<b class="rk-badge">${esc(tier.name)}</b>

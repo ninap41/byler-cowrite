@@ -41,6 +41,16 @@ test("buildLadder joins tiers to their themes and the gimmicks riding them", () 
   assert.equal(rows[2].gimmicks[0].id, "d20");
 });
 
+test("a feature rides its rung as a chip, locked until the rung is earned", () => {
+  const features = { labels: { reference: "Writers' reference palette" }, locks: { reference: { tier: "puppymike", name: "🐶 Puppy Mike", min: 5000 } } };
+  const rows = buildLadder({ tiers: TIERS, themeLocks: LOCKS, themeLabels: LABELS, gimmicks: GIMMICKS, features });
+  assert.deepEqual(rows[1].features, [{ id: "reference", name: "Writers' reference palette" }]);
+  assert.deepEqual(rows[0].features, []);
+  assert.match(tierCardHtml(rows[1], { me: { wordCount: 0 } }), /rk-feature-chip(?! unlocked)[^>]*>📖 Writers&#39; reference palette/);
+  assert.match(tierCardHtml(rows[1], { me: { wordCount: 6000 } }), /rk-feature-chip unlocked/);
+  assert.equal(buildLadder({ tiers: TIERS })[1].features.length, 0, "no features payload → none");
+});
+
 test("tier cards: earned/current from the viewer's words, theme thumbs wear lock or check", () => {
   const rows = buildLadder({ tiers: TIERS, themeLocks: LOCKS, themeLabels: LABELS, gimmicks: GIMMICKS });
   const html = ladderHtml(rows, { me: { wordCount: 6000 }, unlockedThemes: ["ink", "rink"] });

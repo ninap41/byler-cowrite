@@ -1773,6 +1773,9 @@
 			// ---- slash palette ----
 			let palette = null
 			async function mountPalette() {
+				// a rank reward: the server refuses a locked caller anyway, but
+				// don't ask for a bank we know we can't have
+				if (!me.features?.includes("reference")) return
 				try {
 					const bundle = await api("/api/reference", null, "GET")
 					// never in HTML mode: there "/" is markup, not a command
