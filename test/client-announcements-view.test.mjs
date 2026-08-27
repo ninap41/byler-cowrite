@@ -1,4 +1,4 @@
-// /announcements builders: the composer (the shared WYSIWYG) and Delete exist
+// /announcements builders: the composer (a markdown textarea + Post to Discord) and Delete exist
 // only in an admin's markup; a post's html is injected as-is (server-sanitized)
 // while the plain fields are escaped.
 import test from "node:test";
@@ -7,7 +7,6 @@ import { installDom } from "./dom.mjs";
 
 installDom();
 const { postHtml, postListHtml, composerHtml } = await import("../public/js/announcements-view.js");
-const { TOOLBAR_CONTROLS } = await import("../public/js/components/rich-toolbar.js");
 
 const post = { id: "abc", title: "Big news", html: "<h2>Big news</h2><p>First <b>para</b></p>", at: 1_700_000_000_000, byName: "nina<admin>" };
 
@@ -17,12 +16,14 @@ test("a normal account's page has no Delete button and no composer markup at all
   assert.ok(!postListHtml([post]).includes("data-ann-delete"), "admin defaults to false");
 });
 
-test("an admin's page carries Delete on every post and the shared toolbar in the composer", () => {
+test("an admin's page carries Delete on every post and a markdown composer with a Post to Discord button", () => {
   const html = postListHtml([post, { ...post, id: "def" }], { admin: true });
   assert.ok(html.includes('data-ann-delete="abc"') && html.includes('data-ann-delete="def"'));
   const c = composerHtml();
-  assert.ok(c.includes('id="annEditor"') && c.includes('contenteditable="true"') && c.includes('id="annPost"'));
-  for (const { id } of TOOLBAR_CONTROLS.filter((t) => t.id)) assert.ok(c.includes(`id="ann${id}"`), id + " is on the composer's toolbar");
+  assert.ok(c.includes('<textarea class="ann-editor" id="annEditor"') && c.includes('id="annPost"'));
+  assert.ok(html.includes('data-ann-discord="abc"'), "each post has Post to Discord");
+  assert.ok(!postListHtml([post], { admin: false }).includes("data-ann-discord"), "and a normal account doesn't");
+  assert.ok(!c.includes("contenteditable") && !c.includes("toolbar"), "no WYSIWYG: markdown only");
 });
 
 test("the post's html is injected as-is (it was sanitized when posted), the head is date + author, escaped", () => {

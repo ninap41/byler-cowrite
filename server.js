@@ -55,7 +55,9 @@ for (const page of PAGES) {
 app.use("/vendor", express.static(join(__dirname, "public", "vendor"), { maxAge: "7d" })); // before the general static, or it would answer first
 app.use(express.static(join(__dirname, "public")));
 app.use("/sounds", express.static(join(__dirname, "sounds"), { maxAge: "7d" }));
-app.use(express.json({ limit: "2mb" })); // the admin prompt editor PUTs the whole library
+// The raw body is kept (req.rawBody) because Discord's interaction signature
+// is computed over the exact bytes sent — a re-serialized JSON wouldn't verify.
+app.use(express.json({ limit: "2mb", verify: (req, _res, buf) => { req.rawBody = buf; } })); // the admin prompt editor PUTs the whole library
 
 const game = createGame(io); // owns sessions, presence, saves/, socket handlers
 registerRoutes(app, game);

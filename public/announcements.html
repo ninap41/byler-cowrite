@@ -35,8 +35,6 @@
 			import { requireAuth } from "/js/auth-guard.js"
 			import { mountChrome, setUserChip } from "/js/chrome.js"
 			import { postListHtml, composerHtml } from "/js/announcements-view.js"
-			import { mountRichToolbar } from "/js/components/rich-toolbar.js"
-			import { cleanHtml } from "/js/components/editor.js"
 
 			mountChrome({ page: "announcements" })
 			const me = await requireAuth()
@@ -53,25 +51,41 @@
 				if (admin && !$("annComposer")) {
 					$("annCompose").innerHTML = composerHtml()
 					$("annCompose").classList.remove("hidden")
-					mountRichToolbar($("annEditor"), $("annToolbar"), { idPrefix: "ann" })
 				}
 			}
 			await load()
 
-			// Same cleaning as a story line: sanitizeRich() on the server is the
-			// real boundary, cleanHtml() just sends the tidy subset it expects.
+			// The markdown goes up as typed; the server renders and sanitizes
+			// it (lib/markdown.js + sanitizeRich) — that is the trust boundary.
 			document.addEventListener("click", async (e) => {
 				if (e.target.id !== "annPost") return
 				const btn = e.target
 				btn.disabled = true
 				try {
-					await api("/api/admin/announcements", { html: cleanHtml($("annEditor"), { doc: true, urls: false }) })
-					$("annEditor").innerHTML = ""
+					await api("/api/admin/announcements", { markdown: $("annEditor").value })
+					$("annEditor").value = ""
 					await load()
 				} catch (err) {
 					alert(err.message || "That didn't post.")
 				}
 				btn.disabled = false
+			})
+			// Post to Discord: the server sends the post's markdown to the admin
+			// channel (POST /api/admin/announcements/:id/discord, bot token + channel
+			// id are Replit secrets — see src/discord.js).
+			document.addEventListener("click", async (e) => {
+				const b = e.target.closest("[data-ann-discord]")
+				if (!b) return
+				b.disabled = true
+				const was = b.textContent
+				try {
+					await api(`/api/admin/announcements/${encodeURIComponent(b.dataset.annDiscord)}/discord`, {})
+					b.textContent = "Posted to Discord ✓"
+				} catch (err) {
+					b.disabled = false
+					b.textContent = "✗ " + (err.message || "Discord didn't take it.")
+					setTimeout(() => { b.textContent = was }, 5000)
+				}
 			})
 			document.addEventListener("click", async (e) => {
 				const b = e.target.closest("[data-ann-delete]")

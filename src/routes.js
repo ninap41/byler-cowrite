@@ -5,6 +5,7 @@ import { readContent } from "./content.js";
 import { storage, describeStorage } from "./storage.js";
 import { buildZip } from "./zip.js";
 import { listPosts, addPost, deletePost } from "./announcements.js";
+import { verifyInteraction, handleInteraction, postAnnouncement, postGame, discordStatus } from "./discord.js";
 import { SITE } from "./site.js";
 import { getPromptData, setPromptData } from "./game.js";
 import { WORD_TIERS, USAGE, USAGE_OPEN, getAchievements, setAchievements, badgeName, awardWordBadges, themeLocks, unlockedThemes, gimmickLocks, unlockedGimmicks } from "../lib/achievements.js";
@@ -1049,7 +1050,7 @@ export function registerRoutes(app, game) {
   });
   app.post("/api/admin/announcements", (req, res) => {
     if (!requireAdmin(req, res)) return;
-    const r = addPost({ html: req.body?.html }, authedUser(req));
+    const r = addPost({ markdown: req.body?.markdown }, authedUser(req));
     if (r.error) return res.status(400).json({ error: r.error });
     // every account hears about it: a system note in each inbox naming the
     // post, so nobody has to check /announcements to learn there is one
@@ -1059,6 +1060,16 @@ export function registerRoutes(app, game) {
     }
     saveStore();
     res.json({ ok: true, post: r.post });
+  });
+  // Share an announcement to the admin Discord channel: the post's MARKDOWN
+  // goes verbatim (Discord renders it). Admin only, like posting itself.
+  app.post("/api/admin/announcements/:id/discord", async (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    const post = listPosts().find((p) => p.id === String(req.params.id));
+    if (!post) return res.status(404).json({ error: "No such post." });
+    const r = await postAnnouncement(post);
+    if (r.error) return res.status(502).json({ error: r.error });
+    res.json({ ok: true });
   });
   app.delete("/api/admin/announcements/:id", (req, res) => {
     if (!requireAdmin(req, res)) return;
@@ -1165,6 +1176,32 @@ export function registerRoutes(app, game) {
   // live toast if they're online). Friends only — same trust line as beta
   // readers; the game code is in the note, and the join is still gated by
   // the host once they arrive.
+  // ---- Discord ----
+  // Slash commands arrive here as signed POSTs from Discord (no gateway, no
+  // library). The signature check IS the auth: an unsigned or missigned call
+  // is a 401, exactly what Discord's endpoint verification probes for.
+  app.post("/discord/interactions", (req, res) => {
+    const ok = verifyInteraction({ signature: req.get("X-Signature-Ed25519"), timestamp: req.get("X-Signature-Timestamp"), rawBody: req.rawBody });
+    if (!ok) return res.status(401).json({ error: "Bad request signature." });
+    const onlineNames = () => { const ids = new Set(onlineSockets.values()); return store.users.filter((x) => ids.has(x.id)).map((x) => x.username); };
+    res.json(handleInteraction(req.body, { onlineNames, siteName: SITE.name }));
+  });
+  app.get("/api/admin/discord", (req, res) => { if (!requireAdmin(req, res)) return; res.json(discordStatus()); });
+  // The host (or an admin) shares a live game to the writing-room channel:
+  // title, code, Join + Spectate buttons. Codes are host-gated, so sharing is safe.
+  app.post("/api/games/:code/discord", async (req, res) => {
+    const u = authedUser(req);
+    if (!u) return res.status(401).json({ error: "Sign in first." });
+    const code = String(req.params.code || "").toUpperCase();
+    const s = sessions.get(code);
+    if (!s || s.phase === "over") return res.status(404).json({ error: "That story isn't running right now." });
+    const hostSeat = [...s.writers.values()].find((w) => w.userId === u.id);
+    if (!(hostSeat && s.writers.get(s.hostId) === hostSeat) && s.hostUserId !== u.id && !isAdmin(u)) return res.status(403).json({ error: "Only the host can share." });
+    const r = await postGame({ code, phase: s.phase, name: s.name, hostName: s.writers.get(s.hostId)?.name ?? s.hostName, players: s.writers.size });
+    if (r.error) return res.status(502).json({ error: r.error });
+    res.json({ ok: true });
+  });
+
   app.post("/api/games/:code/invite", (req, res) => {
     const u = authedUser(req);
     if (!u) return res.status(401).json({ error: "Sign in first." });

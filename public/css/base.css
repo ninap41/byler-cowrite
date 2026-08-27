@@ -9487,10 +9487,11 @@ html.vcx-live[data-theme="vecna"] #vc-pend {
    WYSIWYG composer (admin only) above the list. The post's own first
    heading is its title, so the head row is just the date and Delete. */
 .ann-composer { margin: 0 0 22px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; }
-.ann-editor { min-height: 180px; }
+.ann-editor { min-height: 180px; width: 100%; font-family: var(--font-mono); resize: vertical; }
 .ann-post { padding: 16px 0 18px; border-bottom: 1px solid var(--line); }
 .ann-head { display: flex; align-items: baseline; gap: 12px; margin: 0 0 6px; }
-.ann-head .ann-del { flex: none; margin-left: auto; }
+.ann-head .ann-acts { flex: none; margin-left: auto; display: flex; gap: 6px; }
+.ann-head .ann-acts button { padding: 6px 12px; font-size: 0.85rem; white-space: nowrap; min-width: auto; width: auto; }
 .ann-body { text-align: left; }
 .ann-body :is(h1, h2, h3) { margin: 0 0 0.4em; }
 .ann-body p { margin: 0 0 0.8em; }

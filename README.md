@@ -209,6 +209,10 @@ With a Replit Core subscription, the smallest Reserved VM (~$7/mo of usage)
 is covered by the plan's included monthly credits, and the built-in PostgreSQL
 at this scale (a few MB, a write per committed line) is pennies per month.
 
+## Discord bot
+
+See [docs/DISCORD.md](docs/DISCORD.md) for the Developer Portal steps, the Replit secrets, and the command registration.
+
 ## Editing the prompt bank
 
 Edit `content/prompts.json` — one scenario string per array entry. No code changes.

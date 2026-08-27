@@ -55,6 +55,10 @@
 					</div>
 					<p class="subtle">Game code: click it to copy, share it with your writers</p>
 					<div class="codechip" id="codeDisplay">----</div>
+					<p class="subtle hidden" id="lobbyShare" style="margin: 0 0 10px">
+						<button class="ghost" id="discordLobbyBtn" style="min-width: auto; padding: 8px 14px" title="Post the code with a Join button to the Discord writing room">Share to Discord</button>
+						<span id="lobbyShareNote"></span>
+					</p>
 					<ul class="roster" id="rosterList"></ul>
 					<div id="hostControls" class="hidden">
 						<div id="lobbyRules" style="margin-top: 8px"></div>
@@ -159,6 +163,7 @@
 									<button class="ghost" id="inviteBtn" style="flex: 0 0 auto; min-width: auto">Invite</button>
 								</div>
 								<p class="subtle hidden" id="inviteNote" style="text-align: left; margin: 6px 0 0"></p>
+								<button class="ghost" id="discordShareBtn" style="margin-top: 8px" title="Post the code with Join / Spectate buttons to the Discord writing room">Share to Discord</button>
 							</div>
 							<div id="doomFx" aria-hidden="true">
 								<img class="doom-img" src="/img/demogorgon.gif" alt="" />
@@ -294,6 +299,7 @@
 			import { buildExports, exportDocument } from "/js/export.js"
 			import { mountTagEditor } from "/js/components/tag-chips.js"
 			import { showInviteToast } from "/js/turn-alert.js"
+			import { needsJoinConfirm, joinConfirmHtml } from "/js/join-confirm.js"
 			mountChrome({ page: "game" })
 			// Spectators need no account: ?spectate=CODE watches a story read-only.
 			const spectateCode = (new URLSearchParams(location.search).get("spectate") || "").trim().toUpperCase()
@@ -661,7 +667,8 @@
 				entered = true
 				const qs = new URLSearchParams(location.search)
 				const code = (qs.get("code") || "").trim().toUpperCase()
-				if (code) joinByCode(code)
+				if (code && needsJoinConfirm(qs.get("from"))) confirmJoin(code)
+				else if (code) joinByCode(code)
 				else if (qs.has("new")) createGame()
 				else if (rejoinInfo) socket.emit("rejoin-session", { ...rejoinInfo, auth: getToken() }, rejoinAck)
 				else location.replace("/dashboard")
@@ -671,6 +678,22 @@
 					if (!res?.ok) return gameMsg(res?.error || "Could not start a game.")
 					enterSession(res)
 				})
+			}
+			// A link from Discord shows what the game is and waits for a click:
+			// one tap on a chat button shouldn't seat anyone by surprise.
+			async function confirmJoin(code) {
+				let g = null
+				try {
+					g = (await authApi("/api/live", null, "GET")).games.find((x) => x.code === code) || null
+				} catch {}
+				if (!g) return gameMsg("That story isn't running right now.")
+				$("gameMsg").innerHTML = joinConfirmHtml(g)
+				$("gameMsgCard").classList.remove("hidden")
+				$("joinConfirmBtn").onclick = () => {
+					$("joinConfirmBtn").disabled = true
+					gameMsg("Joining…")
+					joinByCode(code)
+				}
 			}
 			function joinByCode(code) {
 				socket.emit("join-session", { code, auth: getToken() }, (res) => {
@@ -701,6 +724,7 @@
 			function updateHostView() {
 				const host = myId === hostId
 				$("hostControls").classList.toggle("hidden", !host)
+				$("lobbyShare").classList.toggle("hidden", !host)
 				$("waitingNote").classList.toggle("hidden", host)
 				// everyone sees the continue panel; it is driven by whoever the
 				// server would let continue (mirrors mayContinue in src/game.js):
@@ -1202,6 +1226,21 @@
 				note.classList.remove("hidden")
 				setTimeout(() => note.classList.add("hidden"), 5000)
 			}
+			// Share to Discord: the lobby has its own button under the code (that
+			// is when you gather writers); the host drawer's does the same later.
+			const shareToDiscord = (note) => async () => {
+				if (!myCode) return
+				try {
+					await authApi("/api/games/" + encodeURIComponent(myCode) + "/discord", {})
+					note.textContent = "🎲 Shared to Discord with a Join button."
+				} catch (e) {
+					note.textContent = "✗ " + e.message
+				}
+				note.classList.remove("hidden")
+				setTimeout(() => { note.classList.add("hidden"); note.textContent = "" }, 5000)
+			}
+			$("discordShareBtn").onclick = shareToDiscord($("inviteNote"))
+			$("discordLobbyBtn").onclick = shareToDiscord($("lobbyShareNote"))
 			const friendsOnline = (name) => /· online$/.test($("inviteFriend").selectedOptions[0]?.textContent || "")
 
 $("pauseBtn").onclick = () =>

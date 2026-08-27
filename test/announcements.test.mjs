@@ -27,15 +27,16 @@ test("reading needs an account; the payload says whether the reader is an admin"
 });
 
 test("an admin posts; a normal account can't; everyone then reads it, newest first", async () => {
-  const denied = await ctx.api("/api/admin/announcements", { html: "<h1>Nope</h1>" }, normie.token);
+  const denied = await ctx.api("/api/admin/announcements", { markdown: "# Nope" }, normie.token);
   assert.equal(denied.status, 403);
-  const first = await ctx.api("/api/admin/announcements", { html: '<h2>  Welcome <i>all</i> </h2><p>Hello <b>world</b></p><img src=x onerror=1><script>x()</script>' }, admin.token);
+  const first = await ctx.api("/api/admin/announcements", { markdown: '## Welcome *all*\n\nHello **world**\n<img src=x onerror=1><script>x()</script>' }, admin.token);
   assert.equal(first.status, 200);
   assert.equal(first.data.post.title, "Welcome all", "the first heading, as text, is the title");
-  assert.ok(first.data.post.html.includes("<h2>") && first.data.post.html.includes("<b>world</b>"), "formatting kept");
-  assert.ok(!first.data.post.html.includes("<img") && !first.data.post.html.includes("<script>"), "sanitizeRich ran");
+  assert.ok(first.data.post.html.includes("<h2>") && first.data.post.html.includes("<b>world</b>"), "markdown rendered");
+  assert.ok(first.data.post.markdown.startsWith("## Welcome"), "the markdown source is kept for the Discord bot");
+  assert.ok(!first.data.post.html.includes("<img") && !first.data.post.html.includes("<script>"), "raw html in the markdown is inert");
   assert.equal(first.data.post.byName, "ninaadmin");
-  const second = await ctx.api("/api/admin/announcements", { html: "<p>Second</p>" }, admin.token);
+  const second = await ctx.api("/api/admin/announcements", { markdown: "Second" }, admin.token);
   assert.equal(second.status, 200);
   const r = await ctx.api("/api/announcements", undefined, normie.token);
   assert.deepEqual(r.data.posts.map((p) => p.title), ["Second", "Welcome all"]);
@@ -51,11 +52,11 @@ test("an admin posts; a normal account can't; everyone then reads it, newest fir
 });
 
 test("a post needs words; without a heading the opening words become the title", async () => {
-  const empty = await ctx.api("/api/admin/announcements", { html: "<p> </p><br><h2></h2>" }, admin.token);
+  const empty = await ctx.api("/api/admin/announcements", { markdown: "  \n\n" }, admin.token);
   assert.equal(empty.status, 400, "markup with no text is empty");
-  const r = await ctx.api("/api/admin/announcements", { html: "<p>No heading here,</p><p>just a paragraph or two.</p>" }, admin.token);
+  const r = await ctx.api("/api/admin/announcements", { markdown: "No heading here,\n\njust a paragraph or two." }, admin.token);
   assert.equal(r.data.post.title, "No heading here, just a paragraph or two.");
-  const long = await ctx.api("/api/admin/announcements", { html: "<p>" + "word ".repeat(60) + "</p>" }, admin.token);
+  const long = await ctx.api("/api/admin/announcements", { markdown: "word ".repeat(60) }, admin.token);
   assert.ok(long.data.post.title.length <= 120 && long.data.post.title.endsWith("…"), "cut on a word with an ellipsis");
   await ctx.api(`/api/admin/announcements/${r.data.post.id}`, null, admin.token, "DELETE");
   await ctx.api(`/api/admin/announcements/${long.data.post.id}`, null, admin.token, "DELETE");

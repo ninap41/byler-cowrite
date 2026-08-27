@@ -1,17 +1,20 @@
 // Announcements — the admin's blog on /announcements. One JSON document
 // (announcements/announcements in src/storage.js: data/announcements.json
-// locally, a Postgres row on Replit), newest post first. A post is RICH TEXT
-// written in the shared WYSIWYG toolbar and sanitized here with
-// sanitizeRich() — the story-line subset, no links or images, which is
-// exactly what that toolbar offers — and its title is derived, not typed:
+// locally, a Postgres row on Replit), newest post first. A post is MARKDOWN
+// (`markdown`, the source of truth — the same text a Discord bot will post to
+// the admin channel one day) rendered here by lib/markdown.js into the
+// story-line subset and then sanitized with sanitizeRich() (`html`, what the
+// page injects) — and its title is derived, not typed:
 // the first heading in the post, else its opening words. Only admins add or
 // delete (enforced in routes.js next to the other admin routes); every
 // signed-in account can read.
 import { randomUUID } from "crypto";
 import { storage, getJson } from "./storage.js";
 import { sanitizeRich, stripTags } from "./sanitize.js";
+import { renderMarkdown } from "../lib/markdown.js";
 
 export const TITLE_MAX = 120;
+export const MD_MAX = 20_000;
 export const HTML_MAX = 40_000;
 export const POSTS_MAX = 500;
 
@@ -38,10 +41,11 @@ export function titleOf(html) {
 }
 
 // Returns {post} or {error}. `by` is the admin's public identity.
-export function addPost({ html }, by) {
-  const clean = sanitizeRich(String(html ?? "").slice(0, HTML_MAX));
+export function addPost({ markdown }, by) {
+  const md = String(markdown ?? "").slice(0, MD_MAX).trim();
+  const clean = sanitizeRich(renderMarkdown(md).slice(0, HTML_MAX));
   if (!squash(clean)) return { error: "A post needs some words." };
-  const post = { id: randomUUID(), title: titleOf(clean), html: clean, at: Date.now(), byId: by?.id ?? null, byName: by?.username ?? "" };
+  const post = { id: randomUUID(), title: titleOf(clean), markdown: md, html: clean, at: Date.now(), byId: by?.id ?? null, byName: by?.username ?? "" };
   posts = [post, ...posts].slice(0, POSTS_MAX);
   save();
   return { post };
