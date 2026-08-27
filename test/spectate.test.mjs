@@ -42,7 +42,7 @@ test("spectators watch live but cannot contribute", async () => {
   const chats = [];
   spec.on("game-state", (st) => (specState.current = st));
   spec.on("chat", (m) => chats.push(m));
-  const historyP = new Promise((r) => spec.on("spec-chat-history", r));
+  const historyP = new Promise((r) => spec.on("chat-history", r));
   const ok = await ctx.emit(spec, "spectate-session", { code });
   assert.equal(ok.ok, true);
   await historyP;
@@ -55,9 +55,10 @@ test("spectators watch live but cannot contribute", async () => {
   assert.equal((await ctx.emit(spec, "vote", { prompt: "x" })).ok, false);
   assert.equal((await ctx.emit(spec, "pause-game", {})).ok, false);
   assert.equal((await ctx.emit(spec, "end-game", {})).ok ?? false, false);
-  spec.emit("chat", { text: "spectator noise" });
+  spec.emit("chat", { text: "spectator noise", name: "Demodog #1" });
   await ctx.wait(150);
-  assert.ok(!chats.some((m) => m.text === "spectator noise"), "spectator chat goes nowhere");
+  const noise = chats.find((m) => m.text === "spectator noise");
+  assert.ok(noise && noise.spec === true && noise.name === "Demodog #1", "a spectator chats under their own name, flagged");
 
   // …but real play streams to them
   const cur = state.current.currentId === A.id ? A : B;
@@ -68,62 +69,44 @@ test("spectators watch live but cannot contribute", async () => {
   spec.disconnect();
 });
 
-test("two chat channels: writers chat is private; spectator chat is shared and ephemeral", async () => {
+test("one chat for the whole table: writers and spectators share it, spectator lines are flagged, and the history replays to a late watcher", async () => {
   const { A, B, code } = await startedGame(ctx);
   const spec = await ctx.conn(); // no auth
-  const specWriterChats = [], specSpecChats = [], aSpecChats = [], aChats = [];
-  spec.on("chat", (m) => specWriterChats.push(m));
-  spec.on("spec-chat", (m) => specSpecChats.push(m));
+  const specChats = [], aChats = [];
+  spec.on("chat", (m) => specChats.push(m));
   A.on("chat", (m) => aChats.push(m));
-  A.on("spec-chat", (m) => aSpecChats.push(m));
-  const hist = new Promise((r) => spec.on("spec-chat-history", r));
+  const hist = new Promise((r) => spec.on("chat-history", r));
   await ctx.emit(spec, "spectate-session", { code });
   await hist;
 
-  // writers chat never reaches the spectator
-  B.emit("chat", { text: "writer secret" });
+  // a writer's line reaches the spectator too
+  B.emit("chat", { text: "writer line" });
   await ctx.wait(150);
-  assert.ok(aChats.some((m) => m.text === "writer secret"), "writers still see writers chat");
-  assert.equal(specWriterChats.length, 0, "spectator receives NO writers chat");
+  assert.ok(aChats.some((m) => m.text === "writer line"), "writers see it");
+  const seen = specChats.find((m) => m.text === "writer line");
+  assert.ok(seen && !seen.spec && ["willthewise", "mikewheeler"].includes(seen.name), "so does the spectator, with the seat identity");
 
   // the spectator talks under their client-minted Stranger Things name
-  spec.emit("spec-chat", { text: "go byler go", name: "Demodog #42" });
+  spec.emit("chat", { text: "go byler go", name: "Demodog #42" });
   await ctx.wait(150);
-  assert.equal(specSpecChats.length, 1, "spectator sees their own message");
-  assert.equal(specSpecChats[0].name, "Demodog #42");
-  assert.ok(specSpecChats[0].color, "palette color assigned server-side");
-  assert.ok(aSpecChats.some((m) => m.text === "go byler go" && m.spec), "writers see spectator chat");
-
-  // a writer answers in the spectator channel under their real name, flagged
-  B.emit("spec-chat", { text: "thanks demodog" });
-  await ctx.wait(150);
-  const reply = specSpecChats.find((m) => m.text === "thanks demodog");
-  assert.ok(reply, "writer reply reaches the spectator");
-  assert.equal(reply.writer, true);
-  assert.ok(["willthewise", "mikewheeler"].includes(reply.name), "writer identity comes from the seat");
+  const mine = specChats.find((m) => m.text === "go byler go");
+  assert.equal(mine.name, "Demodog #42");
+  assert.equal(mine.spec, true);
+  assert.ok(mine.color, "palette color assigned server-side");
+  assert.ok(aChats.some((m) => m.text === "go byler go" && m.spec), "writers see spectator lines, flagged");
 
   // spectator names are stripped of markup server-side
-  spec.emit("spec-chat", { text: "hi", name: "<script>x</script>Vecna #7" });
+  spec.emit("chat", { text: "hi", name: "<script>x</script>Vecna #7" });
   await ctx.wait(150);
-  assert.equal(specSpecChats.find((m) => m.text === "hi").name, "xVecna #7");
+  assert.equal(specChats.find((m) => m.text === "hi").name, "xVecna #7");
 
-  // ephemeral: spectator chat never lands in the save snapshot
-  await ctx.emit(A, "pause-game", {}); // pause forces a snapshot write
-  await ctx.wait(150);
-  const { readFileSync } = await import("node:fs");
-  const { join } = await import("node:path");
-  const snap = readFileSync(join(ctx.saveDir, code + ".json"), "utf-8");
-  assert.ok(snap.includes("writer secret"), "writers chat is persisted");
-  assert.ok(!snap.includes("go byler go") && !snap.includes("specChat"), "spectator chat is never persisted");
-
-  // a late spectator still gets the in-memory spec history, not writers chat
+  // one history: a late spectator replays writer AND spectator lines
   const spec2 = await ctx.conn();
   const hist2 = await new Promise((r) => {
-    spec2.on("spec-chat-history", r);
+    spec2.on("chat-history", r);
     spec2.emit("spectate-session", { code });
   });
-  assert.ok(hist2.some((m) => m.text === "go byler go"), "in-memory spec history replays");
-  assert.ok(!hist2.some((m) => m.text === "writer secret"), "no writers chat in it");
+  assert.ok(hist2.some((m) => m.text === "go byler go") && hist2.some((m) => m.text === "writer line"));
   spec.disconnect();
   spec2.disconnect();
 });

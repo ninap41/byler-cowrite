@@ -259,12 +259,7 @@
 				💬 Chat <span class="chat-unread" id="chatUnread"></span><i class="chev">&#9662;</i>
 			</button>
 			<div class="chat-dock-body">
-				<div class="chat-tabs">
-					<button type="button" id="chatTabW" class="active">✍ Writers</button>
-					<button type="button" id="chatTabS">👁 Spectators</button>
-				</div>
 				<div class="chat-log" id="chatLog"></div>
-				<div class="chat-log hidden" id="specLog"></div>
 				<div class="chat-row">
 					<input id="chatInput" placeholder="Say something…" maxlength="500" />
 					<button class="ghost" id="chatSend">Send</button>
@@ -650,9 +645,7 @@
 						gameMsg("")
 						myId = "spectator" // never matches a writer id -> no edit ✎, never "your turn"
 						show("chatCard")
-						// spectators chat too — but only in the spectator channel
-						$("chatTabW").classList.add("hidden")
-						setChatTab("s")
+						// spectators chat too, under their client-minted name
 						$("chatInput").placeholder = "Chat as " + getSpectatorName() + "…"
 						$("whoTurn").textContent = "Spectating…"
 						if (res.phase === "waiting") onlyShow("waiting")
@@ -1545,58 +1538,35 @@ $("pauseBtn").onclick = () =>
 				if (t) window.open("/profile?user=" + encodeURIComponent(t.dataset.user), "_blank", "noopener")
 			})
 
-			// ---- Chat: two channels in one dock ----
-			// "Writers" is the seated-players chat (spectators never receive it);
-			// "Spectators" is open to everyone and ephemeral server-side.
-			let chatTab = "w"
-			function setChatTab(t) {
-				chatTab = t
-				$("chatTabW").classList.toggle("active", t === "w")
-				$("chatTabS").classList.toggle("active", t === "s")
-				$("chatLog").classList.toggle("hidden", t !== "w")
-				$("specLog").classList.toggle("hidden", t !== "s")
-				;(t === "w" ? $("chatTabW") : $("chatTabS")).classList.remove("unseen")
-				const log = t === "w" ? $("chatLog") : $("specLog")
-				log.scrollTop = log.scrollHeight
-			}
-			$("chatTabW").onclick = () => setChatTab("w")
-			$("chatTabS").onclick = () => setChatTab("s")
-			function pushMsg(logId, tab, m, silent) {
+			// ---- Chat: one channel for the whole table ----
+			// Writers speak from their seat, spectators under their own name
+			// (marked 👁); everyone sees every line.
+			function addChat(m, silent) {
 				// spectators have no seat id — their own echo matches by socket id
 				// a system line that asks to ring (the dice gimmick's natural 20)
 				// plays under the gimmick sound pref, not the chat one
 				if (!silent && shouldChimeChat(m, spectateCode ? socket.id : myId)) playSound("incomingmessage", m.sys ? "gimmick" : undefined)
-				const log = $(logId)
+				const log = $("chatLog")
 				const p = document.createElement("p")
-				p.className = (m.sys ? "msg sys" : "msg") + (m.spec && !m.writer ? " spec-msg" : "")
-				p.innerHTML = (m.spec && !m.writer ? "👁 " : "") + chatMessageHtml(m)
+				p.className = (m.sys ? "msg sys" : "msg") + (m.spec ? " spec-msg" : "")
+				p.innerHTML = (m.spec ? "👁 " : "") + chatMessageHtml(m)
 				log.appendChild(p)
 				refreshStatusDots()
 				log.scrollTop = log.scrollHeight
 				if (!silent && $("chatCard").classList.contains("collapsed")) {
 					chatUnread++
 					$("chatUnread").textContent = chatUnread > 99 ? "99+" : chatUnread
-				} else if (!silent && chatTab !== tab) {
-					;(tab === "w" ? $("chatTabW") : $("chatTabS")).classList.add("unseen")
 				}
 			}
-			const addChat = (m, silent) => pushMsg("chatLog", "w", m, silent)
-			const addSpec = (m, silent) => pushMsg("specLog", "s", m, silent)
 			socket.on("chat-history", (msgs) => {
 				$("chatLog").innerHTML = ""
 				;(msgs || []).forEach((m) => addChat(m, true)) // history replay is silent
 			})
 			socket.on("chat", (m) => addChat(m))
-			socket.on("spec-chat-history", (msgs) => {
-				$("specLog").innerHTML = ""
-				;(msgs || []).forEach((m) => addSpec(m, true))
-			})
-			socket.on("spec-chat", (m) => addSpec(m))
 			function sendChat() {
 				const v = $("chatInput").value.trim()
 				if (!v) return
-				if (chatTab === "s") socket.emit("spec-chat", { text: v, name: spectateCode ? getSpectatorName() : undefined })
-				else socket.emit("chat", { text: v })
+				socket.emit("chat", { text: v, name: spectateCode ? getSpectatorName() : undefined })
 				playSound("outgoingmessage")
 				$("chatInput").value = ""
 			}

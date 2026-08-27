@@ -223,17 +223,14 @@ export function createGame(io) {
 
   const connectedCount = (s) => [...s.writers.values()].filter((w) => w.connected).length;
 
-  // Two chat channels. Writers chat is writers-only: seated sockets join the
-  // ":writers" room, spectators never do, so nothing writer-said reaches them.
-  // Spectator chat broadcasts to the whole session room (writers see it too)
-  // and is deliberately ephemeral: in-memory ring only, never snapshotted.
-  const writersRoom = (s) => s.code + ":writers";
+  // ONE chat for the whole table: writers speak from their seat, spectators
+  // under their client-minted name (flagged `spec`), and every line — system
+  // calls included — goes to the session room, so a watcher follows the
+  // whole conversation. One history, snapshotted with the game.
   function joinAsWriter(sock, s) {
     touch(s);
     sock.join(s.code);
-    sock.join(writersRoom(s));
     sock.emit("chat-history", s.chat);
-    sock.emit("spec-chat-history", s.specChat ?? []);
     if (s.dice?.size) sock.emit("gimmick-dice", diceList(s));
     if (s.ships?.size) sock.emit("gimmick-ships", shipsList(s));
     if (s.cups?.size) sock.emit("gimmick-cups", cupsList(s));
@@ -241,7 +238,6 @@ export function createGame(io) {
     if (s.paint?.size) sock.emit("gimmick-paints", paintsList(s));
     if (s.guns?.size) sock.emit("gimmick-guns", gunsList(s));
   }
-  const SPEC_CHAT_LIMIT = 50;
   // spectator name colors: stable per name, never attacker-controlled (PALETTE only)
   const specColor = (name) => PALETTE[[...name].reduce((h, c) => h + c.charCodeAt(0), 0) % PALETTE.length];
 
@@ -255,7 +251,7 @@ export function createGame(io) {
     };
     s.chat.push(msg);
     if (s.chat.length > CHAT_LIMIT) s.chat.shift();
-    io.to(writersRoom(s)).emit("chat", msg);
+    io.to(s.code).emit("chat", msg);
   }
 
   // ---- Gimmicks (lib/gimmicks.js) ----
@@ -1423,25 +1419,28 @@ export function createGame(io) {
       ack?.({ ok: true });
     });
 
-    socket.on("chat", ({ text }) => {
-      const s = mySession();
-      if (!s || !text || !text.trim()) return;
+    socket.on("chat", ({ text, name }) => {
+      const code = socket.data.joinedCode || socket.data.spectating;
+      const s = sessions.get(code);
+      if (!s || !text || !String(text).trim()) return;
       touch(s);
-      const w = s.writers.get(socket.id);
-      const msg = {
-        id: socket.id, // lets clients tell their own echo from others' messages (sounds)
-        name: w?.name ?? "?",
-        color: w?.color ?? PALETTE[0],
-        badge: w?.badge ?? null,
-        avatar: w?.avatar ?? "",
-        avatarFit: w?.avatarFit ?? "cover",
-        host: socket.id === s.hostId,
-        text: String(text).slice(0, 500).trim(),
-        ts: Date.now(),
-      };
+      const w = socket.data.joinedCode ? s.writers.get(socket.id) : null;
+      const body = String(text).slice(0, 500).trim();
+      const msg = w
+        ? {
+            id: socket.id, // lets clients tell their own echo from others' messages (sounds)
+            name: w.name, color: w.color, badge: w.badge ?? null,
+            avatar: w.avatar ?? "", avatarFit: w.avatarFit ?? "cover",
+            host: socket.id === s.hostId, text: body, ts: Date.now(),
+          }
+        : (() => {
+            // a spectator: their own name, stripped, in a colour hashed from it
+            const specName = String(name || "").replace(/<[^>]*>/g, "").slice(0, 28).trim() || "Spectator";
+            return { id: socket.id, name: specName, color: specColor(specName), spec: true, text: body, ts: Date.now() };
+          })();
       s.chat.push(msg);
       if (s.chat.length > CHAT_LIMIT) s.chat.shift();
-      io.to(writersRoom(s)).emit("chat", msg);
+      io.to(s.code).emit("chat", msg);
     });
 
     // Poking the editor / Add line while the game is paused earns a special
@@ -1466,26 +1465,6 @@ export function createGame(io) {
     // session room. Spectator names are client-minted (Stranger Things list +
     // number, localStorage) so they're stripped/limited here; colors come from
     // the palette by name hash. Never persisted — in-memory ring only.
-    socket.on("spec-chat", ({ text, name }) => {
-      const code = socket.data.joinedCode || socket.data.spectating;
-      const s = sessions.get(code);
-      if (!s || !text || !String(text).trim()) return;
-      const w = socket.data.joinedCode ? s.writers.get(socket.id) : null;
-      const body = String(text).slice(0, 500).trim();
-      const msg = w
-        ? {
-            id: socket.id, name: w.name, color: w.color, badge: w.badge ?? null,
-            avatar: w.avatar ?? "", avatarFit: w.avatarFit ?? "cover",
-            host: socket.id === s.hostId, writer: true, spec: true, text: body, ts: Date.now(),
-          }
-        : (() => {
-            const specName = String(name || "").replace(/<[^>]*>/g, "").slice(0, 28).trim() || "Spectator";
-            return { id: socket.id, name: specName, color: specColor(specName), spec: true, text: body, ts: Date.now() };
-          })();
-      (s.specChat ??= []).push(msg);
-      if (s.specChat.length > SPEC_CHAT_LIMIT) s.specChat.shift();
-      io.to(s.code).emit("spec-chat", msg);
-    });
 
     // Watch a running story WITHOUT a seat (no account needed). Spectators
     // join the broadcast room but hold no writer entry, so every game action
@@ -1894,9 +1873,9 @@ export function createGame(io) {
       const s = sessions.get(code) ?? loadSession(code);
       if (!s) return ack?.({ ok: false, error: "Game not found." });
       socket.data.spectating = code;
-      socket.join(code); // NOT the ":writers" room — writers chat never reaches spectators
+      socket.join(code);
       ack?.({ ok: true, code, phase: s.phase, name: s.name || "" });
-      socket.emit("spec-chat-history", s.specChat ?? []);
+      socket.emit("chat-history", s.chat); // the one table chat, for watchers too
       if (s.dice?.size) socket.emit("gimmick-dice", diceList(s));
       if (s.ships?.size) socket.emit("gimmick-ships", shipsList(s));
       if (s.cups?.size) socket.emit("gimmick-cups", cupsList(s));
