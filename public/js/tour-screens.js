@@ -5,8 +5,8 @@
 // PALETTE entries, the same ones a real roster would show.
 
 const K = "#7dd3fc" // kip
-const R = "#ff9ecb" // rosewood
-const Q = "#a78bfa" // quarry
+const R = "#ff9ecb" // rose
+const Q = "#a78bfa" // charlie
 
 const dot = (on) => `<span class="ts-dot${on ? " on" : ""}"></span>`
 const who = (name, color, on = true) => `<span class="ts-who">${dot(on)}<span class="ts-name" style="color:${color}">${name}</span></span>`
@@ -17,19 +17,19 @@ const tb = (label, cls = "") => `<span class="ts-tb ${cls}">${label}</span>`
 export function screenGame() {
 	return `<div class="ts ts-game">
 	<div class="ts-sess">
-		<span class="ts-title">The Snowball, Revisited</span><span class="ts-mono ts-muted">host: kip</span>
+		<span class="ts-title">The Snowball Dance</span><span class="ts-mono ts-muted">host: kip</span>
 		<span class="ts-sess-acts">${tb("M6DH ⎘", "ts-code")}${btn("⏸ Pause", "ghost")}${btn("End game &amp; reveal", "primary")}</span>
 	</div>
 	<div class="ts-game-cols">
 		<div class="ts-main">
-			<div class="ts-prompt">Snow is falling on Hawkins Middle and Mike has been standing by the punch bowl for eleven minutes.</div>
+			<div class="ts-prompt">Rain is falling on Hawkins Middle School as Mike looks around the room.</div>
 			<div class="ts-story">
-				<div class="ts-line">${who("kip", K)}<p>The gym smelled like pine cleaner and someone's dad's cologne, and Will was counting the streamers to keep from counting the minutes.</p></div>
-				<div class="ts-line">${who("rosewood", R)}<span class="ts-pill">edited</span><p>Mike came over with two cups he did not want and said, <em>"You're going to wear a hole in that floor,"</em> which was rich, coming from him.</p></div>
-				<div class="ts-line">${who("quarry", Q, false)}<p>"I'm not wearing a hole in anything," Will said. "I'm waiting."</p></div>
+				<div class="ts-line">${who("kip", K)}<p>The gym smelled like pine cleaner, perfume, and cologne, and Lucas was counting the streamers sipping his punch.</p></div>
+				<div class="ts-line">${who("rose", R)}<span class="ts-pill">edited</span><p>Mike came over with two cups he did not want and said, <em>"Stop fiddling. You're making me nervous."</em> which was rich, coming from him.</p></div>
+				<div class="ts-line">${who("charlie", Q, false)}<p>"I'm not," Lucas said. "I'm waiting."</p></div>
 			</div>
-			<div class="ts-live"><span class="ts-name" style="color:${R}">rosewood</span> "Waiting for <b>what</b>," Mike said, and the song changed${caret()}</div>
-			<div class="ts-turn"><b>rosewood is writing…</b><span class="ts-clock">0:14</span></div>
+			<div class="ts-live"><span class="ts-name" style="color:${R}">rose</span> "Waiting for <b>what</b>," Mike said, and the song changed${caret()}</div>
+			<div class="ts-turn"><b>rose is writing…</b><span class="ts-clock">0:14</span></div>
 			<div class="ts-toolbar">${tb("B", "b")}${tb("I", "i")}${tb("U", "u")}${tb("p ▾", "ts-muted")}${tb("HR")}</div>
 			<div class="ts-editor ts-muted">Add the next line…</div>
 			<div class="ts-mono ts-muted ts-hint">Ctrl/⌘+Enter to submit · auto-submits when the timer ends</div>
@@ -38,11 +38,11 @@ export function screenGame() {
 		<aside class="ts-side">
 			<h4 class="ts-h">Writers &amp; spectators</h4>
 			<div class="ts-seat"><span class="ts-av" style="background:${K}">K</span>kip<span class="ts-mono ts-muted ts-r">host</span></div>
-			<div class="ts-seat is-writing"><span class="ts-av" style="background:${R}">R</span>rosewood<span class="ts-r">✒</span></div>
-			<div class="ts-seat"><span class="ts-av" style="background:${Q}">Q</span>quarry</div>
+			<div class="ts-seat is-writing"><span class="ts-av" style="background:${R}">R</span>rose<span class="ts-r">✒</span></div>
+			<div class="ts-seat"><span class="ts-av" style="background:${Q}">C</span>charlie</div>
 			<p class="ts-mono ts-muted ts-hint">+ 4 watching</p>
 			<h4 class="ts-h">Turn order</h4>
-			<div class="ts-mono ts-muted ts-order"><div>1 · kip</div><div class="ts-acc2">2 · rosewood ←</div><div>3 · quarry</div></div>
+			<div class="ts-mono ts-muted ts-order"><div>1 · kip</div><div class="ts-acc2">2 · rose ←</div><div>3 · charlie</div></div>
 		</aside>
 	</div>
 	<div class="ts-chatdock">💬 Chat <span class="ts-badge">3</span><i class="ts-r ts-muted">▾</i></div>
@@ -52,21 +52,21 @@ export function screenGame() {
 export function screenLive() {
 	return `<div class="ts ts-livecard">
 	<div class="ts-toolbar">${tb("B", "b on")}${tb("I", "i")}${tb("U", "u")}${tb("h2 ▾", "ts-muted")}${tb("⇤ ↔ ⇥", "ts-muted")}${tb("HR")}</div>
-	<div class="ts-live big">${who("rosewood", R)} Mike said it like it was <b>nothing</b>, like it was <i>weather</i> — and Will heard the whole sentence anyway${caret()}</div>
+	<div class="ts-live big">${who("rose", R)} Mike said it <b>suspiciously</b>${caret()}</div>
 	<div class="ts-turn"><span class="ts-mono ts-muted">everyone at the table sees this as it is typed</span><span class="ts-clock">0:09</span></div>
-	<div class="ts-notice">🔔 <span>Time's up: the line was committed as typed, and play advanced to <b>quarry</b>.</span></div>
+	<div class="ts-notice">🔔 <span>Time's up: the line was committed as typed, and play advanced to <b>charlie</b>.</span></div>
 </div>`
 }
 
 const commentCards = (full) => `
 	<p class="ts-quote">"It's good," he said finally…</p>
 	<div class="ts-cmt is-active">
-		<div class="ts-cmt-head">${dot(true)}<b style="color:${R}">rosewood</b><span class="ts-r ts-muted">2h</span></div>
-		<p>Beat before "Is it about us?" — let him hesitate.</p>
+		<div class="ts-cmt-head">${dot(true)}<b style="color:${R}">rose</b><span class="ts-r ts-muted">2h</span></div>
+		<p>Beat before "Is it about us?", build some tension dude</p>
 		<div class="ts-cmt-acts ts-acc2"><span>Reply</span><span>Resolve</span></div>
 	</div>
 	<div class="ts-cmt">
-		<div class="ts-cmt-head"><b style="color:${Q}">quarry</b><span class="ts-r ts-muted">yesterday</span></div>
+		<div class="ts-cmt-head"><b style="color:${Q}">charlie</b><span class="ts-r ts-muted">yesterday</span></div>
 		<p class="ts-mono ts-muted">${full ? "Suggestion" : "suggestion · author decides"}</p>
 		<div class="ts-diff"><div class="del">taking it seriously</div><div class="add">→ taking it personally</div></div>
 		<div class="ts-cmt-acts"><span class="ts-good">Accept</span><span class="ts-muted">Reject</span>${full ? '<span class="ts-r ts-bad">Delete</span>' : ""}</div>
@@ -82,7 +82,7 @@ export function screenWrite() {
 	<header class="ts-write-head">
 		<span class="ts-mono ts-muted">← All writes</span>
 		<div class="ts-write-title">
-			<div class="ts-title">Nine Winters, Chapter Four</div>
+			<div class="ts-title">You Took My Turn, I Was Typing</div>
 			<div class="ts-meta ts-mono ts-muted"><span class="ts-good">Saved</span><span>·</span><span>4,182 words</span><span>·</span><span class="ts-chip">🔒 Private</span><span class="ts-chip">👥 Readers · 2</span><span class="ts-chip">⏱ Sprint</span><span class="ts-chip on">💬 Comment</span><span class="ts-avs"><i style="background:${R}"></i><i style="background:${Q}"></i></span></div>
 		</div>
 		${btn("Save", "primary")}
@@ -90,11 +90,11 @@ export function screenWrite() {
 	<div class="ts-toolbar dim">${tb("↺")}${tb("↻")}${tb("p ▾")}${tb("B", "b")}${tb("I", "i")}${tb("U", "u")}${tb("− 16 +")}${tb("🔗")}${tb("🖼")}<span class="ts-r ts-modes"><span class="ts-chip">Rich text</span><span class="ts-muted">HTML</span><span class="ts-muted">Comment</span></span></div>
 	<div class="ts-write-cols">
 		<div class="ts-doc">
-			<h2>Four. The garage, December</h2>
-			<p>The heater in the garage had two settings and both of them were off, so they wrote in their coats, which Will thought was probably good for the atmosphere.</p>
-			<p>Mike read the page twice before he said anything. <span class="ts-mark">He had a way of going quiet that meant he was taking it seriously, which was worse than the other kind of quiet.</span></p>
+			<h2>The garage, December</h2>
+			<p>The heater in the garage stayed off and futile in the winter air. The kids were in their coats, body's aching for more warmth.</p>
+			<p>Mike read the page again. He always went quiet in moments like this. <span class="ts-mark">Will knew that meant he was taking it seriously.</span></p>
 			<p><span class="ts-mark hot">"It's good," he said finally. "It's really good. Is it about us?"</span></p>
-			<p>Will took the page back and did not answer, and outside the snow kept doing what snow does.</p>
+			<p>Will took the page back and did not answer, and outside the snow kept falling slowly onto the snow-weighted roofs and buried cars outside.</p>
 		</div>
 		<aside class="ts-cmts">
 			<div class="ts-cmts-head"><h3>💬 Comments</h3><span class="ts-r ts-mono ts-muted">2 open</span></div>
@@ -107,10 +107,10 @@ export function screenWrite() {
 export function screenComment() {
 	return `<div class="ts ts-comment">
 	<div>
-		<div class="ts-mono ts-muted ts-modebar"><span class="ts-chip on">💬 Comment mode</span><span>beta reader · read and comment, never edit</span></div>
+		<div class="ts-mono ts-muted ts-modebar"><span class="ts-chip on">💬 Comment mode</span><span>beta reader · read and comment.</span></div>
 		<div class="ts-doc boxed">
 			<p>The heater in the garage had two settings and both of them were off, so they wrote in their coats.</p>
-			<p>Mike read the page twice before he said anything. <span class="ts-mark">He had a way of going quiet that meant he was taking it seriously.</span></p>
+			<p>Mike read the page again. He always went quiet in moments like this. <span class="ts-mark">Will knew that meant he was taking it seriously.</span></p>
 			<p><span class="ts-mark hot">"It's good," he said finally. "It's really good. Is it about us?"</span></p>
 		</div>
 	</div>
@@ -124,7 +124,7 @@ const rung = (label, words, pct, state) =>
 export function screenRanks() {
 	return `<div class="ts ts-ranks">
 	<h3 class="ts-h">The word ladder</h3>
-	<p class="ts-muted">Every committed line counts. Fourteen of twenty-six earned.</p>
+	<p class="ts-muted">Every committed line matters. Fourteen of twenty-six earned.</p>
 	${rung("🪄 Practice", "10,000", 100, "earned")}
 	${rung("🧙 Sorcerer", "20,000", 100, "earned")}
 	${rung("🧭 Artist", "50,000", 100, "current")}
@@ -132,15 +132,15 @@ export function screenRanks() {
 	${rung("🌀 Crazy Together", "150,000", 35, "next")}
 	<h3 class="ts-h ts-rule">Collected badges</h3>
 	<div class="ts-badges"><span class="ts-chip">🔫 There. Out Loud.</span><span class="ts-chip">🐶 Puppy Mike</span><span class="ts-chip">🫶 You have explored</span><span class="ts-chip">⚡ Innate Powers</span><span class="ts-chip">☁️ I miss clouds I miss you</span><span class="ts-chip">🪖 Like the soldiers</span><span class="ts-chip secret">🔒 secret badge</span><span class="ts-chip secret">🔒 secret badge</span></div>
-	<div class="ts-notice">🏆 <span>Unlocked mid-line: <b>quarry</b> earned <b>🪄 Practice</b> — announced to the whole table.</span></div>
+	<div class="ts-notice">🏆 <span>Unlocked mid-line: <b>charlie</b> earned <b>🪄 Practice</b>, announced to the lobby.</span></div>
 </div>`
 }
 
 export function screenGimmick() {
 	return `<div class="ts ts-gimmick">
-	<div class="ts-story"><div class="ts-line"><span class="ts-name" style="color:${Q}">quarry</span><p>Mike put his hand flat on the table like he was about to say something enormous, and then the die landed in the punch bowl.</p></div></div>
+	<div class="ts-story"><div class="ts-line"><span class="ts-name" style="color:${Q}">charlie</span><p>Mike put his hand flat on the table like he was about to say something serious, and then the die landed under the generator.</p></div></div>
 	<img class="ts-d20 a" src="/img/d20.png" alt="" /><img class="ts-d20 b" src="/img/d20.png" alt="" />
-	<div class="ts-notice">🎲 <span><b>rosewood</b> rolled a <b class="ts-acc">natural 20</b> — the turn is stolen.</span></div>
+	<div class="ts-notice">🎲 <span><b>rose</b> rolled a <b class="ts-acc">natural 20</b>, the turn is stolen.</span></div>
 	<div class="ts-badges"><span class="ts-chip">🎲 Play gimmick</span><span class="ts-chip">🔥 Hellfire d20</span><span class="ts-chip locked">🥤 Milkshake · locked</span><span class="ts-chip locked">🪩 Disco ball · locked</span></div>
 </div>`
 }
@@ -153,7 +153,7 @@ export function screenDash() {
 			<div>
 				<div class="ts-me-row"><b style="color:${K}">kip</b><span class="ts-chip">🧭 Artist</span><span class="ts-r ts-acts">${btn("View profile", "ghost")}${btn("Log out", "ghost")}</span></div>
 				<p class="ts-muted">Welcome back! Ready to keep the story going?</p>
-				<p class="ts-muted ts-i">“I'm not wearing a hole in anything,” Will said. “I'm waiting.”<span class="ts-acc2">▎</span></p>
+				<p class="ts-muted ts-i">“I'm not.” Lucas said. “I'm waiting.”<span class="ts-acc2">▎</span></p>
 			</div>
 		</div>
 		<div class="ts-stats">
@@ -165,7 +165,7 @@ export function screenDash() {
 		<div class="ts-rule">
 			<h3 class="ts-h">Games in progress</h3>
 			<div class="ts-games">
-				<div class="ts-gcard"><div class="ts-cover grad"><span class="ts-ago">2m ago</span><span class="ts-cover-code">M6</span></div><div class="ts-gbody"><div class="ts-gtitle"><span>The Snowball, Revisited</span><span class="ts-mono ts-muted">M6DH</span></div><p class="ts-good">Your turn · 0:14 left</p><div class="ts-dots"><i style="background:${K}"></i><i style="background:${R}"></i><i style="background:${Q};opacity:.35"></i><span class="ts-muted">3 writers</span></div></div>${btn("Resume: your turn", "primary")}</div>
+				<div class="ts-gcard"><div class="ts-cover grad"><span class="ts-ago">2m ago</span><span class="ts-cover-code">M6</span></div><div class="ts-gbody"><div class="ts-gtitle"><span>Supersucker</span><span class="ts-mono ts-muted">M6DH</span></div><p class="ts-good">Your turn · 0:14 left</p><div class="ts-dots"><i style="background:${K}"></i><i style="background:${R}"></i><i style="background:${Q};opacity:.35"></i><span class="ts-muted">3 writers</span></div></div>${btn("Resume: your turn", "primary")}</div>
 				<div class="ts-gcard"><div class="ts-cover alt"><span class="ts-cover-code">ZD</span></div><div class="ts-gbody"><div class="ts-gtitle"><span>Rain Check</span><span class="ts-mono ts-muted">ZDU4</span></div><p class="ts-acc">Paused by host · asleep</p><div class="ts-dots"><i style="background:${R};opacity:.35"></i><i style="background:#37e0a0;opacity:.35"></i><span class="ts-muted">2 writers</span></div></div>${btn("Wake it up", "ghost")}</div>
 				<div class="ts-gcard empty"><span>✨</span><span>Open slot: start a new story or invite friends.</span></div>
 			</div>
@@ -175,11 +175,11 @@ export function screenDash() {
 		<nav class="ts-nav"><div class="on"><span>📬</span><span>Inbox</span><span class="ts-badge">2</span></div><div><span>✨</span><span>Start a game</span><span class="ts-muted">→</span></div><div><span>🔑</span><span>Join a game</span><span class="ts-muted">▾</span></div><div><span>✒️</span><span>New solo write</span></div><div><span>📚</span><span>My solo writes</span></div></nav>
 		<div>
 			<h3 class="ts-h">Friends</h3>
-			<div class="ts-seat">${dot(true)}<b style="color:${R}">rosewood</b><span class="ts-r ts-mono ts-muted">writing</span></div>
-			<div class="ts-seat">${dot(true)}<b style="color:${Q}">quarry</b><span class="ts-r ts-mono ts-muted">online</span></div>
+			<div class="ts-seat">${dot(true)}<b style="color:${R}">rose</b><span class="ts-r ts-mono ts-muted">writing</span></div>
+			<div class="ts-seat">${dot(true)}<b style="color:${Q}">charlie</b><span class="ts-r ts-mono ts-muted">online</span></div>
 			<div class="ts-seat off">${dot(false)}<b>mixtape</b><span class="ts-r ts-mono ts-muted">2d</span></div>
 		</div>
-		<div class="ts-quotecard"><span class="ts-acc ts-bigq">“</span>Every story is better together. One turn at a time.<span class="ts-acc">”</span></div>
+		<div class="ts-quotecard"><span class="ts-acc ts-bigq">“</span>I dump your ass.<span class="ts-acc">”</span></div>
 	</div>
 </div>`
 }
@@ -200,7 +200,7 @@ export function screenThemes(total = 19) {
 
 export const TOUR = [
 	{ id: "game", kicker: "Round-robin writing", title: "One line per turn, under a per-turn countdown.", body: "The server owns the clock: when time runs out, whatever the writer had typed is committed and play advances.", screen: screenGame },
-	{ id: "live", kicker: "Live typing &amp; rich text", title: "The room watches the line appear.", body: "Bold/italic/underline, headings, alignment, and horizontal rules, with live typing visible to the whole room.", screen: screenLive },
+	{ id: "live", kicker: "Live typing &amp; rich text", title: "The room watches the line appear.", body: "Rich text, headings, alignment, and horizontal rules, with live typing visible to the whole lobby.", screen: screenLive },
 	{ id: "write", kicker: "Solo writes", title: "A full document editor outside the game.", body: "Autosaving drafts, headings/lists/quotes/links/images, a font-size ladder, a <b class=\"ts-mono\">/</b> palette of action verbs and dialogue tags, per-browser line spacing, real undo/redo, and a Rich text / HTML / Comment switch.", screen: screenWrite },
 	{ id: "comment", kicker: "Comment mode &amp; beta readers", title: "Comments pinned to the exact words they're about.", body: "The commented text is underlined, clicking either the underline or the comment card jumps to the other, and resolved comments drop their underline.<br /><br />Beta readers read and comment, never edit: a rewrite they type becomes a suggestion (old → new) that only the author can Accept or Reject.", screen: screenComment },
 	{ id: "badges", kicker: "Badges", title: "A word-count ladder, and the secret ones.", body: "From 🐶 Puppy Mike (5,000 words) to 🌀 Crazy Together (150,000), plus secret badges earned by writing… the right thing (some need the right <i>combination</i> of words in one line). Unlocks announce to the whole session.", screen: screenRanks },
@@ -209,12 +209,10 @@ export const TOUR = [
 	{ id: "themes", kicker: "Nineteen themes", title: "Nineteen skins, one layout.", body: "Neon Dusk, Aurora, Inkwell, The Wall, Snow Ball, Upside Down, Starcourt, Palace Arcade, Cerebro, Hawkins Lab, Castle Byers, Vecna's Clock, The Void, Family Video, Hellfire Club, Rink-O-Mania, Camp Know Where, Russian Bunker, and The Pollywog, with GSAP-animated everything.", screen: screenThemes },
 ]
 
-const pad = (n) => String(n).padStart(2, "0")
-
 export function tourPanelHtml(ch, i) {
 	return `<section class="tour-panel" id="tour-${ch.id}" data-chapter="${i}">
 	<div class="tour-claim">
-		<p class="tour-kicker">${pad(i + 1)} / ${ch.kicker.toUpperCase()}</p>
+		<p class="tour-kicker">${ch.kicker.toUpperCase()}</p>
 		<h3>${ch.title}</h3>
 		<p class="tour-body">${ch.body}</p>
 	</div>

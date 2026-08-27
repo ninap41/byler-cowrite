@@ -5,12 +5,12 @@ import assert from "node:assert/strict";
 import { readFileSync, existsSync } from "node:fs";
 import { TOUR, TOUR_THEMES, tourHtml, tourDotsHtml, tourPanelHtml } from "../public/js/tour-screens.js";
 
-test("eight chapters, numbered, each with a kicker, a claim and a screen", () => {
+test("eight chapters, each with a kicker, a claim and a screen", () => {
   assert.equal(TOUR.length, 8);
   const html = tourHtml();
   TOUR.forEach((ch, i) => {
     assert.ok(html.includes(`id="tour-${ch.id}"`), ch.id + " has its panel");
-    assert.ok(html.includes(`${String(i + 1).padStart(2, "0")} / ${ch.kicker.toUpperCase()}`), ch.id + " is numbered");
+    assert.ok(html.includes(`<p class="tour-kicker">${ch.kicker.toUpperCase()}</p>`), ch.id + " has its kicker, unnumbered");
     assert.ok(typeof ch.screen() === "string" && ch.screen().length > 200, ch.id + " renders a screen");
   });
   assert.equal((tourDotsHtml().match(/class="tour-dot/g) || []).length, 8, "one rail dot per chapter");
@@ -42,7 +42,7 @@ test("the gimmick screen's dice ship with the site", () => {
 
 test("index.html mounts the tour: sticky bar, start section, tour, closing card, and its stylesheet", () => {
   const html = readFileSync(new URL("../public/index.html", import.meta.url), "utf-8");
-  for (const id of ["tourBar", "tourDots", "barLogin", "start", "tour", "heroMore", "closeSignup", "closeWatch"]) assert.ok(html.includes(`id="${id}"`), id);
+  for (const id of ["tourBar", "tourDots", "start", "tour", "heroMore", "closeSignup", "closeWatch"]) assert.ok(html.includes(`id="${id}"`), id);
   assert.ok(html.includes('href="/css/home.css"'), "the tour stylesheet");
   assert.ok(html.indexOf('id="hero"') < html.indexOf('id="tourBar"') && html.indexOf('id="tourBar"') < html.indexOf('id="authChoice"') && html.indexOf('id="authChoice"') < html.indexOf('id="tour"'), "hero → bar → auth → tour");
   assert.ok(!/<h1[\s>]/.test(html.slice(html.indexOf('<div class="wrap">'))), "the wordmark lives in the hero and the bar, not a page h1");

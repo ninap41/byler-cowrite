@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="neon">
+<html lang="en" data-theme="upside">
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -53,7 +53,7 @@
 				<div class="hero-btns" id="heroBtns">
 					<button class="primary" id="heroEnter">Enter →</button>
 				</div>
-				<button class="hero-more" id="heroMore" type="button"><span>or take the tour</span><span class="arrow">↓</span></button>
+				<button class="hero-more" id="heroMore" type="button"><span>or explore the features</span><span class="arrow">↓</span></button>
 			</div>
 		</div>
 
@@ -91,16 +91,14 @@
 			<div class="tour-bar" id="tourBar">
 				<span id="barLogo"></span>
 				<a class="bar-name" href="/">{{SITE_NAME}}</a>
-				<span class="tour-rail"><span>the tour</span><span class="tour-dots" id="tourDots"></span></span>
-				<button class="primary bar-login" id="barLogin">Log in</button>
+				<span class="tour-rail"><span>the features</span><span class="tour-dots" id="tourDots"></span></span>
 			</div>
 
 			<!-- Start here: the claim beside the auth card -->
 			<section class="home-start" id="start">
 				<div>
-					<p class="kicker">Start here</p>
 					<h2>{{BLURB}}</h2>
-					<p class="lede">Playing and hosting both require an account. Spectating never does — scroll on and watch a story being written this minute.</p>
+					<p class="lede">Playing and hosting both require an account. Spectating never does, watch a story being written in real-time.</p>
 				</div>
 			<div class="main">
 				<!-- HOMEPAGE AUTH (choice -> login/signup/forgot pane) -->
@@ -190,7 +188,7 @@
 			<div class="home-close">
 				<div class="card">
 					<span id="closeLogo"></span>
-					<h3>Everyone holds the pen.</h3>
+					<h3>Writing like crazy, together.</h3>
 					<p>Sign up, or watch a live story without an account.</p>
 					<div class="row"><button class="primary" id="closeSignup">Create account</button><button class="ghost" id="closeWatch">👁 Watch a story</button></div>
 				</div>
@@ -339,7 +337,6 @@
 				} else document.querySelectorAll(".tour-screen").forEach((el) => el.classList.add("in"))
 				dots.forEach((d, i) => (d.onclick = (e) => { e.preventDefault(); scrollTo("tour-" + TOUR[i].id) }))
 				$("heroMore").onclick = () => scrollTo("tour")
-				$("barLogin").onclick = () => { $("chLogin").click(); scrollTo("start") }
 				$("closeSignup").onclick = () => { $("chSignup").click(); scrollTo("start") }
 				$("closeWatch").onclick = () => {
 					const live = $("liveWatch")

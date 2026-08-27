@@ -52,7 +52,7 @@ const LABELS = THEME_LABELS
 // module only paints it: a locked row says what earns it and refuses the
 // click. It is a REWARD, not a permission — a theme is a css attribute on your
 // own document, so there is nothing here to protect, only something to earn.
-export const DEFAULT_THEME = "neon"
+export const DEFAULT_THEME = "upside"
 // The site font override (see initTheme's Font row): "theme" = no override.
 export const DEFAULT_FONT = "theme"
 export const cleanSiteFont = (key) => (fontByKey(key) ? key : DEFAULT_FONT)
