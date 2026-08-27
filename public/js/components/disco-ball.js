@@ -13,6 +13,7 @@
 // Pure string builders (ballHtml, layerHtml, spotColors) are exported for
 // tests; mountDiscoBall() is the DOM + socket half.
 import { esc, safeColor } from "../util.js"
+import { hudCtlHtml } from "./gimmick-dock.js"
 
 export const BALL_W = 76 // on-screen ball width (viewBox is 100x100)
 const MOVE_MS = 80 // how often my ball goes out (cups use the same)
@@ -71,7 +72,7 @@ export const layerHtml = () => `<div class="db-layer hidden" id="dbLayer" aria-l
 	<div id="dbLights"></div>
 	<div id="dbOthers"></div>
 	<button type="button" class="db-ball hidden" id="dbBall" aria-label="Disco ball. Drag to move, click to spin."></button>
-	<div class="db-hud glass hidden" id="dbHud">
+	<div class="db-hud glass hidden" id="dbHud">${hudCtlHtml()}
 		<b class="db-title">🪩 Rink-O-Mania Disco Ball</b>
 		<span class="db-hint" id="dbHint">Drag to hang it · click to spin the lights</span>
 		<div class="db-row">
@@ -305,7 +306,7 @@ export function mountDiscoBall(opts) {
 
 	// ---- HUD ----
 	layer.addEventListener("click", (e) => {
-		if (e.target.closest('[data-act="db-exit"]')) exit()
+		if ((e.target.closest('[data-act="db-exit"]') || e.target.closest('[data-hud="close"]'))) exit()
 		else if (e.target.closest('[data-act="db-spin"]')) spin()
 	})
 

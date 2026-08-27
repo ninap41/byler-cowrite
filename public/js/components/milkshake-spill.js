@@ -14,6 +14,7 @@
 // (cupSvg, layerHtml, hudHtml, shade) are exported for tests;
 // mountMilkshake() is the DOM + socket half.
 import { esc, safeColor } from "../util.js"
+import { hudCtlHtml } from "./gimmick-dock.js"
 
 export const CUP_W = 150 // on-screen cup width (viewBox is 240x340)
 const CUP_VB = { w: 240, h: 340, rimY: 84, rimRx: 78, pivotX: 120, pivotY: 340 * 0.86 }
@@ -77,7 +78,7 @@ export const layerHtml = () => `<div class="ms-layer hidden" id="msLayer" aria-l
 	<canvas id="msDrops"></canvas>
 	<div id="msOthers"></div>
 	<button type="button" class="ms-cup hidden" id="msCup" aria-label="Milkshake cup. Drag to move, click to tip and pour."></button>
-	<div class="ms-hud glass hidden" id="msHud">
+	<div class="ms-hud glass hidden" id="msHud">${hudCtlHtml()}
 		<b class="ms-title">🥤 Starcourt Milkshake</b>
 		<div class="ms-meter"><i id="msLevel"></i></div>
 		<span class="ms-hint" id="msHint">Drag to move · click to tip and pour · whip it to slosh</span>
@@ -508,7 +509,7 @@ export function mountMilkshake(opts) {
 
 	// ---- HUD ----
 	layer.addEventListener("click", (e) => {
-		if (e.target.closest('[data-act="ms-exit"]')) exit()
+		if ((e.target.closest('[data-act="ms-exit"]') || e.target.closest('[data-hud="close"]'))) exit()
 		else if (e.target.closest('[data-act="ms-wipe"]')) {
 			puddles.length = 0
 			flecks.length = 0

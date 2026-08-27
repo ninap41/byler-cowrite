@@ -11,6 +11,7 @@
 // resultHtml, hintHtml) are exported for tests; mountGimmickDice() is the
 // DOM + socket half. It owns no rules — the server does (lib/gimmicks.js).
 import { esc, safeColor } from "../util.js"
+import { hudCtlHtml } from "./gimmick-dock.js"
 import { createDie } from "./d20-die.js"
 
 const lockTip = (lock) => `Unlocks at ${lock.name}${lock.min ? " · " + lock.min.toLocaleString() + " words" : ""}`
@@ -53,7 +54,7 @@ export function resultHtml({ value, kind, stole, declined = false }) {
 export const LAYER_HTML = `<div class="gd-layer hidden" id="gimmickLayer" aria-label="Gimmick dice">
 	<div id="gdOthers"></div>
 	<button type="button" class="gd-die hidden" id="gdDie" aria-label="Roll the die. Drag to move it."></button>
-	<div class="gd-hud glass hidden" id="gdHud">
+	<div class="gd-hud glass hidden" id="gdHud">${hudCtlHtml()}
 		<b id="gdTitle">🎲 Gimmick</b><span id="gdRead"></span>
 		<label class="gd-steal checkline"><input type="checkbox" id="gdSteal" checked /> Steal the turn on a natural 20</label>
 		<button type="button" class="ghost gd-away" data-act="exit">↩ Put the die away</button>
@@ -138,7 +139,7 @@ export function mountGimmickDice(opts) {
 		enter(b.dataset.gimmick)
 	})
 	layer.addEventListener("click", (e) => {
-		if (e.target.closest('[data-act="exit"]')) exit()
+		if ((e.target.closest('[data-act="exit"]') || e.target.closest('[data-hud="close"]'))) exit()
 	})
 
 	// ---- geometry: my die's top-left in px; shared as fractions of the screen ----

@@ -11,6 +11,7 @@
 // Pure string builders (gunHtml, layerHtml) are exported for tests;
 // mountSuperSoaker() is the DOM + socket half.
 import { esc, safeColor } from "../util.js"
+import { hudCtlHtml } from "./gimmick-dock.js"
 
 export const GUN_W = 64 // on-screen gun width
 const MOVE_MS = 80 // how often my gun goes out (cups use the same)
@@ -36,7 +37,7 @@ export const layerHtml = () => `<div class="sk-layer hidden" id="skLayer" aria-l
 	<div id="skWater"></div>
 	<div id="skOthers"></div>
 	<button type="button" class="sk-gunbtn hidden" id="skGun" aria-label="SuperSoaker. Drag to aim, click to fire."></button>
-	<div class="sk-hud glass hidden" id="skHud">
+	<div class="sk-hud glass hidden" id="skHud">${hudCtlHtml()}
 		<b class="sk-title">🔫 SuperSoaker</b>
 		<span class="sk-hint" id="skHint">Drag to aim · click to fire</span>
 		<div class="sk-row">
@@ -236,7 +237,7 @@ export function mountSuperSoaker(opts) {
 	}
 
 	layer.addEventListener("click", (e) => {
-		if (e.target.closest('[data-act="sk-exit"]')) exit()
+		if ((e.target.closest('[data-act="sk-exit"]') || e.target.closest('[data-hud="close"]'))) exit()
 		else if (e.target.closest('[data-act="sk-fire"]')) fire()
 	})
 
