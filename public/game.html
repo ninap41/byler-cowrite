@@ -827,6 +827,7 @@
 			let lastPaused = false
 			socket.on("game-state", (st) => {
 				lastPaused = !!st.paused
+				if (Array.isArray(st.tableGimmicks)) gimmicks.setGate({ table: st.tableGimmicks })
 				updateLiveStatus(st.writers)
 				if (Array.isArray(st.writers)) {
 					tableColors = st.writers.map((w) => safeColor(w.color))

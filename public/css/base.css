@@ -7963,6 +7963,10 @@ body.resizing-side {
 }
 .gd-menu-item.locked {
 	opacity: 0.7;
+	cursor: not-allowed;
+}
+.gd-menu-item.locked.table {
+	opacity: 0.85;
 }
 .gd-menu-note {
 	padding: 8px 10px;

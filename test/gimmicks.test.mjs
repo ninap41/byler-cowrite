@@ -173,6 +173,7 @@ test("a table with one ranked seat lets everyone roll; a natural 20 steals the t
   await ctx.wait(200);
   assert.equal(game.phase, "writing");
   assert.equal(game.currentId, A.id, "the admin writes first");
+  assert.ok(Array.isArray(game.tableGimmicks) && game.tableGimmicks.includes("d20"), "game-state says the table (the admin) has the d20");
 
   // Mike has no rank, but the admin at the table does — Mike may roll. The
   // die is fixed to land 20 first: it isn't Mike's turn, so he steals it.

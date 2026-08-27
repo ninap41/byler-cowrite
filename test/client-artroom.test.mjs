@@ -204,3 +204,19 @@ test("swatch state: the picker becomes the selected swatch and the eraser lets g
   assert.ok(sw.classList.contains("on"));
   assert.ok(!pick.classList.contains("on"), "a swatch click un-selects the picker");
 });
+
+test("black and white swatches paint as themselves (no palette fallback), and the picker follows the chosen swatch", () => {
+  document.body.innerHTML = "";
+  const socket = fakeSocket();
+  const m = mountArtRoom({ socket, getMyUserId: () => "u1", getMyColor: () => "#6c8cff", document });
+  m.start();
+  const black = document.querySelector('.ar-swatch[data-color="#16161d"]');
+  const white = document.querySelector('.ar-swatch[data-color="#f5f0e8"]');
+  assert.ok(black && white, "the presets carry black and white");
+  black.click();
+  assert.equal(m.color, "#16161d");
+  assert.equal(document.getElementById("arPick").value, "#16161d", "the picker shows black");
+  white.click();
+  assert.equal(m.color, "#f5f0e8");
+  assert.equal(document.getElementById("arPick").value, "#f5f0e8");
+});

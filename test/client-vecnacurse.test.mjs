@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { installDom } from "./dom.mjs";
 
 installDom();
-const { layerHtml, targetsHtml, CURSE_LIFT_CHARS, mountVecnaCurse } =
+const { layerHtml, targetsHtml, CURSE_LIFT_WORDS, mountVecnaCurse } =
   await import("../public/js/components/vecna-curse.js");
 
 const TABLE = [
@@ -58,7 +58,7 @@ test("mountVecnaCurse: start lists the table; clicking a target asks the server;
   assert.equal(m.open, false);
 });
 
-test("the veil falls only on the VICTIM; typing CURSE_LIFT_CHARS characters sings them out", () => {
+test("the veil falls only on the VICTIM; typing CURSE_LIFT_WORDS words sings them out", () => {
   document.body.innerHTML = "";
   const socket = fakeSocket();
   const chime = { rang: 0 };
@@ -81,10 +81,18 @@ test("the veil falls only on the VICTIM; typing CURSE_LIFT_CHARS characters sing
   assert.ok(!veil.classList.contains("hidden"), "the veil falls on me");
   assert.equal(chime.rang, 1, "the clock strikes for me");
   assert.ok(document.documentElement.classList.contains("vcx-taken"), "and my page runs backwards, mirrored, the Upside Down's way");
-  for (let i = 0; i < CURSE_LIFT_CHARS - 1; i++) document.dispatchEvent(key("x"));
+  const word = document.getElementById("vcxWord");
+  assert.match(word.textContent, /WRITE\. 0\/32 words · \d+s/, "the veil counts words and seconds");
+  for (let i = 0; i < CURSE_LIFT_WORDS - 1; i++) {
+    document.dispatchEvent(key("x"));
+    document.dispatchEvent(key("x")); // more letters of the same word don't count twice
+    document.dispatchEvent(key(" "));
+  }
+  assert.equal(m.typed, CURSE_LIFT_WORDS - 1);
+  assert.match(word.textContent, /WRITE\. 31\/32 words/);
   assert.ok(!socket.sent.some(([ev]) => ev === "gimmick-uncurse"), "one short of the song");
   document.dispatchEvent(key("!"));
-  assert.ok(socket.sent.some(([ev]) => ev === "gimmick-uncurse"), "the fifteenth character sings me out");
+  assert.ok(socket.sent.some(([ev]) => ev === "gimmick-uncurse"), "the 32nd word sings me out");
   // modifier keys never counted
   socket.fire("gimmick-curse", { targetUserId: "u1", lift: true });
   assert.equal(m.cursedUserId, null);

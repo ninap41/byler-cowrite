@@ -5,14 +5,14 @@
 // taken. Everyone else watches from outside: the victim's chips pulse red.
 //
 // The escape is the theme's own logic inverted: WRITING is the song that
-// saves you. Typing ~15 characters (CURSE_LIFT_CHARS) anywhere lifts the
+// saves you. Typing 32 words (CURSE_LIFT_WORDS) anywhere lifts the
 // curse (`gimmick-uncurse`, and the payoff line lands in chat); left alone
 // it fades after the relayed `duration`. Nothing is ever blocked — the veil
 // is pointer-events none, the text stays readable underneath. Cosmetic
 // dread, zero mechanical harm.
 import { esc, safeColor } from "../util.js"
 
-export const CURSE_LIFT_CHARS = 15 // mirrors lib/gimmicks.js (the server agrees)
+export const CURSE_LIFT_WORDS = 32 // mirrors lib/gimmicks.js (the server agrees)
 
 export const layerHtml = () => `<div class="vcx-layer hidden" id="vcxLayer" aria-label="Vecna's curse">
 	<div class="vcx-veil hidden" id="vcxVeil">
@@ -67,7 +67,14 @@ export function mountVecnaCurse(opts) {
 
 	// ---- the curse in flight (at most one per session) ----
 	let cursed = null // { targetUserId, timer } — whoever it's on, seen by all
-	let typed = 0 // MY typed characters while I am the victim
+	let typed = 0 // MY typed WORDS while I am the victim
+	let inWord = false // a printable key starts a word; a space or Enter ends it
+	let tick = 0 // the countdown on the veil
+	const paintWord = () => {
+		if (!cursed || !mineNow()) return
+		const left = Math.max(0, Math.ceil((cursed.until - Date.now()) / 1000))
+		word.textContent = `WRITE. ${typed}/${CURSE_LIFT_WORDS} words · ${left}s`
+	}
 	const mineNow = () => cursed && cursed.targetUserId === myUserId()
 
 	function markChips(on) {
@@ -86,7 +93,10 @@ export function mountVecnaCurse(opts) {
 		markChips(true)
 		if (mineNow()) {
 			veil.classList.remove("hidden")
-			word.textContent = "WRITE."
+			cursed.until = Date.now() + Math.max(1000, Number(d.duration) || 60000)
+			paintWord()
+			clearInterval(tick)
+			tick = setInterval(paintWord, 1000)
 			// the victim's whole page runs backwards — mirrored text, the
 			// Upside Down's way (cosmetic: clicks still land, nothing blocked)
 			doc.documentElement.classList.add("vcx-taken")
@@ -99,8 +109,10 @@ export function mountVecnaCurse(opts) {
 	function lift() {
 		if (!cursed) return
 		clearTimeout(cursed.timer)
+		clearInterval(tick)
 		cursed = null
 		typed = 0
+		inWord = false
 		doc.documentElement.classList.remove("vcx-live")
 		doc.documentElement.classList.remove("vcx-taken")
 		markChips(false)
@@ -111,10 +123,17 @@ export function mountVecnaCurse(opts) {
 	// WRITING is the way out: my own keys anywhere count while I'm cursed
 	doc.addEventListener("keydown", (e) => {
 		if (!mineNow()) return
-		if (e.key?.length !== 1) return // characters, not chords/arrows
+		const k = e.key
+		if (k === " " || k === "Enter") {
+			inWord = false // the word is done
+			return
+		}
+		if (k?.length !== 1) return // characters, not chords/arrows
+		if (inWord) return // still the same word
+		inWord = true
 		typed++
-		word.textContent = "WRITE." + "✍".repeat(Math.min(6, Math.ceil((typed / CURSE_LIFT_CHARS) * 6)))
-		if (typed >= CURSE_LIFT_CHARS) socket.emit("gimmick-uncurse", {}, () => {})
+		paintWord()
+		if (typed >= CURSE_LIFT_WORDS) socket.emit("gimmick-uncurse", {}, () => {})
 	})
 
 	// ---- the HUD ----

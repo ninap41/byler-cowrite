@@ -18,9 +18,9 @@ const lockTip = (lock) => `Unlocks at ${lock.name}${lock.min ? " · " + lock.min
 // The dropdown: one row per gimmick, worded for what this player can do.
 //   friendly game → one disabled line explaining why
 //   earned (or admin) → Play
-//   not earned → 🔒 with the tier — still clickable, because a tablemate's
-//                rank lets everyone play (the server has the final word)
-export function menuHtml({ catalogue = [], unlocked = [], admin = false, locks = {}, friendly = true, seated = true }) {
+//   not earned, a tablemate has it → 🔓, disabled: theirs to launch, you watch
+//   not earned by anyone → 🔒 with the tier, disabled
+export function menuHtml({ catalogue = [], unlocked = [], admin = false, locks = {}, friendly = true, seated = true, table = [] }) {
 	if (!seated) return `<div class="gd-menu-note">Take a seat in a game to play a gimmick.</div>`
 	if (friendly) return `<div class="gd-menu-note">💛 This is a friendly game, gimmicks are off.</div>`
 	if (!catalogue.length) return `<div class="gd-menu-note">No gimmicks yet.</div>`
@@ -29,8 +29,15 @@ export function menuHtml({ catalogue = [], unlocked = [], admin = false, locks =
 			const can = admin || unlocked.includes(g.id)
 			const lock = locks[g.id]
 			if (can) return `<button type="button" class="gd-menu-item" data-gimmick="${g.id}" data-act="play">🎲 ${esc(g.name)} · Play</button>`
-			const tip = (lock ? lockTip(lock) : "Not unlocked") + " · or play it while a tablemate has it"
-			return `<button type="button" class="gd-menu-item locked" data-gimmick="${g.id}" data-act="play" data-tip="${esc(tip)}">🔒 ${esc(g.name)}</button>`
+			// a tablemate holds the rank: the lock is open (you'll see theirs
+			// on your screen) but the row is disabled — the toy is theirs to
+			// launch until you earn it yourself
+			if (table.includes(g.id)) {
+				const tip = "A tablemate has this unlocked" + (lock ? " · " + lockTip(lock) + " to play it yourself" : "")
+				return `<button type="button" class="gd-menu-item locked table" data-gimmick="${g.id}" disabled data-tip="${esc(tip)}">🔓 ${esc(g.name)}</button>`
+			}
+			const tip = lock ? lockTip(lock) : "Not unlocked"
+			return `<button type="button" class="gd-menu-item locked" data-gimmick="${g.id}" disabled data-tip="${esc(tip)}">🔒 ${esc(g.name)}</button>`
 		})
 		.join("")
 }
@@ -87,7 +94,7 @@ export function mountGimmickDice(opts) {
 	const $ = (id) => doc.getElementById(id)
 	const myUserId = () => opts.getMyUserId?.() ?? null
 
-	let gate = { catalogue: [], unlocked: [], admin: false, locks: {} }
+	let gate = { catalogue: [], unlocked: [], admin: false, locks: {}, table: [] }
 	let open = false // MY die is out
 	let current = null // gimmick id in play
 	let die = null

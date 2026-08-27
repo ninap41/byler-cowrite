@@ -18,6 +18,10 @@
 // mountArtRoom() is the DOM + socket half.
 import { esc, safeColor } from "../util.js"
 
+// a swatch may be any #rrggbb (black and white included) — only a junk
+// value falls back to the writer's palette colour
+const hexOr = (c, fallback) => (typeof c === "string" && /^#[0-9a-f]{6}$/i.test(c) ? c.toLowerCase() : safeColor(fallback))
+
 const MOVE_MS = 80 // how often my stroke-so-far goes out (cups use the same)
 const BRUSH_SIZE = 6 // the default stroke width, px on a 1000px-wide screen (scales with width)
 // The brush sizes on offer (the server clamps 2..40, so all of these ride
@@ -296,7 +300,11 @@ export function mountArtRoom(opts) {
 		const sw = e.target.closest(".ar-swatch")
 		if (sw) {
 			curErase = sw.dataset.erase === "1"
-			if (!curErase) curColor = safeColor(sw.dataset.color)
+			if (!curErase) {
+				curColor = hexOr(sw.dataset.color, opts.getMyColor?.())
+				const pick = colorsRow.querySelector("#arPick")
+				if (pick) pick.value = curColor // the picker shows the chosen colour
+			}
 			for (const b of colorsRow.querySelectorAll(".ar-swatch, #arPick")) b.classList.toggle("on", b === sw)
 			return
 		}

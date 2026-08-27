@@ -4,7 +4,7 @@
 import { randomUUID, randomInt } from "crypto";
 import { bumpStreak } from "../lib/streak.js";
 import { badgeName, badgeDesc, usageMatches, awardWordBadges, rewardsForTiers, describeRewards, unlockedThemes, unlockedGimmicks, canUseGimmick } from "../lib/achievements.js";
-import { cleanGimmickId, rollOutcome, describeRoll, galagaOutcome, describeGalaga, GALAGA_MAX_SCORE, ROLL_COOLDOWN_MS, SPIN_MS, DIE_SIDES, PAINT_MAX_STROKES, PAINT_MAX_PTS, CURSE_MS } from "../lib/gimmicks.js";
+import { cleanGimmickId, rollOutcome, describeRoll, galagaOutcome, describeGalaga, GALAGA_MAX_SCORE, ROLL_COOLDOWN_MS, SPIN_MS, DIE_SIDES, PAINT_MAX_STROKES, PAINT_MAX_PTS, CURSE_MS, GIMMICK_IDS } from "../lib/gimmicks.js";
 import { PALETTE, cleanColor, cleanHex, sanitizeRich, stripTags, httpUrl, sanitizeDoc, CID_RE } from "./sanitize.js";
 import { store, saveStore, userByToken, makeMsg, isAdmin } from "./store.js";
 import { storage, getJson } from "./storage.js";
@@ -601,6 +601,8 @@ export function createGame(io) {
       hostName: s.writers.get(s.hostId)?.name ?? null,
       hostUserId: s.hostUserId ?? null, // the ORIGINAL host, who may always continue
       spectators: spectatorCount(s),
+      // what SOMEONE at the table has unlocked (the menu shows 🔓 on those)
+      tableGimmicks: s.friendly === false ? GIMMICK_IDS.filter((id) => tableHasGimmick(s, id)) : [],
     });
   }
 

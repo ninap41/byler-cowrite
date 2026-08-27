@@ -72,13 +72,17 @@ test("createDie builds 20 faces into the host and rollTo lands on the asked valu
 // ---- the layer's builders ----
 const gate = { catalogue: [{ id: "d20", name: "Hellfire d20", desc: "d", theme: "hellfire" }], locks: { d20: { tier: "sorcerer", name: "🧙 Sorcerer", min: 20000 } } };
 
-test("menuHtml: friendly game / unseated / locked-but-playable / play", () => {
+test("menuHtml: friendly game / unseated / locked / a tablemate's unlock / play", () => {
   assert.match(menuHtml({ ...gate, friendly: true }), /friendly game, gimmicks are off/);
   assert.match(menuHtml({ ...gate, friendly: false, seated: false }), /Take a seat/);
   const locked = menuHtml({ ...gate, friendly: false, unlocked: [] });
   assert.match(locked, /🔒 Hellfire d20/);
-  assert.match(locked, /Unlocks at 🧙 Sorcerer · 20,000 words · or play it while a tablemate has it/);
-  assert.match(locked, /data-act="play"/, "a locked row still tries, a tablemate's rank may let it through");
+  assert.match(locked, /Unlocks at 🧙 Sorcerer · 20,000 words/);
+  assert.ok(!/data-act="play"/.test(locked) && /disabled/.test(locked), "a locked row is disabled");
+  const table = menuHtml({ ...gate, friendly: false, unlocked: [], table: ["d20"] });
+  assert.match(table, /class="gd-menu-item locked table"[^>]*disabled[^>]*>🔓 Hellfire d20/, "a tablemate's rank opens the lock but not the row");
+  assert.match(table, /A tablemate has this unlocked · Unlocks at 🧙 Sorcerer · 20,000 words to play it yourself/);
+  assert.match(menuHtml({ ...gate, friendly: false, unlocked: ["d20"], table: ["d20"] }), /🎲 Hellfire d20 · Play/, "my own rank wins");
   assert.match(menuHtml({ ...gate, friendly: false, unlocked: ["d20"] }), /data-act="play">🎲 Hellfire d20 · Play/);
   assert.match(menuHtml({ ...gate, friendly: false, admin: true }), /🎲 Hellfire d20 · Play/, "admins have every gimmick");
 });
