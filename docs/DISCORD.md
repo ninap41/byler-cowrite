@@ -27,6 +27,7 @@ Discord** in a live game's host drawer (code + Join / Spectate buttons).
    DISCORD_BOT_TOKEN           from step 1
    DISCORD_ANNOUNCE_CHANNEL_ID the admin-only channel
    DISCORD_GAMES_CHANNEL_ID    #mikes-writing-room
+   COWRITE_ROLE_ID             the role to @mention on every post (Developer Mode → Server Settings → Roles → right-click → Copy Role ID)
    PUBLIC_APP_URL              https://your-site (already needed for reset emails)
    ```
 6. **Deploy**, then in the portal → General Information set **Interactions

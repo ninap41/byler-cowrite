@@ -8,6 +8,7 @@
 //   DISCORD_BOT_TOKEN           the bot token (posting messages, registration)
 //   DISCORD_ANNOUNCE_CHANNEL_ID the admin-only channel announcements post to
 //   DISCORD_GAMES_CHANNEL_ID    where live-game shares post (#mikes-writing-room)
+//   COWRITE_ROLE_ID             a role to @mention on every post, so its members get alerted
 //   PUBLIC_APP_URL              the site's origin, used in every link
 // Nothing here runs unless the relevant var is set; `discordStatus()` reports
 // which are (booleans, never values) for /admin.
@@ -23,7 +24,7 @@ export const COMMANDS = [
 
 export const discordStatus = () => ({
   publicKey: !!env("DISCORD_PUBLIC_KEY"), appId: !!env("DISCORD_APP_ID"), botToken: !!env("DISCORD_BOT_TOKEN"),
-  announceChannel: !!env("DISCORD_ANNOUNCE_CHANNEL_ID"), gamesChannel: !!env("DISCORD_GAMES_CHANNEL_ID"), appUrl: !!env("PUBLIC_APP_URL"),
+  announceChannel: !!env("DISCORD_ANNOUNCE_CHANNEL_ID"), roleId: !!env("COWRITE_ROLE_ID"), gamesChannel: !!env("DISCORD_GAMES_CHANNEL_ID"), appUrl: !!env("PUBLIC_APP_URL"),
 });
 export const siteUrl = (path = "/") => (env("PUBLIC_APP_URL") || "http://localhost:" + (process.env.PORT || 3000)).replace(/\/$/, "") + path;
 
@@ -68,10 +69,20 @@ export async function postToChannel(channelId, payload) {
   } catch (e) { return { error: e.message || "Couldn't reach Discord." }; }
 }
 
+// Every post opens with an @mention of COWRITE_ROLE_ID (when set) so the
+// role's members are alerted, and allowed_mentions names that role alone so
+// nothing else in the text — markdown or a game title — can ping anyone.
+const withRole = (msg) => {
+  const role = env("COWRITE_ROLE_ID");
+  if (!role) return { ...msg, allowed_mentions: { parse: [] } };
+  return { ...msg, content: `<@&${role}> ${msg.content}`.slice(0, 2000), allowed_mentions: { roles: [role] } };
+};
+
 // The announcement's own markdown, verbatim — Discord renders markdown, which
 // is the whole reason announcements are written in it. 2000 is Discord's cap.
-export const announcementMessage = (post) => ({ content: String(post.markdown || post.title || "").slice(0, 2000) });
-export const postAnnouncement = (post) => postToChannel(env("DISCORD_ANNOUNCE_CHANNEL_ID"), announcementMessage(post));
+export const announcementMessage = (post) => ({ content: String(post.markdown || post.title || "").slice(0, 1970) });
+export { withRole };
+export const postAnnouncement = (post) => postToChannel(env("DISCORD_ANNOUNCE_CHANNEL_ID"), withRole(announcementMessage(post)));
 
 // A live game share: title, code, who's hosting, and the links that make
 // sense for its phase. A lobby ("gathering writers") gets Join alone — the
@@ -89,7 +100,7 @@ export const gameMessage = (s) => {
   if (!lobby) buttons.push(link("Spectate", siteUrl(`/game?spectate=${s.code}`)));
   return { content, components: [{ type: 1, components: buttons }] };
 };
-export const postGame = (s) => postToChannel(env("DISCORD_GAMES_CHANNEL_ID"), gameMessage(s));
+export const postGame = (s) => postToChannel(env("DISCORD_GAMES_CHANNEL_ID"), withRole(gameMessage(s)));
 
 // Registers the slash commands globally (run once, or after changing COMMANDS).
 export async function registerCommands() {

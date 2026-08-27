@@ -6,7 +6,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { generateKeyPairSync, sign } from "node:crypto";
 import { startServer, signup } from "./helpers.mjs";
-import { verifyInteraction, handleInteraction, announcementMessage, gameMessage, COMMANDS } from "../src/discord.js";
+import { verifyInteraction, handleInteraction, announcementMessage, gameMessage, withRole, COMMANDS } from "../src/discord.js";
 
 const { publicKey, privateKey } = generateKeyPairSync("ed25519");
 const pubHex = publicKey.export({ type: "spki", format: "der" }).subarray(-32).toString("hex");
@@ -73,4 +73,16 @@ test("routes: unsigned interactions are 401; sharing is admin/host-gated and fai
     assert.equal(status.data.publicKey, true);
     assert.equal(status.data.botToken, false);
   } finally { await ctx.stop(); }
+});
+
+test("COWRITE_ROLE_ID is @mentioned at the head of every post, and is the only mention allowed", () => {
+  process.env.COWRITE_ROLE_ID = "123456789";
+  const m = withRole(gameMessage({ code: "ABCD", phase: "waiting", name: "@everyone lol", hostName: "mike", players: 1 }));
+  assert.ok(m.content.startsWith("<@&123456789> "));
+  assert.deepEqual(m.allowed_mentions, { roles: ["123456789"] }, "a title saying @everyone can't ping anyone");
+  assert.ok(m.components, "the buttons survive");
+  process.env.COWRITE_ROLE_ID = "";
+  const none = withRole(announcementMessage({ markdown: "# Hi" }));
+  assert.equal(none.content, "# Hi");
+  assert.deepEqual(none.allowed_mentions, { parse: [] });
 });
