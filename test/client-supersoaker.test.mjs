@@ -109,3 +109,28 @@ test("hovering the gun keeps its centring translate (the global button lift is o
   const css = readFileSync(new URL("../public/css/base.css", import.meta.url), "utf-8");
   assert.match(css, /button\.sk-gunbtn:hover\s*\{[^}]*transform:\s*translate\(-50%,\s*-50%\)/);
 });
+
+test("the water lands on the shared puddle ground: a ground canvas, a Wipe up that mops only MY water, and the floor dries when the last gun leaves", () => {
+  document.body.innerHTML = "";
+  const socket = fakeSocket();
+  const m = mountSuperSoaker({ socket, getMyUserId: () => "u1", getMyColor: () => "#6c8cff", document });
+  assert.ok(document.querySelector("#skLayer canvas#skGround"), "the ground canvas sits in the layer");
+  assert.ok(document.querySelector('[data-act="sk-wipe"]'), "with a Wipe up in the HUD");
+  m.start();
+  const g = m.ground;
+  g.add(100, g.floorY, 4, "#6c8cff", "u1");
+  g.add(500, g.floorY, 4, "#e63946", "u2");
+  assert.equal(g.puddles.length, 2);
+  document.querySelector('[data-act="sk-wipe"]').click();
+  assert.deepEqual(g.puddles.map((p) => p.owner), ["u2"], "Mike's water is still there");
+  m.exit();
+  assert.equal(g.puddles.length, 0, "nobody's gun is out: the floor is dry");
+});
+
+test("the soaker layer pools on the milkshake's ground line: the layer stops at the foot bar and its canvas overflows it, like .ms-layer", () => {
+  const css = readFileSync(new URL("../public/css/base.css", import.meta.url), "utf-8");
+  const block = (sel) => css.slice(css.indexOf(`\n${sel} {`), css.indexOf("}", css.indexOf(`\n${sel} {`)));
+  assert.match(block(".sk-layer"), /inset: 0 0 var\(--footbar-h\) 0/);
+  assert.match(block(".ms-layer"), /inset: 0 0 var\(--footbar-h\) 0/);
+  assert.match(css, /\.sk-layer canvas \{[^}]*position: absolute/);
+});

@@ -1,7 +1,10 @@
 // The SuperSoaker gimmick (see lib/gimmicks.js): a water gun you drag
 // anywhere over the live game — drag to aim, a clean click FIRES: a burst of
-// droplets arcs out of the muzzle, splashes, and streaks run down before the
-// water dries. No steal, pure soak, the milkshake's category.
+// droplets arcs out of the muzzle and every drop that reaches the floor
+// POOLS there — the milkshake's own puddle ground (components/puddle-ground.js),
+// so the water runs along the bottom of the screen right over the chat dock
+// and stays until the last gun leaves, each shooter's pools their own, and
+// Wipe up mops only mine. No steal, pure soak, the milkshake's category.
 //
 // Shared exactly like the disco ball: the owner streams their gun's position
 // and aim (`gimmick-gun {on, x, y, angle}`, fractions + degrees, throttled)
@@ -11,12 +14,13 @@
 // Pure string builders (gunHtml, layerHtml) are exported for tests;
 // mountSuperSoaker() is the DOM + socket half.
 import { esc, safeColor } from "../util.js"
+import { createGround } from "./puddle-ground.js"
 
 export const GUN_W = 64 // on-screen gun width
 const MOVE_MS = 80 // how often my gun goes out (cups use the same)
 const DROPS_PER_BURST = 26
 const MAX_BURSTS = 3 // concurrent bursts across the table — oldest dries first
-const BURST_MS = 8000 // a burst's water dries in this long
+const BURST_MS = 8000 // a drop still in the air after this long dries away
 
 const frac = (n) => {
 	const x = Math.sin(n) * 43758.5453
@@ -33,6 +37,7 @@ export function gunHtml(key, color = "#38bdf8") {
 }
 
 export const layerHtml = () => `<div class="sk-layer hidden" id="skLayer" aria-label="SuperSoaker">
+	<canvas id="skGround"></canvas>
 	<div id="skWater"></div>
 	<div id="skOthers"></div>
 	<button type="button" class="sk-gunbtn hidden" id="skGun" aria-label="SuperSoaker. Drag to aim, click to fire."></button>
@@ -41,6 +46,7 @@ export const layerHtml = () => `<div class="sk-layer hidden" id="skLayer" aria-l
 		<span class="sk-hint" id="skHint">Drag to aim · click to fire</span>
 		<div class="sk-row">
 			<button type="button" data-act="sk-fire">Fire 💦</button>
+			<button type="button" class="ghost" data-act="sk-wipe">Wipe up</button>
 			<button type="button" class="ghost" data-act="sk-exit">↩ Put the gun away</button>
 		</div>
 	</div>
@@ -58,7 +64,10 @@ export function mountSuperSoaker(opts) {
 	const waterBox = doc.getElementById("skWater")
 	const hud = doc.getElementById("skHud")
 	const hint = doc.getElementById("skHint")
+	const groundC = doc.getElementById("skGround")
 	const myUserId = () => opts.getMyUserId?.() ?? null
+	// the floor: every drop that gets there pools, per shooter
+	const ground = createGround({ canvas: groundC, doc, win })
 
 	const vw = () => win?.innerWidth || 1200
 	const vh = () => win?.innerHeight || 800
@@ -85,12 +94,12 @@ export function mountSuperSoaker(opts) {
 	}
 
 	// ---- the water, simulated the same on every screen from one seed ----
-	// burst: { drops: [{el, x0, y0, vx, vy, splashAt, drip}], born, color }
+	// burst: { drops: [{el, x0, y0, vx, vy, delay, size, depth}], born, color, owner }
 	const bursts = new Map() // burstKey -> burst
 	let burstN = 0
 	let raf = 0, looping = false
 	const nowMs = () => (win?.performance || performance).now()
-	function startBurst({ x, y, angle, seed, color }) {
+	function startBurst({ x, y, angle, seed, color, userId: owner }) {
 		while (bursts.size >= MAX_BURSTS) endBurst(bursts.keys().next().value)
 		const key = "b" + burstN++
 		const a0 = ((Number(angle) || 0) * Math.PI) / 180
@@ -98,6 +107,7 @@ export function mountSuperSoaker(opts) {
 		const py = (Number(y) || 0.5) * vh()
 		const power = Math.min(vw(), 900) * 0.8
 		const drops = []
+		ground.resize()
 		for (let i = 0; i < DROPS_PER_BURST; i++) {
 			const k = (Number(seed) || 1) + i * 137
 			const el = doc.createElement("i")
@@ -113,9 +123,10 @@ export function mountSuperSoaker(opts) {
 				vy: Math.sin(a0 + spread) * speed,
 				delay: frac(k + 2) * 260, // the burst leaves the muzzle as a stream
 				size: 4 + frac(k + 3) * 8,
+				depth: frac(k + 4) * 22, // where on the floor band it lands
 			})
 		}
-		bursts.set(key, { drops, born: nowMs() })
+		bursts.set(key, { drops, born: nowMs(), color: safeColor(color), owner: owner ?? null })
 		syncLayer()
 		loop()
 	}
@@ -124,6 +135,7 @@ export function mountSuperSoaker(opts) {
 		if (!b) return
 		bursts.delete(key)
 		for (const d of b.drops) fade ? fadeOut(d.el, () => d.el.remove()) : d.el.remove()
+		b.drops.length = 0
 		syncLayer()
 	}
 	function loop() {
@@ -131,7 +143,11 @@ export function mountSuperSoaker(opts) {
 		looping = true
 		raf = win.requestAnimationFrame(frame)
 	}
+	let lastT = 0
 	function frame(now) {
+		const dt = Math.min(0.05, (now - lastT) / 1000 || 0.016)
+		lastT = now
+		if (ground.tick(dt)) ground.draw()
 		if (!bursts.size) {
 			looping = false
 			return
@@ -139,17 +155,25 @@ export function mountSuperSoaker(opts) {
 		const G = 900 // gravity, px/s²
 		for (const [key, b] of [...bursts.entries()]) {
 			const age = now - b.born
-			if (age > BURST_MS) { endBurst(key); continue }
+			if (age > BURST_MS || !b.drops.length) { endBurst(key); continue }
 			const dry = age > BURST_MS - 1500 ? 1 - (age - (BURST_MS - 1500)) / 1500 : 1
-			for (const d of b.drops) {
+			for (let i = b.drops.length - 1; i >= 0; i--) {
+				const d = b.drops[i]
 				const t = Math.max(0, (age - d.delay) / 1000)
-				let px = d.x0 + d.vx * t
-				let py = d.y0 + d.vy * t + 0.5 * G * t * t
-				const floor = vh() - 6
-				if (py > floor) {
-					// splashed: the drop becomes a streak sliding down at the wall
-					px = d.x0 + d.vx * ((floor - d.y0) / Math.max(1, d.vy + G))
-					py = floor
+				const px = d.x0 + d.vx * t
+				const py = d.y0 + d.vy * t + 0.5 * G * t * t
+				const land = ground.floorY + d.depth
+				if (py >= land) {
+					// it reached the floor: the drop is a pool now, not a streak
+					ground.add(px, land, d.size * 0.55, b.color, b.owner)
+					d.el.remove()
+					b.drops.splice(i, 1)
+					continue
+				}
+				if (px < -60 || px > vw() + 60) {
+					d.el.remove()
+					b.drops.splice(i, 1)
+					continue
 				}
 				d.el.style.transform = `translate(${Math.round(px)}px, ${Math.round(py)}px) scale(${(d.size / 6).toFixed(2)})`
 				d.el.style.opacity = (dry * 0.8).toFixed(2)
@@ -162,7 +186,9 @@ export function mountSuperSoaker(opts) {
 	let open = false, x = 0, y = 0, angle = 0
 	const remote = new Map() // userId -> { el, x, y }
 	const syncLayer = () => {
-		layer.classList.toggle("hidden", !(open || remote.size > 0 || bursts.size > 0))
+		const on = open || remote.size > 0 || bursts.size > 0
+		layer.classList.toggle("hidden", !on)
+		if (!on) ground.wipe() // the last gun left: the floor dries with it
 	}
 	let reportTimer = null
 	function report(now = false) {
@@ -238,11 +264,13 @@ export function mountSuperSoaker(opts) {
 	layer.addEventListener("click", (e) => {
 		if (e.target.closest('[data-act="sk-exit"]')) exit()
 		else if (e.target.closest('[data-act="sk-fire"]')) fire()
+		else if (e.target.closest('[data-act="sk-wipe"]')) ground.wipe(myUserId()) // my own water only
 	})
 
 	function start() {
 		if (open) return
 		open = true
+		ground.resize()
 		gunEl.innerHTML = gunInner("me", opts.getMyName?.() || "", opts.getMyColor?.())
 		gunEl.classList.remove("hidden")
 		hud.classList.remove("hidden")
@@ -275,6 +303,7 @@ export function mountSuperSoaker(opts) {
 	// off. Returns whether anything was out.
 	function gimmicksOff() {
 		const had = open || remote.size > 0 || bursts.size > 0
+		if (had) fadeOut(groundC, () => {})
 		for (const key of [...bursts.keys()]) endBurst(key, { fade: true })
 		for (const uid of [...remote.keys()]) dropRemote(uid, { fade: true })
 		if (open) exit({ fade: true })
@@ -321,6 +350,7 @@ export function mountSuperSoaker(opts) {
 	})
 
 	win?.addEventListener?.("resize", () => {
+		if (!layer.classList.contains("hidden")) ground.resize()
 		if (!open) return
 		x = clamp(x, GUN_W / 2, vw() - GUN_W / 2)
 		y = clamp(y, GUN_W / 2, vh() - GUN_W / 2)
@@ -340,6 +370,9 @@ export function mountSuperSoaker(opts) {
 		},
 		get dropCount() {
 			return [...bursts.values()].reduce((n, b) => n + b.drops.length, 0)
+		},
+		get ground() {
+			return ground
 		},
 	}
 }

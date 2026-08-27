@@ -14,6 +14,8 @@
 // (cupSvg, layerHtml, hudHtml, shade) are exported for tests;
 // mountMilkshake() is the DOM + socket half.
 import { esc, safeColor } from "../util.js"
+import { createGround, shade } from "./puddle-ground.js"
+export { shade }
 
 export const CUP_W = 150 // on-screen cup width (viewBox is 240x340)
 const CUP_VB = { w: 240, h: 340, rimY: 84, rimRx: 78, pivotX: 120, pivotY: 340 * 0.86 }
@@ -21,17 +23,6 @@ const MOVE_MS = 80 // how often my cup goes out (dice use 60)
 export const POUR_ROT = 74 // a full pour tips this far
 const GRAV = 1750
 const MAX_DROPS = 320
-const MAX_PUDDLES = 60
-const POOL_X = 1.55, POOL_Y = 0.3, SPREAD = 2.4
-
-// darken/lighten a #rrggbb by factor f (f<1 darkens) — the shake's shading
-export function shade(hex, f) {
-	const m = /^#([0-9a-f]{6})$/i.exec(hex || "")
-	if (!m) return hex
-	const n = parseInt(m[1], 16)
-	const ch = (v) => Math.max(0, Math.min(255, Math.round(v * f)))
-	return "#" + [ch(n >> 16), ch((n >> 8) & 255), ch(n & 255)].map((v) => v.toString(16).padStart(2, "0")).join("")
-}
 
 // The cup, tinted to its owner. Every SVG id is suffixed `key` because ids
 // are document-global and several cups share the page.
@@ -114,126 +105,21 @@ export function mountMilkshake(opts) {
 		el.style.top = Math.round(py) + "px"
 	}
 
-	// ---- canvases: the falling drops and the mess they leave ----
-	let gctx = null,
-		dctx = null,
-		floorY = 0
+	// ---- canvases: the falling drops, and the mess they leave (the shared
+	// puddle ground — pools per OWNER, so Wipe up mops only my own) ----
+	const ground = createGround({ canvas: groundC, doc, win })
+	let dctx = null
 	function sizeCanvases() {
 		const DPR = Math.min(2, win?.devicePixelRatio || 1)
-		for (const c of [groundC, dropsC]) {
-			c.width = vw() * DPR
-			c.height = vh() * DPR
-			c.style.width = vw() + "px"
-			c.style.height = vh() + "px"
-		}
-		gctx = groundC.getContext?.("2d") || null
+		dropsC.width = vw() * DPR
+		dropsC.height = vh() * DPR
+		dropsC.style.width = vw() + "px"
+		dropsC.style.height = vh() + "px"
 		dctx = dropsC.getContext?.("2d") || null
-		gctx?.setTransform(Math.min(2, win?.devicePixelRatio || 1), 0, 0, Math.min(2, win?.devicePixelRatio || 1), 0, 0)
-		dctx?.setTransform(Math.min(2, win?.devicePixelRatio || 1), 0, 0, Math.min(2, win?.devicePixelRatio || 1), 0, 0)
-		// the spill pools just above the foot bar (chat dock still included)
-		const footH = parseFloat(win?.getComputedStyle?.(doc.documentElement).getPropertyValue("--footbar-h")) || 0
-		floorY = vh() - footH - 26
-		groundDirty = true
+		dctx?.setTransform(DPR, 0, 0, DPR, 0, 0)
+		ground.resize()
 	}
-
-	// ---- the spill model (from the reference): merging pools, per colour ----
-	const drops = [] // { x, y, vx, vy, r, depth, color }
-	const puddles = [] // { id, x, y, vol, r, rT, color }
-	const flecks = [] // { x, y, r, color }
-	let puddleId = 0
-	let groundDirty = true
-	const radiusFor = (vol) => Math.min(230, Math.sqrt(vol / Math.PI) * SPREAD)
-	const poolDist = (dx, dy) => Math.hypot(dx / POOL_X, dy / POOL_Y)
-	function addToPuddles(x, y, r, color) {
-		const vol = r * r * 2.6
-		let host = null
-		for (const p of puddles) if (p.color === color && poolDist(x - p.x, y - p.y) < p.r + r * 2.5) { host = p; break }
-		if (host) {
-			const w = (vol / (host.vol + vol)) * 0.7
-			host.x += (x - host.x) * w
-			host.y += (y - host.y) * w
-			host.vol += vol
-			host.rT = radiusFor(host.vol)
-		} else if (puddles.length < MAX_PUDDLES) {
-			puddles.push({ id: ++puddleId, x, y, vol, r, rT: radiusFor(vol), color })
-		} else {
-			let best = puddles[0], bd = Infinity
-			for (const p of puddles) {
-				const d = poolDist(x - p.x, y - p.y)
-				if (d < bd) { bd = d; best = p }
-			}
-			best.vol += vol
-			best.rT = radiusFor(best.vol)
-		}
-		flecks.push({ x: x + (Math.random() - 0.5) * r * 13, y: y + (Math.random() - 0.5) * r * 2.8, r: 1 + Math.random() * 2.3, color })
-		if (flecks.length > 240) flecks.splice(0, flecks.length - 240)
-		groundDirty = true
-	}
-	function mergeOverlapping() {
-		let merged = true
-		while (merged) {
-			merged = false
-			for (let i = 0; i < puddles.length && !merged; i++)
-				for (let j = i + 1; j < puddles.length; j++) {
-					const a = puddles[i], b = puddles[j]
-					if (a.color !== b.color) continue
-					if (poolDist(a.x - b.x, a.y - b.y) < (a.r + b.r) * 0.84) {
-						const v = a.vol + b.vol
-						a.x = (a.x * a.vol + b.x * b.vol) / v
-						a.y = (a.y * a.vol + b.y * b.vol) / v
-						a.vol = v
-						a.r = Math.max(a.r, b.r)
-						a.rT = radiusFor(v)
-						puddles.splice(j, 1)
-						merged = true
-						groundDirty = true
-						break
-					}
-				}
-		}
-	}
-	function blobPath(ctx, p, k) {
-		const N = 18, R = p.r * k, pts = []
-		for (let i = 0; i < N; i++) {
-			const a = (i / N) * 6.28318
-			const w = 1 + 0.15 * Math.sin(a * 3 + p.id * 1.7) + 0.09 * Math.sin(a * 5 + p.id * 0.9)
-			pts.push([p.x + Math.cos(a) * R * w * POOL_X, p.y + Math.sin(a) * R * w * POOL_Y])
-		}
-		ctx.beginPath()
-		ctx.moveTo((pts[N - 1][0] + pts[0][0]) / 2, (pts[N - 1][1] + pts[0][1]) / 2)
-		for (let i = 0; i < N; i++) {
-			const [cx, cy] = pts[i], [nx, ny] = pts[(i + 1) % N]
-			ctx.quadraticCurveTo(cx, cy, (cx + nx) / 2, (cy + ny) / 2)
-		}
-		ctx.closePath()
-	}
-	function drawGround() {
-		if (!gctx) return
-		gctx.clearRect(0, 0, vw(), vh())
-		for (const f of flecks) {
-			gctx.fillStyle = shade(f.color, 0.85)
-			gctx.beginPath()
-			gctx.ellipse(f.x, f.y, f.r * 1.5, f.r * 0.5, 0, 0, 6.28318)
-			gctx.fill()
-		}
-		for (const p of puddles) {
-			gctx.fillStyle = shade(p.color, 0.85)
-			blobPath(gctx, p, 1)
-			gctx.fill()
-		}
-		for (const p of puddles) {
-			gctx.fillStyle = p.color
-			blobPath(gctx, p, 0.84)
-			gctx.fill()
-		}
-		for (const p of puddles) {
-			const rx = p.r * POOL_X, ry = p.r * POOL_Y
-			gctx.fillStyle = "rgba(255,255,255,.38)"
-			gctx.beginPath()
-			gctx.ellipse(p.x - rx * 0.3, p.y - ry * 0.4, rx * 0.3, Math.max(1, ry * 0.26), -0.1, 0, 6.28318)
-			gctx.fill()
-		}
-	}
+	const drops = [] // { x, y, vx, vy, r, depth, color, owner }
 
 	// ---- cups: mine + everyone else's ----
 	let open = false, // my cup is out
@@ -256,8 +142,7 @@ export function mountMilkshake(opts) {
 		if (!on) {
 			// nobody's cup is out: the mess is gone with them
 			drops.length = 0
-			puddles.length = 0
-			flecks.length = 0
+			ground.wipe()
 		} else loop()
 	}
 
@@ -273,7 +158,7 @@ export function mountMilkshake(opts) {
 		}
 	}
 	// emit drops from one cup this frame; returns how many (owner drains level)
-	function emitFrom(px, py, r, lv, color, dt, vx0 = 0) {
+	function emitFrom(px, py, r, lv, color, owner, dt, vx0 = 0) {
 		const over = Math.abs(r) - spillAngle(lv)
 		if (lv <= 0 || over <= 0) return 0
 		const lip = lipPoint(px, py, r)
@@ -289,6 +174,7 @@ export function mountMilkshake(opts) {
 				r: 2 + Math.random() * 3.6,
 				depth: Math.random() * 22,
 				color,
+				owner,
 			})
 			made++
 		}
@@ -319,7 +205,7 @@ export function mountMilkshake(opts) {
 		lastT = now
 		// my cup spills and drains
 		if (open) {
-			const made = emitFrom(x, y, rot, level, safeColor(getMyColor()), dt, dragVX)
+			const made = emitFrom(x, y, rot, level, safeColor(getMyColor()), myUserId(), dt, dragVX)
 			if (made) {
 				level = Math.max(0, level - made * 0.0022)
 				paintMyLevel()
@@ -328,19 +214,9 @@ export function mountMilkshake(opts) {
 		}
 		// everyone else's cups spill from their relayed state (their own screens
 		// drain the level; here we just pour what they report)
-		for (const r of remote.values()) emitFrom(r.x * (vw() - CUP_W), r.y * (vh() - cupH()), r.rot, r.level, r.color, dt)
-		// pools ease out, then merge
-		let growing = false
-		for (const p of puddles)
-			if (Math.abs(p.r - p.rT) > 0.15) {
-				p.r += (p.rT - p.r) * Math.min(1, dt * 5.5)
-				growing = true
-			}
-		if (growing) mergeOverlapping()
-		if (growing || groundDirty) {
-			drawGround()
-			groundDirty = false
-		}
+		for (const [uid, r] of remote) emitFrom(r.x * (vw() - CUP_W), r.y * (vh() - cupH()), r.rot, r.level, r.color, uid, dt)
+		// pools ease out, merge, repaint when the ground says so
+		if (ground.tick(dt)) ground.draw()
 		// drops fall
 		if (dctx) {
 			dctx.clearRect(0, 0, vw(), vh())
@@ -349,9 +225,9 @@ export function mountMilkshake(opts) {
 				d.vy += GRAV * dt
 				d.x += d.vx * dt
 				d.y += d.vy * dt
-				const land = floorY + d.depth
+				const land = ground.floorY + d.depth
 				if (d.y >= land) {
-					addToPuddles(d.x, land, d.r, d.color)
+					ground.add(d.x, land, d.r, d.color, d.owner)
 					drops.splice(i, 1)
 					continue
 				}
@@ -509,12 +385,8 @@ export function mountMilkshake(opts) {
 	// ---- HUD ----
 	layer.addEventListener("click", (e) => {
 		if (e.target.closest('[data-act="ms-exit"]')) exit()
-		else if (e.target.closest('[data-act="ms-wipe"]')) {
-			puddles.length = 0
-			flecks.length = 0
-			groundDirty = true
-			drawGround()
-		} else if (e.target.closest('[data-act="ms-refill"]')) {
+		else if (e.target.closest('[data-act="ms-wipe"]')) ground.wipe(myUserId()) // my own mess only
+		else if (e.target.closest('[data-act="ms-refill"]')) {
 			level = 1
 			paintMyLevel()
 			hint.textContent = "Drag to move · click to tip and pour · whip it to slosh"
@@ -636,7 +508,10 @@ export function mountMilkshake(opts) {
 			return [...remote.keys()]
 		},
 		get puddleCount() {
-			return puddles.length
+			return ground.puddles.length
+		},
+		get ground() {
+			return ground
 		},
 	}
 }
