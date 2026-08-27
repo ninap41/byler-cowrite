@@ -65,7 +65,8 @@ export function adminUsersHtml(users, now) {
 				`<br /><span class="gc-meta" style="display:inline" data-tip="${esc(when(u.lastSeen))}">${esc(u.email)} · ` +
 				`${esc(agoLabel(u.lastSeen, now))} · ${u.wordCount} words · ${u.games} game${u.games === 1 ? "" : "s"}</span></span>` +
 				(u.admin
-					? `<span class="gc-meta" style="flex:none">protected</span>`
+					? `<span class="gc-meta" style="flex:none">protected</span>` +
+					  `<button class="ghost" style="flex:none" data-admin-act="demote-user" data-admin-target="${esc(u.username)}">Demote</button>`
 					: `<button class="ghost danger" style="flex:none" data-admin-act="delete-user" data-admin-target="${esc(u.username)}">Remove</button>`) +
 				`</div>`,
 		)

@@ -277,6 +277,7 @@
 					end: `End the game ${target}? Its writers get the reveal.`,
 					"delete-game": `Delete the story ${target} for everyone, forever?`,
 					"delete-user": `Remove the account ${target}? This cannot be undone.`,
+					"demote-user": `Remove admin from ${target}? You can always make them an admin again by editing ADMIN_EMAILS or the account directly.`,
 				}
 				if (!window.confirm(asks[act])) return
 				btn.disabled = true
@@ -284,6 +285,7 @@
 					if (act === "end") await api(`/api/admin/games/${target}/end`, {})
 					if (act === "delete-game") await api(`/api/games/${target}`, null, "DELETE")
 					if (act === "delete-user") await api(`/api/admin/users/${encodeURIComponent(target)}`, null, "DELETE")
+					if (act === "demote-user") await api(`/api/admin/users/${encodeURIComponent(target)}/demote`, {})
 					await refresh()
 				} catch (err) {
 					btn.disabled = false

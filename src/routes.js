@@ -1008,6 +1008,22 @@ export function registerRoutes(app, game) {
     res.json({ ok: true });
   });
 
+  // Strip admin off an account that was flagged by hand (not through the
+  // ADMIN_EMAILS allowlist) — e.g. a test account someone toggled during
+  // development. That's the only way an admin row can end up removable: an
+  // allowlisted email gets re-promoted on its next login/signup (see below),
+  // so demoting one here would silently revert — refuse instead of lying.
+  app.post("/api/admin/users/:username/demote", (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    const target = findByUsername(req.params.username);
+    if (!target) return res.status(404).json({ error: "No such user." });
+    if (!isAdmin(target)) return res.status(400).json({ error: "That account isn't an admin." });
+    if (ADMIN_EMAILS.has(target.email)) return res.status(400).json({ error: "This account's admin status is tied to its email and can't be revoked here." });
+    target.admin = false;
+    saveStore();
+    res.json({ ok: true });
+  });
+
   // Every running game, not just the admin's own — the moderation view.
   app.get("/api/admin/games", (req, res) => {
     if (!requireAdmin(req, res)) return;
