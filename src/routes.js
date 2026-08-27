@@ -491,8 +491,18 @@ export function registerRoutes(app, game) {
 
   // ---- Inbox ----
   // The wire shape resolves fromId to a public identity (never the account id).
-  const msgShape = (m) => {
+  const ident = (x) => x
+    ? { username: x.username, color: x.color, badge: badgeName(x.currentBadge),
+        avatar: x.avatar || "", avatarFit: x.avatarFit || "cover" }
+    : null;
+  // `owner` is whose inbox the copy sits in: a received message's recipient
+  // is the owner; a sent copy (`mine`) names its recipient by `toId`, stored
+  // at send time. Older sent copies with no toId have no known recipient.
+  const msgShape = (m, owner) => {
     const from = m.fromId ? store.users.find((x) => x.id === m.fromId) : null;
+    const to = m.mine === true
+      ? (m.toId ? store.users.find((x) => x.id === m.toId) : null)
+      : (m.toId ? store.users.find((x) => x.id === m.toId) : null) || owner;
     return {
       id: m.id, type: m.type, text: m.text, read: m.read === true, ts: m.ts,
       code: m.code || null, // game-invite messages carry the game code
@@ -504,17 +514,15 @@ export function registerRoutes(app, game) {
       threadId: m.threadId || m.id,
       mine: m.mine === true,
 
-      from: from
-        ? { username: from.username, color: from.color, badge: badgeName(from.currentBadge),
-            avatar: from.avatar || "", avatarFit: from.avatarFit || "cover" }
-        : null,
+      from: ident(from),
+      to: ident(to),
     };
   };
 
   app.get("/api/inbox", (req, res) => {
     const u = authedUser(req);
     if (!u) return res.status(401).json({ error: "Sign in first." });
-    const messages = (u.inbox || []).map(msgShape).sort((a, b) => b.ts - a.ts);
+    const messages = (u.inbox || []).map((m) => msgShape(m, u)).sort((a, b) => b.ts - a.ts);
     res.json({ messages, unread: messages.filter((m) => !m.read).length });
   });
 
@@ -563,10 +571,10 @@ export function registerRoutes(app, game) {
     const threadId = randomUUID();
     for (const a of admins) {
       a.inbox = a.inbox || [];
-      a.inbox.unshift(makeMsg("help", u.id, text, { threadId }));
+      a.inbox.unshift(makeMsg("help", u.id, text, { threadId, toId: a.id }));
     }
     u.inbox = u.inbox || [];
-    u.inbox.unshift(makeMsg("help", u.id, text, { threadId, mine: true, read: true }));
+    u.inbox.unshift(makeMsg("help", u.id, text, { threadId, mine: true, read: true, toId: admins[0].id }));
     saveStore();
     res.json({ ok: true, sentTo: admins.map((a) => a.username) });
   });
@@ -588,9 +596,9 @@ export function registerRoutes(app, game) {
     u.lastHelpAt = Date.now();
     const threadId = randomUUID();
     to.inbox = to.inbox || [];
-    to.inbox.unshift(makeMsg("note", u.id, text, { threadId }));
+    to.inbox.unshift(makeMsg("note", u.id, text, { threadId, toId: to.id }));
     u.inbox = u.inbox || [];
-    u.inbox.unshift(makeMsg("note", u.id, text, { threadId, mine: true, read: true }));
+    u.inbox.unshift(makeMsg("note", u.id, text, { threadId, mine: true, read: true, toId: to.id }));
     saveStore();
     res.json({ ok: true });
   });
@@ -612,8 +620,8 @@ export function registerRoutes(app, game) {
     const threadId = m.threadId || m.id;
     m.threadId = threadId;
     to.inbox = to.inbox || [];
-    to.inbox.unshift(makeMsg("note", u.id, text, { threadId }));
-    u.inbox.unshift(makeMsg("note", u.id, text, { threadId, mine: true, read: true }));
+    to.inbox.unshift(makeMsg("note", u.id, text, { threadId, toId: to.id }));
+    u.inbox.unshift(makeMsg("note", u.id, text, { threadId, mine: true, read: true, toId: to.id }));
     m.read = true;
     saveStore();
     res.json({ ok: true, threadId });

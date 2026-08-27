@@ -164,10 +164,19 @@ test("messaging a writer from their profile drops a note that starts a conversat
   assert.ok(theirs.threadId, "starts a thread they can reply into");
   const mine = (await inboxOf(a)).find((m) => m.threadId === theirs.threadId);
   assert.ok(mine && mine.mine && mine.read, "the sender keeps a read copy so both halves show");
+  // both copies name both ends by username — never an account id
+  assert.equal(theirs.from.username, "msgsender");
+  assert.equal(theirs.to.username, "msgtarget");
+  assert.equal(mine.from.username, "msgsender");
+  assert.equal(mine.to.username, "msgtarget");
+  assert.ok(!("id" in theirs.to) && !("email" in theirs.to), "the recipient shape is public only");
   // and it's a real conversation — a reply chains onto it
   await ctx.api("/api/inbox/reply", { id: theirs.id, text: "thank you!" }, b.token);
   const chain = (await inboxOf(a)).filter((m) => m.threadId === theirs.threadId);
   assert.equal(chain.length, 2);
+  const reply = chain.find((m) => m.text === "thank you!");
+  assert.equal(reply.from.username, "msgtarget");
+  assert.equal(reply.to.username, "msgsender", "a reply names who it answers");
   // the 30s cadence is shared with the help box
   assert.equal((await ctx.api("/api/message", { username: "msgtarget", text: "again" }, a.token)).status, 429);
 });

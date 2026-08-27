@@ -78,10 +78,20 @@ export function friendRowHtml(u) {
 // all: the dashboard preview is a NOTICE BOARD (read it, delete it, go to the
 // inbox to talk), so it never carries a composer — /inbox is where a
 // conversation happens.
+// Who a message is between. A person-to-person message reads "sender → recipient"
+// by username (my own sent copy says "You" on whichever side is me); a system
+// note is just the site's name — there is no recipient to name.
+export function whoHtml(m) {
+	if (!m.from) return `<b>${esc(siteName())}</b>`
+	const name = (u) => `<b style="color:${safeColor(u.color)}">${esc(u.username)}</b>`
+	const sender = m.mine ? `<b>You</b>` : miniAvatar(m.from) + name(m.from)
+	if (!m.to) return sender
+	const recipient = m.mine ? name(m.to) : `<b>You</b>`
+	return `<span class="ib-who">${sender}<span class="ib-arrow" aria-label="to">→</span>${recipient}</span>`
+}
+
 export function inboxMsgHtml(m, { reply = true, chain = [], replyTo = m, fold = false } = {}) {
-	const from = m.from
-		? miniAvatar(m.from) + `<b style="color:${safeColor(m.from.color)}">${esc(m.from.username)}</b>`
-		: `<b>${esc(siteName())}</b>`
+	const from = whoHtml(m)
 	const when = m.ts ? new Date(m.ts).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : ""
 	return (
 		`<span class="ib-dot${m.read ? "" : " unread"}" title="${m.read ? "Read" : "Unread"}"></span>` +
@@ -115,11 +125,7 @@ export function foldBtnHtml(n) {
 // own replies say "You" and sit to the right, so a chain reads as an exchange
 // rather than a list of notes that happen to share a subject.
 export function chainMsgHtml(m) {
-	const who = m.mine
-		? `<b>You</b>`
-		: m.from
-			? miniAvatar(m.from) + `<b style="color:${safeColor(m.from.color)}">${esc(m.from.username)}</b>`
-			: `<b>${esc(siteName())}</b>`
+	const who = whoHtml(m)
 	const when = m.ts ? new Date(m.ts).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : ""
 	return (
 		`<span class="ib-chain-msg${m.mine ? " mine" : ""}${m.read ? "" : " unread"}">` +
