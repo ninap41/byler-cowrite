@@ -39,7 +39,7 @@ test("PING pongs; /cowrite-link and /cowrite-online answer", () => {
 test("message shapes: the announcement's markdown verbatim; a game with Join + Spectate links", () => {
   assert.equal(announcementMessage({ markdown: "# Hi\n\n**there**", title: "Hi" }).content, "# Hi\n\n**there**");
   const g = gameMessage({ code: "ABCD", phase: "writing", name: "The Snowball", hostName: "mike", players: 3 });
-  assert.match(g.content, /The Snowball.*mike.*3 writers.*ABCD/);
+  assert.match(g.content, /^🌀☀️ \*\*The Snowball\*\* is live — hosted by \*\*mike\*\* · 3 writers · code \*\*ABCD\*\*$/);
   const [join, spec] = g.components[0].components;
   assert.match(join.url, /\/game\?code=ABCD&from=discord$/, "Join asks before seating");
   assert.match(spec.url, /\/game\?spectate=ABCD$/);

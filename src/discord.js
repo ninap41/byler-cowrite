@@ -92,10 +92,10 @@ export const postAnnouncement = (post) => postToChannel(env("DISCORD_ANNOUNCE_CH
 const link = (label, url) => ({ type: 2, style: 5, label, url });
 export const gameMessage = (s) => {
   const lobby = s.phase === "waiting";
-  const who = `hosted by ${s.hostName || "someone"} · ${s.players} writer${s.players === 1 ? "" : "s"} · code **${s.code}**`;
+  const who = `hosted by **${s.hostName || "someone"}** · ${s.players} writer${s.players === 1 ? "" : "s"} · code **${s.code}**`;
   const content = lobby
-    ? `✍️ **${s.name || s.code}** is gathering writers — ${who}. Jump in before it starts!`
-    : `🎲 **${s.name || s.code}** is live — ${who}`;
+    ? `🌀☀️ **${s.name || s.code}** is gathering writers — ${who}. Jump in before it starts!`
+    : `🌀☀️ **${s.name || s.code}** is live — ${who}`;
   const buttons = [link(lobby ? "Join the lobby" : "Ask to join", siteUrl(`/game?code=${s.code}&from=discord`))];
   if (!lobby) buttons.push(link("Spectate", siteUrl(`/game?spectate=${s.code}`)));
   return { content, components: [{ type: 1, components: buttons }] };
