@@ -364,6 +364,32 @@ export function createGame(io) {
     approved: true, // gating only applies to seats revived from a save
   });
 
+  // Solo writes count too: words an author ADDS to their own document credit
+  // the account (a rank-up lands in the inbox — there is no chat to announce
+  // it in). The document remembers its high-water mark (`creditedWords`) so
+  // cutting a paragraph and writing it back never counts twice.
+  function creditSoloWords(u, doc) {
+    const mark = doc.creditedWords || 0;
+    const words = Math.max(0, (doc.wordCount || 0) - mark);
+    if (!words) return 0;
+    doc.creditedWords = mark + words;
+    u.wordCount += words;
+    const before = u.currentBadge;
+    const tiersBefore = new Set(u.badges);
+    awardWordBadges(u);
+    if (u.currentBadge !== before) {
+      const unlocks = rewardsForTiers(u.badges.filter((id) => !tiersBefore.has(id)));
+      const what = describeRewards(unlocks);
+      if (!Array.isArray(u.inbox)) u.inbox = [];
+      u.inbox.unshift(makeMsg("system", null,
+        `🎉 You reached ${badgeName(u.currentBadge)}` + (what ? `, that unlocks ${what}.` : `! ${badgeDesc(u.currentBadge) || ""}`.trimEnd()) +
+        (unlocks.themes.length ? " Find your new theme in the 🎨 menu at the foot of any page." : ""),
+        { unlocks }));
+    }
+    saveStore();
+    return words;
+  }
+
   // Credit a committed line to the writer's account: word count, games list,
   // and any newly crossed badge tier (announced in chat).
   function creditLine(s, writer, cleanHtml) {
@@ -2258,5 +2284,5 @@ export function createGame(io) {
     }
     return { mode: "simple", prompt: generateSimplePrompt(PROMPT_BANK, { recent: [] }).prompt, meta: null };
   }
-  return { rollPrompt, sessions, onlineSockets, readSnapshot, allSnapshots, gameSummary, freshStory, inGame, myGamesFor, recentGamesFor, deleteGame, endGameByCode, sleepGameByCode, inviteToGame, renameUser, setTags, commentRows, closeDocFor, closeDocReaders };
+  return { creditSoloWords, rollPrompt, sessions, onlineSockets, readSnapshot, allSnapshots, gameSummary, freshStory, inGame, myGamesFor, recentGamesFor, deleteGame, endGameByCode, sleepGameByCode, inviteToGame, renameUser, setTags, commentRows, closeDocFor, closeDocReaders };
 }

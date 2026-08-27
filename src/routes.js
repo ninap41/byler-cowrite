@@ -882,8 +882,9 @@ export function registerRoutes(app, game) {
     if (!canEdit(doc, u.id)) return res.status(403).json({ error: "Only the author can edit this." });
     if (typeof req.body?.title === "string") doc.title = cleanTitle(req.body.title);
     if (typeof req.body?.html === "string") doc.html = sanitizeDoc(req.body.html);
-    writeDoc(doc);
-    res.json({ doc: docPayload(doc, u) });
+    writeDoc(doc); // recomputes wordCount
+    if (game.creditSoloWords(u, doc)) writeDoc(doc); // the high-water mark moved
+    res.json({ doc: docPayload(doc, u), wordCount: u.wordCount });
   });
 
   app.delete("/api/docs/:id", (req, res) => {

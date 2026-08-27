@@ -732,3 +732,18 @@ test("a sprint logs its words on the account and the document; only the author c
   assert.equal((await ctx.api(`/api/docs/${doc.id}/sprint`, { words: 5, seconds: 5 }, bob.token)).status, 403);
   assert.equal((await ctx.api(`/api/docs/${doc.id}/sprint`, { words: 5, seconds: 5 })).status, 401);
 });
+
+test("solo writes count: words an author adds credit the account once (a high-water mark, so cutting and rewriting never double-counts)", async () => {
+  const w = await signup(ctx, "solowords", "solowords@x.com");
+  const doc = await newDoc(w.token, "Counted");
+  const me0 = (await ctx.api("/api/me", undefined, w.token)).data.user.wordCount;
+  const put = (html) => ctx.api("/api/docs/" + doc.id, { html }, w.token, "PUT");
+  let r = await put("<p>one two three four five</p>");
+  assert.equal(r.status, 200);
+  assert.equal(r.data.wordCount, me0 + 5);
+  r = await put("<p>one two</p>"); // cut three words: nothing to credit, nothing taken away
+  assert.equal(r.data.wordCount, me0 + 5);
+  r = await put("<p>one two three four five six</p>"); // back up past the mark by one
+  assert.equal(r.data.wordCount, me0 + 6);
+  assert.equal((await ctx.api("/api/me", undefined, w.token)).data.user.wordCount, me0 + 6);
+});
