@@ -555,12 +555,25 @@ export function createGame(io) {
       ? s.turnOrder.map((id) => s.writers.get(id)?.name)
       : [...s.writers.values()].map((w) => w.name);
 
+  // The scoreboard of a non-friendly game: words each account has committed
+  // to THIS story (a line with no account is nobody's).
+  function gameWords(s) {
+    const words = new Map();
+    for (const l of s.story || []) {
+      if (!l.userId) continue;
+      const n = plainText(l.html).split(/\s+/).filter(Boolean).length;
+      words.set(l.userId, (words.get(l.userId) || 0) + n);
+    }
+    return words;
+  }
   function roster(s) {
+    const score = s.friendly === false ? gameWords(s) : null; // friendly games keep no score
     return [...s.writers.entries()].map(([id, w]) => ({
       id, name: w.name, color: w.color, badge: w.badge ?? null,
       avatar: w.avatar ?? "", avatarFit: w.avatarFit ?? "cover",
       isHost: id === s.hostId, connected: w.connected !== false,
       userId: w.userId ?? null, // gimmick relays already speak userId (the curse targets by it)
+      ...(score ? { words: score.get(w.userId) || 0 } : {}),
     }));
   }
   const broadcastRoster = (s) =>

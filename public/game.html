@@ -225,6 +225,8 @@
 						</button>
 					</div>
 					<h3 style="color: var(--accent-2)">The finished story</h3>
+					<!-- a non-friendly game keeps score: words per writer, most first -->
+					<div id="overScore" class="scoreboard hidden"></div>
 					<div class="prompt-banner" id="overPrompt"></div>
 					<div class="story" id="overStory" style="max-height: 48vh"></div>
 					<div id="continueControls" class="hidden">
@@ -1033,6 +1035,7 @@
 							presenceHtml(on) +
 							miniAvatar(w) +
 							`<span style="color:${col}">${esc(w.name)}</span>` +
+							(w.words != null ? `<span class="chip-words" title="Words in this story">${w.words.toLocaleString()}w</span>` : "") +
 							(next ? `<em class="up-next">next</em>` : "") +
 							whoMarks(w) +
 							seatMenuHtml(w, st.writers) +
@@ -1283,12 +1286,33 @@ $("pauseBtn").onclick = () =>
 			}
 
 			// ---- Game over ----
+			// The reveal's scoreboard: only a non-friendly game's roster carries
+			// `words`, so a friendly game renders nothing here.
+			function scoreboardHtml(writers) {
+				const rows = (writers || []).filter((w) => w.words != null)
+				if (!rows.length) return ""
+				rows.sort((a, b) => b.words - a.words)
+				const top = rows[0].words
+				return (
+					`<b class="sb-title">🏆 Scoreboard</b>` +
+					rows
+						.map(
+							(w, i) =>
+								`<span class="sb-row${i === 0 && top > 0 ? " lead" : ""}">` +
+								`<b class="sb-rank">${i + 1}</b>${miniAvatar(w)}<span style="color:${safeColor(w.color)}">${esc(w.name)}</span>` +
+								`<span class="sb-words">${w.words.toLocaleString()} words</span></span>`,
+						)
+						.join("")
+				)
+			}
 			socket.on("game-over", ({ prompt, story }) => {
 				clearInterval(tickInterval)
 				vecnaClock.stop()
 				turnAlert(false)
 				lineChime.note(story, myId)
 				onlyShow("over")
+				$("overScore").innerHTML = scoreboardHtml(tableWriters)
+				$("overScore").classList.toggle("hidden", !$("overScore").innerHTML)
 				$("overPrompt").innerHTML = promptHtml(prompt)
 				renderStory($("overStory"), story, false)
 				rebuildExports(prompt, story)

@@ -7109,6 +7109,7 @@ body.resizing-side {
 .guided-controls label.hidden,
 .player-chip.hidden,
 .prompt-roll-result.hidden,
+.scoreboard.hidden,
 .doc-main.hidden {
 	display: none;
 }
@@ -9598,4 +9599,50 @@ html.vcx-live[data-theme="vecna"] #vc-pend {
 	[contenteditable="true"] {
 		font-size: max(1em, 16px);
 	}
+}
+
+/* ---- the scoreboard of a non-friendly game: a words chip on each player
+   and a ranked list on the reveal ---- */
+.player-chip .chip-words {
+	font-family: var(--font-mono);
+	font-size: 0.7rem;
+	color: var(--muted);
+	background: var(--chip);
+	padding: 1px 6px;
+	border-radius: 999px;
+}
+.scoreboard {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	margin: 0 0 14px;
+	padding: 12px 14px;
+	border: 1px solid var(--panel-brd);
+	border-radius: var(--r-md);
+	background: var(--chip);
+}
+.scoreboard .sb-title {
+	font-size: 0.78rem;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--muted);
+}
+.scoreboard .sb-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+.scoreboard .sb-row.lead {
+	font-weight: 700;
+}
+.scoreboard .sb-rank {
+	width: 1.4em;
+	color: var(--muted);
+	font-family: var(--font-mono);
+}
+.scoreboard .sb-words {
+	margin-left: auto;
+	font-family: var(--font-mono);
+	font-size: 0.8rem;
+	color: var(--muted);
 }

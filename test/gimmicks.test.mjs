@@ -909,3 +909,21 @@ test("every registry gimmick is linked in game.html: a launcher in the 🎲 menu
   assert.equal((offLine.match(/gimmicksOff\(\)/g) || []).length, mounts,
     "the friendly switch sweeps every mounted gimmick off");
 });
+
+test("a non-friendly game keeps score: roster/game-state writers carry `words` for THIS story; a friendly game carries none", async () => {
+  const g = await startedGame(ctx, { turnSeconds: 60, rounds: 4, friendly: false });
+  let st = null;
+  g.A.on("game-state", (s) => (st = s));
+  await ctx.emit(g.A, "submit-line", { text: "one two three" });
+  await ctx.wait(150);
+  const host = st.writers.find((w) => w.id === g.A.id);
+  const mike = st.writers.find((w) => w.id === g.B.id);
+  assert.equal(host.words, 3);
+  assert.equal(mike.words, 0);
+  const f = await startedGame(ctx, { turnSeconds: 60, rounds: 4, friendly: true });
+  let fst = null;
+  f.A.on("game-state", (s) => (fst = s));
+  await ctx.emit(f.A, "submit-line", { text: "four five" });
+  await ctx.wait(150);
+  assert.ok(fst.writers.every((w) => w.words === undefined), "a friendly game is not a race");
+});
