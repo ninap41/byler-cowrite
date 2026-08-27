@@ -1723,7 +1723,8 @@ a.solo-title:hover {
 	position: fixed;
 	right: 18px;
 	bottom: var(--footbar-h);
-	z-index: 45;
+	/* above every gimmick layer (z 60): no spill, die or cup ever covers the chat */
+	z-index: 62;
 	width: min(340px, calc(100vw - 36px));
 	display: flex;
 	flex-direction: column;
@@ -7965,8 +7966,12 @@ body.resizing-side {
 	opacity: 0.7;
 	cursor: not-allowed;
 }
-.gd-menu-item.locked.table {
-	opacity: 0.85;
+/* a tablemate's unlock is not greyed: the open lock says whose it is, and
+   disabled only means it isn't yours to launch */
+.gd-menu-item.locked.table,
+.gd-menu-item.locked.table:disabled {
+	opacity: 1;
+	cursor: not-allowed;
 }
 .gd-menu-note {
 	padding: 8px 10px;

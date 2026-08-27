@@ -219,3 +219,12 @@ test("gimmicksOff: a friendly switch sweeps every die away and reports whether a
   assert.deepEqual(t.others, []);
   assert.ok(document.getElementById("gimmickLayer").classList.contains("hidden"));
 });
+
+test("a tablemate's unlock isn't greyed, and the chat dock sits above every gimmick layer so no spill covers it", async () => {
+  const { readFileSync } = await import("node:fs");
+  const css = readFileSync(new URL("../public/css/base.css", import.meta.url), "utf-8");
+  assert.match(css, /\.gd-menu-item\.locked\.table:disabled \{[^}]*opacity: 1/);
+  const dockZ = Number(css.match(/\.chat-dock \{[^}]*z-index: (\d+)/)[1]);
+  const layerZ = [...css.matchAll(/\n\.(?:ms|sk|ar|vcx|gg|db)-layer \{[^}]*z-index: (\d+)/g)].map((m) => Number(m[1]));
+  assert.ok(layerZ.length >= 3 && layerZ.every((z) => z < dockZ), `chat dock ${dockZ} above layers ${layerZ}`);
+});
