@@ -80,7 +80,9 @@ test("menuHtml: friendly game / unseated / locked / a tablemate's unlock / play"
   assert.match(locked, /Unlocks at 🧙 Sorcerer · 20,000 words/);
   assert.ok(!/data-act="play"/.test(locked) && /disabled/.test(locked), "a locked row is disabled");
   const table = menuHtml({ ...gate, friendly: false, unlocked: [], table: ["d20"] });
-  assert.match(table, /class="gd-menu-item locked table"[^>]*disabled[^>]*>🔓 Hellfire d20/, "a tablemate's rank opens the lock but not the row");
+  assert.match(table, /class="gd-menu-item locked table"[^>]*aria-disabled="true"[^>]*>🔓 Hellfire d20/, "a tablemate's rank opens the lock but not the row");
+  assert.ok(!/locked table"[^>]* disabled/.test(table), "not the disabled attribute — the UA would grey the text");
+  assert.ok(!/locked table"[^>]*data-act/.test(table), "and no data-act, so a click does nothing");
   assert.match(table, /A tablemate has this unlocked · Unlocks at 🧙 Sorcerer · 20,000 words to play it yourself/);
   assert.match(menuHtml({ ...gate, friendly: false, unlocked: ["d20"], table: ["d20"] }), /🎲 Hellfire d20 · Play/, "my own rank wins");
   assert.match(menuHtml({ ...gate, friendly: false, unlocked: ["d20"] }), /data-act="play">🎲 Hellfire d20 · Play/);
@@ -223,7 +225,7 @@ test("gimmicksOff: a friendly switch sweeps every die away and reports whether a
 test("a tablemate's unlock isn't greyed, and the chat dock sits above every gimmick layer so no spill covers it", async () => {
   const { readFileSync } = await import("node:fs");
   const css = readFileSync(new URL("../public/css/base.css", import.meta.url), "utf-8");
-  assert.match(css, /\.gd-menu-item\.locked\.table:disabled \{[^}]*opacity: 1/);
+  assert.match(css, /\.gd-menu-item\.locked\.table \{[^}]*opacity: 1/);
   const dockZ = Number(css.match(/\.chat-dock \{[^}]*z-index: (\d+)/)[1]);
   const layerZ = [...css.matchAll(/\n\.(?:ms|sk|ar|vcx|gg|db)-layer \{[^}]*z-index: (\d+)/g)].map((m) => Number(m[1]));
   assert.ok(layerZ.length >= 3 && layerZ.every((z) => z < dockZ), `chat dock ${dockZ} above layers ${layerZ}`);

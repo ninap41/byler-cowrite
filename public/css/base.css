@@ -7966,10 +7966,10 @@ body.resizing-side {
 	opacity: 0.7;
 	cursor: not-allowed;
 }
-/* a tablemate's unlock is not greyed: the open lock says whose it is, and
-   disabled only means it isn't yours to launch */
-.gd-menu-item.locked.table,
-.gd-menu-item.locked.table:disabled {
+/* a tablemate's unlock is not greyed: the open lock says whose it is. It is
+   aria-disabled, not disabled — the UA paints a disabled button's text grey
+   whatever the opacity — and it has no data-act, so a click does nothing. */
+.gd-menu-item.locked.table {
 	opacity: 1;
 	cursor: not-allowed;
 }

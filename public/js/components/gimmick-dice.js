@@ -34,7 +34,7 @@ export function menuHtml({ catalogue = [], unlocked = [], admin = false, locks =
 			// launch until you earn it yourself
 			if (table.includes(g.id)) {
 				const tip = "A tablemate has this unlocked" + (lock ? " · " + lockTip(lock) + " to play it yourself" : "")
-				return `<button type="button" class="gd-menu-item locked table" data-gimmick="${g.id}" disabled data-tip="${esc(tip)}">🔓 ${esc(g.name)}</button>`
+				return `<button type="button" class="gd-menu-item locked table" data-gimmick="${g.id}" aria-disabled="true" data-tip="${esc(tip)}">🔓 ${esc(g.name)}</button>`
 			}
 			const tip = lock ? lockTip(lock) : "Not unlocked"
 			return `<button type="button" class="gd-menu-item locked" data-gimmick="${g.id}" disabled data-tip="${esc(tip)}">🔒 ${esc(g.name)}</button>`
