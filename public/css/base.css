@@ -6582,6 +6582,7 @@ body.resizing-side {
 }
 .doc-side-tab:hover {
 	background: var(--chip);
+	transform: translateY(-50%); /* the global button lift would replace the centring */
 }
 .doc-side-tab.hidden {
 	display: none;
@@ -8978,6 +8979,9 @@ body.game-page .session-bar .sess-name {
 	box-shadow: var(--panel-glow);
 	font-size: 0.95rem;
 	line-height: 1;
+}
+.gk-tab:hover {
+	transform: none; /* an edge tab stays put on hover */
 }
 .gk-tab:hover {
 	background: var(--chip);

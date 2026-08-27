@@ -81,3 +81,10 @@ test("a gimmick leaving takes its tab and frees the stage", async () => {
   assert.equal(dock.onStage, null);
   assert.ok(!db.classList.contains("gk-minned"), "and reopens unfolded");
 });
+
+test("edge tabs don't take the global button hover lift: the host tab keeps its centring, the dock tabs stay put", async () => {
+  const { readFileSync } = await import("node:fs");
+  const css = readFileSync(new URL("../public/css/base.css", import.meta.url), "utf-8");
+  assert.match(css, /\.doc-side-tab:hover \{[^}]*transform: translateY\(-50%\)/);
+  assert.match(css, /\.gk-tab:hover \{[^}]*transform: none/);
+});
