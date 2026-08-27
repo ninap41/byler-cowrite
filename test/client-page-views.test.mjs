@@ -53,15 +53,22 @@ test("badgeProgress: fill = (words - words-to-go) / threshold; sliver; topped-ou
   assert.equal(badgeProgress({ wordCount: 50000, nextBadge: null }).pct, 100);
 });
 
-test("writerRowHtml: escapes, online dot, badge chip optional", () => {
-  const on = writerRowHtml({ username: "<will>", color: "#6c8cff", wordCount: 1234, badge: "🐶 Puppy Mike", online: true });
+test("writerRowHtml: escapes, online dot, and the tail is the friend state — friend / requested / Add friend / nothing on my own row", () => {
+  const on = writerRowHtml({ username: "<will>", color: "#6c8cff", wordCount: 1234, badge: "🐶 Puppy Mike", online: true, friend: true });
   assert.ok(on.includes("&lt;will&gt;"));
   assert.ok(on.includes("st-dot on"));
   assert.ok(on.includes("1,234 words"));
-  assert.ok(on.includes("🐶 Puppy Mike"));
+  assert.ok(!on.includes("🐶 Puppy Mike"), "the badge chip gave way to the friend state");
+  assert.ok(on.includes('class="badge-chip friend">friend<'));
+  const asked = writerRowHtml({ username: "dustin", color: "#6c8cff", wordCount: 5, online: true, requested: true });
+  assert.ok(asked.includes('class="badge-chip requested">requested<'));
+  assert.ok(!asked.includes("data-add-friend"));
+  const me = writerRowHtml({ username: "self", color: "#6c8cff", wordCount: 5, online: true, me: true });
+  assert.ok(!me.includes("badge-chip") && !me.includes("data-add-friend"), "my own row has no friend state");
   const off = writerRowHtml({ username: "mike", color: "bad", wordCount: 0, badge: null, online: false });
   assert.ok(off.includes("st-dot off"));
   assert.ok(!off.includes("badge-chip"));
+  assert.ok(off.includes('data-add-friend="mike"') && off.includes(">Add friend<"), "a stranger gets an Add friend button");
   assert.ok(off.includes("mini-initial"), "no picture -> colored initial disc");
   const pic = writerRowHtml({ username: "el", color: "#e879c9", wordCount: 1, online: true,
     avatar: "https://img.com/el.png", avatarFit: "contain" });

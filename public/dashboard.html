@@ -539,6 +539,25 @@
 				})
 			}
 			$("writerSearch").addEventListener("input", renderWriters)
+			// Add friend: the button sits inside the profile link, so the click
+			// must not follow it; the row repaints as "requested" on an ok.
+			$("writersList").addEventListener("click", async (e) => {
+				const btn = e.target.closest("[data-add-friend]")
+				if (!btn) return
+				e.preventDefault()
+				e.stopPropagation()
+				const username = btn.dataset.addFriend
+				btn.disabled = true
+				try {
+					await api("/api/friends/request", { username })
+					const u = allWriters.find((x) => x.username === username)
+					if (u) u.requested = true
+					renderWriters()
+				} catch (err) {
+					btn.disabled = false
+					btn.textContent = err?.message || "Couldn't send"
+				}
+			})
 
 			// ---- Friends (right rail) ----
 			function renderFriends(friends) {
