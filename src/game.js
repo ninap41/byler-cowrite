@@ -553,6 +553,9 @@ export function createGame(io) {
 
   // The scoreboard of a non-friendly game: words each account has committed
   // to THIS story (a line with no account is nobody's).
+  // Total committed words in a story (every line, seated or not).
+  const storyWords = (story) =>
+    (story || []).reduce((n, l) => n + plainText(l.html).split(/\s+/).filter(Boolean).length, 0);
   function gameWords(s) {
     const words = new Map();
     for (const l of s.story || []) {
@@ -1052,11 +1055,12 @@ export function createGame(io) {
       const s = mySession();
       if (!s || s.hostId !== socket.id) return ack?.({ ok: false, error: "Only the host can start." });
       if (s.writers.size < 1) return ack?.({ ok: false, error: "Need at least one writer." });
+      const writeMore = !!s.prompt && s.story.length > 0; // a reopened story keeps its lines
       s.phase = "choosing";
       s.turnOrder = [...s.writers.keys()];
       s.currentIdx = 0;
       s.turnCount = 0;
-      s.story = [];
+      if (!writeMore) s.story = [];
       s.votes.clear();
       if (friendly != null) s.friendly = !!friendly;
       s.turnSeconds = cleanSeconds(turnSeconds, 60);
@@ -1064,6 +1068,16 @@ export function createGame(io) {
       s.maxTurns = r > 0 ? r * s.turnOrder.length : null;
       if (promptMode != null) s.promptMode = cleanPromptMode(promptMode);
       if (promptControls != null) s.promptControls = cleanPromptControls(promptControls);
+      if (writeMore) {
+        // "Write more": this lobby was gathered to CONTINUE a finished story —
+        // the prompt and every line are kept, no vote, straight to the pen.
+        s.phase = "writing";
+        ack?.({ ok: true });
+        announce(s, s.writers.get(socket.id), "picked the story back up");
+        saveSnapshot(s);
+        inviteContributors(s);
+        return startTurn(s);
+      }
       fillOptions(s);
       ack?.({ ok: true });
       announce(s, s.writers.get(socket.id), "started the game");
@@ -2104,7 +2118,7 @@ export function createGame(io) {
   const gameSummary = (d) => ({
     code: d.code, name: d.name || "", cover: d.cover || "", phase: d.phase, prompt: d.prompt || "",
     savedAt: d.savedAt || 0, createdAt: d.createdAt || d.savedAt || 0, tags: d.tags || [],
-    lines: (d.story || []).length,
+    lines: (d.story || []).length, words: storyWords(d.story),
     hostName: store.users.find((u) => u.id === d.hostUserId)?.username ?? d.hostName ?? null,
     writers: (d.writers || []).map((w) => ({
       name: freshName(w.userId, w.name), color: cleanColor(w.color), isHost: d.hostUserId != null && w.userId === d.hostUserId,
@@ -2168,7 +2182,7 @@ export function createGame(io) {
         players: [...s.writers.values()].map((w) => ({
           name: w.name, color: cleanColor(w.color), connected: w.connected !== false,
         })),
-        lines: s.story.length, savedAt: Date.now(), live: true,
+        lines: s.story.length, words: storyWords(s.story), savedAt: Date.now(), live: true,
       });
     }
     for (const code of storage.list("save")) {
@@ -2179,7 +2193,7 @@ export function createGame(io) {
         code, name: d.name || "", cover: d.cover || "", phase: d.phase, paused: true, myTurn: false, currentName: null,
         hosted: d.hostUserId === u.id,
         players: (d.writers || []).map((w) => ({ name: w.name, color: cleanColor(w.color), connected: false })),
-        lines: (d.story || []).length, savedAt: d.savedAt || 0, live: false,
+        lines: (d.story || []).length, words: storyWords(d.story), savedAt: d.savedAt || 0, live: false,
       });
     }
     return [...out.values()].sort((a, b) => b.savedAt - a.savedAt).slice(0, 8);
@@ -2206,6 +2220,26 @@ export function createGame(io) {
     if (!s || s.phase === "over") return false;
     announce(s, by ? { name: by.username, color: cleanColor(by.color) } : { name: "Admin", color: PALETTE[0] }, "ended this story.");
     endGame(s);
+    return true;
+  }
+
+  // "Write more": put a FINISHED story back into its lobby under the same
+  // code so writers can gather again. The prompt and story stay on the
+  // session (a waiting room WITH a story is what tells start-game to skip
+  // the vote and keep writing). Returns false unless the code is finished.
+  function reopenGameByCode(code, by = null) {
+    code = String(code || "").toUpperCase();
+    const s = sessions.get(code) ?? loadSession(code);
+    if (!s || s.phase !== "over") return false;
+    s.phase = "waiting";
+    s.paused = false;
+    s.turnOrder = [];
+    s.currentIdx = 0;
+    s.turnCount = 0;
+    s.votes.clear();
+    if (by) announce(s, { name: by.username, color: cleanColor(by.color) }, "reopened this story — gathering writers to write more.");
+    saveSnapshot(s);
+    broadcastRoster(s);
     return true;
   }
 
@@ -2276,5 +2310,5 @@ export function createGame(io) {
     }
     return { mode: "simple", prompt: generateSimplePrompt(PROMPT_BANK, { recent: [] }).prompt, meta: null };
   }
-  return { creditSoloWords, rollPrompt, sessions, onlineSockets, readSnapshot, allSnapshots, gameSummary, freshStory, inGame, myGamesFor, recentGamesFor, deleteGame, endGameByCode, sleepGameByCode, inviteToGame, renameUser, setTags, commentRows, closeDocFor, closeDocReaders };
+  return { creditSoloWords, rollPrompt, sessions, onlineSockets, readSnapshot, allSnapshots, gameSummary, freshStory, inGame, myGamesFor, recentGamesFor, deleteGame, endGameByCode, reopenGameByCode, sleepGameByCode, inviteToGame, renameUser, setTags, commentRows, closeDocFor, closeDocReaders };
 }

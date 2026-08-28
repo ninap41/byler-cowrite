@@ -30,7 +30,7 @@
 				<div class="arch-tools"><span id="archViewWrap"></span></div>
 				<p class="hidden" id="archNotice" style="color: var(--good); text-align: left; margin: 0 0 12px"></p>
 				<div id="archiveList"></div>
-				<div id="archiveDetail" class="hidden">
+				<div id="archiveDetail" class="hidden arch-detail">
 					<!-- title · authors · info, then the prompt, tags, and the story -->
 					<h2 id="archTitle" style="text-align: left; margin: 0 0 4px"></h2>
 					<p id="archAuthors" class="subtle" style="text-align: left; margin: 0 0 4px"></p>
@@ -139,15 +139,17 @@
 					b.className = "game-card"
 					b.style.cursor = "pointer"
 					b.innerHTML = gameCardHtml(g)
-					// the host alone may continue; everyone else just reads
-					if (canContinue(g, me?.username)) {
+					// a finished story: anyone in it may "Write more" (reopen its lobby);
+					// an unfinished one: the host continues it
+					if (g.phase === "over" || canContinue(g, me?.username)) {
 						const cont = document.createElement("button")
 						cont.className = "primary"
-						cont.textContent = "Continue →"
+						cont.textContent = g.phase === "over" ? "✒️ Write more" : "Continue →"
 						cont.style.cssText = "margin-top:10px;flex:none;min-width:0;padding:8px 14px;font-size:.85rem"
 						cont.onclick = (e) => {
 							e.stopPropagation()
-							location.href = "/game?code=" + encodeURIComponent(g.code)
+							if (g.phase === "over") writeMore(g.code)
+							else location.href = "/game?code=" + encodeURIComponent(g.code)
 						}
 						b.appendChild(cont)
 					}
@@ -158,6 +160,15 @@
 				}
 			}
 
+			// "Write more": reopen a finished story as a lobby under its own code.
+			async function writeMore(code) {
+				try {
+					await api("/api/games/" + encodeURIComponent(code) + "/reopen", {})
+					location.href = "/game?code=" + encodeURIComponent(code)
+				} catch (e) {
+					alert(e.message)
+				}
+			}
 			let curG = null
 			async function openGameDetail(code) {
 				let g
@@ -180,7 +191,8 @@
 					a.textContent = (w.isHost ? "👑 " : "") + w.name
 					authors.appendChild(a)
 				})
-				$("archMeta").textContent = `code: ${g.code} · last played · ${fmtWhen(g.savedAt)}`
+				$("archMeta").textContent =
+					`code: ${g.code} · ${g.writers.length} writer${g.writers.length === 1 ? "" : "s"} · ${Number(g.words || 0).toLocaleString()} words · last played ${fmtWhen(g.savedAt)}`
 				$("archPrompt").innerHTML = promptHtml(g.prompt || "(no prompt)")
 				// tags: everyone with a seat here may edit; each change saves itself
 				mountTagEditor($("archTags"), {
@@ -196,9 +208,11 @@
 				})
 				// story html was sanitized server-side by sanitizeRich() before being saved
 				$("archStory").innerHTML = archiveStoryHtml(g.story)
-				const mayContinue = canContinue(g, me?.username)
+				const over = g.phase === "over"
+				const mayContinue = over || canContinue(g, me?.username)
 				$("archContinue").classList.toggle("hidden", !mayContinue)
-				$("archContinue").onclick = () => (location.href = "/game?code=" + encodeURIComponent(g.code))
+				$("archContinue").textContent = over ? "✒️ Write more" : "Continue this story →"
+				$("archContinue").onclick = () => (over ? writeMore(g.code) : (location.href = "/game?code=" + encodeURIComponent(g.code)))
 				$("archDelete").classList.toggle("hidden", g.hostName !== me.username)
 				$("archiveList").classList.add("hidden")
 				const det = $("archiveDetail")

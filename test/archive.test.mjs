@@ -11,7 +11,8 @@ test("archive is private per account; host identity exposed", async () => {
   await ctx.emit(A, "rename-session", { name: "Paint Lessons" });
   const cur = state.current.currentId === A.id ? A : B;
   await ctx.emit(cur, "submit-line", { text: "one line" });
-  await ctx.emit(A, "pause-game", {});
+  await ctx.emit(A, "end-game", {});
+  await ctx.wait(150);
 
   assert.equal((await ctx.api("/api/games")).status, 401, "unauthenticated blocked");
   const stranger = await signup(ctx, "stranger1", "s@x.com");
@@ -38,6 +39,9 @@ test("archive is private per account; host identity exposed", async () => {
 
 test("dashboard: auth-gated, presence via identify, live games listing", async () => {
   assert.equal((await ctx.api("/api/dashboard")).status, 401);
+  // a live game of our own to be listed (the first test's story is finished)
+  const live = await startedGame(ctx, { rounds: 3 });
+  await ctx.emit(live.A, "rename-session", { name: "Paint Lessons" });
   const el = await signup(ctx, "eldashboard", "eld@x.com");
   const S = await ctx.conn();
   S.emit("identify", { auth: el.token });
@@ -178,4 +182,35 @@ test("live games are lit: the rail/bulb/aura/sheen ride every row in theme token
   const d = await ctx.api("/api/dashboard", undefined, g.host.token);
   const row = d.data.liveGames.find((x) => x.code === g.code);
   assert.equal(row.paused, false);
+});
+
+test("write more: a finished story reopens as a lobby under its code, then writes on", async () => {
+  const { host, mike, A, B, code, state } = await startedGame(ctx, { rounds: 1 });
+  const cur = state.current.currentId === A.id ? A : B;
+  await ctx.emit(cur, "submit-line", { text: "the first line has five words" });
+  await ctx.emit(A, "end-game", {});
+  await ctx.wait(150);
+  let g = (await ctx.api("/api/games/" + code, null, host.token, "GET")).data;
+  assert.equal(g.phase, "over");
+  assert.equal(g.words, 6, "summary carries the story's word count");
+  const recent = (await ctx.api("/api/dashboard", null, host.token, "GET")).data.recentGames.find((x) => x.code === code);
+  assert.equal(recent.words, 6, "recent-games rows carry words");
+
+  const stranger = await signup(ctx, "stranger2", "s2@x.com");
+  assert.equal((await ctx.api("/api/games/" + code + "/reopen", {}, stranger.token)).status, 403, "outsiders can't reopen");
+  assert.equal((await ctx.api("/api/games/" + code + "/reopen", {}, mike.token)).status, 200, "any contributor may reopen");
+  assert.equal((await ctx.api("/api/games/" + code + "/reopen", {}, mike.token)).status, 409, "not finished any more");
+  g = (await ctx.api("/api/games/" + code, null, host.token, "GET")).data;
+  assert.equal(g.phase, "waiting", "back in the lobby");
+  assert.equal(g.story.length, 1, "the story is kept");
+
+  // the host starts the lobby: no vote, straight back to writing with the lines intact
+  const st = { current: null };
+  A.on("game-state", (s) => (st.current = s));
+  const r = await ctx.emit(A, "start-game", { turnSeconds: 60, rounds: 1 });
+  assert.equal(r.ok, true);
+  await ctx.wait(150);
+  assert.equal(st.current.phase, "writing");
+  assert.equal(st.current.story.length, 1, "lines survive the restart");
+  assert.equal(st.current.prompt, g.prompt, "same prompt, no new vote");
 });

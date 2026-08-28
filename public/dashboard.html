@@ -308,7 +308,7 @@
 					if (quotes.length > 1)
 						setInterval(() => {
 							if (document.visibilityState === "visible") next()
-						}, 4000)
+						}, 4500)
 				})
 				.catch(() => {})
 
@@ -493,6 +493,16 @@
 				grid.appendChild(open)
 			}
 
+			// "Write more": reopen a finished story as a lobby under its own code,
+			// then go gather writers there.
+			async function writeMore(code) {
+				try {
+					await api("/api/games/" + encodeURIComponent(code) + "/reopen", {})
+					location.href = "/game?code=" + encodeURIComponent(code)
+				} catch (e) {
+					alert(e.message)
+				}
+			}
 			function renderRecent(games) {
 				const box = $("recentGames")
 				box.innerHTML = games.length
@@ -509,10 +519,17 @@
 					h.textContent = title
 					box.appendChild(h)
 					group.forEach((g) => {
-						const row = document.createElement("button")
+						const row = document.createElement("div")
 						row.className = "rg-row"
+						row.setAttribute("role", "link")
+						row.tabIndex = 0
 						row.innerHTML = recentRowHtml(g)
 						row.onclick = () => (location.href = "/archive?code=" + encodeURIComponent(g.code))
+						row.onkeydown = (e) => { if (e.key === "Enter") row.onclick() }
+						row.querySelector("[data-act=write-more]").onclick = (e) => {
+							e.stopPropagation()
+							writeMore(g.code)
+						}
 						box.appendChild(row)
 					})
 				})

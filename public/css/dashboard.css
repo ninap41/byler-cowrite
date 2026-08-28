@@ -627,6 +627,11 @@ a.rg-row {
 .avatar {
 	overflow: hidden;
 }
+/* The dashboard's welcome-card avatar is the page's portrait, not a chip. */
+.welcome > .avatar {
+	width: 125px;
+	height: 125px;
+}
 .avatar-img {
 	width: 100%;
 	height: 100%;
@@ -704,6 +709,12 @@ a.rg-row {
 	color: var(--muted);
 	font-size: 0.78rem;
 	font-family: var(--font-mono);
+}
+.rg-more {
+	flex: none;
+	min-width: 0;
+	padding: 6px 12px;
+	font-size: 0.8rem;
 }
 
 /* ---- profile: word ladder + settings forms (shares this sheet) ---- */

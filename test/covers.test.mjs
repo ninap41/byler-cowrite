@@ -37,8 +37,10 @@ test("cover image: host-only, http(s)-validated, broadcast + snapshotted + liste
   const dash = await ctx.api("/api/dashboard", undefined, hostAcct.token);
   assert.equal(dash.data.myGames.find((x) => x.code === g.code)?.cover, COVER, "dashboard myGames carries it");
 
+  await ctx.emit(hostSock, "end-game", {});
+  await ctx.wait(150);
   const list = await ctx.api("/api/games", undefined, hostAcct.token);
-  assert.equal(list.data.find((x) => x.code === g.code)?.cover, COVER, "/api/games carries it");
+  assert.equal(list.data.find((x) => x.code === g.code)?.cover, COVER, "/api/games carries it (once finished)");
 
   const cleared = await ctx.emit(hostSock, "set-cover", { url: "" });
   assert.equal(cleared.ok, true, "clearing the cover is allowed");

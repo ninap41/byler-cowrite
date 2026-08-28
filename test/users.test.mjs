@@ -176,6 +176,8 @@ test("username change: stories and lines stay tied to the account id, names refr
   assert.ok(state.current.story.some((l) => l.name === "willelder"), "live story lines follow the rename");
   assert.ok(!state.current.story.some((l) => l.name === "willthewise"), "no stale line names");
   // the archive stays tied by userId: listing, hosted flag, detail lines
+  await ctx.emit(A, "end-game", {});
+  await ctx.wait(150);
   const list = (await ctx.api("/api/games", null, host.token, "GET")).data;
   const g = list.find((x) => x.code === code);
   assert.ok(g, "story still associated with the renamed account");

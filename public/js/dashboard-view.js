@@ -240,18 +240,22 @@ export function myGameCardHtml(g) {
 					`<span class="mg-dot${p.connected ? "" : " off"}" title="${esc(p.name)}" style="background:${safeColor(p.color)}"></span>`,
 			)
 			.join("") +
-		`<span class="mg-count">${g.players.length} writer${g.players.length === 1 ? "" : "s"} · ${g.lines} line${g.lines === 1 ? "" : "s"}</span>` +
+		`<span class="mg-count">${g.players.length} writer${g.players.length === 1 ? "" : "s"} · ${fmtWords(g.words)}</span>` +
 		`</div></div>`
 	)
 }
 
-// Compact finished-story row for the "previous games" list.
+export const fmtWords = (n) => `${Number(n || 0).toLocaleString()} word${n === 1 ? "" : "s"}`
+
+// Compact finished-story row for the "previous games" list: writers · words,
+// and a "Write more" button (the page wires it) that reopens the story's
+// lobby under the same code.
 export function recentRowHtml(g) {
 	return (
 		`<span class="rg-cover" style="${coverStyle(g)}"></span>` +
 		`<span class="rg-info"><b>${esc(g.name || oneLinePrompt(g.prompt) || g.code)}</b>` +
-		`<span class="rg-sub">${esc(g.code)} · ${g.writers.length} writer${g.writers.length === 1 ? "" : "s"}</span></span>` +
-		`<span class="rg-lines">${g.lines} line${g.lines === 1 ? "" : "s"}</span>`
+		`<span class="rg-sub">${esc(g.code)} · ${g.writers.length} writer${g.writers.length === 1 ? "" : "s"} · ${fmtWords(g.words)}</span></span>` +
+		`<button type="button" class="ghost rg-more" data-act="write-more">✒️ Write more</button>`
 	)
 }
 

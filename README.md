@@ -50,6 +50,43 @@ turns adding one line each under a ticking clock.
 - **Export** — copy the finished story as formatted rich text or download a
   clean styled HTML file.
 
+## Game states
+
+A story lives under one permanent 4-letter code and moves through these
+phases. `phase` is held on the session and in its snapshot
+(`saves/<CODE>.json`, or the Postgres row on Replit), and every transition
+is broadcast to the room.
+
+| Phase | Meaning | Where it shows | Who can act |
+|---|---|---|---|
+| **waiting** (Gathering writers) | The lobby. Writers gather by code; the host sets seconds-per-turn, rounds, friendly/scored and the prompt mode. | Dashboard in-progress card · homepage/dashboard live games | Host starts (`start-game`); anyone joins by code |
+| **choosing** (Voting) | A ballot of scenarios is dealt (Simple or Advanced mode). Everyone votes, anyone may add a custom one, the host may reroll or force the result. | Dashboard in-progress card · live games | Everyone votes; host rerolls / finalizes / switches mode |
+| **writing** | Round-robin turns under the server-owned clock. The line on screen at 0 is committed. | Dashboard in-progress card ("Your turn", "Waiting for X") · live games (Watch as a spectator) | Current writer submits; host pauses, changes rules, adds rounds, ends & reveals |
+| **writing · paused** | Same phase, clock stopped (`paused`). Happens on a host pause, when the host leaves, when it's a ghost's turn, or after a save-rehydration. Left paused 30 minutes, it ends itself. | Dashboard card "⏸ Paused" · live games (marked paused) | Host resumes; host/admin may End or Delete from the card's ⋯ menu (only while paused) |
+| **over** (Finished) | The reveal. The full story is exported, scored if not friendly, and the snapshot stays. | **Archive** (`/archive`, previous games) · dashboard "Previous games" rows · profile | Anyone who can open it exports; the host may Continue from the reveal; **any contributor may Write more** |
+| **asleep** (snapshot only) | Not a phase — a game with no live session. Any code revives lazily (`loadSession`) the moment someone opens it: waiting/choosing wake as a lobby, writing wakes **paused**, over wakes as itself. | Wherever its phase puts it | Host or admin can put a live game to sleep from the card menu |
+
+Two ways back into a finished story:
+
+- **Continue** (the reveal card, `continue-writing`): host / admin / the
+  original host by account / anyone if no host is present. New turn length and
+  rounds, prompt and story kept, turn order rebuilt from whoever is connected —
+  straight back to **writing**.
+- **Write more** (`POST /api/games/:code/reopen`, the button on dashboard rows
+  and archive cards): any contributor. Puts the story back into **waiting**
+  under its own code so writers can gather again; the host's Start skips the
+  vote and resumes **writing** with every line intact.
+
+Listings agree on one rule: **the archive lists only `over`**; the dashboard's
+in-progress cards list everything else you're in; `GET /api/games/:code` and
+`/archive?code=` open any story you contributed to regardless of phase.
+A game is in your lists if you hold a seat, wrote a committed line, or
+originally hosted it — an expired seat never erases a story.
+
+Deleting (`DELETE /api/games/:code`, host or admin) is the only exit: live
+players get `game-deleted`, the snapshot is unlinked and the code dies
+(never reused).
+
 ## Run locally
 
 ```bash

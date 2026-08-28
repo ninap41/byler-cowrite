@@ -1012,8 +1012,8 @@ a.solo-title:hover {
 }
 @media (max-width: 480px) {
 	.auth-links {
-		flex-direction: column;
-		gap: 8px;
+		flex-direction: row;
+		gap: 8px 12px;
 	}
 	.auth-links .dot {
 		display: none;
@@ -9815,4 +9815,49 @@ html.vcx-live[data-theme="vecna"] #vc-pend {
 	font-family: var(--font-mono);
 	font-size: 0.8rem;
 	color: var(--muted);
+}
+
+/* The archive's story page sits on the story surface, like the game's column. */
+.arch-detail {
+	background: var(--story-bg);
+	padding: 1rem;
+	border-radius: 12px;
+}
+.arch-detail.hidden { display: none; }
+
+/* ---- Only the worn theme's background exists ------------------------------
+   Every theme's .bg-set is mounted on every page (chrome.js). An inactive set
+   at opacity: 0 is still LAID OUT, COMPOSITED and ANIMATED — ~60 infinite
+   animations, dozens of blur filters, mix-blend layers and a 420vh tower for
+   themes nobody is wearing — which is what made iOS Safari/Chrome kill the
+   tab. display: none takes them out of the render tree entirely; the theme
+   swap becomes a cut instead of a 0.7s cross-fade, which is the right trade. */
+.bg-set { display: none; }
+[data-theme="arcade"] .bg-set.arcade,
+[data-theme="aurora"] .bg-set.aurora,
+[data-theme="bunker"] .bg-set.bunker,
+[data-theme="castlebyers"] .bg-set.castlebyers,
+[data-theme="cerebro"] .bg-set.cerebro,
+[data-theme="cleradin"] .bg-set.cleradin,
+[data-theme="clouds"] .bg-set.clouds,
+[data-theme="hawkinslab"] .bg-set.hawkinslab,
+[data-theme="hellfire"] .bg-set.hellfire,
+[data-theme="ink"] .bg-set.ink,
+[data-theme="neon"] .bg-set.neon,
+[data-theme="rink"] .bg-set.rink,
+[data-theme="snowball"] .bg-set.snowball,
+[data-theme="starcourt"] .bg-set.starcourt,
+[data-theme="upside"] .bg-set.upside,
+[data-theme="vecna"] .bg-set.vecna,
+[data-theme="video"] .bg-set.video,
+[data-theme="void"] .bg-set.void,
+[data-theme="wall"] .bg-set.wall { display: block; }
+
+/* On touch devices even the worn theme stays lighter: backdrop blur is the
+   single most expensive effect on a mobile GPU (re-blurs whatever scrolls
+   beneath it every frame), and the ambient set drops to a still picture. */
+@media (hover: none) and (pointer: coarse) {
+	.bg-set *, .bg-set { animation: none !important; }
+	.bg-set * { filter: none !important; }
+	* { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
 }

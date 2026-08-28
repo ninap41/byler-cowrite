@@ -92,18 +92,19 @@ test("myGameCardHtml: escapes name, shows player dots with offline state", () =>
   const out = myGameCardHtml({
     code: "AB12", name: "<b>Tale</b>", phase: "writing", myTurn: true, paused: false,
     players: [{ name: "will", color: "#6c8cff", connected: true }, { name: "mike", color: "bad", connected: false }],
-    lines: 3,
+    lines: 3, words: 40,
   });
   assert.ok(out.includes("&lt;b&gt;Tale&lt;/b&gt;"));
   assert.ok(out.includes("is-turn"));
   assert.ok(out.includes('mg-dot off'), "offline dot dimmed");
-  assert.ok(out.includes("2 writers · 3 lines"));
+  assert.ok(out.includes("2 writers · 40 words"), "writers and words, not lines");
 });
 
 test("recentRowHtml + achievementsHtml + streakRingHtml", () => {
-  const row = recentRowHtml({ code: "AB12", name: "<Done>", prompt: "", lines: 1, writers: [{ name: "w" }] });
+  const row = recentRowHtml({ code: "AB12", name: "<Done>", prompt: "", lines: 1, words: 1234, writers: [{ name: "w" }] });
   assert.ok(row.includes("&lt;Done&gt;"));
-  assert.ok(row.includes("1 line<"));
+  assert.ok(row.includes("1 writer · 1,234 words"), "writers and words, not lines");
+  assert.ok(row.includes('data-act="write-more"'), "a Write more button");
 
   const ach = achievementsHtml({ badges: ["✏️ Inkling"], nextBadge: { name: "🖊️ Scribbler", min: 100 } });
   assert.ok(ach.includes("✏️ Inkling"));
@@ -118,15 +119,15 @@ test("recentRowHtml + achievementsHtml + streakRingHtml", () => {
 });
 
 // ---- archive ----
-test("gameCardHtml: escapes everything, marks host writers, counts lines", () => {
+test("gameCardHtml: escapes everything, marks host writers, counts writers and words", () => {
   const out = gameCardHtml({
-    code: "AB12", name: "<b>N</b>", prompt: "<i>P</i>", phase: "over", lines: 1,
+    code: "AB12", name: "<b>N</b>", prompt: "<i>P</i>", phase: "over", lines: 1, words: 2500,
     hostName: "will", savedAt: 0,
     writers: [{ name: "will", isHost: true }, { name: "mike", isHost: false }],
   });
   assert.ok(out.includes("&lt;b&gt;N&lt;/b&gt;"));
   assert.ok(!out.includes("&lt;i&gt;P&lt;/i&gt;"), "named games show the name INSTEAD of the prompt");
-  assert.ok(out.includes("1 line<"));
+  assert.ok(out.includes("2 writers · 2,500 words"));
   assert.ok(out.includes("finished"));
   assert.ok(out.includes("will (host), mike"));
   const unnamed = gameCardHtml({

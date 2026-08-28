@@ -103,7 +103,7 @@ async function sendResetEmail(to, link) {
 }
 
 export function registerRoutes(app, game) {
-  const { sessions, onlineSockets, readSnapshot, allSnapshots, gameSummary, freshStory, inGame, myGamesFor, recentGamesFor, deleteGame, endGameByCode, sleepGameByCode, inviteToGame, renameUser, setTags, commentRows, closeDocFor, closeDocReaders } = game;
+  const { sessions, onlineSockets, readSnapshot, allSnapshots, gameSummary, freshStory, inGame, myGamesFor, recentGamesFor, deleteGame, endGameByCode, reopenGameByCode, sleepGameByCode, inviteToGame, renameUser, setTags, commentRows, closeDocFor, closeDocReaders } = game;
 
   // Random tagline quote for the homepage hero. content/quotes.json (one
   // string per entry) is hand-editable and read on every request, so new
@@ -1198,6 +1198,20 @@ export function registerRoutes(app, game) {
     res.json({ ok: true });
   });
 
+  // "Write more": anyone who is IN a finished story (or an admin) reopens it
+  // as a lobby under the same code; the caller then routes to /game?code=.
+  app.post("/api/games/:code/reopen", (req, res) => {
+    const u = authedUser(req);
+    if (!u) return res.status(401).json({ error: "Sign in first." });
+    const code = String(req.params.code || "").toUpperCase();
+    if (!CODE_RE.test(code)) return res.status(400).json({ error: "Bad code." });
+    const d = readSnapshot(code);
+    if (!d) return res.status(404).json({ error: "Not found." });
+    if (!inGame(d, u) && !isAdmin(u)) return res.status(403).json({ error: "You're not in this story." });
+    if (!reopenGameByCode(code, u)) return res.status(409).json({ error: "That story isn't finished." });
+    res.json({ ok: true });
+  });
+
   // The host (or an admin) puts a LIVE game to sleep from the dashboard: it
   // is snapshotted and unloaded, and wakes on the next visit.
   app.post("/api/games/:code/sleep", (req, res) => {
@@ -1269,10 +1283,10 @@ export function registerRoutes(app, game) {
     const u = authedUser(req);
     if (!u) return res.status(401).json({ error: "Sign in to see your previous games." });
     const out = [];
+    // Only FINISHED stories are archive: a lobby, a vote or a live/paused
+    // game belongs on the dashboard's in-progress cards, not here.
     for (const d of allSnapshots()) {
-      {
-        if (inGame(d, u)) out.push({ ...gameSummary(d), hosted: d.hostUserId === u.id });
-      }
+      if (d.phase === "over" && inGame(d, u)) out.push({ ...gameSummary(d), hosted: d.hostUserId === u.id });
     }
     out.sort((a, b) => b.savedAt - a.savedAt);
     res.json(out);
