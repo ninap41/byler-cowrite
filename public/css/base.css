@@ -9685,7 +9685,8 @@ html.vcx-live[data-theme="vecna"] #vc-pend {
 .ann-editbox { margin-top: 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; }
 .ann-editbox.hidden { display: none; }
 .ann-edited { margin-left: 8px; font-style: italic; }
-.ann-post { padding: 16px 0 18px; border-bottom: 1px solid var(--line); }
+/* Each post sits on the story surface, like a story line: readable over any theme's background. */
+.ann-post { padding: 1rem; margin: 0 0 14px; background: var(--story-bg); border-radius: 12px; }
 .ann-head { display: flex; align-items: baseline; gap: 12px; margin: 0 0 6px; }
 .ann-head .ann-acts { flex: none; margin-left: auto; display: flex; gap: 6px; }
 .ann-head .ann-acts button { padding: 6px 12px; font-size: 0.85rem; white-space: nowrap; min-width: auto; width: auto; }
@@ -9860,4 +9861,15 @@ html.vcx-live[data-theme="vecna"] #vc-pend {
 	.bg-set *, .bg-set { animation: none !important; }
 	.bg-set * { filter: none !important; }
 	* { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+}
+
+/* Ranks & unlocks: every card sits on the story surface, like a story line
+   and an announcement, so the text reads over any theme's background. */
+.rk-tier,
+.rk-gimmick,
+.rk-usage,
+.rk-progress {
+	background: var(--story-bg);
+	padding: 1rem;
+	border-radius: 12px;
 }

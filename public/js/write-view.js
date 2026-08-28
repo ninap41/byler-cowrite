@@ -141,7 +141,7 @@ export const docListHtml = (docs) =>
 // by date. Each section keeps its own grid; an empty one simply isn't drawn
 // (a "no beta reads" box is noise on a shelf that is mostly your own work).
 export const DOC_GROUPS = [
-	{ key: "mine", title: "✒️ My solo writes", blurb: "Yours to edit. No timer, no turns." },
+	{ key: "mine", title: "✒️ My solo writes", blurb: "" },
 	{ key: "reading", title: "📖 Beta reading", blurb: "Invited by someone else, you can comment, not edit." },
 ]
 
@@ -154,7 +154,7 @@ export function docShelfHtml(docs) {
 			(g) =>
 				`<section class="doc-group" data-group="${g.key}">` +
 				`<h3 class="doc-group-head">${g.title}<span class="doc-group-count">${groups[g.key].length}</span></h3>` +
-				`<p class="doc-group-blurb subtle">${esc(g.blurb)}</p>` +
+				(g.blurb ? `<p class="doc-group-blurb subtle">${esc(g.blurb)}</p>` : "") +
 				`<div class="doc-grid">${groups[g.key].map(docCardHtml).join("")}</div>` +
 				`</section>`,
 		)
