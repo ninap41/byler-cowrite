@@ -476,3 +476,31 @@ test("betaReadingHtml: others' fics grouped by owner, mine excluded, empty is bl
   assert.equal(betaReadingHtml([{ id: "a", mine: true }]), "");
   assert.equal(betaReadingHtml([]), "");
 });
+
+test("sprint rows carry a Delete only when mine; wireSprintDeletes needs two clicks and posts the timestamp", async () => {
+  const { sprintListHtml, sprintRowHtml, wireSprintDeletes } = await import("../public/js/write-view.js");
+  const sp = { docId: "d1", title: "Chapter", words: 50, seconds: 60, at: 1_700_000_000_123 };
+  // no delete on someone else's profile
+  assert.doesNotMatch(sprintListHtml([sp], { total: 50, count: 1 }), /sprint-del/);
+  assert.doesNotMatch(sprintRowHtml(sp), /sprint-del/);
+  // delete appears with mine:true and carries the timestamp
+  const mineHtml = sprintRowHtml(sp, { mine: true });
+  assert.match(mineHtml, /class="[^"]*sprint-del[^"]*"[^>]*data-at="1700000000123"/);
+  assert.match(sprintListHtml([sp], { total: 50, count: 1, mine: true }), /sprint-del/);
+
+  // wiring: first click arms, second calls onDelete(at) and removes the row
+  const box = document.createElement("div");
+  box.innerHTML = sprintRowHtml(sp, { mine: true });
+  document.body.appendChild(box);
+  let got = null;
+  wireSprintDeletes(box, async (at) => { got = at; });
+  const btn = box.querySelector(".sprint-del");
+  btn.click();
+  assert.equal(btn.dataset.armed, "1");
+  assert.match(btn.textContent, /Delete\?/);
+  assert.equal(got, null, "first click only arms");
+  btn.click();
+  await new Promise((r) => setTimeout(r, 0));
+  assert.equal(got, "1700000000123", "second click posts the timestamp");
+  assert.equal(box.querySelector(".sprint-row"), null, "the row is removed");
+});

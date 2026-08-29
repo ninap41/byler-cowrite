@@ -156,7 +156,7 @@
 			import { safeColor } from "/js/util.js"
 			import { streakRingHtml } from "/js/dashboard-view.js"
 			import { ladderAccordionHtml, usageCaseHtml, aboutHtml, avatarHtml } from "/js/profile-view.js"
-			import { soloListHtml, betaReadingHtml, wireSoloDeletes, sprintListHtml } from "/js/write-view.js"
+			import { soloListHtml, betaReadingHtml, wireSoloDeletes, sprintListHtml, wireSprintDeletes } from "/js/write-view.js"
 
 			mountChrome({ page: "profile" })
 			const $ = (id) => document.getElementById(id)
@@ -165,6 +165,8 @@
 				setUserChip(me)
 				// my own solo writes can be deleted from here (two clicks)
 				wireSoloDeletes($("writesList"), (id) => api("/api/docs/" + encodeURIComponent(id), null, "DELETE"))
+				// my own sprints can be deleted from here (two clicks)
+				wireSprintDeletes($("sprintList"), (at) => api("/api/account/sprints/" + encodeURIComponent(at), null, "DELETE"))
 				const meta = await api("/api/achievements", null, "GET")
 				const wanted = new URLSearchParams(location.search).get("user")
 				// whose profile? mine by default, anyone else's via ?user=name.
@@ -343,7 +345,7 @@
 					renderStories("hostedList", hosted, "No hosted stories yet.")
 					renderStories("contribList", contributed, "No contributed stories yet.")
 					$("statSprints").textContent = (p.sprintWords || 0).toLocaleString()
-					$("sprintList").innerHTML = sprintListHtml(sprints, { total: p.sprintWords || 0, count: p.sprintCount || 0 })
+					$("sprintList").innerHTML = sprintListHtml(sprints, { total: p.sprintWords || 0, count: p.sprintCount || 0, mine: itsMe })
 					$("writesList").innerHTML = soloListHtml(writes, { empty: "No solo writes yet.", limit: 5 })
 					// on my own profile, the fics I beta read for others get their
 					// own grouped card — never mixed into the writes above

@@ -377,22 +377,61 @@ const fmtDur = (sec) => {
 	const m = Math.floor(s / 60)
 	return m ? `${m}m ${String(s % 60).padStart(2, "0")}s` : `${s}s`
 }
-export function sprintRowHtml(sp) {
+export function sprintRowHtml(sp, { mine = false } = {}) {
 	const title = esc(sp.title || "Untitled")
 	const open = `/write?id=${encodeURIComponent(sp.docId || "")}`
+	const del = mine
+		? `<span class="solo-acts"><button type="button" class="ghost danger sprint-del" data-at="${esc(String(sp.at || ""))}">Delete</button></span>`
+		: ""
 	return (
-		`<div class="solo-row sprint-row" data-doc="${esc(sp.docId || "")}">` +
+		`<div class="solo-row sprint-row" data-doc="${esc(sp.docId || "")}" data-at="${esc(String(sp.at || ""))}">` +
 		`<span class="solo-date">${esc(fmtWhen(sp.at))}</span>` +
 		`<span class="solo-info"><a class="solo-title" href="${open}">${title}</a>` +
 		`<span class="solo-meta">⏱ ${esc(String(sp.words || 0))} word${sp.words === 1 ? "" : "s"} in ${esc(fmtDur(sp.seconds))}</span></span>` +
+		del +
 		`</div>`
 	)
 }
-export const sprintListHtml = (sprints, { total = 0, count = 0, empty = "No sprints yet: start one from the ⏱ button in a solo write." } = {}) =>
+export const sprintListHtml = (sprints, { total = 0, count = 0, mine = false, empty = "No sprints yet: start one from the ⏱ button in a solo write." } = {}) =>
 	!sprints || !sprints.length
 		? `<p class="subtle" style="text-align:left;margin:0">${esc(empty)}</p>`
 		: `<p class="subtle" style="text-align:left;margin:0 0 8px">${esc(String(total))} word${total === 1 ? "" : "s"} across ${count} sprint${count === 1 ? "" : "s"}</p>` +
-			sprints.map(sprintRowHtml).join("")
+			sprints.map((sp) => sprintRowHtml(sp, { mine })).join("")
+
+// Two-click delete for sprint rows (owner's own profile only), mirroring
+// wireSoloDeletes: first click arms, second calls onDelete(at) and drops the row.
+export function wireSprintDeletes(box, onDelete) {
+	box.addEventListener("click", async (e) => {
+		const b = e.target.closest(".sprint-del")
+		if (!b) return
+		if (b.dataset.armed !== "1") {
+			box.querySelectorAll(".sprint-del[data-armed]").forEach((x) => {
+				delete x.dataset.armed
+				x.textContent = "Delete"
+			})
+			b.dataset.armed = "1"
+			b.textContent = "Delete? ✓"
+			return
+		}
+		b.disabled = true
+		try {
+			await onDelete(b.dataset.at)
+			b.closest(".sprint-row")?.remove()
+		} catch (err) {
+			b.disabled = false
+			b.textContent = err?.message || "Couldn't delete"
+		}
+	})
+	box.addEventListener("focusout", () =>
+		setTimeout(() => {
+			if (!box.contains(document.activeElement))
+				box.querySelectorAll(".sprint-del[data-armed]").forEach((x) => {
+					delete x.dataset.armed
+					x.textContent = "Delete"
+				})
+		}, 0),
+	)
+}
 
 // The prompt as it goes INTO a document: one centred paragraph, every
 // "Category: choice" line with its category in bold, lines stacked with

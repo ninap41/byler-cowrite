@@ -931,6 +931,29 @@ export function registerRoutes(app, game) {
     res.json(game.rollPrompt(req.body?.mode, req.body?.controls));
   });
 
+  // Delete one of MY OWN sprints, keyed by its `at` timestamp (sprints carry
+  // no id; `at` is a per-user ms stamp, unique enough). Rolls the words back
+  // off the account and, if the document still exists, off its running totals.
+  app.delete("/api/account/sprints/:at", (req, res) => {
+    const u = authedUser(req);
+    if (!u) return res.status(401).json({ error: "Sign in first." });
+    const at = Number(req.params.at);
+    const list = u.sprints || [];
+    const i = list.findIndex((s) => s.at === at);
+    if (i === -1) return res.status(404).json({ error: "No such sprint." });
+    const [gone] = list.splice(i, 1);
+    u.sprints = list;
+    u.sprintWords = Math.max(0, (u.sprintWords || 0) - (gone.words || 0));
+    const doc = gone.docId ? readDoc(gone.docId) : null;
+    if (doc && doc.ownerId === u.id) {
+      doc.sprintWords = Math.max(0, (doc.sprintWords || 0) - (gone.words || 0));
+      doc.sprints = Math.max(0, (doc.sprints || 0) - 1);
+      writeDoc(doc);
+    }
+    saveStore();
+    res.json({ ok: true, sprintWords: u.sprintWords, sprintCount: u.sprints.length });
+  });
+
   app.post("/api/docs/:id/sprint", (req, res) => {
     const u = authedUser(req);
     if (!u) return res.status(401).json({ error: "Sign in first." });

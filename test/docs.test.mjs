@@ -819,3 +819,37 @@ test("/api/docs marks a beta-read doc viewable so it opens from the dashboard, n
   assert.equal(row.mine, false);
   assert.equal(row.viewable, true, "and it's marked viewable so the Read link appears");
 });
+
+test("a writer can delete their own sprint: words roll back off the account and the document; needs auth and a real one", async () => {
+  const base = (await ctx.api("/api/users/aliceauthor", null, alice.token, "GET")).data.user.sprintWords || 0;
+  const doc = await newDoc(alice.token, "Deletable sprint");
+  const a = await ctx.api(`/api/docs/${doc.id}/sprint`, { words: 100, seconds: 300 }, alice.token);
+  const b = await ctx.api(`/api/docs/${doc.id}/sprint`, { words: 40, seconds: 120 }, alice.token);
+  const atA = a.data.sprint.at, atB = b.data.sprint.at;
+
+  // anonymous can't delete; a missing timestamp is a 404
+  assert.equal((await ctx.api(`/api/account/sprints/${atA}`, null, undefined, "DELETE")).status, 401);
+  assert.equal((await ctx.api(`/api/account/sprints/999`, null, alice.token, "DELETE")).status, 404);
+
+  // delete the 100-word sprint; the account rolls back exactly 100
+  const del = await ctx.api(`/api/account/sprints/${atA}`, null, alice.token, "DELETE");
+  assert.equal(del.status, 200);
+  assert.equal(del.data.sprintWords, base + 40, "100 of the 140 just added rolled off");
+
+  const prof = await ctx.api("/api/users/aliceauthor", null, alice.token, "GET");
+  assert.equal(prof.data.user.sprintWords, base + 40, "account total rolled back");
+  assert.ok(!prof.data.sprints.some((s) => s.at === atA), "the deleted sprint is gone");
+  assert.ok(prof.data.sprints.some((s) => s.at === atB), "the other one remains");
+  const w = prof.data.writes.find((d) => d.id === doc.id);
+  assert.equal(w.sprintWords, 40, "the document total rolled back too");
+  assert.equal(w.sprints, 1);
+});
+
+test("one writer cannot delete another writer's sprint", async () => {
+  const doc = await newDoc(alice.token, "Mine to sprint");
+  const a = await ctx.api(`/api/docs/${doc.id}/sprint`, { words: 55, seconds: 60 }, alice.token);
+  // bob has no sprint with that timestamp, so it's a 404 for him — alice's stays
+  assert.equal((await ctx.api(`/api/account/sprints/${a.data.sprint.at}`, null, bob.token, "DELETE")).status, 404);
+  const prof = await ctx.api("/api/users/aliceauthor", null, alice.token, "GET");
+  assert.ok(prof.data.sprints.some((s) => s.at === a.data.sprint.at), "alice's sprint is untouched");
+});
