@@ -11114,8 +11114,10 @@ html.vcx-live[data-theme="vecna"] #vc-pend {
 	color: transparent;
 }
 
-/* archive: read-only tag chips beside a ✎ that opens the tag modal */
-.arch-tagrow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0 0 10px; }
-.arch-tagrow .tag-chips { display: inline-flex; flex-wrap: wrap; gap: 6px; }
-.arch-tagrow .tag-edit { padding: 0; width: 22px; height: 22px; font-size: 14px; line-height: 1; border-radius: 50%; display: inline-grid; place-content: center; }
+/* archive: read-only tag chips beside a borderless ＋ that opens the tag modal */
+.arch-tagrow { display: flex; align-items: center; justify-content: flex-start; gap: 6px; flex-wrap: wrap; margin: 0 0 10px; text-align: left; }
+.arch-tagrow .tag-chips { display: inline-flex; flex-wrap: wrap; gap: 6px; margin: 0; width: auto; }
+.arch-tagrow .tag-edit,
+.arch-tagrow .tag-edit:hover { all: unset; display: inline-block; cursor: pointer; font-size: 15px; line-height: 1; padding: 2px 4px; color: var(--accent-2); opacity: 0.8; transform: none; }
+.arch-tagrow .tag-edit:hover { opacity: 1; }
 #tagModal .tag-label { display: none; }
