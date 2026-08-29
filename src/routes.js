@@ -490,6 +490,10 @@ export function registerRoutes(app, game) {
           code: d.code, name: d.name || "", prompt: d.prompt || "", phase: d.phase,
           lines: (d.story || []).length, savedAt: d.savedAt || 0,
           inProgress: !!live && live.phase !== "over",
+          // may the VIEWER open this in their archive (copy/download/write
+          // more)? Only a contributor, the host or an admin; everyone else
+          // gets the read-only story view.
+          mine: inGame(d, viewer) || isAdmin(viewer),
         });
         if ((d.savedAt || 0) >= (lastLine?.savedAt ?? -1))
           for (const l of d.story || []) {

@@ -214,3 +214,38 @@ test("write more: a finished story reopens as a lobby under its code, then write
   assert.equal(st.current.story.length, 1, "lines survive the restart");
   assert.equal(st.current.prompt, g.prompt, "same prompt, no new vote");
 });
+
+test("an outsider (no seat, no line, not the host, not an admin) can only READ another writer's story: the archive/export/write-more surface is refused, the profile routes them to the read-only view, and contributors/admins keep their archive", async () => {
+  const { host, mike, A, B, code, state } = await startedGame(ctx, { rounds: 1 });
+  const cur = state.current.currentId === A.id ? A : B;
+  await ctx.emit(cur, "submit-line", { text: "a line for the record" });
+  await ctx.emit(A, "end-game", {});
+  await ctx.wait(150);
+
+  const stranger = await signup(ctx, "onlooker9", "onlooker@x.com");
+  // the archive endpoint (what Copy / Download / Write more hang off) is closed…
+  assert.equal((await ctx.api("/api/games/" + code, null, stranger.token, "GET")).status, 403);
+  assert.equal((await ctx.api("/api/games/" + code + "/reopen", {}, stranger.token)).status, 403, "no write more");
+  assert.equal((await ctx.api("/api/games", null, stranger.token, "GET")).data.some((g) => g.code === code), false);
+  // …but the read-only story view is open
+  const view = await ctx.api("/api/stories/" + code, null, stranger.token, "GET");
+  assert.equal(view.status, 200);
+  assert.equal(view.data.story.length, 1);
+
+  // the host's profile tells each viewer whether the story is THEIRS to open in the archive
+  const row = (tok) =>
+    ctx.api("/api/users/willthewise", null, tok, "GET").then((r) => r.data.hosted.find((g) => g.code === code));
+  assert.equal((await row(stranger.token)).mine, false, "outsider: read-only view");
+  assert.equal((await row(mike.token)).mine, true, "contributor: archive");
+  assert.equal((await row(host.token)).mine, true, "host: archive");
+  const admin = await signup(ctx, "adminnina", "admin@cowrite.test");
+  assert.equal((await row(admin.token)).mine, true, "admin: archive");
+  assert.equal((await ctx.api("/api/games/" + code, null, admin.token, "GET")).status, 200);
+
+  // and the pages agree: the profile routes on `mine`, the archive bounces a 403 to /stories
+  const { readFileSync } = await import("node:fs");
+  const profile = readFileSync(new URL("../public/profile.html", import.meta.url), "utf8");
+  assert.match(profile, /g\.mine \? "\/archive\?code=" : "\/stories\?code="/);
+  const archive = readFileSync(new URL("../public/archive.html", import.meta.url), "utf8");
+  assert.match(archive, /e\.status === 403\) location\.replace\("\/stories\?code=" \+ encodeURIComponent\(code\)\)/);
+});

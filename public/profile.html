@@ -326,7 +326,11 @@
 							btn.className = "ghost"
 							btn.textContent = g.inProgress ? "Join" : "Open"
 							btn.onclick = () =>
-								(location.href = (g.inProgress ? "/game?code=" : "/archive?code=") + encodeURIComponent(g.code))
+								// my own stories open in the archive (export, write more); anyone
+								// else's open in the read-only story view — never their archive
+								(location.href =
+									(g.inProgress ? "/game?code=" : g.mine ? "/archive?code=" : "/stories?code=") +
+									encodeURIComponent(g.code))
 							row.append(info, btn)
 							box.appendChild(row)
 						})
