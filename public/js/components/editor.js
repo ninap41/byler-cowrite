@@ -30,7 +30,15 @@ export function cleanHtml(el, { doc = false, urls = doc } = {}) {
 	const blocks = doc ? { ...BLOCKS, ...DOC_BLOCKS } : BLOCKS
 	const alignCls = (n) => {
 		const a = (n.style && n.style.textAlign) || n.getAttribute?.("align") || ""
-		return a === "center" ? ' class="al-c"' : a === "right" ? ' class="al-r"' : ""
+		// Also honour an al-c/al-r class already on the block: our own stored html
+		// carries alignment as that class, not as inline style, so without this a
+		// re-serialization (an edit, or a beta reader's comment) would silently
+		// drop the centering — and a comment whose only "change" is the lost class
+		// gets refused by the server's baseline check.
+		const cls = (n.getAttribute?.("class") || "")
+		if (a === "center" || /\bal-c\b/.test(cls)) return ' class="al-c"'
+		if (a === "right" || /\bal-r\b/.test(cls)) return ' class="al-r"'
+		return ""
 	}
 	// Only http/https survive to the server anyway; drop the rest here so the
 	// editor never shows a link it knows will be stripped.
