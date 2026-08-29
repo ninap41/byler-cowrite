@@ -964,9 +964,14 @@ export function registerRoutes(app, game) {
       return res.status(400).json({ error: "You can only invite friends as beta readers." });
     if (isReader(doc, target.id)) return res.status(400).json({ error: "They're already a beta reader." });
     doc.betaReaders = [...(doc.betaReaders || []), target.id];
+    // Assigning a beta reader is meant to hand them the story, so a private
+    // doc moves to the "readers" state automatically — otherwise the invite
+    // arrives but the reader still can't open it. A public doc is already
+    // wider than "readers", so it's left as is.
+    if (doc.visibility === "private") doc.visibility = "readers";
     writeDoc(doc);
     target.inbox = target.inbox || [];
-    target.inbox.unshift(makeMsg("doc-invite", u.id, `${u.username} added you as a beta reader on “${doc.title}”.`));
+    target.inbox.unshift(makeMsg("doc-invite", u.id, `${u.username} added you as a beta reader on “${doc.title}”. Open it from your Beta reading list.`));
     saveStore();
     res.json({ doc: docPayload(doc, u) });
   });

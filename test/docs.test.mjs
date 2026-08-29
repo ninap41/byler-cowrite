@@ -90,10 +90,9 @@ test("beta readers must be friends, and readers can read but never edit", async 
   assert.equal(added.status, 200);
   assert.deepEqual(added.data.doc.readers, ["bobbeta"]);
 
-  // still private, so even an invited reader can't open it yet
-  assert.equal((await ctx.api("/api/docs/" + doc.id, null, bob.token, "GET")).status, 403);
-
-  await ctx.api("/api/docs/" + doc.id + "/visibility", { visibility: "readers" }, alice.token);
+  // assigning a reader auto-promotes a private doc to the "readers" state, so
+  // the invited reader can open it right away — no separate visibility flip
+  assert.equal(added.data.doc.visibility, "readers");
   const seen = await ctx.api("/api/docs/" + doc.id, null, bob.token, "GET");
   assert.equal(seen.status, 200);
   assert.equal(seen.data.doc.html, "<p>line one</p>");
@@ -795,4 +794,17 @@ test("a beta reader commenting several times: each comment re-syncs from the ser
   assert.ok(after.comments.every((c) => !c.orphaned), "no comment is orphaned");
   for (const cid of ["a1a1a1a1a1a1", "b2b2b2b2b2b2", "c3c3c3c3c3c3"])
     assert.ok(after.html.includes(`data-cid="${cid}"`));
+});
+
+test("assigning a beta reader auto-promotes a private doc to 'readers'; a public doc is left public", async () => {
+  const priv = await newDoc(alice.token, "Private one");
+  assert.equal((await docOf(priv.id)).visibility, "private");
+  const r = await ctx.api("/api/docs/" + priv.id + "/readers", { username: "bobbeta" }, alice.token);
+  assert.equal(r.data.doc.visibility, "readers");
+  assert.equal((await ctx.api("/api/docs/" + priv.id, null, bob.token, "GET")).status, 200, "the reader can open it immediately");
+
+  const pub = await newDoc(alice.token, "Public one");
+  await ctx.api("/api/docs/" + pub.id + "/visibility", { visibility: "public" }, alice.token);
+  const r2 = await ctx.api("/api/docs/" + pub.id + "/readers", { username: "bobbeta" }, alice.token);
+  assert.equal(r2.data.doc.visibility, "public", "a public doc stays public");
 });
