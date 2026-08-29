@@ -91,6 +91,13 @@
 						<div id="writesList"></div>
 					</div>
 
+					<!-- beta reads: only on my OWN profile, and only OTHER writers'
+					     fics — kept out of the Solo writes card above -->
+					<div class="card hidden" id="betaReadCard">
+						<h3 class="dash-h" style="margin-top: 0">📖 Beta reading</h3>
+						<div id="betaReadList"></div>
+					</div>
+
 					<!-- sprints: timed bursts in the solo editor, and which project each landed in -->
 					<div class="card">
 						<h3 class="dash-h" style="margin-top: 0">Sprints</h3>
@@ -149,7 +156,7 @@
 			import { safeColor } from "/js/util.js"
 			import { streakRingHtml } from "/js/dashboard-view.js"
 			import { ladderAccordionHtml, usageCaseHtml, aboutHtml, avatarHtml } from "/js/profile-view.js"
-			import { soloListHtml, wireSoloDeletes, sprintListHtml } from "/js/write-view.js"
+			import { soloListHtml, betaReadingHtml, wireSoloDeletes, sprintListHtml } from "/js/write-view.js"
 
 			mountChrome({ page: "profile" })
 			const $ = (id) => document.getElementById(id)
@@ -338,6 +345,16 @@
 					$("statSprints").textContent = (p.sprintWords || 0).toLocaleString()
 					$("sprintList").innerHTML = sprintListHtml(sprints, { total: p.sprintWords || 0, count: p.sprintCount || 0 })
 					$("writesList").innerHTML = soloListHtml(writes, { empty: "No solo writes yet.", limit: 5 })
+					// on my own profile, the fics I beta read for others get their
+					// own grouped card — never mixed into the writes above
+					if (itsMe) {
+						try {
+							const dd = await api("/api/docs", null, "GET")
+							const betaHtml = betaReadingHtml(dd.docs || [])
+							$("betaReadList").innerHTML = betaHtml
+							$("betaReadCard").classList.toggle("hidden", !betaHtml)
+						} catch (e) {}
+					}
 					if (writes.length > 5) {
 						const more = document.createElement("p")
 						more.className = "subtle"

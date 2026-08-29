@@ -747,3 +747,52 @@ test("solo writes count: words an author adds credit the account once (a high-wa
   assert.equal(r.data.wordCount, me0 + 6);
   assert.equal((await ctx.api("/api/me", undefined, w.token)).data.user.wordCount, me0 + 6);
 });
+
+test("a beta reader can comment multiple times and every comment sticks (cumulative anchors)", async () => {
+  const doc = await commentableDoc();
+  const B = await ctx.conn();
+  B.emit("doc-open", { auth: bob.token, id: doc.id });
+  await ctx.wait(150);
+  // The real client keeps each anchor it adds in its editor, so the next
+  // comment's html carries the anchors from the earlier ones too.
+  const wrap = (html, cid, word) => html.replace(word, `<span class="cmt" data-cid="${cid}">${word}</span>`);
+  let html = BODY;
+  html = wrap(html, "a1a1a1a1a1a1", "striped");
+  B.emit("doc-comment", { auth: bob.token, id: doc.id, cid: "a1a1a1a1a1a1", html, text: "note 1" });
+  await ctx.wait(150);
+  html = wrap(html, "b2b2b2b2b2b2", "shirt");
+  B.emit("doc-comment", { auth: bob.token, id: doc.id, cid: "b2b2b2b2b2b2", html, text: "note 2" });
+  await ctx.wait(150);
+  html = wrap(html, "c3c3c3c3c3c3", "hangs");
+  B.emit("doc-comment", { auth: bob.token, id: doc.id, cid: "c3c3c3c3c3c3", html, text: "note 3" });
+  await ctx.wait(200);
+
+  const after = await docOf(doc.id);
+  const texts = after.comments.map((c) => c.text).sort();
+  assert.deepEqual(texts, ["note 1", "note 2", "note 3"], "all three comments are kept");
+  for (const cid of ["a1a1a1a1a1a1", "b2b2b2b2b2b2", "c3c3c3c3c3c3"])
+    assert.ok(after.html.includes(`data-cid="${cid}"`), `anchor ${cid} survives in the html`);
+  assert.ok(after.comments.every((c) => !c.orphaned), "no comment is orphaned");
+});
+
+test("a beta reader commenting several times: each comment re-syncs from the server, all stick", async () => {
+  const doc = await commentableDoc();
+  const B = await ctx.conn();
+  B.emit("doc-open", { auth: bob.token, id: doc.id });
+  // the client tracks the canonical html the server pushes back
+  let base = BODY;
+  B.on("doc-html", ({ html }) => { base = html; });
+  await ctx.wait(150);
+  const wrap = (html, cid, word) => html.replace(word, `<span class="cmt" data-cid="${cid}">${word}</span>`);
+  const plan = [["a1a1a1a1a1a1", "striped", "note 1"], ["b2b2b2b2b2b2", "shirt", "note 2"], ["c3c3c3c3c3c3", "hangs", "note 3"]];
+  for (const [cid, word, text] of plan) {
+    B.emit("doc-comment", { auth: bob.token, id: doc.id, cid, html: wrap(base, cid, word), text });
+    await ctx.wait(150);
+  }
+  await ctx.wait(150);
+  const after = await docOf(doc.id);
+  assert.deepEqual(after.comments.map((c) => c.text).sort(), ["note 1", "note 2", "note 3"]);
+  assert.ok(after.comments.every((c) => !c.orphaned), "no comment is orphaned");
+  for (const cid of ["a1a1a1a1a1a1", "b2b2b2b2b2b2", "c3c3c3c3c3c3"])
+    assert.ok(after.html.includes(`data-cid="${cid}"`));
+});

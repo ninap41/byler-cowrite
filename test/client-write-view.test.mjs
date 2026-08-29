@@ -7,7 +7,7 @@ import { installDom } from "./dom.mjs";
 import { readFileSync } from "node:fs";
 
 installDom(); // plainBlockHtml parses through a detached div
-import { docCardHtml, docListHtml, docShelfHtml, DOC_GROUPS, presenceHtml, soloRowHtml, soloListHtml, wireSoloDeletes, commentHtml, commentThreadHtml, readerChipsHtml, wordsLabel, formatSource, unformatSource, plainBlockHtml, visChipHtml, visMenuHtml, visLabel, VIS, scrollTargetFor, inviteOptions, inviteRowHtml, inviteListHtml, promptInsertHtml, insertAfterHeading } from "../public/js/write-view.js";
+import { docCardHtml, docListHtml, docShelfHtml, DOC_GROUPS, presenceHtml, soloRowHtml, soloListHtml, wireSoloDeletes, commentHtml, commentThreadHtml, readerChipsHtml, wordsLabel, formatSource, unformatSource, plainBlockHtml, visChipHtml, visMenuHtml, visLabel, VIS, scrollTargetFor, inviteOptions, inviteRowHtml, inviteListHtml, promptInsertHtml, insertAfterHeading, betaReadingHtml } from "../public/js/write-view.js";
 
 const DOC = {
   id: "abc", title: "The Upside Down", wordCount: 120, visibility: "private",
@@ -458,4 +458,21 @@ test("the prompt roller's card is one list of category | value rows and the moda
   assert.match(card, /overflow-y: auto/);
   assert.ok(css.includes(".prompt-roll-card .prompt-roll-result .prompt-grid { grid-template-columns: max-content 1fr; }"), "never the two-pair ballot layout");
   assert.match(css.match(/\.prompt-roll-card \.prompt-roll-result \{[^}]*\}/)[0], /overflow-wrap: anywhere/);
+});
+
+test("betaReadingHtml: others' fics grouped by owner, mine excluded, empty is blank", () => {
+  const docs = [
+    { id: "a", title: "Mine", mine: true, owner: "me" },
+    { id: "b", title: "Their Fic", mine: false, viewable: true, owner: "willbyers", visibility: "readers" },
+    { id: "c", title: "Their Other", mine: false, viewable: true, owner: "willbyers", visibility: "readers" },
+    { id: "d", title: "Someone", mine: false, viewable: true, owner: "mikewheeler", visibility: "public" },
+  ];
+  const h = betaReadingHtml(docs);
+  assert.match(h, /Beta reading for willbyers/);
+  assert.match(h, /Beta reading for mikewheeler/);
+  assert.match(h, /Their Fic/);
+  assert.doesNotMatch(h, /Mine/);
+  assert.match(h, /data-owner="willbyers"[\s\S]*Their Fic[\s\S]*Their Other/);
+  assert.equal(betaReadingHtml([{ id: "a", mine: true }]), "");
+  assert.equal(betaReadingHtml([]), "");
 });

@@ -300,6 +300,32 @@ export function soloRowHtml(d) {
 		`</div>`
 	)
 }
+// Docs I was invited to beta read belong to OTHER writers, so they never sit
+// under "my solo writes": they get their own section, grouped by whose fic it
+// is — "📖 Beta reading for <owner>" — with each of that writer's writes as a
+// row underneath. Nothing here is mine to edit or delete (soloRowHtml shows a
+// Read/🔒 row for a non-mine doc). Empty → "".
+export function betaReadingHtml(docs, { limit = 20 } = {}) {
+	const reading = (docs || []).filter((d) => !d.mine)
+	if (!reading.length) return ""
+	const byOwner = new Map()
+	for (const d of reading.slice(0, limit)) {
+		const owner = d.owner || "someone"
+		if (!byOwner.has(owner)) byOwner.set(owner, [])
+		byOwner.get(owner).push(d)
+	}
+	return [...byOwner.entries()]
+		.map(
+			([owner, list]) =>
+				`<section class="beta-group" data-owner="${esc(owner)}">` +
+				`<h4 class="dash-h dash-sub-h" style="margin:14px 0 6px">📖 Beta reading for ${esc(owner)}` +
+				`<span class="doc-group-count">${list.length}</span></h4>` +
+				list.map(soloRowHtml).join("") +
+				`</section>`,
+		)
+		.join("")
+}
+
 export const soloListHtml = (docs, { empty = "No solo writes yet.", limit = 5 } = {}) =>
 	!docs || !docs.length
 		? `<p class="subtle" style="text-align:left;margin:0">${esc(empty)}</p>`

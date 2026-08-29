@@ -11,7 +11,7 @@ import { storage, getJson } from "./storage.js";
 import { generateSimplePrompt, generateIntermediatePrompt, validateIntermediateData, EXPLICIT_LEVELS, MODES, MAX_KINKS } from "../lib/prompt-gen.js";
 import { readContent, writeContent } from "./content.js";
 import { randomTitle } from "../lib/titles.js";
-import { readDoc, writeDoc, canView, canEdit, canComment, anchorCids, anchorText, stripAnchor, applySuggestion } from "./docs.js";
+import { readDoc, writeDoc, canView, canEdit, canComment, anchorCids, anchorText, stripAnchor, stripAnchors, applySuggestion } from "./docs.js";
 
 // Curated scenario prompts + the guided-mode component pools (edit
 // content/prompts.json freely — no code changes). See docs/PROMPT_GENERATION.md.
@@ -1943,12 +1943,22 @@ export function createGame(io) {
       if (anchorCids(doc.html).includes(cid)) return; // never reuse an anchor id
       const next = sanitizeDoc(String(html ?? ""));
       if (!anchorCids(next).includes(cid)) return; // the anchor has to be there
-      // …and, for a BETA READER, be the only change: strip it back out and what
-      // remains must equal the stored html byte for byte. The author is a
-      // different case — they may edit their own document, and the editor sends
-      // its live html, so insisting on a byte match would silently drop every
-      // comment they made after typing anything (which is exactly what it did).
-      if (!canEdit(doc, u.id) && stripAnchor(next, cid) !== doc.html) return;
+      // …and, for a BETA READER, the ONLY change may be that one anchor: no
+      // words touched, no other underline added, moved or removed. We check the
+      // invariant instead of a byte-for-byte echo of the stored html, because a
+      // reader's editor re-serializes the html (span order, whitespace) subtly
+      // differently than sanitizeDoc stored it, and a byte match silently
+      // dropped every comment after the first once anything drifted. So: the
+      // anchor set must be exactly the stored one plus this new cid, and with
+      // every anchor stripped the two must be identical (same words, same
+      // markup). The author is a different case — they may edit their own
+      // document, so no such check applies to them.
+      if (!canEdit(doc, u.id)) {
+        const want = [...anchorCids(doc.html), cid].sort().join(",");
+        const got = [...anchorCids(next)].sort().join(",");
+        if (want !== got) return; // an anchor was added, moved or removed beyond this one
+        if (stripAnchors(next) !== stripAnchors(doc.html)) return; // words/markup changed
+      }
       doc.html = next;
       doc.comments = [...(doc.comments || []), {
         id: randomUUID(), cid,
@@ -1957,7 +1967,12 @@ export function createGame(io) {
         ts: Date.now(), resolved: false, accepted: false,
       }];
       writeDoc(doc);
-      broadcastDocHtml(doc, socket);
+      // Skip only the AUTHOR (a live editor whose caret a re-render would move);
+      // a beta reader has no unsaved edits, so pushing the canonical html back
+      // keeps their editor exactly in step with the store and their NEXT
+      // comment builds on the same bytes the server holds — no drift to
+      // accumulate across several comments.
+      broadcastDocHtml(doc, canEdit(doc, u.id) ? socket : null);
       broadcastDocComments(doc);
     });
 

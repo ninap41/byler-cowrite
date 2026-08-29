@@ -151,6 +151,16 @@ export function stripAnchor(html, cid) {
   return s ? html.slice(0, s.at) + html.slice(s.from, s.to) + html.slice(s.end) : String(html ?? "");
 }
 
+// Strip EVERY comment anchor, leaving the words. Used to compare a reader's
+// submitted html against the stored one ignoring where the underlines sit, so
+// a beta reader's comment isn't refused just because the two serialize their
+// anchor spans in a different order or byte-shape.
+export function stripAnchors(html) {
+  let out = String(html ?? "");
+  for (const cid of anchorCids(out)) out = stripAnchor(out, cid);
+  return out;
+}
+
 // The cids that may legally wear an underline: a comment that still exists
 // and hasn't been resolved. Resolving deliberately un-underlines the words, so
 // a resolved comment's cid is no more anchorable than a deleted one's.

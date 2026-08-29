@@ -133,6 +133,13 @@
 							<div id="dashWrites"></div>
 						</div>
 
+						<!-- beta reads: OTHER writers' fics, grouped by owner — never
+						     mixed into my own solo writes above -->
+						<div class="card hidden" id="dashBetaSec">
+							<h3 class="dash-h" style="margin-top: 0">📖 Beta reading</h3>
+							<div id="dashBetaReads"></div>
+						</div>
+
 						<!-- previous games (achievements + streak live in the right rail) -->
 						<div class="card">
 							<h3 class="dash-h" style="margin-top: 0px">Previous games</h3>
@@ -284,7 +291,7 @@
 			} from "/js/dashboard-view.js"
 			import { avatarHtml } from "/js/profile-view.js"
 			import { showInviteToast } from "/js/turn-alert.js"
-			import { soloListHtml, wireSoloDeletes } from "/js/write-view.js"
+			import { soloListHtml, betaReadingHtml, wireSoloDeletes } from "/js/write-view.js"
 			import { confirmDialog } from "/js/components/confirm-delete.js"
 			import { mountTendrilBorder } from "/js/components/tendril-border.js"
 
@@ -867,11 +874,16 @@
 			async function loadWrites() {
 				try {
 					const d = await api("/api/docs", null, "GET")
-					const mine = (d.docs || []).filter((x) => x.mine)
+					const all = d.docs || []
+					const mine = all.filter((x) => x.mine)
 					$("dashWrites").innerHTML = soloListHtml(mine, {
 						empty: "Nothing written solo yet, start one from the rail.",
 						limit: 5,
 					})
+					// beta reads (others' fics) go in their own card, grouped by owner
+					const betaHtml = betaReadingHtml(all)
+					$("dashBetaReads").innerHTML = betaHtml
+					$("dashBetaSec").classList.toggle("hidden", !betaHtml)
 					if (mine.length > 5)
 						$("dashWrites").insertAdjacentHTML(
 							"beforeend",
