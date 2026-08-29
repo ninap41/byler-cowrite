@@ -362,3 +362,71 @@ test("plainText / clip: a line's words with entities decoded, and a preview cut 
   assert.equal(clip("short", 20), "short");
   assert.equal(clip("the quick brown fox jumps", 17), "the quick brown…");
 });
+
+test("cancel-game: a brand-new lobby (no story) is discarded; non-host can't; not once writing", async () => {
+  const host = await signup(ctx, "cancelhost", "ch@x.com");
+  const other = await signup(ctx, "cancelother", "co@x.com");
+  const A = await ctx.conn();
+  const B = await ctx.conn();
+  const c = await ctx.emit(A, "create-session", { auth: host.token });
+  await ctx.emit(B, "join-session", { code: c.code, auth: other.token });
+  await ctx.wait(80);
+
+  // a non-host writer cannot cancel
+  const denied = await ctx.emit(B, "cancel-game", {});
+  assert.equal(denied.ok, false);
+  assert.match(denied.error, /host/i);
+
+  // still there after the denied attempt
+  assert.equal((await ctx.api("/api/games/" + c.code, null, host.token, "GET")).status, 200);
+
+  // the host cancels a never-started game — it is discarded
+  const gone = new Promise((r) => B.once("game-deleted", r));
+  const res = await ctx.emit(A, "cancel-game", {});
+  assert.equal(res.ok, true);
+  assert.equal(res.deleted, true, "a brand-new game is deleted");
+  await gone; // the room is told
+  assert.equal((await ctx.api("/api/games/" + c.code, null, host.token, "GET")).status, 404, "snapshot unlinked");
+});
+
+test("cancel-game: refused once the game is writing", async () => {
+  const { A, code, host } = await startedGame(ctx, { rounds: 1 });
+  await ctx.wait(150);
+  const res = await ctx.emit(A, "cancel-game", {});
+  assert.equal(res.ok, false);
+  assert.match(res.error, /underway/i);
+  // the game is untouched
+  assert.equal((await ctx.api("/api/games/" + code, null, host.token, "GET")).status, 200);
+});
+
+test("cancel-game: a continued (reopened) lobby is PRESERVED — story kept, closed back to the reveal", async () => {
+  const { A, B, code, host, state } = await startedGame(ctx, { rounds: 1 });
+  await ctx.wait(150);
+  // write one line so the story is non-empty (whoever's turn it is commits;
+  // the other gets a harmless "not your turn" ack)
+  for (const sock of [A, B]) await ctx.emit(sock, "submit-line", { text: "a line" });
+  await ctx.wait(150);
+  await ctx.emit(A, "end-game", {});
+  await ctx.wait(100);
+  const before = await ctx.api("/api/games/" + code, null, host.token, "GET");
+  assert.ok(before.data.story.length >= 1, "the finished story has lines");
+
+  // reopen it into a lobby (keeps the lines)
+  const re = await ctx.api("/api/games/" + code + "/reopen", {}, host.token);
+  assert.equal(re.status, 200);
+  await ctx.wait(120);
+
+  // cancel the reopened lobby — preserve, don't delete
+  const res = await ctx.emit(A, "cancel-game", {});
+  assert.equal(res.ok, true);
+  assert.equal(res.preserved, true, "a continued game is preserved, not deleted");
+
+  const after = await ctx.api("/api/games/" + code, null, host.token, "GET");
+  assert.equal(after.status, 200, "the story still exists");
+  assert.equal(after.data.phase, "over", "closed back to the reveal");
+  assert.deepEqual(
+    after.data.story.map((l) => l.text),
+    before.data.story.map((l) => l.text),
+    "every line is preserved",
+  );
+});

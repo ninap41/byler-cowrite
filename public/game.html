@@ -69,7 +69,7 @@
 						</div>
 						<img id="coverPreview" class="cover-preview hidden" alt="Cover preview" loading="lazy" />
 						<div id="lobbyPrompt" style="margin-top: 14px"></div>
-						<div class="row"><button class="primary" id="startBtn">Begin →</button></div>
+						<div class="row"><button class="primary" id="startBtn">Begin →</button><button class="ghost danger" id="cancelBtn">Cancel game</button></div>
 					</div>
 					<p id="waitingNote" class="subtle" style="margin-top: 16px">Waiting for the host to begin…</p>
 				</div>
@@ -98,6 +98,7 @@
 					<div class="row hidden" id="hostVoteBtns">
 						<button class="ghost" id="reshuffleBtn">🎲 New options</button>
 						<button class="ghost" id="finalizeBtn">Start with current votes →</button>
+						<button class="ghost danger" id="cancelBtn2">Cancel game</button>
 					</div>
 				</div>
 
@@ -289,6 +290,7 @@
 			import { storyHtml, livePreviewHtml } from "/js/components/story-feed.js"
 			import { mountPromptModes, optionChipsHtml } from "/js/components/prompt-modes.js"
 			import { chatMessageHtml } from "/js/components/chat-view.js"
+			import { confirmDialog } from "/js/components/confirm-delete.js"
 			import { mountSideDrawer } from "/js/components/side-drawer.js"
 			import { getSpectatorName } from "/js/spectator-names.js"
 			import { countdownView } from "/js/components/countdown.js"
@@ -721,6 +723,10 @@
 				$("hostControls").classList.toggle("hidden", !host)
 				$("lobbyShare").classList.toggle("hidden", !host)
 				$("waitingNote").classList.toggle("hidden", host)
+				// Cancel: a brand-new game is discarded; a continued/reopened one
+				// (it already has lines) is just closed and its story preserved.
+				const cancelLabel = gameContinued ? "Cancel (keep story)" : "Cancel game"
+				for (const id of ["cancelBtn", "cancelBtn2"]) { const b = $(id); if (b) b.textContent = cancelLabel }
 				// everyone sees the continue panel; it is driven by whoever the
 				// server would let continue (mirrors mayContinue in src/game.js):
 				// the acting host, the ORIGINAL host by account, or anyone seated
@@ -757,6 +763,26 @@
 					if (!res?.ok) alert(res?.error || "Could not start.")
 				})
 
+			async function cancelGame() {
+				const keep = gameContinued
+				const ok = await confirmDialog({
+					title: keep ? "Cancel writing more?" : "Cancel this game?",
+					text: keep
+						? "This closes the lobby and leaves the existing story exactly as it was — nothing is lost, and you can continue it again later from the archive."
+						: "This discards the game before it starts. Nobody has written a line yet, so the story and its code go away for good.",
+					confirmLabel: keep ? "Keep the story" : "Discard game",
+					danger: !keep,
+				})
+				if (!ok) return
+				socket.emit("cancel-game", {}, (res) => {
+					if (!res?.ok) return alert(res?.error || "Could not cancel.")
+					clearRejoin()
+					if (res.deleted) location.href = "/dashboard"
+					// a preserved game broadcasts game-over; the reveal shows the kept story
+				})
+			}
+			for (const id of ["cancelBtn", "cancelBtn2"]) { const b = $(id); if (b) b.onclick = cancelGame }
+
 			// The host's ⋯ menu on another seated player (lobby roster and the
 			// players row alike): "Make host" hands them the game for good
 			// (make-host, server-side host-only). Only the host sees it, only on
@@ -789,7 +815,8 @@
 					if (!res?.ok) alert(res?.error || "Could not hand over the game.")
 				})
 			})
-			socket.on("roster", ({ writers, code, name, cover, hostUserId: hu }) => {
+			socket.on("roster", ({ writers, code, name, cover, hostUserId: hu, continued }) => {
+				if (continued !== undefined) gameContinued = !!continued
 				updateLiveStatus(writers)
 				if (hu !== undefined) hostUserId = hu
 				if (Array.isArray(writers)) tableWriters = writers
@@ -819,6 +846,7 @@
 
 			// ---- Phase router ----
 			let lastStoryLen = 0
+			let gameContinued = false
 			let lastPaused = false
 			socket.on("game-state", (st) => {
 				lastPaused = !!st.paused

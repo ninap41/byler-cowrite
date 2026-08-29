@@ -576,7 +576,7 @@ export function createGame(io) {
     }));
   }
   const broadcastRoster = (s) =>
-    io.to(s.code).emit("roster", { writers: roster(s), code: s.code, name: s.name || "", cover: s.cover || "", hostUserId: s.hostUserId ?? null });
+    io.to(s.code).emit("roster", { writers: roster(s), code: s.code, name: s.name || "", cover: s.cover || "", hostUserId: s.hostUserId ?? null, continued: (s.story || []).length > 0 });
 
   function tally(s) {
     const counts = s.options.map(() => 0);
@@ -1431,6 +1431,29 @@ export function createGame(io) {
       if (s.phase === "over") return ack?.({ ok: false });
       endGame(s);
       ack?.({ ok: true });
+    });
+
+    // Cancel a game that isn't officially in progress yet — only in the lobby
+    // (gathering writers) or the vote (before any line is written). A brand-new
+    // game (no story) is DISCARDED outright; a continued/reopened one (it
+    // already has lines) is just closed back to its reveal, so the existing
+    // story is preserved and stays continuable. Host or admin only.
+    socket.on("cancel-game", (_, ack) => {
+      const s = mySession();
+      if (!s || (s.hostId !== socket.id && !adminSeat(s, socket.id))) return ack?.({ ok: false, error: "Only the host can cancel." });
+      if (s.phase !== "waiting" && s.phase !== "choosing") return ack?.({ ok: false, error: "The game is already underway." });
+      const hasStory = (s.story || []).length > 0;
+      if (hasStory) {
+        // preserve: return the reopened story to its revealed state
+        const who = s.writers.get(socket.id);
+        endGame(s); // phase → over, snapshot, game-over broadcast (lines kept)
+        if (who) announce(s, who, "canceled writing more — the story stands as it was.");
+        return ack?.({ ok: true, preserved: true });
+      }
+      // brand-new: discard it entirely
+      const by = store.users.find((u) => u.id === s.writers.get(socket.id)?.userId) || null;
+      deleteGame(s.code, by); // emits game-deleted to the room, unlinks the snapshot
+      ack?.({ ok: true, deleted: true });
     });
 
     socket.on("chat", ({ text, name }) => {
