@@ -35,10 +35,12 @@
 					<h2 id="archTitle" style="text-align: left; margin: 0 0 4px"></h2>
 					<p id="archAuthors" class="subtle" style="text-align: left; margin: 0 0 4px"></p>
 					<p class="gc-meta" id="archMeta" style="margin: 0 0 14px; align-items: center"></p>
+					<!-- tags read-only on the page; the ✎ opens the editor modal -->
+					<div class="arch-tagrow" id="archTagRow">
+						<span class="tag-chips" id="archTagList"></span>
+						<button type="button" class="ghost tag-edit" id="archTagEdit" title="Edit tags" aria-label="Edit tags">✎</button>
+					</div>
 					<div class="prompt-banner" id="archPrompt"></div>
-					<!-- tumblr-style tags: type + Enter to add a #chip; saves as you go -->
-					<div id="archTags"></div>
-					<p class="err" id="archTagsErr" style="margin: 4px 0 0"></p>
 					<div class="story" id="archStory" style="max-height: none"></div>
 					<!-- keep a copy: anyone who can open the story is in it -->
 					<div class="row" id="archExport">
@@ -53,6 +55,18 @@
 					<p class="subtle" style="text-align: left; margin-top: 12px">
 						<a href="#" class="linky" id="archListLink">← All previous games</a>
 					</p>
+				</div>
+			</div>
+		</div>
+
+		<!-- tag editor: the only place tags are typed -->
+		<div class="confirm-modal hidden" id="tagModal">
+			<div class="confirm-card">
+				<h3>Tags</h3>
+				<div id="archTags"></div>
+				<p class="err" id="archTagsErr" style="margin: 4px 0 0"></p>
+				<div class="row">
+					<button class="primary" id="tagDone">Done</button>
 				</div>
 			</div>
 		</div>
@@ -197,18 +211,42 @@
 				$("archMeta").textContent =
 					`code: ${g.code} · ${g.writers.length} writer${g.writers.length === 1 ? "" : "s"} · ${Number(g.words || 0).toLocaleString()} words · last played ${fmtWhen(g.savedAt)}`
 				$("archPrompt").innerHTML = promptHtml(g.prompt || "(no prompt)")
-				// tags: everyone with a seat here may edit; each change saves itself
+				// tags: shown as read-only chips above the prompt; everyone with a
+				// seat here may edit them in the modal, where each change saves itself
+				const paintTags = (tags) => {
+					const list = $("archTagList")
+					list.innerHTML = ""
+					if (!tags.length) {
+						const e = document.createElement("span")
+						e.className = "subtle"
+						e.textContent = "No tags yet"
+						list.appendChild(e)
+					}
+					tags.forEach((t) => {
+						const c = document.createElement("span")
+						c.className = "tag-chip"
+						c.textContent = "#" + t
+						list.appendChild(c)
+					})
+				}
+				paintTags(g.tags || [])
 				mountTagEditor($("archTags"), {
 					tags: g.tags || [],
 					onSave: async (tags) => {
 						try {
 							await api("/api/games/" + encodeURIComponent(g.code) + "/tags", { tags })
 							$("archTagsErr").textContent = ""
+							g.tags = tags
+							paintTags(tags)
 						} catch (e) {
 							$("archTagsErr").textContent = e.message
 						}
 					},
 				})
+				$("archTagEdit").onclick = () => {
+					$("tagModal").classList.remove("hidden")
+					$("archTags").querySelector("input")?.focus()
+				}
 				// story html was sanitized server-side by sanitizeRich() before being saved
 				$("archStory").innerHTML = archiveStoryHtml(g.story)
 				const over = g.phase === "over"
@@ -260,6 +298,10 @@
 				$("delModal").classList.remove("hidden")
 			}
 			$("delCancel").onclick = () => $("delModal").classList.add("hidden")
+			$("tagDone").onclick = () => $("tagModal").classList.add("hidden")
+			$("tagModal").onclick = (e) => {
+				if (e.target === $("tagModal")) $("tagModal").classList.add("hidden")
+			}
 			$("delModal").addEventListener("click", (e) => {
 				if (e.target === $("delModal")) $("delModal").classList.add("hidden")
 			})

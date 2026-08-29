@@ -11113,3 +11113,9 @@ html.vcx-live[data-theme="vecna"] #vc-pend {
 	-webkit-text-fill-color: transparent;
 	color: transparent;
 }
+
+/* archive: read-only tag chips beside a ✎ that opens the tag modal */
+.arch-tagrow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0 0 10px; }
+.arch-tagrow .tag-chips { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+.arch-tagrow .tag-edit { padding: 2px 9px; font-size: 14px; line-height: 1.4; border-radius: 10px; }
+#tagModal .tag-label { display: none; }

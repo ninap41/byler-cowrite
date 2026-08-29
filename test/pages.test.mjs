@@ -664,3 +664,14 @@ test("the homepage feature rundown never opens on a touch device while GSAP is l
   assert.match(src, /featuresAllowed = \(\) => !\(touchDevice\(\) && typeof window\.gsap !== "undefined"\)/);
   assert.match(src, /if \(featuresAllowed\(\)\) \$\("featuresModal"\)\.classList\.remove\("hidden"\)/);
 });
+
+test("archive: tags are read-only chips above the prompt with a ✎ that opens the tag modal; the input lives only in the modal", async () => {
+  const { readFileSync } = await import("node:fs");
+  const html = readFileSync(new URL("../public/archive.html", import.meta.url), "utf8");
+  const row = html.indexOf('id="archTagRow"'), prompt = html.indexOf('id="archPrompt"'), edit = html.indexOf('id="archTagEdit"');
+  assert.ok(row > -1 && edit > row && row < prompt, "tag row (with ✎) sits above the prompt");
+  const modal = html.indexOf('id="tagModal"');
+  assert.ok(modal > -1 && html.indexOf('id="archTags"') > modal, "the tag editor mounts inside the modal only");
+  const detail = html.slice(html.indexOf('id="archiveDetail"'), html.indexOf('id="tagModal"'));
+  assert.ok(!detail.includes('id="archTags"'), "no tag input on the page outside the modal");
+});
