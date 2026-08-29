@@ -42,6 +42,14 @@
 						<div class="swatches" id="swatches"></div>
 					</div>
 
+					<!-- membership: the signup checkbox, changeable here; saves on toggle -->
+					<div class="settings-section">
+						<label class="checkline" style="margin: 2px 0 0">
+							<input type="checkbox" id="setMember" />
+							I am a member of Byler Offscreen
+						</label>
+					</div>
+
 					<!-- sounds: saved on the account so they follow you between sessions -->
 					<div class="settings-section">
 						<button type="button" class="ghost sec-toggle" data-toggle="secSounds" aria-expanded="false">
@@ -263,6 +271,7 @@
 				$("sndStory").checked = snd.story !== false
 				$("sndClock").checked = snd.clock !== false
 				$("sndGimmick").checked = snd.gimmick !== false
+				$("setMember").checked = me.isAMemberOfBylerOffscreen === true
 				links = (me.links || []).map((l) => ({ label: l.label || "", url: l.url || "" }))
 				renderLinks()
 				document.querySelectorAll(".swatch").forEach((x) => x.classList.toggle("sel", x.dataset.color === safeColor(me.color)))
@@ -284,6 +293,16 @@
 						.catch((e) => say(false, e.message))
 				sw.appendChild(d)
 			})
+
+			$("setMember").onchange = async () => {
+				try {
+					const r = await api("/api/account/membership", { isAMemberOfBylerOffscreen: $("setMember").checked })
+					me = { ...me, ...r.user }
+					say(true, $("setMember").checked ? "Marked as a Byler Offscreen member." : "Membership unmarked.")
+				} catch (e) {
+					say(false, e.message)
+				}
+			}
 
 			// Sounds save the moment a box is toggled — no separate save button.
 			for (const id of ["sndChat", "sndStory", "sndClock", "sndGimmick"])

@@ -11092,3 +11092,11 @@ html.vcx-live[data-theme="vecna"] #vc-pend {
 	flex: none;
 	margin-top: 3px;
 }
+
+/* announcement embed images + the composer's url list */
+.ann-images { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+.ann-images img { max-width: 100%; max-height: 360px; border-radius: 10px; display: block; }
+.ann-imgs { margin-top: 10px; }
+.ann-imgs-head { display: flex; align-items: center; gap: 8px; }
+.ann-img-row { display: flex; gap: 6px; margin-top: 6px; align-items: center; }
+.ann-img-row input { flex: 1; }

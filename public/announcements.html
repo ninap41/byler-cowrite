@@ -34,7 +34,7 @@
 			import { api } from "/js/api.js"
 			import { requireAuth } from "/js/auth-guard.js"
 			import { mountChrome, setUserChip } from "/js/chrome.js"
-			import { postListHtml, composerHtml } from "/js/announcements-view.js"
+			import { postListHtml, composerHtml, imageRowHtml, readImages } from "/js/announcements-view.js"
 
 			mountChrome({ page: "announcements" })
 			const me = await requireAuth()
@@ -62,13 +62,25 @@
 				const btn = e.target
 				btn.disabled = true
 				try {
-					await api("/api/admin/announcements", { markdown: $("annEditor").value })
+					await api("/api/admin/announcements", { markdown: $("annEditor").value, images: readImages($("annComposer")) })
 					$("annEditor").value = ""
 					await load()
 				} catch (err) {
 					alert(err.message || "That didn't post.")
 				}
 				btn.disabled = false
+			})
+			// Image urls: + adds a row, ✕ removes one.
+			document.addEventListener("click", (e) => {
+				const add = e.target.closest("[data-ann-add]")
+				if (add) {
+					const rows = add.closest(".ann-imgs").querySelector(".ann-imgs-rows")
+					rows.insertAdjacentHTML("beforeend", imageRowHtml())
+					rows.lastElementChild.querySelector("input").focus()
+					return
+				}
+				const rm = e.target.closest(".ann-img-rm")
+				if (rm) rm.closest(".ann-img-row").remove()
 			})
 			// Post to Discord: the server sends the post's markdown to the admin
 			// channel (POST /api/admin/announcements/:id/discord, bot token + channel
@@ -105,7 +117,7 @@
 				const ta = document.querySelector(`[data-ann-editor="${id}"]`)
 				save.disabled = true
 				try {
-					await api(`/api/admin/announcements/${encodeURIComponent(id)}`, { markdown: ta?.value ?? "" }, "PUT")
+					await api(`/api/admin/announcements/${encodeURIComponent(id)}`, { markdown: ta?.value ?? "", images: readImages(document.querySelector(`[data-ann-imgs="${id}"]`) || document) }, "PUT")
 					await load()
 				} catch (err) {
 					save.disabled = false

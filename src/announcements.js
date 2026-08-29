@@ -41,11 +41,27 @@ export function titleOf(html) {
 }
 
 // Returns {post} or {error}. `by` is the admin's public identity.
-export function addPost({ markdown }, by) {
+// Embed images: up to IMAGES_MAX http(s) urls, shown under the post and sent
+// to Discord as embeds. Anything else (javascript:, data:, junk) is dropped —
+// they render into every reader's DOM and into a public channel.
+export const IMAGES_MAX = 10;
+export function cleanImages(list) {
+  if (!Array.isArray(list)) return [];
+  const out = [];
+  for (const v of list) {
+    const s = String(v ?? "").trim().slice(0, 2000);
+    if (!/^https?:\/\/\S+$/i.test(s) || out.includes(s)) continue;
+    out.push(s);
+    if (out.length >= IMAGES_MAX) break;
+  }
+  return out;
+}
+
+export function addPost({ markdown, images }, by) {
   const md = String(markdown ?? "").slice(0, MD_MAX).trim();
   const clean = sanitizeRich(renderMarkdown(md).slice(0, HTML_MAX));
   if (!squash(clean)) return { error: "A post needs some words." };
-  const post = { id: randomUUID(), title: titleOf(clean), markdown: md, html: clean, at: Date.now(), byId: by?.id ?? null, byName: by?.username ?? "" };
+  const post = { id: randomUUID(), title: titleOf(clean), markdown: md, html: clean, images: cleanImages(images), at: Date.now(), byId: by?.id ?? null, byName: by?.username ?? "" };
   posts = [post, ...posts].slice(0, POSTS_MAX);
   save();
   return { post };
@@ -53,13 +69,13 @@ export function addPost({ markdown }, by) {
 
 // Editing keeps the post's id and date (it is the same announcement, said
 // better) and re-renders the markdown through the same trust boundary.
-export function updatePost(id, { markdown }, by) {
+export function updatePost(id, { markdown, images }, by) {
   const post = posts.find((p) => p.id === id);
   if (!post) return { error: "No such post.", status: 404 };
   const md = String(markdown ?? "").slice(0, MD_MAX).trim();
   const clean = sanitizeRich(renderMarkdown(md).slice(0, HTML_MAX));
   if (!squash(clean)) return { error: "A post needs some words." };
-  Object.assign(post, { markdown: md, html: clean, title: titleOf(clean), editedAt: Date.now(), editedBy: by?.username ?? "" });
+  Object.assign(post, { markdown: md, html: clean, images: cleanImages(images), title: titleOf(clean), editedAt: Date.now(), editedBy: by?.username ?? "" });
   save();
   return { post: { ...post } };
 }

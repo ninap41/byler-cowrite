@@ -312,6 +312,15 @@ export function registerRoutes(app, game) {
     res.json({ user: publicUser(u) });
   });
 
+  // The signup checkbox, changeable later from /settings. Only a real true counts.
+  app.post("/api/account/membership", (req, res) => {
+    const u = authedUser(req);
+    if (!u) return res.status(401).json({ error: "Not signed in." });
+    u.isAMemberOfBylerOffscreen = req.body?.isAMemberOfBylerOffscreen === true;
+    saveStore();
+    res.json({ user: publicUser(u) });
+  });
+
   app.post("/api/account/color", (req, res) => {
     const u = authedUser(req);
     if (!u) return res.status(401).json({ error: "Not signed in." });
@@ -1092,7 +1101,7 @@ export function registerRoutes(app, game) {
   });
   app.post("/api/admin/announcements", (req, res) => {
     if (!requireAdmin(req, res)) return;
-    const r = addPost({ markdown: req.body?.markdown }, authedUser(req));
+    const r = addPost({ markdown: req.body?.markdown, images: req.body?.images }, authedUser(req));
     if (r.error) return res.status(400).json({ error: r.error });
     // every account hears about it: a system note in each inbox naming the
     // post, so nobody has to check /announcements to learn there is one
@@ -1115,7 +1124,7 @@ export function registerRoutes(app, game) {
   });
   app.put("/api/admin/announcements/:id", (req, res) => {
     if (!requireAdmin(req, res)) return;
-    const r = updatePost(String(req.params.id), { markdown: req.body?.markdown }, authedUser(req));
+    const r = updatePost(String(req.params.id), { markdown: req.body?.markdown, images: req.body?.images }, authedUser(req));
     if (r.error) return res.status(r.status || 400).json({ error: r.error });
     res.json({ ok: true, post: r.post });
   });

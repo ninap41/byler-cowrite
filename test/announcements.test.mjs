@@ -100,3 +100,16 @@ test("an admin can edit a post in place (same id and date, re-rendered and re-sa
   const list = await ctx.api("/api/announcements", undefined, normie.token);
   assert.equal(list.data.posts.find((p) => p.id === id).title, "Second");
 });
+
+test("images: http(s) urls only, deduped, capped at 10, editable, and shown back", async () => {
+  const many = Array.from({ length: 12 }, (_, i) => `https://img.test/${i}.png`);
+  const r = await ctx.api("/api/admin/announcements", { markdown: "# Pics", images: ["https://a.test/x.png", "javascript:alert(1)", "data:image/png;base64,AAA", "https://a.test/x.png", ...many] }, admin.token);
+  assert.equal(r.status, 200);
+  assert.equal(r.data.post.images.length, 10);
+  assert.equal(r.data.post.images[0], "https://a.test/x.png");
+  assert.ok(r.data.post.images.every((u) => /^https:\/\//.test(u)));
+  const e = await ctx.api(`/api/admin/announcements/${r.data.post.id}`, { markdown: "# Pics", images: ["http://b.test/y.jpg"] }, admin.token, "PUT");
+  assert.deepEqual(e.data.post.images, ["http://b.test/y.jpg"]);
+  const list = await ctx.api("/api/announcements", undefined, normie.token);
+  assert.deepEqual(list.data.posts.find((p) => p.id === r.data.post.id).images, ["http://b.test/y.jpg"]);
+});

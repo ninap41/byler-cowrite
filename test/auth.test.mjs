@@ -201,3 +201,16 @@ test("isAMemberOfBylerOffscreen: the signup checkbox sets it, only a real true c
   const r3 = await ctx.api("/api/signup", { email: "off3@screen.com", username: "offscreen3", password: "1234" });
   assert.equal(r3.data.user.isAMemberOfBylerOffscreen, false, "absent is false");
 });
+
+test("/api/account/membership flips isAMemberOfBylerOffscreen; only a real true counts; needs auth", async () => {
+  const r = await ctx.api("/api/signup", { email: "mem@screen.com", username: "member01", password: "1234" });
+  const token = r.data.token;
+  const on = await ctx.api("/api/account/membership", { isAMemberOfBylerOffscreen: true }, token);
+  assert.equal(on.data.user.isAMemberOfBylerOffscreen, true);
+  const me = await ctx.api("/api/me", undefined, token);
+  assert.equal(me.data.user.isAMemberOfBylerOffscreen, true);
+  const str = await ctx.api("/api/account/membership", { isAMemberOfBylerOffscreen: "yes" }, token);
+  assert.equal(str.data.user.isAMemberOfBylerOffscreen, false, "a string unticks");
+  const anon = await ctx.api("/api/account/membership", { isAMemberOfBylerOffscreen: true });
+  assert.equal(anon.status, 401);
+});

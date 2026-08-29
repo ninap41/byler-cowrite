@@ -46,3 +46,19 @@ test("an admin's post carries Edit and a folded in-place editor holding its mark
   assert.ok(postHtml({ ...p, editedAt: 1 }, { admin: false }).includes(">edited<"));
   assert.ok(!plain.includes(">edited<"));
 });
+
+test("images: shown under the post, an admin's editor and composer carry the + url list", async () => {
+  const { imagesHtml, imageListHtml, imageRowHtml, readImages } = await import("../public/js/announcements-view.js");
+  const post = { id: "p1", html: "<p>hi</p>", images: ['https://a.test/x.png?a=1&b="2"'], at: 1, byName: "n" };
+  const h = postHtml(post, { admin: true });
+  assert.match(h, /class="ann-images"/);
+  assert.match(h, /src="https:\/\/a\.test\/x\.png\?a=1&amp;b=&quot;2&quot;"/);
+  assert.match(h, /data-ann-add="p1"/);
+  assert.equal(imagesHtml([]), "");
+  assert.doesNotMatch(postHtml({ ...post, images: [] }), /ann-images/);
+  assert.match(composerHtml(), /data-ann-add="new"/);
+  document.body.innerHTML = imageListHtml("k", ["https://a.test/1.png"]) ;
+  document.querySelector(".ann-imgs-rows").insertAdjacentHTML("beforeend", imageRowHtml(" https://a.test/2.png "));
+  document.querySelector(".ann-imgs-rows").insertAdjacentHTML("beforeend", imageRowHtml(""));
+  assert.deepEqual(readImages(document.body), ["https://a.test/1.png", "https://a.test/2.png"]);
+});

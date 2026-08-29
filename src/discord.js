@@ -99,7 +99,14 @@ const withRole = (msg, at = "start") => {
 
 // The announcement's own markdown, verbatim. Discord's cap is 2000 chars for
 // the whole message; 1970 leaves room for the role mention withRole() appends.
-export const announcementMessage = (post) => ({ content: String(post.markdown || post.title || "").slice(0, 1970) });
+// Each of the post's images rides as an embed with image.url (Discord shows
+// them inline under the text; the API takes 10 embeds per message).
+export const announcementMessage = (post) => {
+  const msg = { content: String(post.markdown || post.title || "").slice(0, 1970) };
+  const images = (Array.isArray(post.images) ? post.images : []).filter((u) => /^https?:\/\//i.test(String(u))).slice(0, 10);
+  if (images.length) msg.embeds = images.map((url) => ({ image: { url } }));
+  return msg;
+};
 export { withRole };
 export const postAnnouncement = (post) => postToChannel(env("DISCORD_ANNOUNCE_CHANNEL_ID"), withRole(announcementMessage(post), "end"));
 

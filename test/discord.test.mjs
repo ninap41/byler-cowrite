@@ -88,3 +88,9 @@ test("COWRITE_ROLE_ID is @mentioned at the head of every post, and is the only m
   assert.equal(none.content, "# Hi");
   assert.deepEqual(none.allowed_mentions, { parse: [] });
 });
+
+test("announcementMessage: images become embeds, junk urls dropped, none when empty", () => {
+  const m = announcementMessage({ markdown: "hi", images: ["https://x.test/a.png", "javascript:alert(1)", "http://x.test/b.jpg"] });
+  assert.deepEqual(m.embeds, [{ image: { url: "https://x.test/a.png" } }, { image: { url: "http://x.test/b.jpg" } }]);
+  assert.equal("embeds" in announcementMessage({ markdown: "hi" }), false);
+});
