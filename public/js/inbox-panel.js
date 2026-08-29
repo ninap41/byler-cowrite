@@ -88,14 +88,20 @@ export function mountInbox({ list, unreadChip, readAllBtn, moreLink, limit = 0, 
 		const shown = limit ? all.slice(0, limit) : all
 		if (moreLink)
 			moreLink.textContent = all.length > shown.length ? `See all ${all.length} messages →` : "Open your inbox →"
-		// A poll must never eat what someone is typing: remember every open
-		// composer's draft (text, caret, focus) by thread and put it back after.
+		// A poll must never eat what someone is typing: remember every OPEN
+		// composer (the box unfolded — even empty, even unfocused — plus its
+		// draft text, caret and focus) by thread and put it all back after.
+		// Remembering only the text put the words back into a box the
+		// re-render had folded shut again, so the composer "collapsed" on
+		// every poll.
 		const drafts = new Map()
 		for (const row of list.querySelectorAll(".ib-row[data-thread]")) {
-			const ta = row.querySelector(".ib-reply-text")
+			const { box, text: ta } = replyParts(row)
 			if (!ta) continue
 			const focused = document.activeElement === ta
-			if (ta.value || focused) drafts.set(row.dataset.thread, { text: ta.value, focused, start: ta.selectionStart, end: ta.selectionEnd })
+			const isOpen = !!box && !box.classList.contains("hidden")
+			if (isOpen || ta.value || focused)
+				drafts.set(row.dataset.thread, { text: ta.value, focused, open: isOpen, start: ta.selectionStart, end: ta.selectionEnd })
 		}
 		list.innerHTML = ""
 		if (!all.length) {
@@ -214,6 +220,10 @@ export function mountInbox({ list, unreadChip, readAllBtn, moreLink, limit = 0, 
 			const ta = d && row.querySelector(".ib-reply-text")
 			if (ta) {
 				ta.value = d.text
+				if (d.open || d.text || d.focused) {
+					replyParts(row).box?.classList.remove("hidden")
+					row.classList.remove("ib-collapsed")
+				}
 				if (d.focused) {
 					ta.focus()
 					try { ta.setSelectionRange(d.start, d.end) } catch (e) {}

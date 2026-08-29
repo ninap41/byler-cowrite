@@ -83,7 +83,7 @@ test("signup posts email/username/password", async () => {
   setNext(() => ({ user: {}, token: "tok2" }));
   $("suBtn").onclick();
   await tick();
-  assert.deepEqual(calls[0].body, { email: "will@byers.com", username: "willthewise", password: "1234" });
+  assert.deepEqual(calls[0].body, { email: "will@byers.com", username: "willthewise", password: "1234", isAMemberOfBylerOffscreen: false });
   assert.equal(signedIn[0].t, "tok2");
 });
 

@@ -1,6 +1,6 @@
 # Byler Cowrite
 
-A real-time, round-robin writing game for Byler (Will Byers × Mike Wheeler)
+A real-time, round-robin writing game and writing software for Stranger Things
 fanfiction. Start a game, share a 4-letter code, vote on a scenario, then take
 turns adding one line each under a ticking clock.
 

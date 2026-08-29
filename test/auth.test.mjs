@@ -189,3 +189,15 @@ test("account color: palette-validated, auth required", async () => {
   r = await ctx.api("/api/account/color", { color: "#facc15" });
   assert.equal(r.status, 401);
 });
+
+test("isAMemberOfBylerOffscreen: the signup checkbox sets it, only a real true counts, false by default", async () => {
+  const r = await ctx.api("/api/signup", { email: "off@screen.com", username: "offscreen1", password: "1234", isAMemberOfBylerOffscreen: true });
+  assert.equal(r.status, 200);
+  assert.equal(r.data.user.isAMemberOfBylerOffscreen, true, "the checkbox is honoured");
+  const me = await ctx.api("/api/me", null, r.data.token, "GET");
+  assert.equal(me.data.user.isAMemberOfBylerOffscreen, true);
+  const r2 = await ctx.api("/api/signup", { email: "off2@screen.com", username: "offscreen2", password: "1234", isAMemberOfBylerOffscreen: "yes" });
+  assert.equal(r2.data.user.isAMemberOfBylerOffscreen, false, "a string is not a tick");
+  const r3 = await ctx.api("/api/signup", { email: "off3@screen.com", username: "offscreen3", password: "1234" });
+  assert.equal(r3.data.user.isAMemberOfBylerOffscreen, false, "absent is false");
+});

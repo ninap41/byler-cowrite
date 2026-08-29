@@ -66,6 +66,7 @@ export function wireAuthForms(root, { api, onSignedIn, onCapReached }) {
 				email: $("suEmail").value.trim(),
 				username: $("suUser").value.trim(),
 				password: $("suPass").value,
+				isAMemberOfBylerOffscreen: !!$("suMember")?.checked,
 			})
 			onSignedIn(d.user, d.token)
 		} catch (e) {

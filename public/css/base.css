@@ -9873,3 +9873,8 @@ html.vcx-live[data-theme="vecna"] #vc-pend {
 	padding: 1rem;
 	border-radius: 12px;
 }
+
+/* Signup: the Byler Offscreen membership line — the site's checkline, the
+   box aligned to the first line of a question that may wrap. */
+.su-member { display: flex; align-items: flex-start; gap: 8px; text-align: left; font-size: 0.9rem; cursor: help; }
+.su-member input[type="checkbox"] { flex: none; margin-top: 3px; }

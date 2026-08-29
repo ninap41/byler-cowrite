@@ -202,6 +202,7 @@ export function registerRoutes(app, game) {
     if (store.users.length >= USER_CAP)
       return res.status(403).json({ error: "Sign-ups are closed for now, join the waiting list!", capReached: true });
     const { email, username, password, color } = req.body || {};
+    const member = req.body?.isAMemberOfBylerOffscreen === true; // the signup checkbox; only a real true counts
     const em = String(email || "").toLowerCase().trim();
     const un = String(username || "").trim();
     if (!EMAIL_RE.test(em)) return res.status(400).json({ error: "Enter a valid email." });
@@ -215,7 +216,7 @@ export function registerRoutes(app, game) {
     if (findByUsername(un)) return res.status(400).json({ error: "That username is taken." });
     const u = {
       id: randomUUID(), email: em, username: un, passHash: hashPassword(password),
-      color: cleanColor(color), games: [], wordCount: 0, currentBadge: null, badges: [],
+      color: cleanColor(color), games: [], wordCount: 0, currentBadge: null, badges: [], isAMemberOfBylerOffscreen: member,
       friends: [], inbox: [welcomeMsg()],
       createdAt: Date.now(),
     };

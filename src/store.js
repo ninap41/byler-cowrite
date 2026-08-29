@@ -61,6 +61,10 @@ export const welcomeMsg = () =>
   const greeter = store.users.find((u) => u.admin === true);
   for (const u of store.users) {
     if (!Array.isArray(u.friends)) { u.friends = []; changed = true; }
+    // Membership of the Byler Offscreen Discord: declared by the signup
+    // checkbox (nothing else sets it), defaulted here so every existing
+    // account carries the key after one boot.
+    if (typeof u.isAMemberOfBylerOffscreen !== "boolean") { u.isAMemberOfBylerOffscreen = false; changed = true; }
     if (!Array.isArray(u.inbox)) {
       u.inbox = [welcomeMsg()];
       if (greeter && greeter.id !== u.id)
@@ -111,6 +115,7 @@ export const authedUser = (req) => userByToken((req.headers.authorization || "")
 export const publicUser = (u) => ({
   id: u.id, email: u.email, username: u.username, color: u.color, admin: u.admin === true,
   games: u.games, wordCount: u.wordCount,
+  isAMemberOfBylerOffscreen: u.isAMemberOfBylerOffscreen === true,
   // the gated themes this rank has earned (admins: all of them) — the theme
   // menu reads it straight off /api/me, no second request on page load
   themes: unlockedThemes(u),
