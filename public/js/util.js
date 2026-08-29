@@ -36,6 +36,81 @@ export function gradEmoji(el) {
 }
 export const gradEmojisIn = (root, sel) => (root || document).querySelectorAll(sel).forEach(gradEmoji)
 
+// Gradient EVERY emoji on the page (not just a leading one), the way an <h1>'s
+// emoji is filled — EXCEPT rank/badge emojis (those are meaningful coloured
+// rewards) and anything inside an editable surface or form field (wrapping a
+// span there would corrupt what the user is writing). A MutationObserver keeps
+// re-rendered UI (chat, live games, toasts) gradiented too.
+const EMOJI_ONE = /\p{Extended_Pictographic}(?:\u200d\p{Extended_Pictographic}|[\uFE00-\uFE0F\u{1F3FB}-\u{1F3FF}])*/u
+const EMOJI_ALL = new RegExp(EMOJI_ONE.source, "gu")
+// Subtrees we must not touch: editors/inputs (content integrity) and the
+// rank/badge economy (kept in full colour).
+const EMOJI_SKIP =
+	'[contenteditable], .editor, .doc-editor, #docEditor, #docSource, .ProseMirror, textarea, input, script, style, ' +
+	'.emoji-grad, .badge-chip, .ach-strip, [data-badge], .rk-badge, .rk-ladder, .rk-usage, .ladder-acc, .rung, ' +
+	'.rank-bar, .rank-label, .tier-name, .rk-tier, .ts-badges'
+function wrapEmojis(node) {
+	const val = node.nodeValue || ""
+	EMOJI_ALL.lastIndex = 0
+	if (!EMOJI_ALL.test(val)) return
+	EMOJI_ALL.lastIndex = 0
+	const doc = node.ownerDocument
+	const frag = doc.createDocumentFragment()
+	let last = 0, m
+	while ((m = EMOJI_ALL.exec(val))) {
+		if (m.index > last) frag.appendChild(doc.createTextNode(val.slice(last, m.index)))
+		const span = doc.createElement("span")
+		span.className = "emoji-grad"
+		span.textContent = m[0]
+		frag.appendChild(span)
+		last = m.index + m[0].length
+	}
+	if (last < val.length) frag.appendChild(doc.createTextNode(val.slice(last)))
+	node.parentNode.replaceChild(frag, node)
+}
+export function gradAllEmojis(root) {
+	if (!root) return
+	const rootEl = root.nodeType === 1 ? root : document.body
+	if (rootEl.closest && rootEl.closest(EMOJI_SKIP)) return
+	const doc = rootEl.ownerDocument || document
+	const walker = doc.createTreeWalker(rootEl, 4 /* SHOW_TEXT */, {
+		acceptNode(n) {
+			if (!n.nodeValue || !n.parentElement) return 2 /* REJECT */
+			if (n.parentElement.closest(EMOJI_SKIP)) return 2
+			EMOJI_ALL.lastIndex = 0
+			return EMOJI_ALL.test(n.nodeValue) ? 1 /* ACCEPT */ : 2
+		},
+	})
+	const nodes = []
+	while (walker.nextNode()) nodes.push(walker.currentNode)
+	nodes.forEach(wrapEmojis)
+}
+let emojiObserver = null
+export function watchEmojis(root = document.body) {
+	gradAllEmojis(root)
+	if (emojiObserver || typeof MutationObserver === "undefined") return
+	let queued = new Set()
+	let scheduled = false
+	const flush = () => {
+		scheduled = false
+		const batch = [...queued]
+		queued = new Set()
+		for (const el of batch) if (el.isConnected) gradAllEmojis(el)
+	}
+	emojiObserver = new MutationObserver((muts) => {
+		for (const mu of muts)
+			for (const n of mu.addedNodes) {
+				if (n.nodeType === 1) queued.add(n)
+				else if (n.nodeType === 3 && n.parentElement) queued.add(n.parentElement)
+			}
+		if (queued.size && !scheduled) {
+			scheduled = true
+			;(window.requestAnimationFrame || setTimeout)(flush)
+		}
+	})
+	emojiObserver.observe(root, { childList: true, subtree: true })
+}
+
 // Tiny round profile pic used beside names (roster, chat, players row,
 // writers directory). Empty string when the account has no picture.
 // avatarFit is the user's preference: "cover" crops to fill, "contain" zooms

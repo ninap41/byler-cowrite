@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { installDom } from "./dom.mjs";
 installDom();
-import { PALETTE, esc, safeColor, whoMarks, miniAvatar, oneLinePrompt, gradEmoji, gradEmojisIn } from "../public/js/util.js";
+import { PALETTE, esc, safeColor, whoMarks, miniAvatar, oneLinePrompt, gradEmoji, gradEmojisIn, gradAllEmojis } from "../public/js/util.js";
 
 test("miniAvatar: img with fit class when set, empty otherwise, url escaped", () => {
   const cover = miniAvatar({ avatar: "https://img.com/a.png" });
@@ -89,4 +89,27 @@ test("gradEmoji: wraps a leading emoji (incl. variation selectors), leaves label
   root.innerHTML = '<a>🏅 Ranks</a><a>🚪 Logout</a><h3>No emoji</h3>';
   gradEmojisIn(root, "a, h3");
   assert.equal(root.querySelectorAll(".emoji-grad").length, 2);
+});
+
+test("gradAllEmojis: every emoji gets the gradient except rank/badge and editable/input subtrees", () => {
+  document.body.innerHTML = `
+    <a>📣 Announcements</a>
+    <button>Start ✨ now 🎲</button>
+    <span class="badge-chip">🐶 Puppy</span>
+    <div class="ach-strip"><span>💛</span></div>
+    <div contenteditable="true">✒️ live 🎲</div>
+    <textarea>keep 🎲</textarea>
+    <p class="story-line">He smiled 😄 and 🎉</p>
+    <span data-badge="x">🏆</span>`;
+  gradAllEmojis(document.body);
+  const n = (sel) => document.querySelector(sel).querySelectorAll(".emoji-grad").length;
+  assert.equal(n("a"), 1);
+  assert.equal(n("button"), 2, "mid-text emojis wrapped too");
+  assert.equal(n(".story-line"), 2);
+  assert.equal(n(".badge-chip"), 0, "rank/badge kept full colour");
+  assert.equal(n(".ach-strip"), 0);
+  assert.equal(n("[data-badge]"), 0);
+  assert.equal(n("[contenteditable]"), 0, "editors never mutated");
+  assert.ok(document.querySelector("textarea").value.includes("🎲"));
+  assert.equal(document.querySelector(".story-line").textContent, "He smiled 😄 and 🎉", "text preserved");
 });
