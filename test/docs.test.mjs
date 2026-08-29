@@ -808,3 +808,14 @@ test("assigning a beta reader auto-promotes a private doc to 'readers'; a public
   const r2 = await ctx.api("/api/docs/" + pub.id + "/readers", { username: "bobbeta" }, alice.token);
   assert.equal(r2.data.doc.visibility, "public", "a public doc stays public");
 });
+
+test("/api/docs marks a beta-read doc viewable so it opens from the dashboard, not just the profile", async () => {
+  const doc = await newDoc(alice.token, "Chapter 11");
+  await ctx.api("/api/docs/" + doc.id, { html: "<p>words</p>" }, alice.token, "PUT");
+  await ctx.api("/api/docs/" + doc.id + "/readers", { username: "bobbeta" }, alice.token); // auto-promotes to readers
+  const list = await ctx.api("/api/docs", null, bob.token, "GET");
+  const row = list.data.docs.find((d) => d.id === doc.id);
+  assert.ok(row, "the beta read is on bob's shelf");
+  assert.equal(row.mine, false);
+  assert.equal(row.viewable, true, "and it's marked viewable so the Read link appears");
+});

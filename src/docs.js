@@ -112,7 +112,7 @@ export const listDocsFor = (userId, nameOf) =>
   allDocs()
     .filter((d) => onMyShelf(d, userId))
     .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
-    .map((d) => ({ ...docSummary(d, nameOf), mine: d.ownerId === userId }));
+    .map((d) => ({ ...docSummary(d, nameOf), mine: d.ownerId === userId, viewable: canView(d, userId) }));
 
 // ---- comment anchors ----
 // A comment is pinned to the text it's about by a marker span the author's html
