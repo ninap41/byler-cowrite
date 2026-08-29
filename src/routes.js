@@ -654,6 +654,8 @@ export function registerRoutes(app, game) {
       .map((x) => ({
         username: x.username, color: x.color, badge: badgeName(x.currentBadge),
         avatar: x.avatar || "", avatarFit: x.avatarFit || "cover", online: ids.has(x.id),
+        // the row's hover tooltip: the same public counts a profile shows
+        wordCount: x.wordCount || 0, badges: (x.badges || []).length, games: (x.games || []).length,
       }))
       .sort((a, b) => (b.online - a.online) || a.username.localeCompare(b.username));
     res.json({ friends });

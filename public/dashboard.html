@@ -42,9 +42,6 @@
 			<div class="dash-wrap">
 				<!-- ============ LEFT COLUMN ============ -->
 				<div class="dash-col">
-					<!-- newest announcement, only when there is one -->
-					<div class="card ann-card hidden" id="annCard"></div>
-
 					<!-- welcome -->
 					<div class="card">
 						<div class="welcome">
@@ -76,62 +73,121 @@
 							<span class="rank-label" id="rankLabel"></span>
 							<div class="rank-track"><div class="rank-fill" id="rankFill" style="width: 0%"></div></div>
 						</div>
-						<h4 class="dash-h dash-sub-h">Recent achievements</h4>
-						<div class="ach-strip" id="achStrip"></div>
 					</div>
 
-					<!-- games in progress -->
-					<div class="card">
-						<h3 class="dash-h" style="margin-top: 0">Games in progress</h3>
-						<p class="subtle" style="text-align: left; margin: 4px 0 0">Pick up where you left off.</p>
-						<div class="mg-grid" id="myGames"></div>
-						<h4 class="dash-h" style="margin: 18px 0 0">All live games</h4>
-						<div id="dashLive"></div>
+					<!-- The column below is two tabs: Dashboard is MINE (games in
+					     progress, solo writes, previous games); Community is EVERYONE
+					     (the announcement, every live game, the writers, the help box).
+					     The choice is remembered per browser (cowriteDashTab). -->
+					<div class="dash-tabs" role="tablist" aria-label="Dashboard sections" id="dashTabs">
+						<button
+							type="button"
+							class="dash-tab-btn on"
+							role="tab"
+							aria-selected="true"
+							aria-controls="tabDashboard"
+							data-tab="dashboard"
+						>
+							<span class="dtab-ico" aria-hidden="true">✒️</span>Dashboard
+						</button>
+						<button
+							type="button"
+							class="dash-tab-btn"
+							role="tab"
+							aria-selected="false"
+							aria-controls="tabCommunity"
+							data-tab="community"
+						>
+							<span class="dtab-ico" aria-hidden="true">🌍</span>Community<span
+								class="dtab-dot hidden"
+								id="tabCommunityDot"
+								title="New announcement"
+							></span
+							><span class="dtab-live hidden" id="tabCommunityLive" title="Games are running right now"
+								>← Games are live!</span
+							>
+						</button>
 					</div>
 
-					<!-- solo writes: mine, continue or delete; the rail's "New solo write" starts one -->
-					<div class="card">
-						<h3 class="dash-h" style="margin-top: 0; display: flex; align-items: center; gap: 8px">
-							<span data-tip="Your own pages: write alone, no timer, no turns; invite beta readers when you're ready.">Solo Writes</span>
-							<button type="button" class="ghost h-plus" id="newWritePlus" title="New solo write">+</button>
-						</h3>
-						<div id="dashWrites"></div>
+					<div class="dash-tab" id="tabDashboard" role="tabpanel">
+						<!-- what the counts above have earned -->
+						<div class="card">
+							<h3 class="dash-h" style="margin-top: 0">Recent achievements</h3>
+							<div class="ach-strip" id="achStrip"></div>
+						</div>
+						<!-- games in progress -->
+						<div class="card">
+							<h3 class="dash-h" style="margin-top: 0">Games in progress</h3>
+							<p class="subtle" style="text-align: left; margin: 4px 0 0">Pick up where you left off.</p>
+							<div class="mg-grid" id="myGames"></div>
+						</div>
+
+						<!-- solo writes: mine, continue or delete; the rail's "New solo write" starts one -->
+						<div class="card">
+							<h3 class="dash-h" style="margin-top: 0; display: flex; align-items: center; gap: 8px">
+								<span data-tip="Your own pages: write alone, no timer, no turns; invite beta readers when you're ready."
+									>Solo Writes</span
+								>
+								<button type="button" class="ghost h-plus" id="newWritePlus" title="New solo write">+</button>
+							</h3>
+							<div id="dashWrites"></div>
+						</div>
+
+						<!-- previous games (achievements + streak live in the right rail) -->
+						<div class="card">
+							<h3 class="dash-h" style="margin-top: 0px">Previous games</h3>
+							<div id="recentGames"></div>
+							<p class="subtle" style="text-align: left; margin-top: 12px">
+								<a href="/archive" class="linky">See all previous games →</a>
+							</p>
+						</div>
 					</div>
 
-					<!-- writers directory: everyone with an account, the full width
+					<div class="dash-tab hidden" id="tabCommunity" role="tabpanel">
+						<!-- announcements: the newest post wears the tendril border, the
+					     next few follow as plain rows, and the page holds the rest -->
+						<div class="card" id="annSec">
+							<h3 class="dash-h" style="margin-top: 0">📣 Announcements</h3>
+							<div class="card ann-card hidden" id="annCard"></div>
+							<div id="annMore"></div>
+							<p class="subtle" style="text-align: left; margin-top: 10px">
+								<a href="/announcements" class="linky">See all announcements →</a>
+							</p>
+						</div>
+
+						<!-- every game running right now: the join-in moment leads -->
+						<div class="card">
+							<h3 class="dash-h" style="margin-top: 0">All live games</h3>
+							<div id="dashLive"></div>
+						</div>
+
+						<!-- writers directory: everyone with an account, the full width
 					     of the column to search through (friends live in the rail) -->
-					<div class="card">
-						<h3 class="dash-h" style="margin-top: 0">Writers</h3>
-						<input id="writerSearch" placeholder="Search writers…" style="margin-top: 10px" />
-						<div id="writersList"></div>
-					</div>
+						<div class="card">
+							<h3 class="dash-h" style="margin-top: 0">Writers</h3>
+							<input id="writerSearch" placeholder="Search writers…" style="margin-top: 10px" />
+							<div id="writersList"></div>
+						</div>
 
-					<!-- previous games (achievements + streak live in the right rail) -->
-					<div class="card">
-						<h3 class="dash-h" style="margin-top: 0px">Previous games</h3>
-						<div id="recentGames"></div>
-						<p class="subtle" style="text-align: left; margin-top: 12px">
-							<a href="/archive" class="linky">See all previous games →</a>
-						</p>
-					</div>
-					<!-- help: ask the admin (hidden for the admin, who receives these) -->
-					<div class="card hidden" id="helpCard">
-						<h3 class="dash-h" style="margin-top: 0">🛟 Need a hand?</h3>
-						<p class="subtle" style="text-align: left; margin: 4px 0 10px">
-							Ask the admin anything, a bug, a rule, a stuck game. Your question lands in their inbox and
-							the answer comes back to yours.
-						</p>
-						<textarea id="helpText" rows="3" maxlength="1000" placeholder="What's up?"></textarea>
-						<div class="row" style="justify-content: flex-end; align-items: center; gap: 10px; margin-top: 8px">
-							<span class="subtle" id="helpMsg" style="margin: 0; text-align: left"></span>
-							<button class="primary" id="helpSend" style="flex: none">Send question</button>
+						<!-- help: ask the admin (hidden for the admin, who receives these) -->
+						<div class="card hidden" id="helpCard">
+							<h3 class="dash-h" style="margin-top: 0">🛟 Need a hand?</h3>
+							<p class="subtle" style="text-align: left; margin: 4px 0 10px">
+								Ask the admin anything, a bug, a rule, a stuck game. Your question lands in their inbox and the answer comes
+								back to yours.
+							</p>
+							<textarea id="helpText" rows="3" maxlength="1000" placeholder="What's up?"></textarea>
+							<div class="row" style="justify-content: flex-end; align-items: center; gap: 10px; margin-top: 8px">
+								<span class="subtle" id="helpMsg" style="margin: 0; text-align: left"></span>
+								<button class="primary" id="helpSend" style="flex: none">Send question</button>
+							</div>
 						</div>
 					</div>
 				</div>
 
-				<!-- ============ RIGHT RAIL ============ -->
+				<!-- ============ RAIL (left on desktop, below the column on a phone) ============ -->
 				<!-- The rail is navigation first: where you go from here, as one column
-				     of equal-weight rows, with the inbox wearing its own unread count so
+				     of equal-weight rows (it sits LEFT of the column on desktop), with the inbox wearing its own unread count so
 				     a waiting message is visible without opening anything. Joining needs
 				     a code, so it unfolds one inline rather than living in its own card. -->
 				<div class="dash-rail">
@@ -141,10 +197,12 @@
 							<span class="dnav-badge hidden" id="navInbox"></span>
 						</a>
 						<button type="button" class="dnav" id="createBtn">
-							<span class="dnav-ico" aria-hidden="true">✨</span><span class="dnav-label">Start a game</span><span class="dnav-go">&#8594;</span>
+							<span class="dnav-ico" aria-hidden="true">✨</span><span class="dnav-label">Start a game</span
+							><span class="dnav-go">&#8594;</span>
 						</button>
 						<button type="button" class="dnav" id="joinToggle" aria-expanded="false" aria-controls="joinFold">
-							<span class="dnav-ico" aria-hidden="true">🔑</span><span class="dnav-label">Join a game</span><span class="dnav-go chev">&#9662;</span>
+							<span class="dnav-ico" aria-hidden="true">🔑</span><span class="dnav-label">Join a game</span
+							><span class="dnav-go chev">&#9662;</span>
 						</button>
 						<!-- a 4-letter code is the whole form, so it folds into the row -->
 						<div class="dnav-fold hidden" id="joinFold">
@@ -153,16 +211,19 @@
 							<p class="subtle dnav-hint">Ask a friend for their 4-letter code.</p>
 						</div>
 						<button type="button" class="dnav" id="soloBtn">
-							<span class="dnav-ico" aria-hidden="true">✒️</span><span class="dnav-label">New solo write</span><span class="dnav-go">&#8594;</span>
+							<span class="dnav-ico" aria-hidden="true">✒️</span><span class="dnav-label">New solo write</span
+							><span class="dnav-go">&#8594;</span>
 						</button>
 						<a class="dnav" href="/writes">
 							<span class="dnav-ico" aria-hidden="true">📚</span><span class="dnav-label">My solo writes</span>
 						</a>
 						<a class="dnav" href="/games">
-							<span class="dnav-ico" aria-hidden="true">🕹️</span><span class="dnav-label">Games</span><span class="dnav-tag">soon</span>
+							<span class="dnav-ico" aria-hidden="true">🕹️</span><span class="dnav-label">Games</span
+							><span class="dnav-tag">soon</span>
 						</a>
 						<button type="button" class="dnav" id="inviteBtn">
-							<span class="dnav-ico" aria-hidden="true">➕</span><span class="dnav-label" id="inviteLabel">Invite a friend</span>
+							<span class="dnav-ico" aria-hidden="true">➕</span
+							><span class="dnav-label" id="inviteLabel">Invite a friend</span>
 						</button>
 						<div class="err" id="lobbyErr"></div>
 					</nav>
@@ -171,6 +232,25 @@
 					<div class="card friends-card">
 						<h3 class="dash-h" style="margin-top: 0">Friends</h3>
 						<div id="friendsBox"></div>
+						<!-- message composer (the profile page's, shared shape): a note into a friend's inbox -->
+						<div class="confirm-modal hidden" id="msgModal">
+							<div class="confirm-card" style="max-width: 460px">
+								<h3 id="msgTitle">Message</h3>
+								<textarea
+									id="msgText"
+									rows="4"
+									maxlength="1000"
+									placeholder="Say hi…"
+									style="width: 100%; resize: vertical"
+								></textarea>
+								<div class="row">
+									<button class="ghost" id="msgCancel">Cancel</button>
+									<button class="primary" id="msgSend">Send</button>
+								</div>
+								<div class="err" id="msgErr"></div>
+								<p class="subtle hidden" id="msgOk" style="text-align: left; margin: 6px 0 0">✓ Sent: it's in their inbox.</p>
+							</div>
+						</div>
 					</div>
 
 					<div class="card quote-card">
@@ -178,7 +258,6 @@
 						<span id="quoteText">Every story is better together. One turn at a time.</span>
 						<span class="qmark qmark-end">&rdquo;</span>
 					</div>
-
 				</div>
 			</div>
 		</div>
@@ -198,7 +277,11 @@
 				achievementsHtml,
 				streakRingHtml,
 				writerRowHtml,
-				friendRowHtml, latestAnnouncementHtml } from "/js/dashboard-view.js"
+				friendRowHtml,
+				friendStatsTip,
+				latestAnnouncementHtml,
+				announcementRowHtml,
+			} from "/js/dashboard-view.js"
 			import { avatarHtml } from "/js/profile-view.js"
 			import { showInviteToast } from "/js/turn-alert.js"
 			import { soloListHtml, wireSoloDeletes } from "/js/write-view.js"
@@ -217,6 +300,69 @@
 				if (inv?.code) showInviteToast(inv)
 				loadInbox()
 			})
+			// ---- Tabs: Dashboard (mine) | Community (everyone) ----
+			// The announcement's border is drawn when the panel first shows, since
+			// a hidden card measures 0 and the entrance would draw on nothing.
+			let annPost = null
+			let annDrawn = false
+			// New announcements light a dot on the Community tab: posts newer than
+			// the newest one this browser has seen (cowriteAnnSeen); opening the
+			// tab sees them all.
+			let annPosts = []
+			const annSeenAt = () => {
+				try {
+					return Number(localStorage.getItem("cowriteAnnSeen")) || 0
+				} catch (e) {
+					return 0
+				}
+			}
+			function paintAnnouncementDot() {
+				const unseen = annPosts.filter((p) => new Date(p.at).getTime() > annSeenAt()).length
+				const open = !$("tabCommunity").classList.contains("hidden")
+				const dot = $("tabCommunityDot")
+				dot.classList.toggle("hidden", !unseen || open)
+				dot.textContent = unseen > 9 ? "9+" : unseen ? String(unseen) : ""
+			}
+			function markAnnouncementsSeen() {
+				const newest = annPosts[0]
+				if (!newest) return
+				try {
+					localStorage.setItem("cowriteAnnSeen", String(new Date(newest.at).getTime()))
+				} catch (e) {}
+				paintAnnouncementDot()
+			}
+			function drawAnnouncement() {
+				if (annDrawn || !annPost) return
+				annDrawn = true
+				const card = $("annCard")
+				mountTendrilBorder(card, { horn: card.querySelector(".ann-horn") })
+			}
+			function showTab(name) {
+				const tab = name === "community" ? "community" : "dashboard"
+				document.querySelectorAll("#dashTabs .dash-tab-btn").forEach((b) => {
+					const on = b.dataset.tab === tab
+					b.classList.toggle("on", on)
+					b.setAttribute("aria-selected", String(on))
+				})
+				$("tabDashboard").classList.toggle("hidden", tab !== "dashboard")
+				$("tabCommunity").classList.toggle("hidden", tab !== "community")
+				if (tab === "community") {
+					drawAnnouncement()
+					markAnnouncementsSeen()
+				}
+				try {
+					localStorage.setItem("cowriteDashTab", tab)
+				} catch (e) {}
+			}
+			$("dashTabs").addEventListener("click", (e) => {
+				const b = e.target.closest("[data-tab]")
+				if (b) showTab(b.dataset.tab)
+			})
+			let savedTab = "dashboard"
+			try {
+				savedTab = localStorage.getItem("cowriteDashTab") || "dashboard"
+			} catch (e) {}
+			showTab(savedTab)
 			loadAnnouncement()
 
 			function renderMe() {
@@ -378,7 +524,8 @@
 			async function endFromCard(g) {
 				const ok = await confirmDialog({
 					title: `End “${g.name || "Untitled story"}” and reveal?`,
-					text: "The story ends where it is: everyone in it sees the reveal, and it moves to the archive, you can still continue it from there.",
+					text:
+						"The story ends where it is: everyone in it sees the reveal, and it moves to the archive, you can still continue it from there.",
 					confirmLabel: "End & reveal",
 					danger: false,
 				})
@@ -395,7 +542,8 @@
 			async function sleepFromCard(g) {
 				const ok = await confirmDialog({
 					title: `Put “${g.name || "Untitled story"}” to sleep?`,
-					text: "The story is saved where it is and everyone in it is told. It wakes up the next time anyone opens it, nothing is lost.",
+					text:
+						"The story is saved where it is and everyone in it is told. It wakes up the next time anyone opens it, nothing is lost.",
 					confirmLabel: "Put to sleep",
 					danger: false,
 				})
@@ -410,7 +558,8 @@
 			async function deleteFromCard(g) {
 				const ok = await confirmDialog({
 					title: `Delete “${g.name || "Untitled story"}”?`,
-					text: "This permanently removes the story and its code, for every writer in it. The other writers get a note in their inbox saying you deleted it.",
+					text:
+						"This permanently removes the story and its code, for every writer in it. The other writers get a note in their inbox saying you deleted it.",
 					confirmLabel: "Delete forever",
 				})
 				if (!ok) return
@@ -434,7 +583,9 @@
 				setTimeout(() => (n.textContent = ""), 4000)
 			}
 			// one open ⋯ menu at a time; any click elsewhere closes it
-			document.addEventListener("click", () => document.querySelectorAll(".mg-menu.open").forEach((m) => m.classList.remove("open")))
+			document.addEventListener("click", () =>
+				document.querySelectorAll(".mg-menu.open").forEach((m) => m.classList.remove("open")),
+			)
 			function renderMyGames(games) {
 				const grid = $("myGames")
 				grid.innerHTML = ""
@@ -459,7 +610,11 @@
 							`<button type="button" role="menuitem" data-act="sleep" ${g.live ? "" : "disabled"}>💤 Put to sleep</button>` +
 							`<button type="button" role="menuitem" data-act="end" ${active ? "disabled" : ""}>🏁 End game &amp; reveal</button>` +
 							`<button type="button" role="menuitem" class="danger" data-act="delete" ${active ? "disabled" : ""}>🗑 Delete story</button>` +
-							(active ? `<span class="mg-menu-note">End/delete need the game paused, or put it to sleep.</span>` : g.live ? "" : `<span class="mg-menu-note">Already asleep.</span>`) +
+							(active
+								? `<span class="mg-menu-note">End/delete need the game paused, or put it to sleep.</span>`
+								: g.live
+									? ""
+									: `<span class="mg-menu-note">Already asleep.</span>`) +
 							`</div>`
 						more.querySelector(".mg-more").onclick = (e) => {
 							e.stopPropagation()
@@ -525,7 +680,9 @@
 						row.tabIndex = 0
 						row.innerHTML = recentRowHtml(g)
 						row.onclick = () => (location.href = "/archive?code=" + encodeURIComponent(g.code))
-						row.onkeydown = (e) => { if (e.key === "Enter") row.onclick() }
+						row.onkeydown = (e) => {
+							if (e.key === "Enter") row.onclick()
+						}
 						row.querySelector("[data-act=write-more]").onclick = (e) => {
 							e.stopPropagation()
 							writeMore(g.code)
@@ -584,14 +741,58 @@
 						'<p class="subtle" style="text-align:left;margin:8px 0 0">No friends yet: visit a writer\'s profile and send a request.</p>'
 					return
 				}
-				friends.forEach((u) => {
-					const row = document.createElement("a")
-					row.className = "rg-row"
-					row.href = "/profile?user=" + encodeURIComponent(u.username)
-					row.innerHTML = friendRowHtml(u)
-					box.appendChild(row)
-				})
+				// online friends first (the server sorts so too; said again here
+				// so a cached or reordered payload can't undo it)
+				;[...friends]
+					.sort((a, b) => b.online - a.online || a.username.localeCompare(b.username))
+					.forEach((u) => {
+						const row = document.createElement("a")
+						row.className = "rg-row"
+						row.href = "/profile?user=" + encodeURIComponent(u.username)
+						row.title = friendStatsTip(u)
+						row.innerHTML = friendRowHtml(u)
+						box.appendChild(row)
+					})
 			}
+			// ✉ on a friend row: the composer, not the profile
+			$("friendsBox").addEventListener("click", (e) => {
+				const b = e.target.closest("[data-msg]")
+				if (!b) return
+				e.preventDefault()
+				openMsg(b.dataset.msg)
+			})
+			let msgTo = ""
+			function openMsg(username) {
+				msgTo = username
+				$("msgTitle").textContent = `Message ${username}`
+				$("msgText").value = ""
+				$("msgErr").textContent = ""
+				$("msgOk").classList.add("hidden")
+				$("msgModal").classList.remove("hidden")
+				$("msgText").focus()
+			}
+			const closeMsg = () => $("msgModal").classList.add("hidden")
+			$("msgCancel").onclick = closeMsg
+			$("msgModal").onclick = (e) => e.target === $("msgModal") && closeMsg()
+			$("msgSend").onclick = async () => {
+				const text = $("msgText").value.trim()
+				if (!text) return ($("msgErr").textContent = "Type a message first.")
+				$("msgSend").disabled = true
+				try {
+					await api("/api/message", { username: msgTo, text })
+					$("msgErr").textContent = ""
+					$("msgOk").classList.remove("hidden")
+					$("msgText").value = ""
+					setTimeout(closeMsg, 900)
+				} catch (err) {
+					$("msgErr").textContent = err.message
+				}
+				$("msgSend").disabled = false
+			}
+			$("msgText").addEventListener("keydown", (e) => {
+				if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) $("msgSend").click()
+				if (e.key === "Escape") closeMsg()
+			})
 
 			// ---- Inbox ----
 			// The dashboard does NOT show messages any more. A message is a
@@ -602,15 +803,27 @@
 			async function loadAnnouncement() {
 				try {
 					const d = await api("/api/announcements", null, "GET")
-					const post = (d.posts || [])[0]
-					if (!post) return
+					const posts = d.posts || []
+					annPosts = posts
+					paintAnnouncementDot()
+					if (!$("tabCommunity").classList.contains("hidden")) markAnnouncementsSeen()
+					const post = posts[0]
+					if (!post) {
+						$("annMore").innerHTML =
+							'<p class="subtle" style="text-align:left;margin:4px 0 0">Nothing from the admins yet.</p>'
+						return
+					}
+					$("annMore").innerHTML = posts.slice(1, 4).map(announcementRowHtml).join("")
+					annPost = post
 					$("annCard").innerHTML = latestAnnouncementHtml(post)
 					$("annCard").classList.remove("hidden")
 					// the newest word from the admins draws its own border in the
-					// theme's accent, then a gradient keeps glimmering along it
-					const card = $("annCard")
-					mountTendrilBorder(card, { horn: card.querySelector(".ann-horn") })
-				} catch (e) { /* no card */ }
+					// theme's accent, then a gradient keeps glimmering along it —
+					// once the Community tab is on screen
+					if (!$("tabCommunity").classList.contains("hidden")) drawAnnouncement()
+				} catch (e) {
+					/* no card */
+				}
 			}
 
 			async function loadInbox() {
@@ -628,7 +841,6 @@
 					renderFriends((await api("/api/friends", null, "GET")).friends)
 				} catch (e) {}
 			}
-
 
 			// ---- Help: ask the admin ----
 			// Only non-admins see the box; the route refuses admins anyway, since
@@ -656,8 +868,15 @@
 				try {
 					const d = await api("/api/docs", null, "GET")
 					const mine = (d.docs || []).filter((x) => x.mine)
-					$("dashWrites").innerHTML = soloListHtml(mine, { empty: "Nothing written solo yet, start one from the rail.", limit: 5 })
-					if (mine.length > 5) $("dashWrites").insertAdjacentHTML("beforeend", `<p class="subtle" style="text-align:left;margin:10px 0 0"><a class="linky" href="/writes">See all ${mine.length} →</a></p>`)
+					$("dashWrites").innerHTML = soloListHtml(mine, {
+						empty: "Nothing written solo yet, start one from the rail.",
+						limit: 5,
+					})
+					if (mine.length > 5)
+						$("dashWrites").insertAdjacentHTML(
+							"beforeend",
+							`<p class="subtle" style="text-align:left;margin:10px 0 0"><a class="linky" href="/writes">See all ${mine.length} →</a></p>`,
+						)
 				} catch (e) {}
 			}
 			loadWrites()
@@ -668,6 +887,7 @@
 				try {
 					d = await api("/api/dashboard", null, "GET")
 					allWriters = (await api("/api/users", null, "GET")).users
+					$("tabCommunityLive").classList.toggle("hidden", !d.liveGames.length)
 				} catch (e) {
 					return
 				}

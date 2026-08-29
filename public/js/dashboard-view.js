@@ -73,13 +73,24 @@ export function writerRowHtml(u) {
 	)
 }
 
-// A friends row for the dashboard rail (link wrapping is the page's job).
+// A friends row for the dashboard rail (link wrapping is the page's job): the
+// presence dot, avatar and name, and a ✉ that opens the message composer
+// (data-msg carries the username; the page handles the click). No badge chip:
+// the rank lives in the tooltip with the rest of their stats.
+export function friendStatsTip(u) {
+	const parts = [u.online ? "Online" : "Offline"]
+	if (u.badge) parts.push(u.badge)
+	if (typeof u.wordCount === "number") parts.push(`${u.wordCount.toLocaleString()} words`)
+	if (typeof u.badges === "number") parts.push(`${u.badges} badge${u.badges === 1 ? "" : "s"}`)
+	if (typeof u.games === "number") parts.push(`${u.games} game${u.games === 1 ? "" : "s"}`)
+	return parts.join(" · ")
+}
 export function friendRowHtml(u) {
 	return (
 		`<span class="st-dot ${u.online ? "on" : "off"}" title="${u.online ? "Online" : "Offline"}"></span>` +
 		miniAvatar(u) +
 		`<span class="rg-info"><b style="color:${safeColor(u.color)}">${esc(u.username)}</b></span>` +
-		`${u.badge ? `<span class="badge-chip">${esc(u.badge)}</span>` : ""}`
+		`<button type="button" class="rg-msg" data-msg="${esc(u.username)}" title="Message ${esc(u.username)}" aria-label="Message ${esc(u.username)}"><i class="fa-solid fa-envelope" aria-hidden="true"></i></button>`
 	)
 }
 
@@ -314,5 +325,162 @@ export function latestAnnouncementHtml(post) {
 		// Read more rides at the end of the preview's last line, not on its own
 		`<p class="ann-glimpse-text">${esc(previewText(post.html))} <a class="ann-glimpse-more" href="/announcements">Read more →</a></p>` +
 		`</div>`
+	)
+}
+
+// An older post under the newest one: date · title, a link to the page.
+export function announcementRowHtml(post) {
+	const when = post.at ? new Date(post.at).toLocaleDateString([], { dateStyle: "medium" }) : ""
+	return (
+		`<a class="ann-row" href="/announcements">` +
+		`<span class="ann-row-when">${esc(when)}</span>` +
+		`<span class="ann-row-title">${esc(post.title || previewText(post.html, 80))}</span>` +
+		`</a>`
+	)
+}
+
+// ---- /inbox: the two-pane inbox ---------------------------------------------
+// The page is a list of conversations beside a reading pane (the dashboard's
+// preview keeps the notice-board rows above). These builders are pure so the
+// page module (inbox-page.js) only wires; jsdom tests read them.
+// Every message type has a filter, a label and a tag; a note has no tag —
+// it's the ordinary case and the list would be all tags otherwise.
+export const INBOX_FILTERS = [
+	{ key: "all", label: "All" },
+	{ key: "requests", label: "Requests" },
+	{ key: "invites", label: "Invites" },
+	{ key: "notes", label: "Notes" },
+	{ key: "system", label: "System" },
+]
+export const MSG_KINDS = {
+	"friend-request": { filter: "requests", tag: "friend request" },
+	"friend-accept": { filter: "notes", tag: "friend" },
+	"game-invite": { filter: "invites", tag: "game invite" },
+	"doc-invite": { filter: "invites", tag: "beta read" },
+	help: { filter: "notes", tag: "help question" },
+	note: { filter: "notes", tag: "" },
+	system: { filter: "system", tag: "system" },
+}
+export const msgFilter = (m) => MSG_KINDS[m.type]?.filter || "notes"
+export const msgTag = (m) => MSG_KINDS[m.type]?.tag || ""
+
+// Count conversations per filter (a thread is filed under its opening message).
+export function inboxCounts(threads) {
+	const counts = { all: threads.length }
+	for (const t of threads) {
+		const k = msgFilter(t.head)
+		counts[k] = (counts[k] || 0) + 1
+	}
+	return counts
+}
+
+export function inboxFiltersHtml(counts, active = "all") {
+	return INBOX_FILTERS.map((f) => {
+		const n = f.key === "all" ? 0 : counts[f.key] || 0
+		return (
+			`<button type="button" class="ib-filter${f.key === active ? " on" : ""}" data-filter="${f.key}" aria-pressed="${f.key === active}">` +
+			`${esc(f.label)}${n ? ` <span class="ib-filter-n">${n}</span>` : ""}</button>`
+		)
+	}).join("")
+}
+
+const shortWhen = (ts) => (ts ? new Date(ts).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "")
+// The list's sender disc: a person's avatar or initial in their colour; the
+// site itself for a system note.
+export function inboxAvatarHtml(m) {
+	if (m.from) return miniAvatar({ ...m.from, name: m.from.username })
+	const s = siteName()
+	return `<span class="mini-avatar mini-initial ib-site">${esc(s.charAt(0).toUpperCase())}</span>`
+}
+export const inboxSenderName = (m) => (m.from ? m.from.username : siteName())
+
+// One conversation in the list: sender · tag · date, then the newest line as
+// a snippet ("You: …" when I spoke last), an unread count or a reply count
+// on the right, a select box on the left, and the unread bar drawn by CSS.
+export function inboxListRowHtml(t, { selected = false, checked = false } = {}) {
+	const m = t.head
+	const last = t.messages[t.messages.length - 1]
+	const unreadN = t.messages.filter((x) => !x.read).length
+	const replies = t.messages.length - 1
+	const tag = msgTag(m)
+	const snippet = (last.mine ? "You: " : "") + last.text
+	const color = m.from ? safeColor(m.from.color) : "var(--good)"
+	return (
+		`<label class="ib-pick" title="Select"><input type="checkbox" class="ib-check"${checked ? " checked" : ""} aria-label="Select conversation"></label>` +
+		`<span class="ib-av">${inboxAvatarHtml(m)}</span>` +
+		`<span class="ib-main">` +
+		`<span class="ib-line"><b class="ib-name" style="color:${color}">${esc(inboxSenderName(m))}</b>` +
+		(tag ? `<span class="ib-tag ib-tag-${esc(msgFilter(m))}">${esc(tag)}</span>` : "") +
+		`</span>` +
+		`<span class="ib-snip">${esc(snippet)}</span>` +
+		`</span>` +
+		`<span class="ib-side"><span class="ib-when">${esc(shortWhen(last.ts))}</span>` +
+		(unreadN
+			? `<span class="ib-unread-n" title="${unreadN} unread">${unreadN}</span>`
+			: replies
+				? `<span class="ib-replies" title="${replies} ${replies === 1 ? "reply" : "replies"}">↩ ${replies}</span>`
+				: "") +
+		`</span>`
+	)
+}
+
+// sender → recipient for the pane head, without whoHtml's mini avatar (the
+// pane draws the big disc beside it already)
+function paneWhoHtml(m) {
+	if (!m.from) return esc(siteName())
+	const name = (u) => `<span style="color:${safeColor(u.color)}">${esc(u.username)}</span>`
+	const sender = m.mine ? "You" : name(m.from)
+	if (!m.to) return sender
+	return `${sender}<span class="ib-arrow" aria-label="to">→</span>${m.mine ? name(m.to) : "You"}`
+}
+// The reading pane's head: who · tag · date, and the conversation's actions
+// (the page wires the buttons by data-act). A friend request answers with
+// Accept/Decline, a game invite offers Rejoin, a beta read opens the doc;
+// every conversation can be deleted.
+export function inboxPaneHeadHtml(t) {
+	const m = t.head
+	const tag = msgTag(m)
+	const acts = []
+	if (m.type === "friend-request") acts.push(`<button type="button" class="primary" data-act="accept">Accept</button>`, `<button type="button" class="ghost" data-act="decline">Decline</button>`)
+	if (m.type === "game-invite" && m.code) acts.push(`<button type="button" class="primary" data-act="rejoin">Rejoin</button>`)
+	acts.push(`<button type="button" class="ghost ib-pane-del" data-act="delete" title="${t.messages.length > 1 ? "Delete conversation" : "Delete"}">🗑 Delete</button>`)
+	return (
+		`<div class="ib-pane-who">${inboxAvatarHtml(m)}<span class="ib-pane-names">` +
+		`<b>${paneWhoHtml(m)}</b>` +
+		`<span class="ib-pane-meta">${tag ? `<span class="ib-tag ib-tag-${esc(msgFilter(m))}">${esc(tag)}</span>` : ""}` +
+		`<span class="ib-when">${esc(shortWhen(m.ts))}</span></span></span></div>` +
+		`<div class="ib-pane-acts">${acts.join("")}</div>`
+	)
+}
+
+// The conversation itself: every message as a bubble, sided — mine on the
+// right saying "You". A rank-up note lists what it unlocked underneath.
+export function inboxPaneBodyHtml(t) {
+	return t.messages
+		.map((m) => {
+			const unl = m.unlocks ? [...(m.unlocks.themes || []), ...(m.unlocks.gimmicks || [])].map((x) => esc(x.name || x)).join(" · ") : ""
+			return (
+				`<div class="ib-bubble${m.mine ? " mine" : ""}${m.read ? "" : " unread"}" data-id="${esc(m.id)}">` +
+				`<span class="ib-bubble-who">${m.mine ? "You" : esc(inboxSenderName(m))}<span class="ib-when">${esc(shortWhen(m.ts))}</span></span>` +
+				`<span class="ib-bubble-text">${esc(m.text)}</span>` +
+				(unl ? `<span class="ib-bubble-unlocks">🔓 ${unl}</span>` : "") +
+				`</div>`
+			)
+		})
+		.join("")
+}
+
+// The composer at the foot of the pane — only for a conversation with a
+// person on the other end (nobody answers a system note) and never a friend
+// request (Accept/Decline is the answer).
+export const paneCanReply = (t) => !!t.replyTo && t.head.type !== "friend-request"
+export function inboxPaneComposerHtml(t) {
+	if (!paneCanReply(t)) return ""
+	return (
+		`<div class="ib-compose">` +
+		`<textarea class="ib-reply-text" rows="2" maxlength="1000" placeholder="Reply to ${esc(t.replyTo.from.username)}…"></textarea>` +
+		`<span class="ib-reply-row"><span class="ib-reply-msg"></span>` +
+		`<span class="ib-reply-hint">Ctrl/⌘ + Enter to send</span>` +
+		`<button type="button" class="primary ib-reply-send">Send</button></span></div>`
 	)
 }

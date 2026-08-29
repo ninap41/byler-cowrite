@@ -500,9 +500,31 @@ test("the dashboard's first card holds the whole of how you're doing", async () 
   const row = card.slice(card.indexOf('class="stat-row"'), card.indexOf('class="rank-bar"'));
   for (const id of ["statWords", "statBadges", "streakBox"]) assert.ok(row.includes(`id="${id}"`), id + " is a column");
   assert.ok(card.indexOf('id="streakBox"') < card.indexOf('id="rankFill"'), "the rank bar spans underneath");
-  assert.ok(card.indexOf('id="rankFill"') < card.indexOf('id="achStrip"'), "achievements last");
-  const rail = body.slice(body.indexOf("RIGHT RAIL"));
+  const first = card.slice(0, card.indexOf('id="dashTabs"'));
+  assert.ok(!first.includes('id="achStrip"'), "achievements moved under the Dashboard tab");
+  const rail = body.slice(body.indexOf("============ RAIL"));
   assert.ok(!rail.includes('id="achStrip"') && !rail.includes('id="streakBox"'), "and none of it is in the rail");
+});
+
+test("the column under the profile is two tabs: Dashboard (mine) and Community (everyone)", async () => {
+  const { body } = await page("/dashboard");
+  const tabs = body.slice(body.indexOf('id="dashTabs"'), body.indexOf('id="tabDashboard"'));
+  assert.ok(tabs.includes('data-tab="dashboard"') && tabs.includes('data-tab="community"'), "two tabs");
+  assert.ok(!tabs.includes('id="tabCommunityN"'), "Community wears no writer count");
+  assert.ok(tabs.includes('id="tabCommunityLive"'), "Community wears the live-games pill");
+  assert.ok(tabs.includes('id="tabCommunityDot"'), "and a dot for unseen announcements");
+  assert.ok(body.includes('"cowriteAnnSeen"') && body.includes("markAnnouncementsSeen()"), "seen on opening the tab, remembered per browser");
+  const mine = body.slice(body.indexOf('id="tabDashboard"'), body.indexOf('id="tabCommunity"'));
+  for (const id of ["achStrip", "myGames", "dashWrites", "recentGames"]) assert.ok(mine.includes(`id="${id}"`), id + " is mine");
+  for (const id of ["dashLive", "writersList", "annCard", "helpCard"]) assert.ok(!mine.includes(`id="${id}"`), id + " is not");
+  const everyone = body.slice(body.indexOf('id="tabCommunity"'), body.indexOf("============ RAIL"));
+  for (const id of ["annCard", "dashLive", "writersList", "helpCard"]) assert.ok(everyone.includes(`id="${id}"`), id + " is community");
+  assert.ok(everyone.indexOf('id="annCard"') < everyone.indexOf('id="dashLive"'), "the announcement leads");
+  assert.ok(everyone.includes('id="annSec"') && everyone.includes('id="annMore"') && everyone.includes('href="/announcements"'), "an Announcements section with the page linked");
+  // the rail stands left of the column on desktop, by grid placement
+  const css = (await page("/css/dashboard.css")).body;
+  assert.match(css, /\.dash-wrap \{[^}]*grid-template-columns: 280px minmax\(0, 1fr\)/, "rail column first");
+  assert.match(css, /\.dash-rail \{\s*grid-column: 1;/, "the rail is placed in it");
 });
 
 test("pause and end-and-reveal live in the session bar, host-only", async () => {
@@ -586,7 +608,7 @@ test("the dashboard rail breaks below the column on a phone — the LAST word on
   const collapse = [...css.matchAll(/@media \(max-width: 900px\) \{\s*\.dash-wrap \{[^}]*grid-template-columns: minmax\(0, 1fr\);/g)];
   assert.ok(collapse.length, "a 900px single-column rule exists");
   const lastCollapse = collapse[collapse.length - 1].index;
-  const twoCol = [...css.matchAll(/\.dash-wrap \{[^}]*grid-template-columns: minmax\(0, 1fr\) \d+px/g)];
+  const twoCol = [...css.matchAll(/\.dash-wrap \{[^}]*grid-template-columns: (?:minmax\(0, 1fr\) \d+px|\d+px minmax\(0, 1fr\))/g)];
   assert.ok(twoCol.length, "and a two-column rule");
   for (const m of twoCol) assert.ok(m.index < lastCollapse, "every two-column rule precedes the final collapse");
 });

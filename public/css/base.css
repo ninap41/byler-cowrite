@@ -20,7 +20,8 @@
 	--grad-1: linear-gradient(120deg, #ff3b3b, #b56576 45%, #7adcc3);
 	--grad-hero: radial-gradient(120% 130% at 50% 0%, rgba(255, 59, 59, 0.12), transparent 70%);
 	--panel-brd: rgba(90, 160, 130, 0.28);
-	--panel-glow: 0 18px 48px rgba(0, 4, 3, 0.6), 0 0 34px rgba(255, 59, 59, 0.06), inset 0 1px 0 rgba(200, 255, 230, 0.05);
+	--panel-glow:
+		0 18px 48px rgba(0, 4, 3, 0.6), 0 0 34px rgba(255, 59, 59, 0.06), inset 0 1px 0 rgba(200, 255, 230, 0.05);
 	--btn-ink: #04100c;
 	--chip: rgba(255, 59, 59, 0.12);
 	--chip-brd: rgba(255, 59, 59, 0.4);
@@ -538,11 +539,13 @@ body {
 	padding: 12px 12px 12px 22px;
 	margin-bottom: 8px;
 	background:
-		linear-gradient(100deg, color-mix(in srgb, var(--accent) 22%, transparent) 0%, transparent 46%),
-		var(--panel-2);
+		linear-gradient(100deg, color-mix(in srgb, var(--accent) 22%, transparent) 0%, transparent 46%), var(--panel-2);
 	overflow: hidden;
 	isolation: isolate;
-	transition: border-color 0.4s ease, transform 0.4s cubic-bezier(0.2, 0.8, 0.3, 1), box-shadow 0.4s ease;
+	transition:
+		border-color 0.4s ease,
+		transform 0.4s cubic-bezier(0.2, 0.8, 0.3, 1),
+		box-shadow 0.4s ease;
 }
 .live-game .lg-rail {
 	position: absolute;
@@ -550,7 +553,12 @@ body {
 	top: 0;
 	bottom: 0;
 	width: 3px;
-	background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 30%, transparent), color-mix(in srgb, var(--accent) 60%, transparent), color-mix(in srgb, var(--accent) 30%, transparent));
+	background: linear-gradient(
+		180deg,
+		color-mix(in srgb, var(--accent) 30%, transparent),
+		color-mix(in srgb, var(--accent) 60%, transparent),
+		color-mix(in srgb, var(--accent) 30%, transparent)
+	);
 }
 .live-game .lg-bulb {
 	position: absolute;
@@ -560,16 +568,31 @@ body {
 	top: -90%;
 	border-radius: 6px;
 	background: linear-gradient(180deg, transparent, var(--accent-2) 45%, var(--accent-2) 55%, transparent);
-	box-shadow: 0 0 14px 4px var(--glow), 0 0 60px 22px color-mix(in srgb, var(--glow) 55%, transparent);
+	box-shadow:
+		0 0 14px 4px var(--glow),
+		0 0 60px 22px color-mix(in srgb, var(--glow) 55%, transparent);
 	animation: lg-bulb var(--lg-run) cubic-bezier(0.45, 0, 0.55, 1) infinite;
 	animation-delay: calc(var(--lg-i) * 0.78s);
 }
 @keyframes lg-bulb {
-	0% { top: -90%; opacity: 0; }
-	12% { opacity: 1; }
-	72% { opacity: 1; }
-	88% { top: 118%; opacity: 0; }
-	100% { top: 118%; opacity: 0; }
+	0% {
+		top: -90%;
+		opacity: 0;
+	}
+	12% {
+		opacity: 1;
+	}
+	72% {
+		opacity: 1;
+	}
+	88% {
+		top: 118%;
+		opacity: 0;
+	}
+	100% {
+		top: 118%;
+		opacity: 0;
+	}
 }
 .live-game .lg-aura {
 	position: absolute;
@@ -581,22 +604,40 @@ body {
 	pointer-events: none;
 }
 @keyframes lg-aura {
-	0%, 100% { opacity: 0; }
-	45% { opacity: 1; }
+	0%,
+	100% {
+		opacity: 0;
+	}
+	45% {
+		opacity: 1;
+	}
 }
 .live-game .lg-sheen {
 	position: absolute;
 	inset: 0;
-	background: linear-gradient(104deg, transparent 34%, color-mix(in srgb, var(--ink) 8%, transparent) 47%, color-mix(in srgb, var(--ink) 14%, transparent) 50%, color-mix(in srgb, var(--ink) 8%, transparent) 53%, transparent 66%);
+	background: linear-gradient(
+		104deg,
+		transparent 34%,
+		color-mix(in srgb, var(--ink) 8%, transparent) 47%,
+		color-mix(in srgb, var(--ink) 14%, transparent) 50%,
+		color-mix(in srgb, var(--ink) 8%, transparent) 53%,
+		transparent 66%
+	);
 	transform: translateX(-140%);
 	animation: lg-sheen 9.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
 	animation-delay: calc(var(--lg-i) * 1.4s + 0.6s);
 	pointer-events: none;
 }
 @keyframes lg-sheen {
-	0% { transform: translateX(-140%); }
-	42% { transform: translateX(140%); }
-	100% { transform: translateX(140%); }
+	0% {
+		transform: translateX(-140%);
+	}
+	42% {
+		transform: translateX(140%);
+	}
+	100% {
+		transform: translateX(140%);
+	}
 }
 .live-game .lg-info > b {
 	transition: text-shadow 0.4s ease;
@@ -612,14 +653,24 @@ body {
 	animation: lg-pip 2.4s ease-out infinite;
 }
 @keyframes lg-pip {
-	0% { box-shadow: 0 0 0 0 var(--glow); }
-	70% { box-shadow: 0 0 0 7px transparent; }
-	100% { box-shadow: 0 0 0 0 transparent; }
+	0% {
+		box-shadow: 0 0 0 0 var(--glow);
+	}
+	70% {
+		box-shadow: 0 0 0 7px transparent;
+	}
+	100% {
+		box-shadow: 0 0 0 0 transparent;
+	}
 }
 .live-game > button {
 	position: relative;
 	overflow: hidden;
-	transition: background 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease, color 0.35s ease;
+	transition:
+		background 0.35s ease,
+		border-color 0.35s ease,
+		box-shadow 0.35s ease,
+		color 0.35s ease;
 }
 .live-game > button::after {
 	content: "";
@@ -632,7 +683,10 @@ body {
 .live-game:hover {
 	border-color: color-mix(in srgb, var(--accent-2) 55%, transparent);
 	transform: translateY(-2px);
-	box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-2) 12%, transparent), 0 10px 34px -12px var(--glow), 0 0 70px -20px var(--glow);
+	box-shadow:
+		0 0 0 1px color-mix(in srgb, var(--accent-2) 12%, transparent),
+		0 10px 34px -12px var(--glow),
+		0 0 70px -20px var(--glow);
 }
 .live-game:hover .lg-info > b {
 	text-shadow: 0 0 18px var(--glow);
@@ -761,8 +815,13 @@ a.solo-title:hover {
 	}
 }
 @keyframes gather-glow {
-	0%, 100% { box-shadow: 0 0 4px 0 var(--glow); }
-	50% { box-shadow: 0 0 20px 4px var(--glow); }
+	0%,
+	100% {
+		box-shadow: 0 0 4px 0 var(--glow);
+	}
+	50% {
+		box-shadow: 0 0 20px 4px var(--glow);
+	}
 }
 .live-game .sparkle {
 	position: absolute;
@@ -1280,7 +1339,9 @@ a.solo-title:hover {
 	border: 1px solid var(--chip-brd);
 	border-radius: var(--r-lg);
 	padding: 20px 28px;
-	box-shadow: var(--panel-glow), 0 0 60px var(--glow);
+	box-shadow:
+		var(--panel-glow),
+		0 0 60px var(--glow);
 	backdrop-filter: blur(14px);
 	-webkit-backdrop-filter: blur(14px);
 	display: grid;
@@ -1345,7 +1406,9 @@ a.solo-title:hover {
 	display: grid;
 	gap: 3px;
 	animation: toast-in 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.2);
-	transition: opacity 0.7s, transform 0.7s;
+	transition:
+		opacity 0.7s,
+		transform 0.7s;
 }
 .toast b {
 	font-size: 0.92rem;
@@ -2002,7 +2065,9 @@ a.solo-title:hover {
 	border: 1px solid var(--panel-brd);
 	border-radius: var(--r-md);
 	padding: 12px 14px;
-	box-shadow: var(--panel-glow), 0 0 40px var(--glow);
+	box-shadow:
+		var(--panel-glow),
+		0 0 40px var(--glow);
 	backdrop-filter: blur(14px);
 	-webkit-backdrop-filter: blur(14px);
 	animation: toast-in 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.2);
@@ -2522,23 +2587,59 @@ ul.roster li {
 /* The global h1 is gradient text (color: transparent + background-clip), and
    the caret is drawn in `color` — so inside an editable heading the cursor
    vanished. Every editing surface names its caret explicitly. */
-.editor, .doc-editor, [contenteditable="true"],
-.editor h1, .doc-editor h1, [contenteditable="true"] h1,
-.editor h2, .doc-editor h2, [contenteditable="true"] h2,
-.editor h3, .doc-editor h3, [contenteditable="true"] h3 {
+.editor,
+.doc-editor,
+[contenteditable="true"],
+.editor h1,
+.doc-editor h1,
+[contenteditable="true"] h1,
+.editor h2,
+.doc-editor h2,
+[contenteditable="true"] h2,
+.editor h3,
+.doc-editor h3,
+[contenteditable="true"] h3 {
 	caret-color: var(--accent-2);
 }
 /* rich block formats (story, editor, live preview, archive) */
-.story h1, .editor h1, .live h1 { font-size: 1.55em; line-height: 1.25; margin: 0.35em 0 0.25em; }
-.story h2, .editor h2, .live h2 { font-size: 1.3em; line-height: 1.3; margin: 0.35em 0 0.2em; }
-.story h3, .editor h3, .live h3 { font-size: 1.12em; line-height: 1.3; margin: 0.3em 0 0.15em; }
-.story hr, .editor hr, .live hr {
+.story h1,
+.editor h1,
+.live h1 {
+	font-size: 1.55em;
+	line-height: 1.25;
+	margin: 0.35em 0 0.25em;
+}
+.story h2,
+.editor h2,
+.live h2 {
+	font-size: 1.3em;
+	line-height: 1.3;
+	margin: 0.35em 0 0.2em;
+}
+.story h3,
+.editor h3,
+.live h3 {
+	font-size: 1.12em;
+	line-height: 1.3;
+	margin: 0.3em 0 0.15em;
+}
+.story hr,
+.editor hr,
+.live hr {
 	border: 0;
 	border-top: 1px solid var(--line);
 	margin: 0.8em 0;
 }
-.story .al-c, .editor .al-c, .live .al-c { text-align: center; }
-.story .al-r, .editor .al-r, .live .al-r { text-align: right; }
+.story .al-c,
+.editor .al-c,
+.live .al-c {
+	text-align: center;
+}
+.story .al-r,
+.editor .al-r,
+.live .al-r {
+	text-align: right;
+}
 .story-line {
 	margin: 0 0 0.7em;
 }
@@ -2768,7 +2869,9 @@ ul.roster li {
 /* the sentence for the selected mode carries the ink; the other recedes */
 .rmode-desc {
 	opacity: 0.45;
-	transition: opacity 0.35s ease, color 0.35s ease;
+	transition:
+		opacity 0.35s ease,
+		color 0.35s ease;
 }
 .rules-form[data-mode="friendly"] .rmode-desc[data-desc="friendly"],
 .rules-form[data-mode="hostile"] .rmode-desc[data-desc="hostile"] {
@@ -2864,7 +2967,10 @@ input[type="checkbox"] {
 	background: var(--panel-2);
 	cursor: pointer;
 	position: relative;
-	transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+	transition:
+		border-color 0.2s,
+		background 0.2s,
+		box-shadow 0.2s;
 }
 input[type="checkbox"]:hover {
 	border-color: var(--accent-2);
@@ -2979,9 +3085,14 @@ input[type="checkbox"]:focus-visible {
 	font-family: inherit;
 	font-size: 0.95rem;
 	cursor: pointer;
-	background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
-	background-position: right 18px center, right 13px center;
-	background-size: 5px 5px, 5px 5px;
+	background-image:
+		linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+	background-position:
+		right 18px center,
+		right 13px center;
+	background-size:
+		5px 5px,
+		5px 5px;
 	background-repeat: no-repeat;
 }
 #inviteFriend:focus {
@@ -3413,10 +3524,19 @@ h3 {
 	}
 }
 @keyframes wall-flicker {
-	0%, 100% { opacity: 1; }
-	42% { opacity: 0.75; }
-	46% { opacity: 1; }
-	72% { opacity: 0.85; }
+	0%,
+	100% {
+		opacity: 1;
+	}
+	42% {
+		opacity: 0.75;
+	}
+	46% {
+		opacity: 1;
+	}
+	72% {
+		opacity: 0.85;
+	}
 }
 
 /* ---------- Snow Ball (gym at night: snowfall + disco glint) */
@@ -3475,7 +3595,9 @@ h3 {
 	}
 }
 @keyframes snow-fall {
-	to { transform: translateY(260px); }
+	to {
+		transform: translateY(260px);
+	}
 }
 .bg-set.snowball .glint {
 	position: absolute;
@@ -3483,8 +3605,13 @@ h3 {
 	background: linear-gradient(64deg, transparent 42%, rgba(255, 255, 255, 0.07) 50%, transparent 58%);
 }
 @keyframes glint-sweep {
-	0%, 100% { transform: translateX(-30%); }
-	50% { transform: translateX(30%); }
+	0%,
+	100% {
+		transform: translateX(-30%);
+	}
+	50% {
+		transform: translateX(30%);
+	}
 }
 
 /* ---------- Upside Down (toxic dark: spores + red veins) */
@@ -3504,7 +3631,8 @@ h3 {
 	--grad-1: linear-gradient(120deg, #ff3b3b, #b56576 45%, #7adcc3);
 	--grad-hero: radial-gradient(120% 130% at 50% 0%, rgba(255, 59, 59, 0.12), transparent 70%);
 	--panel-brd: rgba(90, 160, 130, 0.28);
-	--panel-glow: 0 18px 48px rgba(0, 4, 3, 0.6), 0 0 34px rgba(255, 59, 59, 0.06), inset 0 1px 0 rgba(200, 255, 230, 0.05);
+	--panel-glow:
+		0 18px 48px rgba(0, 4, 3, 0.6), 0 0 34px rgba(255, 59, 59, 0.06), inset 0 1px 0 rgba(200, 255, 230, 0.05);
 	--btn-ink: #04100c;
 	--chip: rgba(255, 59, 59, 0.12);
 	--chip-brd: rgba(255, 59, 59, 0.4);
@@ -3531,8 +3659,12 @@ h3 {
 	}
 }
 @keyframes vein-pulse {
-	from { opacity: 0.65; }
-	to { opacity: 1; }
+	from {
+		opacity: 0.65;
+	}
+	to {
+		opacity: 1;
+	}
 }
 .bg-set.upside .spore {
 	position: absolute;
@@ -3543,10 +3675,29 @@ h3 {
 	filter: blur(1px);
 	box-shadow: 0 0 12px rgba(215, 255, 235, 0.4);
 }
-.bg-set.upside .s1 { left: 18%; top: 30%; }
-.bg-set.upside .s2 { left: 66%; top: 18%; width: 6px; height: 6px; }
-.bg-set.upside .s3 { left: 42%; top: 64%; width: 14px; height: 14px; opacity: 0.5; }
-.bg-set.upside .s4 { left: 84%; top: 56%; width: 7px; height: 7px; }
+.bg-set.upside .s1 {
+	left: 18%;
+	top: 30%;
+}
+.bg-set.upside .s2 {
+	left: 66%;
+	top: 18%;
+	width: 6px;
+	height: 6px;
+}
+.bg-set.upside .s3 {
+	left: 42%;
+	top: 64%;
+	width: 14px;
+	height: 14px;
+	opacity: 0.5;
+}
+.bg-set.upside .s4 {
+	left: 84%;
+	top: 56%;
+	width: 7px;
+	height: 7px;
+}
 
 /* ---------- Starcourt (1985 mall pastels) */
 [data-theme="starcourt"] {
@@ -3581,7 +3732,12 @@ h3 {
 .bg-set.starcourt .sunset {
 	position: absolute;
 	inset: 0;
-	background: radial-gradient(60% 45% at 50% 104%, rgba(255, 150, 90, 0.4), rgba(255, 95, 162, 0.2) 55%, transparent 75%);
+	background: radial-gradient(
+		60% 45% at 50% 104%,
+		rgba(255, 150, 90, 0.4),
+		rgba(255, 95, 162, 0.2) 55%,
+		transparent 75%
+	);
 }
 .bg-set.starcourt .squiggle {
 	position: absolute;
@@ -3620,7 +3776,8 @@ h3 {
 	--grad-1: linear-gradient(120deg, #ffd23f, #ff4f79 50%, #4fa8ff);
 	--grad-hero: radial-gradient(120% 130% at 50% 0%, rgba(255, 210, 63, 0.14), transparent 72%);
 	--panel-brd: rgba(255, 210, 63, 0.26);
-	--panel-glow: 0 18px 48px rgba(6, 2, 12, 0.6), 0 0 34px rgba(255, 79, 121, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+	--panel-glow:
+		0 18px 48px rgba(6, 2, 12, 0.6), 0 0 34px rgba(255, 79, 121, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.05);
 	--btn-ink: #1a0b2e;
 	--chip: rgba(255, 79, 121, 0.13);
 	--chip-brd: rgba(255, 79, 121, 0.4);
@@ -3672,7 +3829,8 @@ h3 {
 	--grad-1: linear-gradient(120deg, #ffb000, #ff7a3d 60%, #ffdfae);
 	--grad-hero: radial-gradient(120% 130% at 50% 0%, rgba(255, 176, 0, 0.14), transparent 70%);
 	--panel-brd: rgba(255, 176, 0, 0.26);
-	--panel-glow: 0 18px 44px rgba(4, 2, 0, 0.6), 0 0 30px rgba(255, 176, 0, 0.07), inset 0 1px 0 rgba(255, 220, 160, 0.06);
+	--panel-glow:
+		0 18px 44px rgba(4, 2, 0, 0.6), 0 0 30px rgba(255, 176, 0, 0.07), inset 0 1px 0 rgba(255, 220, 160, 0.06);
 	--btn-ink: #140c04;
 	--chip: rgba(255, 176, 0, 0.12);
 	--chip-brd: rgba(255, 176, 0, 0.4);
@@ -3705,7 +3863,9 @@ h3 {
 	}
 }
 @keyframes signal-sweep {
-	to { transform: translateX(350vw); }
+	to {
+		transform: translateX(350vw);
+	}
 }
 
 /* ---------- Theme swatches for the picker ---------- */
@@ -3745,8 +3905,13 @@ h3 {
 	}
 }
 @keyframes wall-blink {
-	0%, 100% { opacity: 1; }
-	50% { opacity: 0.25; }
+	0%,
+	100% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0.25;
+	}
 }
 
 /* ---- Snow Ball: faster swirling snow, brighter glint ---- */
@@ -3762,9 +3927,15 @@ h3 {
 	}
 }
 @keyframes snow-swirl {
-	0% { transform: translate(0, 0); }
-	50% { transform: translate(34px, 130px); }
-	100% { transform: translate(0, 260px); }
+	0% {
+		transform: translate(0, 0);
+	}
+	50% {
+		transform: translate(34px, 130px);
+	}
+	100% {
+		transform: translate(0, 260px);
+	}
 }
 
 /* ---- Upside Down: dust storm + layered mountain landscape ---- */
@@ -3804,13 +3975,23 @@ h3 {
 	}
 }
 @keyframes dust-rise {
-	0% { transform: translate(0, 0); }
-	50% { transform: translate(-28px, -160px); }
-	100% { transform: translate(0, -320px); }
+	0% {
+		transform: translate(0, 0);
+	}
+	50% {
+		transform: translate(-28px, -160px);
+	}
+	100% {
+		transform: translate(0, -320px);
+	}
 }
 @keyframes vein-throb {
-	from { opacity: 0.35; }
-	to { opacity: 1; }
+	from {
+		opacity: 0.35;
+	}
+	to {
+		opacity: 1;
+	}
 }
 .bg-set.upside .mtn {
 	position: absolute;
@@ -3891,7 +4072,9 @@ h3 {
 }
 @media (prefers-reduced-motion: no-preference) {
 	.bg-set.starcourt .retro-sun {
-		animation: sun-rise 12s ease-in-out infinite alternate, neon-flicker 7s steps(1) infinite;
+		animation:
+			sun-rise 12s ease-in-out infinite alternate,
+			neon-flicker 7s steps(1) infinite;
 	}
 	.bg-set.starcourt .zig {
 		animation: zig-bounce 4.5s ease-in-out infinite alternate;
@@ -3901,23 +4084,46 @@ h3 {
 	}
 }
 @keyframes sun-rise {
-	from { transform: translateY(46px) scale(0.97); }
-	to { transform: translateY(0) scale(1.03); }
+	from {
+		transform: translateY(46px) scale(0.97);
+	}
+	to {
+		transform: translateY(0) scale(1.03);
+	}
 }
 @keyframes neon-flicker {
-	0%, 100% { filter: brightness(1); }
-	81% { filter: brightness(1); }
-	82% { filter: brightness(1.6); }
-	84% { filter: brightness(0.8); }
-	86% { filter: brightness(1.5); }
-	88% { filter: brightness(1); }
+	0%,
+	100% {
+		filter: brightness(1);
+	}
+	81% {
+		filter: brightness(1);
+	}
+	82% {
+		filter: brightness(1.6);
+	}
+	84% {
+		filter: brightness(0.8);
+	}
+	86% {
+		filter: brightness(1.5);
+	}
+	88% {
+		filter: brightness(1);
+	}
 }
 @keyframes zig-bounce {
-	from { transform: translateY(-26px) rotate(-14deg); }
-	to { transform: translateY(26px) rotate(10deg); }
+	from {
+		transform: translateY(-26px) rotate(-14deg);
+	}
+	to {
+		transform: translateY(26px) rotate(10deg);
+	}
 }
 @keyframes squiggle-spin {
-	to { transform: rotate(360deg); }
+	to {
+		transform: rotate(360deg);
+	}
 }
 
 /* ---- Palace Arcade: Galaga fleet, starfield, ship + shots ---- */
@@ -3943,12 +4149,25 @@ h3 {
 	height: 4px;
 	background: transparent;
 	box-shadow:
-		-8px 0 0 #4fa8ff, 8px 0 0 #4fa8ff,
-		-4px 4px 0 #ff4f79, 0 4px 0 #ff4f79, 4px 4px 0 #ff4f79,
-		-8px 8px 0 #ffd23f, -4px 8px 0 #ffd23f, 0 8px 0 #ffd23f, 4px 8px 0 #ffd23f, 8px 8px 0 #ffd23f,
-		-12px 12px 0 #ffd23f, -4px 12px 0 #ffd23f, 0 12px 0 #ffd23f, 4px 12px 0 #ffd23f, 12px 12px 0 #ffd23f,
-		-4px 16px 0 #ff4f79, 4px 16px 0 #ff4f79,
-		-8px 20px 0 #4fa8ff, 8px 20px 0 #4fa8ff;
+		-8px 0 0 #4fa8ff,
+		8px 0 0 #4fa8ff,
+		-4px 4px 0 #ff4f79,
+		0 4px 0 #ff4f79,
+		4px 4px 0 #ff4f79,
+		-8px 8px 0 #ffd23f,
+		-4px 8px 0 #ffd23f,
+		0 8px 0 #ffd23f,
+		4px 8px 0 #ffd23f,
+		8px 8px 0 #ffd23f,
+		-12px 12px 0 #ffd23f,
+		-4px 12px 0 #ffd23f,
+		0 12px 0 #ffd23f,
+		4px 12px 0 #ffd23f,
+		12px 12px 0 #ffd23f,
+		-4px 16px 0 #ff4f79,
+		4px 16px 0 #ff4f79,
+		-8px 20px 0 #4fa8ff,
+		8px 20px 0 #4fa8ff;
 }
 .bg-set.arcade .fleet {
 	position: absolute;
@@ -3968,8 +4187,14 @@ h3 {
 	box-shadow:
 		0 -8px 0 #ff4f79,
 		0 -4px 0 #f6edff,
-		-4px 0 0 #f6edff, 0 0 0 #f6edff, 4px 0 0 #f6edff,
-		-8px 4px 0 #f6edff, -4px 4px 0 #f6edff, 0 4px 0 #ff4f79, 4px 4px 0 #f6edff, 8px 4px 0 #f6edff;
+		-4px 0 0 #f6edff,
+		0 0 0 #f6edff,
+		4px 0 0 #f6edff,
+		-8px 4px 0 #f6edff,
+		-4px 4px 0 #f6edff,
+		0 4px 0 #ff4f79,
+		4px 4px 0 #f6edff,
+		8px 4px 0 #f6edff;
 }
 .bg-set.arcade .shot {
 	position: absolute;
@@ -3993,9 +4218,15 @@ h3 {
 	.bg-set.arcade .galaga {
 		animation: galaga-bob 1.8s ease-in-out infinite alternate;
 	}
-	.bg-set.arcade .g2 { animation-delay: -0.45s; }
-	.bg-set.arcade .g3 { animation-delay: -0.9s; }
-	.bg-set.arcade .g4 { animation-delay: -1.35s; }
+	.bg-set.arcade .g2 {
+		animation-delay: -0.45s;
+	}
+	.bg-set.arcade .g3 {
+		animation-delay: -0.9s;
+	}
+	.bg-set.arcade .g4 {
+		animation-delay: -1.35s;
+	}
 	.bg-set.arcade .ship {
 		animation: ship-strafe 6.5s ease-in-out infinite alternate;
 	}
@@ -4004,27 +4235,55 @@ h3 {
 	}
 }
 @keyframes star-scroll {
-	to { transform: translateY(420px); }
+	to {
+		transform: translateY(420px);
+	}
 }
 @keyframes fleet-sweep {
-	0% { transform: translateX(-14vw) translateY(0); }
-	25% { transform: translateX(26vw) translateY(34px); }
-	50% { transform: translateX(72vw) translateY(-8px); }
-	75% { transform: translateX(32vw) translateY(-30px); }
-	100% { transform: translateX(-14vw) translateY(0); }
+	0% {
+		transform: translateX(-14vw) translateY(0);
+	}
+	25% {
+		transform: translateX(26vw) translateY(34px);
+	}
+	50% {
+		transform: translateX(72vw) translateY(-8px);
+	}
+	75% {
+		transform: translateX(32vw) translateY(-30px);
+	}
+	100% {
+		transform: translateX(-14vw) translateY(0);
+	}
 }
 @keyframes galaga-bob {
-	from { transform: translateY(-7px) scale(1); }
-	to { transform: translateY(7px) scale(1.08); }
+	from {
+		transform: translateY(-7px) scale(1);
+	}
+	to {
+		transform: translateY(7px) scale(1.08);
+	}
 }
 @keyframes ship-strafe {
-	from { transform: translateX(-110px); }
-	to { transform: translateX(110px); }
+	from {
+		transform: translateX(-110px);
+	}
+	to {
+		transform: translateX(110px);
+	}
 }
 @keyframes shot-up {
-	0% { transform: translateY(0); opacity: 1; }
-	85% { opacity: 1; }
-	100% { transform: translateY(-72vh); opacity: 0; }
+	0% {
+		transform: translateY(0);
+		opacity: 1;
+	}
+	85% {
+		opacity: 1;
+	}
+	100% {
+		transform: translateY(-72vh);
+		opacity: 0;
+	}
 }
 
 /* ---- Cerebro: twin fast signal sweeps + CRT breathing ---- */
@@ -4045,8 +4304,12 @@ h3 {
 	}
 }
 @keyframes crt-breathe {
-	from { opacity: 0.75; }
-	to { opacity: 1; }
+	from {
+		opacity: 0.75;
+	}
+	to {
+		opacity: 1;
+	}
 }
 
 /* ---------- Confirmation modal + danger buttons ---------- */
@@ -4171,12 +4434,20 @@ button.danger,
 	}
 }
 @keyframes shape-tumble {
-	from { transform: translateY(-30px) rotate(-16deg); }
-	to { transform: translateY(30px) rotate(18deg); }
+	from {
+		transform: translateY(-30px) rotate(-16deg);
+	}
+	to {
+		transform: translateY(30px) rotate(18deg);
+	}
 }
 @keyframes shape-pop {
-	from { transform: scale(0.85) translateX(-22px); }
-	to { transform: scale(1.12) translateX(22px); }
+	from {
+		transform: scale(0.85) translateX(-22px);
+	}
+	to {
+		transform: scale(1.12) translateX(22px);
+	}
 }
 
 /* ---------- Active game: two-column layout (story left, people/controls right) ---------- */
@@ -4311,11 +4582,19 @@ button.danger,
 	animation: doom-blink 1s step-start infinite;
 }
 @keyframes doom-blink {
-	50% { opacity: 0; }
+	50% {
+		opacity: 0;
+	}
 }
 @keyframes doom-in {
-	from { opacity: 0; transform: scale(0.85); }
-	to { opacity: 1; transform: scale(1); }
+	from {
+		opacity: 0;
+		transform: scale(0.85);
+	}
+	to {
+		opacity: 1;
+		transform: scale(1);
+	}
 }
 @media (max-width: 760px) {
 	/* it would cover the editor itself on a phone */
@@ -4354,7 +4633,8 @@ button.danger,
 	--grad-1: linear-gradient(120deg, #ff2e2e, #ff7a3d 55%, #d8c23a);
 	--grad-hero: radial-gradient(120% 130% at 50% 0%, rgba(255, 46, 46, 0.14), transparent 70%);
 	--panel-brd: rgba(139, 152, 165, 0.28);
-	--panel-glow: 0 18px 44px rgba(1, 2, 4, 0.65), 0 0 30px rgba(255, 46, 46, 0.07), inset 0 1px 0 rgba(230, 238, 245, 0.06);
+	--panel-glow:
+		0 18px 44px rgba(1, 2, 4, 0.65), 0 0 30px rgba(255, 46, 46, 0.07), inset 0 1px 0 rgba(230, 238, 245, 0.06);
 	--btn-ink: #0b0d10;
 	--chip: rgba(255, 46, 46, 0.12);
 	--chip-brd: rgba(255, 46, 46, 0.4);
@@ -4364,7 +4644,9 @@ button.danger,
 	--font-story: "Space Grotesk", sans-serif;
 	--font-mono: "Inconsolata", ui-monospace, monospace;
 }
-[data-theme="hawkinslab"] .bg-set.hawkinslab { opacity: 1; }
+[data-theme="hawkinslab"] .bg-set.hawkinslab {
+	opacity: 1;
+}
 /* metallic gates: brushed vertical bars with riveted cross-beams */
 .bg-set.hawkinslab .gates {
 	position: absolute;
@@ -4414,8 +4696,14 @@ button.danger,
 		radial-gradient(42px 62px ellipse at 50% 62%, rgba(216, 194, 58, 0.42) 92%, transparent);
 	filter: blur(1px);
 }
-.bg-set.hawkinslab .h1 { left: 7%; }
-.bg-set.hawkinslab .h2 { right: 9%; transform: scale(0.8); opacity: 0.75; }
+.bg-set.hawkinslab .h1 {
+	left: 7%;
+}
+.bg-set.hawkinslab .h2 {
+	right: 9%;
+	transform: scale(0.8);
+	opacity: 0.75;
+}
 /* the rift: a jagged glowing tear, breathing */
 .bg-set.hawkinslab .rift {
 	position: absolute;
@@ -4423,28 +4711,56 @@ button.danger,
 	right: 16%;
 	width: 120px;
 	height: 46vh;
-	clip-path: polygon(52% 0%, 68% 12%, 55% 26%, 78% 40%, 58% 55%, 74% 68%, 50% 84%, 60% 100%, 40% 92%, 30% 72%, 44% 58%, 22% 44%, 42% 30%, 28% 14%);
-	background: linear-gradient(
-		180deg,
-		rgba(255, 122, 61, 0.85),
-		rgba(255, 46, 46, 0.75) 45%,
-		rgba(160, 30, 60, 0.7)
+	clip-path: polygon(
+		52% 0%,
+		68% 12%,
+		55% 26%,
+		78% 40%,
+		58% 55%,
+		74% 68%,
+		50% 84%,
+		60% 100%,
+		40% 92%,
+		30% 72%,
+		44% 58%,
+		22% 44%,
+		42% 30%,
+		28% 14%
 	);
+	background: linear-gradient(180deg, rgba(255, 122, 61, 0.85), rgba(255, 46, 46, 0.75) 45%, rgba(160, 30, 60, 0.7));
 	box-shadow: 0 0 80px 30px rgba(255, 60, 40, 0.25);
 	filter: blur(1.5px);
 }
 @media (prefers-reduced-motion: no-preference) {
-	.bg-set.hawkinslab .danger { animation: danger-blink 1.1s steps(1) infinite; }
-	.bg-set.hawkinslab .dl2 { animation-delay: -0.55s; }
-	.bg-set.hawkinslab .rift { animation: rift-breathe 5s ease-in-out infinite; }
+	.bg-set.hawkinslab .danger {
+		animation: danger-blink 1.1s steps(1) infinite;
+	}
+	.bg-set.hawkinslab .dl2 {
+		animation-delay: -0.55s;
+	}
+	.bg-set.hawkinslab .rift {
+		animation: rift-breathe 5s ease-in-out infinite;
+	}
 }
 @keyframes danger-blink {
-	0%, 100% { opacity: 1; }
-	50% { opacity: 0.12; }
+	0%,
+	100% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0.12;
+	}
 }
 @keyframes rift-breathe {
-	0%, 100% { opacity: 0.85; transform: scaleX(1); }
-	50% { opacity: 1; transform: scaleX(1.12); }
+	0%,
+	100% {
+		opacity: 0.85;
+		transform: scaleX(1);
+	}
+	50% {
+		opacity: 1;
+		transform: scaleX(1.12);
+	}
 }
 
 /* ---- Castle Byers: deep forest night — pines all around, the wooden
@@ -4463,9 +4779,15 @@ button.danger,
 	--good: #8fbf6b;
 	--glow: rgba(255, 184, 77, 0.3);
 	--grad-1: linear-gradient(120deg, #ffb84d, #a9843f 50%, #6f9a5a);
-	--grad-hero: radial-gradient(120% 130% at 50% 0%, rgba(255, 184, 77, 0.13), rgba(111, 154, 90, 0.06) 55%, transparent 75%);
+	--grad-hero: radial-gradient(
+		120% 130% at 50% 0%,
+		rgba(255, 184, 77, 0.13),
+		rgba(111, 154, 90, 0.06) 55%,
+		transparent 75%
+	);
 	--panel-brd: rgba(111, 154, 90, 0.3);
-	--panel-glow: 0 18px 44px rgba(2, 5, 2, 0.6), 0 0 30px rgba(255, 184, 77, 0.05), inset 0 1px 0 rgba(238, 242, 223, 0.06);
+	--panel-glow:
+		0 18px 44px rgba(2, 5, 2, 0.6), 0 0 30px rgba(255, 184, 77, 0.05), inset 0 1px 0 rgba(238, 242, 223, 0.06);
 	--btn-ink: #101809;
 	--chip: rgba(255, 184, 77, 0.12);
 	--chip-brd: rgba(255, 184, 77, 0.38);
@@ -4555,10 +4877,12 @@ button.danger,
 	bottom: 0;
 	width: min(1700px, 108vw);
 	height: 22%;
-	background: radial-gradient(48% 88% at 50% 100%,
+	background: radial-gradient(
+		48% 88% at 50% 100%,
 		rgba(157, 169, 118, 0.5),
 		rgba(157, 169, 118, 0.16) 55%,
-		transparent 76%);
+		transparent 76%
+	);
 	mix-blend-mode: screen;
 	transform: translateX(calc(-50% + 200px)) var(--cb-par, translate3d(0, 0, 0));
 	will-change: transform;
@@ -4620,7 +4944,8 @@ button.danger,
 	--grad-1: linear-gradient(120deg, #e02f2f, #a4243b 55%, #c98f4e);
 	--grad-hero: radial-gradient(120% 130% at 50% 0%, rgba(224, 47, 47, 0.16), transparent 70%);
 	--panel-brd: rgba(224, 47, 47, 0.28);
-	--panel-glow: 0 18px 44px rgba(8, 1, 2, 0.6), 0 0 30px rgba(224, 47, 47, 0.08), inset 0 1px 0 rgba(255, 220, 210, 0.05);
+	--panel-glow:
+		0 18px 44px rgba(8, 1, 2, 0.6), 0 0 30px rgba(224, 47, 47, 0.08), inset 0 1px 0 rgba(255, 220, 210, 0.05);
 	--btn-ink: #1c0507;
 	--chip: rgba(224, 47, 47, 0.12);
 	--chip-brd: rgba(224, 47, 47, 0.4);
@@ -4630,7 +4955,9 @@ button.danger,
 	--font-story: "Newsreader", serif;
 	--font-mono: "Inconsolata", ui-monospace, monospace;
 }
-[data-theme="vecna"] .bg-set.vecna { opacity: 1; }
+[data-theme="vecna"] .bg-set.vecna {
+	opacity: 1;
+}
 /* ---- the grandfather clock (public/js/components/vecna-clock.js) ----------
    Vecna's clock as the object it actually is: a long-case clock standing where
    it has no business standing. It is the subject of the background, centred and
@@ -4704,8 +5031,12 @@ button.danger,
 	}
 }
 @keyframes vc-swing {
-	from { transform: rotate(-7deg); }
-	to { transform: rotate(7deg); }
+	from {
+		transform: rotate(-7deg);
+	}
+	to {
+		transform: rotate(7deg);
+	}
 }
 /* the face */
 .bg-set.vecna .vc-face {
@@ -4775,15 +5106,20 @@ button.danger,
 .bg-set.vecna .embers {
 	position: absolute;
 	inset: 0;
-	background-image: radial-gradient(circle 2px at 20% 70%, rgba(255, 120, 90, 0.5) 90%, transparent),
+	background-image:
+		radial-gradient(circle 2px at 20% 70%, rgba(255, 120, 90, 0.5) 90%, transparent),
 		radial-gradient(circle 2px at 70% 40%, rgba(255, 120, 90, 0.4) 90%, transparent),
 		radial-gradient(circle 3px at 85% 75%, rgba(224, 47, 47, 0.4) 90%, transparent);
 }
 @media (prefers-reduced-motion: no-preference) {
-	.bg-set.vecna .clockface { animation: vecna-turn 240s linear infinite; }
+	.bg-set.vecna .clockface {
+		animation: vecna-turn 240s linear infinite;
+	}
 }
 @keyframes vecna-turn {
-	to { transform: translate(-50%, -50%) rotate(360deg); }
+	to {
+		transform: translate(-50%, -50%) rotate(360deg);
+	}
 }
 
 /* ---- The Void: a dark desert under alien sky — flying stars overhead, a
@@ -4804,7 +5140,8 @@ button.danger,
 	--grad-1: linear-gradient(120deg, #ff4040, #a4243b 55%, #9fb6ff);
 	--grad-hero: radial-gradient(120% 130% at 50% 100%, rgba(255, 64, 64, 0.16), transparent 60%);
 	--panel-brd: rgba(255, 64, 64, 0.22);
-	--panel-glow: 0 18px 44px rgba(0, 0, 0, 0.7), 0 0 30px rgba(255, 64, 64, 0.06), inset 0 1px 0 rgba(240, 230, 235, 0.05);
+	--panel-glow:
+		0 18px 44px rgba(0, 0, 0, 0.7), 0 0 30px rgba(255, 64, 64, 0.06), inset 0 1px 0 rgba(240, 230, 235, 0.05);
 	--btn-ink: #0c0608;
 	--chip: rgba(255, 64, 64, 0.12);
 	--chip-brd: rgba(255, 64, 64, 0.35);
@@ -4814,7 +5151,9 @@ button.danger,
 	--font-story: "Newsreader", serif;
 	--font-mono: "Inconsolata", ui-monospace, monospace;
 }
-[data-theme="void"] .bg-set.void { opacity: 1; }
+[data-theme="void"] .bg-set.void {
+	opacity: 1;
+}
 /* flying stars: two tiled star sheets streaking across the black */
 .bg-set.void .stars {
 	position: absolute;
@@ -4850,7 +5189,14 @@ button.danger,
 	right: 0;
 	bottom: 24vh;
 	height: 2px;
-	background: linear-gradient(90deg, transparent, rgba(255, 110, 90, 0.75), rgba(255, 64, 64, 0.55), rgba(255, 110, 90, 0.75), transparent);
+	background: linear-gradient(
+		90deg,
+		transparent,
+		rgba(255, 110, 90, 0.75),
+		rgba(255, 64, 64, 0.55),
+		rgba(255, 110, 90, 0.75),
+		transparent
+	);
 	filter: blur(1px);
 	box-shadow: 0 0 26px 6px rgba(255, 64, 64, 0.35);
 }
@@ -4881,16 +5227,31 @@ button.danger,
 	transform: scaleX(-1) rotate(4deg);
 }
 @media (prefers-reduced-motion: no-preference) {
-	.bg-set.void .bolt { animation: void-strike 7s linear infinite; }
-	.bg-set.void .bolt2 { animation-delay: -3.2s; }
+	.bg-set.void .bolt {
+		animation: void-strike 7s linear infinite;
+	}
+	.bg-set.void .bolt2 {
+		animation-delay: -3.2s;
+	}
 }
 /* strike fast, linger: double-flash then a slow ~1.2s afterglow fade-out */
 @keyframes void-strike {
-	0%, 78% { opacity: 0; }
-	79% { opacity: 1; }
-	81% { opacity: 0.2; }
-	83% { opacity: 0.95; }
-	100% { opacity: 0; }
+	0%,
+	78% {
+		opacity: 0;
+	}
+	79% {
+		opacity: 1;
+	}
+	81% {
+		opacity: 0.2;
+	}
+	83% {
+		opacity: 0.95;
+	}
+	100% {
+		opacity: 0;
+	}
 }
 
 /* the upper half of the horizon: a radial orange burst domed over the line */
@@ -4901,7 +5262,13 @@ button.danger,
 	bottom: 24vh;
 	height: 42vh;
 	background:
-		radial-gradient(58% 100% at 50% 100%, rgba(255, 150, 60, 0.5), rgba(255, 100, 45, 0.26) 42%, rgba(255, 70, 45, 0.1) 65%, transparent 80%),
+		radial-gradient(
+			58% 100% at 50% 100%,
+			rgba(255, 150, 60, 0.5),
+			rgba(255, 100, 45, 0.26) 42%,
+			rgba(255, 70, 45, 0.1) 65%,
+			transparent 80%
+		),
 		radial-gradient(24% 46% at 50% 100%, rgba(255, 200, 120, 0.4), transparent 75%);
 }
 /* tall jagged mountains standing in front of the orange burst */
@@ -4938,17 +5305,33 @@ button.danger,
 		linear-gradient(to top, rgba(6, 3, 5, 0.98) 12%, transparent 55%);
 }
 @media (prefers-reduced-motion: no-preference) {
-	.bg-set.void .stars { animation: void-fly 26s linear infinite; }
-	.bg-set.void .st2 { animation-duration: 44s; }
-	.bg-set.void .horizon { animation: void-glare 7s ease-in-out infinite; }
-	.bg-set.void .glare { animation: void-glare 7s ease-in-out infinite; animation-delay: -3.5s; }
+	.bg-set.void .stars {
+		animation: void-fly 26s linear infinite;
+	}
+	.bg-set.void .st2 {
+		animation-duration: 44s;
+	}
+	.bg-set.void .horizon {
+		animation: void-glare 7s ease-in-out infinite;
+	}
+	.bg-set.void .glare {
+		animation: void-glare 7s ease-in-out infinite;
+		animation-delay: -3.5s;
+	}
 }
 @keyframes void-fly {
-	to { transform: translateX(-50vw); }
+	to {
+		transform: translateX(-50vw);
+	}
 }
 @keyframes void-glare {
-	0%, 100% { opacity: 0.85; }
-	50% { opacity: 1; }
+	0%,
+	100% {
+		opacity: 0.85;
+	}
+	50% {
+		opacity: 1;
+	}
 }
 
 /* ---- Family Video: late-80s rental teal/magenta, VHS tracking ---- */
@@ -4966,9 +5349,15 @@ button.danger,
 	--good: #59d98c;
 	--glow: rgba(255, 79, 216, 0.32);
 	--grad-1: linear-gradient(120deg, #ff4fd8, #7d6bff 50%, #29d3c7);
-	--grad-hero: radial-gradient(120% 130% at 50% 0%, rgba(255, 79, 216, 0.14), rgba(41, 211, 199, 0.05) 55%, transparent 75%);
+	--grad-hero: radial-gradient(
+		120% 130% at 50% 0%,
+		rgba(255, 79, 216, 0.14),
+		rgba(41, 211, 199, 0.05) 55%,
+		transparent 75%
+	);
 	--panel-brd: rgba(41, 211, 199, 0.26);
-	--panel-glow: 0 18px 44px rgba(2, 8, 12, 0.6), 0 0 30px rgba(255, 79, 216, 0.07), inset 0 1px 0 rgba(220, 245, 255, 0.06);
+	--panel-glow:
+		0 18px 44px rgba(2, 8, 12, 0.6), 0 0 30px rgba(255, 79, 216, 0.07), inset 0 1px 0 rgba(220, 245, 255, 0.06);
 	--btn-ink: #0b1218;
 	--chip: rgba(255, 79, 216, 0.12);
 	--chip-brd: rgba(255, 79, 216, 0.4);
@@ -4978,7 +5367,9 @@ button.danger,
 	--font-story: "Space Grotesk", sans-serif;
 	--font-mono: "Inconsolata", ui-monospace, monospace;
 }
-[data-theme="video"] .bg-set.video { opacity: 1; }
+[data-theme="video"] .bg-set.video {
+	opacity: 1;
+}
 .bg-set.video .vscan {
 	position: absolute;
 	inset: 0;
@@ -5002,10 +5393,14 @@ button.danger,
 	background: radial-gradient(circle, rgba(255, 79, 216, 0.12), transparent 60%);
 }
 @media (prefers-reduced-motion: no-preference) {
-	.bg-set.video .track { animation: vhs-track 9s linear infinite; }
+	.bg-set.video .track {
+		animation: vhs-track 9s linear infinite;
+	}
 }
 @keyframes vhs-track {
-	to { transform: translateY(130vh); }
+	to {
+		transform: translateY(130vh);
+	}
 }
 
 /* ---- Hellfire Club: D&D table — graph paper, tumbling d20s ---- */
@@ -5025,7 +5420,8 @@ button.danger,
 	--grad-1: linear-gradient(120deg, #e02f2f, #8d2033 55%, #b7b7c9);
 	--grad-hero: radial-gradient(120% 130% at 50% 0%, rgba(224, 47, 47, 0.15), transparent 70%);
 	--panel-brd: rgba(224, 47, 47, 0.28);
-	--panel-glow: 0 18px 44px rgba(6, 1, 2, 0.6), 0 0 30px rgba(224, 47, 47, 0.08), inset 0 1px 0 rgba(255, 225, 225, 0.05);
+	--panel-glow:
+		0 18px 44px rgba(6, 1, 2, 0.6), 0 0 30px rgba(224, 47, 47, 0.08), inset 0 1px 0 rgba(255, 225, 225, 0.05);
 	--btn-ink: #180508;
 	--chip: rgba(224, 47, 47, 0.12);
 	--chip-brd: rgba(224, 47, 47, 0.4);
@@ -5035,7 +5431,9 @@ button.danger,
 	--font-story: "Newsreader", serif;
 	--font-mono: "Inconsolata", ui-monospace, monospace;
 }
-[data-theme="hellfire"] .bg-set.hellfire { opacity: 1; }
+[data-theme="hellfire"] .bg-set.hellfire {
+	opacity: 1;
+}
 .bg-set.hellfire .graph {
 	position: absolute;
 	inset: 0;
@@ -5073,19 +5471,41 @@ button.danger,
 	opacity: 0.7;
 }
 @media (prefers-reduced-motion: no-preference) {
-	.bg-set.hellfire .fireglow { animation: hellfire-glow 3.4s ease-in-out infinite; }
-	.bg-set.hellfire .hembers { animation: ember-rise 7s linear infinite; }
-	.bg-set.hellfire .e2 { animation-duration: 11s; animation-delay: -4s; }
+	.bg-set.hellfire .fireglow {
+		animation: hellfire-glow 3.4s ease-in-out infinite;
+	}
+	.bg-set.hellfire .hembers {
+		animation: ember-rise 7s linear infinite;
+	}
+	.bg-set.hellfire .e2 {
+		animation-duration: 11s;
+		animation-delay: -4s;
+	}
 }
 @keyframes hellfire-glow {
-	0%, 100% { opacity: 0.75; }
-	50% { opacity: 1; }
+	0%,
+	100% {
+		opacity: 0.75;
+	}
+	50% {
+		opacity: 1;
+	}
 }
 @keyframes ember-rise {
-	0% { transform: translateY(0); opacity: 0; }
-	8% { opacity: 1; }
-	70% { opacity: 0.8; }
-	100% { transform: translateY(-88vh) translateX(24px); opacity: 0; }
+	0% {
+		transform: translateY(0);
+		opacity: 0;
+	}
+	8% {
+		opacity: 1;
+	}
+	70% {
+		opacity: 0.8;
+	}
+	100% {
+		transform: translateY(-88vh) translateX(24px);
+		opacity: 0;
+	}
 }
 
 /* black flame silhouettes (img/flames.png — true alpha, background removed)
@@ -5111,16 +5531,39 @@ button.danger,
 	opacity: 0.5;
 	filter: drop-shadow(0 6px 22px rgba(224, 47, 47, 0.35));
 }
-.bg-set.hellfire .d20a { top: 14%; left: 6%; transform: rotate(-12deg); }
-.bg-set.hellfire .d20b { bottom: 26%; right: 7%; transform: rotate(15deg) scale(0.6); opacity: 0.4; }
+.bg-set.hellfire .d20a {
+	top: 14%;
+	left: 6%;
+	transform: rotate(-12deg);
+}
+.bg-set.hellfire .d20b {
+	bottom: 26%;
+	right: 7%;
+	transform: rotate(15deg) scale(0.6);
+	opacity: 0.4;
+}
 @media (prefers-reduced-motion: no-preference) {
-	.bg-set.hellfire .flames { animation: hellfire-flicker 2.6s ease-in-out infinite; }
-	.bg-set.hellfire .fl2 { animation: hellfire-flicker 1.9s ease-in-out infinite reverse; }
+	.bg-set.hellfire .flames {
+		animation: hellfire-flicker 2.6s ease-in-out infinite;
+	}
+	.bg-set.hellfire .fl2 {
+		animation: hellfire-flicker 1.9s ease-in-out infinite reverse;
+	}
 }
 @keyframes hellfire-flicker {
-	0%, 100% { transform: scaleY(1); opacity: 1; }
-	35% { transform: scaleY(1.12); opacity: 0.85; }
-	70% { transform: scaleY(0.94); opacity: 1; }
+	0%,
+	100% {
+		transform: scaleY(1);
+		opacity: 1;
+	}
+	35% {
+		transform: scaleY(1.12);
+		opacity: 0.85;
+	}
+	70% {
+		transform: scaleY(0.94);
+		opacity: 1;
+	}
 }
 
 /* ---- Rink-O-Mania: obnoxiously rainbow, aggressively 80s. Full-spectrum
@@ -5147,7 +5590,8 @@ button.danger,
 		rgba(180, 92, 255, 0.2)
 	);
 	--panel-brd: rgba(255, 47, 185, 0.4);
-	--panel-glow: 0 18px 44px rgba(8, 2, 14, 0.6), 0 0 36px rgba(255, 47, 185, 0.16), inset 0 1px 0 rgba(255, 240, 250, 0.08);
+	--panel-glow:
+		0 18px 44px rgba(8, 2, 14, 0.6), 0 0 36px rgba(255, 47, 185, 0.16), inset 0 1px 0 rgba(255, 240, 250, 0.08);
 	--btn-ink: #1c0630;
 	--chip: rgba(255, 224, 64, 0.14);
 	--chip-brd: rgba(255, 224, 64, 0.5);
@@ -5157,7 +5601,9 @@ button.danger,
 	--font-story: "Space Grotesk", sans-serif;
 	--font-mono: "Inconsolata", ui-monospace, monospace;
 }
-[data-theme="rink"] .bg-set.rink { opacity: 1; }
+[data-theme="rink"] .bg-set.rink {
+	opacity: 1;
+}
 /* the rainbow: a fat full-spectrum ribbon banking across the whole rink */
 .bg-set.rink .rbow {
 	position: absolute;
@@ -5198,7 +5644,10 @@ button.danger,
 		radial-gradient(circle 2px at 22% 84%, rgba(255, 157, 46, 0.8) 90%, transparent),
 		radial-gradient(circle 2px at 68% 88%, rgba(255, 255, 255, 0.75) 90%, transparent);
 }
-.bg-set.rink .p2 { transform: translate(40px, 60px) scale(1.3); opacity: 0.7; }
+.bg-set.rink .p2 {
+	transform: translate(40px, 60px) scale(1.3);
+	opacity: 0.7;
+}
 .bg-set.rink .sweep {
 	position: absolute;
 	top: -20%;
@@ -5216,26 +5665,53 @@ button.danger,
 	);
 }
 @media (prefers-reduced-motion: no-preference) {
-	.bg-set.rink .rbow { animation: rink-rainbow-ride 14s linear infinite alternate, rink-hue 9s linear infinite; }
-	.bg-set.rink .zigzag { animation: rink-hue 7s linear infinite reverse; }
-	.bg-set.rink .specks { animation: rink-twinkle 1.6s ease-in-out infinite; }
-	.bg-set.rink .p2 { animation-delay: -0.8s; }
-	.bg-set.rink .sweep { animation: rink-sweep 8s ease-in-out infinite alternate; }
+	.bg-set.rink .rbow {
+		animation:
+			rink-rainbow-ride 14s linear infinite alternate,
+			rink-hue 9s linear infinite;
+	}
+	.bg-set.rink .zigzag {
+		animation: rink-hue 7s linear infinite reverse;
+	}
+	.bg-set.rink .specks {
+		animation: rink-twinkle 1.6s ease-in-out infinite;
+	}
+	.bg-set.rink .p2 {
+		animation-delay: -0.8s;
+	}
+	.bg-set.rink .sweep {
+		animation: rink-sweep 8s ease-in-out infinite alternate;
+	}
 }
 @keyframes rink-rainbow-ride {
-	from { transform: translateX(-14%); }
-	to { transform: translateX(14%); }
+	from {
+		transform: translateX(-14%);
+	}
+	to {
+		transform: translateX(14%);
+	}
 }
 @keyframes rink-hue {
-	to { filter: hue-rotate(360deg); }
+	to {
+		filter: hue-rotate(360deg);
+	}
 }
 @keyframes rink-twinkle {
-	0%, 100% { opacity: 1; }
-	50% { opacity: 0.3; }
+	0%,
+	100% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0.3;
+	}
 }
 @keyframes rink-sweep {
-	from { transform: translateX(-50%) rotate(-24deg); }
-	to { transform: translateX(-50%) rotate(24deg); }
+	from {
+		transform: translateX(-50%) rotate(-24deg);
+	}
+	to {
+		transform: translateX(-50%) rotate(24deg);
+	}
 }
 
 /* ---- Cleradin: a cleric and a paladin, moonlight on a castle that never
@@ -5258,7 +5734,8 @@ button.danger,
 	--grad-1: linear-gradient(120deg, #8b3a4e, #5c3a6e 55%, #6d4b96);
 	--grad-hero: radial-gradient(120% 130% at 50% 0%, rgba(120, 80, 160, 0.16), transparent 70%);
 	--panel-brd: rgba(150, 110, 190, 0.24);
-	--panel-glow: 0 18px 46px rgba(3, 1, 6, 0.65), 0 0 34px rgba(109, 75, 150, 0.08), inset 0 1px 0 rgba(230, 220, 240, 0.05);
+	--panel-glow:
+		0 18px 46px rgba(3, 1, 6, 0.65), 0 0 34px rgba(109, 75, 150, 0.08), inset 0 1px 0 rgba(230, 220, 240, 0.05);
 	--btn-ink: #f2ecf8;
 	--chip: rgba(139, 58, 78, 0.16);
 	--chip-brd: rgba(150, 110, 190, 0.34);
@@ -5268,7 +5745,9 @@ button.danger,
 	--font-story: "Newsreader", serif;
 	--font-mono: "Inconsolata", ui-monospace, monospace;
 }
-[data-theme="cleradin"] .bg-set.cleradin { opacity: 1; }
+[data-theme="cleradin"] .bg-set.cleradin {
+	opacity: 1;
+}
 /* The moon, hanging opposite the tower. It does not parallax — it is the one
    thing far enough away to stay put.
 
@@ -5293,7 +5772,12 @@ button.danger,
 	width: clamp(150px, 15vw, 240px);
 	aspect-ratio: 1;
 	border-radius: 50%;
-	background: radial-gradient(circle at 40% 38%, rgba(238, 230, 250, 0.55), rgba(180, 160, 210, 0.3) 58%, transparent 72%);
+	background: radial-gradient(
+		circle at 40% 38%,
+		rgba(238, 230, 250, 0.55),
+		rgba(180, 160, 210, 0.3) 58%,
+		transparent 72%
+	);
 	filter: drop-shadow(0 0 48px rgba(206, 188, 250, 0.28));
 }
 .bg-set.cleradin .moon::before,
@@ -5322,7 +5806,12 @@ button.danger,
    and leaves every crater's own brightness alone, so the moon is tinted rather
    than painted over. */
 .bg-set.cleradin .moon::after {
-	background: radial-gradient(circle at 42% 38%, rgba(222, 206, 255, 0.85), rgba(150, 122, 208, 0.8) 62%, rgba(120, 82, 165, 0.8));
+	background: radial-gradient(
+		circle at 42% 38%,
+		rgba(222, 206, 255, 0.85),
+		rgba(150, 122, 208, 0.8) 62%,
+		rgba(120, 82, 165, 0.8)
+	);
 	mix-blend-mode: color;
 	opacity: 0.75;
 }
@@ -5381,21 +5870,36 @@ button.danger,
 	}
 	.bg-set.cleradin .g2 {
 		animation-duration: 9s, 330s;
-		animation-delay: -3.5s, -60s;
+		animation-delay:
+			-3.5s,
+			-60s;
 	}
 	.bg-set.cleradin .g3 {
 		animation-duration: 13s, 480s;
-		animation-delay: -7s, -140s;
+		animation-delay:
+			-7s,
+			-140s;
 	}
 }
 @keyframes star-glimmer {
-	0%, 100% { opacity: var(--gl, 0.9); }
-	38% { opacity: calc(var(--gl, 0.9) * 0.35); }
-	64% { opacity: var(--gl, 0.9); }
+	0%,
+	100% {
+		opacity: var(--gl, 0.9);
+	}
+	38% {
+		opacity: calc(var(--gl, 0.9) * 0.35);
+	}
+	64% {
+		opacity: var(--gl, 0.9);
+	}
 }
 @keyframes star-drift {
-	from { transform: translate3d(0, 0, 0); }
-	to { transform: translate3d(-140px, 26px, 0); }
+	from {
+		transform: translate3d(0, 0, 0);
+	}
+	to {
+		transform: translate3d(-140px, 26px, 0);
+	}
 }
 
 /* The moonlight itself, pooled BEHIND the tower — the tower is a shape cut out
@@ -5414,17 +5918,30 @@ button.danger,
 	   continuously — which is exactly the work that made the tower's scroll
 	   stutter. Wide, low-stop gradients look the same and cost nothing. */
 	background:
-		radial-gradient(closest-side at 46% 32%, rgba(198, 178, 246, 0.3), rgba(170, 140, 224, 0.16) 38%, rgba(150, 120, 210, 0.07) 62%, transparent 82%),
+		radial-gradient(
+			closest-side at 46% 32%,
+			rgba(198, 178, 246, 0.3),
+			rgba(170, 140, 224, 0.16) 38%,
+			rgba(150, 120, 210, 0.07) 62%,
+			transparent 82%
+		),
 		radial-gradient(closest-side at 40% 62%, rgba(139, 58, 78, 0.14), rgba(139, 58, 78, 0.05) 46%, transparent 76%);
 	will-change: opacity;
 }
 @media (prefers-reduced-motion: no-preference) {
-	.bg-set.cleradin .moonglow { animation: moon-breath 11s ease-in-out infinite; }
+	.bg-set.cleradin .moonglow {
+		animation: moon-breath 11s ease-in-out infinite;
+	}
 }
 /* opacity only: a scaling glow repaints, a fading one composites */
 @keyframes moon-breath {
-	0%, 100% { opacity: 0.7; }
-	50% { opacity: 1; }
+	0%,
+	100% {
+		opacity: 0.7;
+	}
+	50% {
+		opacity: 1;
+	}
 }
 
 /* ---- the tower itself (public/js/components/cleradin-tower.js) ----------
@@ -5483,7 +6000,9 @@ button.danger,
 	stroke-width: 0.9;
 	opacity: 0.34;
 }
-.bg-set.cleradin .cl-joint-v { opacity: 0.22; }
+.bg-set.cleradin .cl-joint-v {
+	opacity: 0.22;
+}
 .bg-set.cleradin .cl-petal {
 	fill: var(--cl-stone-lit);
 	opacity: 0.75;
@@ -5514,7 +6033,9 @@ button.danger,
 	stroke-width: 2.4;
 	stroke-linecap: round;
 }
-.bg-set.cleradin .cl-iron-dot { fill: rgba(30, 20, 14, 0.7); }
+.bg-set.cleradin .cl-iron-dot {
+	fill: rgba(30, 20, 14, 0.7);
+}
 .bg-set.cleradin .cl-step {
 	fill: none;
 	stroke: var(--cl-stone-dark);
@@ -5582,8 +6103,13 @@ button.danger,
 	}
 }
 @keyframes pennant-sway {
-	0%, 100% { transform: rotate(-1.5deg) scaleX(1); }
-	50% { transform: rotate(2deg) scaleX(0.94); }
+	0%,
+	100% {
+		transform: rotate(-1.5deg) scaleX(1);
+	}
+	50% {
+		transform: rotate(2deg) scaleX(0.94);
+	}
 }
 
 /* ---- Russian Bunker: cold concrete, amber alarm, Cyrillic stencils ---- */
@@ -5613,7 +6139,9 @@ button.danger,
 	--font-story: "Space Grotesk", sans-serif;
 	--font-mono: "Inconsolata", ui-monospace, monospace;
 }
-[data-theme="bunker"] .bg-set.bunker { opacity: 1; }
+[data-theme="bunker"] .bg-set.bunker {
+	opacity: 1;
+}
 .bg-set.bunker .concrete {
 	position: absolute;
 	inset: 0;
@@ -5632,17 +6160,23 @@ button.danger,
 .bg-set.bunker .stencil {
 	position: absolute;
 	inset: 0;
-	background:
-		repeating-linear-gradient(-45deg, transparent 0 60px, rgba(211, 63, 63, 0.05) 60px 78px);
+	background: repeating-linear-gradient(-45deg, transparent 0 60px, rgba(211, 63, 63, 0.05) 60px 78px);
 	-webkit-mask: linear-gradient(transparent 70%, #000);
 	mask: linear-gradient(transparent 70%, #000);
 }
 @media (prefers-reduced-motion: no-preference) {
-	.bg-set.bunker .alarm { animation: bunker-alarm 3.2s ease-in-out infinite; }
+	.bg-set.bunker .alarm {
+		animation: bunker-alarm 3.2s ease-in-out infinite;
+	}
 }
 @keyframes bunker-alarm {
-	0%, 100% { opacity: 0.4; }
-	50% { opacity: 1; }
+	0%,
+	100% {
+		opacity: 0.4;
+	}
+	50% {
+		opacity: 1;
+	}
 }
 
 /* ---- I Miss the Clouds: layered clouds drifting past one another. The pale,
@@ -5667,7 +6201,8 @@ button.danger,
 	--grad-1: linear-gradient(120deg, #7c8cf0, #a58bd8 55%, #e0a3c8);
 	--grad-hero: radial-gradient(120% 130% at 50% 0%, rgba(124, 140, 240, 0.16), transparent 70%);
 	--panel-brd: rgba(160, 175, 235, 0.26);
-	--panel-glow: 0 18px 44px rgba(4, 6, 16, 0.55), 0 0 30px rgba(124, 140, 240, 0.08), inset 0 1px 0 rgba(230, 235, 255, 0.06);
+	--panel-glow:
+		0 18px 44px rgba(4, 6, 16, 0.55), 0 0 30px rgba(124, 140, 240, 0.08), inset 0 1px 0 rgba(230, 235, 255, 0.06);
 	--btn-ink: #0b0e1c;
 	--chip: rgba(124, 140, 240, 0.14);
 	--chip-brd: rgba(160, 175, 235, 0.38);
@@ -5677,7 +6212,9 @@ button.danger,
 	--font-story: "Newsreader", serif;
 	--font-mono: "Inconsolata", ui-monospace, monospace;
 }
-[data-theme="clouds"] .bg-set.clouds { opacity: 1; }
+[data-theme="clouds"] .bg-set.clouds {
+	opacity: 1;
+}
 
 /* ---- Site font: the theme menu's Font row (public/js/fonts.js SITE_FONTS) ----
    A per-browser override of the theme's body, story AND display (heading)
@@ -5850,14 +6387,29 @@ html[data-font="system"] {
 		radial-gradient(circle 3px at 95% 44%, rgba(180, 196, 255, 0.65) 60%, transparent 61%);
 }
 @media (prefers-reduced-motion: no-preference) {
-	.bg-set.clouds .sparks { animation: spark-twinkle 5.5s ease-in-out infinite; }
-	.bg-set.clouds .s2 { animation-duration: 8s; animation-delay: -2.4s; }
-	.bg-set.clouds .s3 { animation-duration: 11s; animation-delay: -5s; }
+	.bg-set.clouds .sparks {
+		animation: spark-twinkle 5.5s ease-in-out infinite;
+	}
+	.bg-set.clouds .s2 {
+		animation-duration: 8s;
+		animation-delay: -2.4s;
+	}
+	.bg-set.clouds .s3 {
+		animation-duration: 11s;
+		animation-delay: -5s;
+	}
 }
 @keyframes spark-twinkle {
-	0%, 100% { opacity: var(--tw-hi, 0.9); }
-	42% { opacity: calc(var(--tw-hi, 0.9) * 0.28); }
-	70% { opacity: var(--tw-hi, 0.9); }
+	0%,
+	100% {
+		opacity: var(--tw-hi, 0.9);
+	}
+	42% {
+		opacity: calc(var(--tw-hi, 0.9) * 0.28);
+	}
+	70% {
+		opacity: var(--tw-hi, 0.9);
+	}
 }
 /* the no-GSAP fallback: straight travel, no wave — theme.js adds .gsap to a
    band it is driving itself, and this rule steps aside for it */
@@ -5868,21 +6420,45 @@ html[data-font="system"] {
 	}
 }
 @keyframes cloud-drift {
-	from { transform: translateX(-40vw); }
-	to { transform: translateX(110vw); }
+	from {
+		transform: translateX(-40vw);
+	}
+	to {
+		transform: translateX(110vw);
+	}
 }
 
 /* ---- swatches for the new pack ---- */
-.sw-hawkinslab { background: linear-gradient(120deg, #ff2e2e, #d8c23a); }
-.sw-castlebyers { background: linear-gradient(120deg, #ffb84d, #6f9a5a); }
-.sw-vecna { background: linear-gradient(120deg, #e02f2f, #c98f4e); }
-.sw-void { background: linear-gradient(to top, #ff4040, #160a0e 55%, #060407); }
-.sw-video { background: linear-gradient(120deg, #ff4fd8, #29d3c7); }
-.sw-hellfire { background: linear-gradient(120deg, #e02f2f, #b7b7c9); }
-.sw-rink { background: linear-gradient(90deg, #ff3355, #ffe040 35%, #4fe35f 60%, #2fd6ff 80%, #b45cff); }
-.sw-cleradin { background: linear-gradient(120deg, #8b3a4e, #6d4b96); }
-.sw-bunker { background: linear-gradient(120deg, #d33f3f, #ffb000); }
-.sw-clouds { background: linear-gradient(120deg, #7c8cf0, #e0a3c8); }
+.sw-hawkinslab {
+	background: linear-gradient(120deg, #ff2e2e, #d8c23a);
+}
+.sw-castlebyers {
+	background: linear-gradient(120deg, #ffb84d, #6f9a5a);
+}
+.sw-vecna {
+	background: linear-gradient(120deg, #e02f2f, #c98f4e);
+}
+.sw-void {
+	background: linear-gradient(to top, #ff4040, #160a0e 55%, #060407);
+}
+.sw-video {
+	background: linear-gradient(120deg, #ff4fd8, #29d3c7);
+}
+.sw-hellfire {
+	background: linear-gradient(120deg, #e02f2f, #b7b7c9);
+}
+.sw-rink {
+	background: linear-gradient(90deg, #ff3355, #ffe040 35%, #4fe35f 60%, #2fd6ff 80%, #b45cff);
+}
+.sw-cleradin {
+	background: linear-gradient(120deg, #8b3a4e, #6d4b96);
+}
+.sw-bunker {
+	background: linear-gradient(120deg, #d33f3f, #ffb000);
+}
+.sw-clouds {
+	background: linear-gradient(120deg, #7c8cf0, #e0a3c8);
+}
 
 /* ==========================================================================
    Theme peek: the sticky 👁 button (sitting just above the ko-fi "Support me"
@@ -6585,7 +7161,9 @@ body.doc-page .topbar {
 	border-bottom: 2px solid color-mix(in srgb, var(--accent-2) 70%, transparent);
 	background: color-mix(in srgb, var(--accent-2) 10%, transparent);
 	cursor: pointer;
-	transition: background 0.15s, border-color 0.15s;
+	transition:
+		background 0.15s,
+		border-color 0.15s;
 }
 .cmt:hover {
 	background: color-mix(in srgb, var(--accent-2) 20%, transparent);
@@ -6660,7 +7238,9 @@ body.doc-page .topbar {
 	height: 42px;
 	border-radius: 3px;
 	background: var(--line);
-	transition: background 0.15s ease, height 0.15s ease;
+	transition:
+		background 0.15s ease,
+		height 0.15s ease;
 }
 .doc-side-grip:hover::before,
 .doc-side-grip:focus-visible::before,
@@ -6810,8 +7390,14 @@ body.resizing-side {
 }
 /* A jump you asked for should be visible when you arrive. */
 @keyframes cmt-ping {
-	from { background: var(--chip); box-shadow: 0 0 0 4px var(--chip); }
-	to { background: transparent; box-shadow: 0 0 0 0 transparent; }
+	from {
+		background: var(--chip);
+		box-shadow: 0 0 0 4px var(--chip);
+	}
+	to {
+		background: transparent;
+		box-shadow: 0 0 0 0 transparent;
+	}
 }
 .doc-editor span.cmt.active {
 	animation: cmt-ping 1.1s ease-out;
@@ -7387,7 +7973,9 @@ body.resizing-side {
 	font-size: 0.84rem;
 	font-weight: 600;
 	cursor: pointer;
-	transition: background 0.15s, color 0.15s;
+	transition:
+		background 0.15s,
+		color 0.15s;
 }
 .mode-switch .mode-btn:hover {
 	color: var(--ink);
@@ -7409,19 +7997,97 @@ body.resizing-side {
 /* ---------- Font-size ladder (document content) ---------- */
 /* A closed set of classes, mirroring FONT_SIZES in src/sanitize.js. Sizes ride
    in the saved html, so beta readers and exports see them too. */
-.doc-editor .fs-6, .doc-read .fs-6, .story .fs-6, .editor .fs-6, .live .fs-6 { font-size: 6px; }
-.doc-editor .fs-8, .doc-read .fs-8, .story .fs-8, .editor .fs-8, .live .fs-8 { font-size: 8px; }
-.doc-editor .fs-10, .doc-read .fs-10, .story .fs-10, .editor .fs-10, .live .fs-10 { font-size: 10px; }
-.doc-editor .fs-12, .doc-read .fs-12, .story .fs-12, .editor .fs-12, .live .fs-12 { font-size: 12px; }
-.doc-editor .fs-14, .doc-read .fs-14, .story .fs-14, .editor .fs-14, .live .fs-14 { font-size: 14px; }
-.doc-editor .fs-16, .doc-read .fs-16, .story .fs-16, .editor .fs-16, .live .fs-16 { font-size: 16px; }
-.doc-editor .fs-18, .doc-read .fs-18, .story .fs-18, .editor .fs-18, .live .fs-18 { font-size: 18px; }
-.doc-editor .fs-20, .doc-read .fs-20, .story .fs-20, .editor .fs-20, .live .fs-20 { font-size: 20px; }
-.doc-editor .fs-24, .doc-read .fs-24, .story .fs-24, .editor .fs-24, .live .fs-24 { font-size: 24px; }
-.doc-editor .fs-28, .doc-read .fs-28, .story .fs-28, .editor .fs-28, .live .fs-28 { font-size: 28px; }
-.doc-editor .fs-32, .doc-read .fs-32, .story .fs-32, .editor .fs-32, .live .fs-32 { font-size: 32px; }
-.doc-editor .fs-36, .doc-read .fs-36, .story .fs-36, .editor .fs-36, .live .fs-36 { font-size: 36px; }
-.doc-editor .fs-48, .doc-read .fs-48, .story .fs-48, .editor .fs-48, .live .fs-48 { font-size: 48px; }
+.doc-editor .fs-6,
+.doc-read .fs-6,
+.story .fs-6,
+.editor .fs-6,
+.live .fs-6 {
+	font-size: 6px;
+}
+.doc-editor .fs-8,
+.doc-read .fs-8,
+.story .fs-8,
+.editor .fs-8,
+.live .fs-8 {
+	font-size: 8px;
+}
+.doc-editor .fs-10,
+.doc-read .fs-10,
+.story .fs-10,
+.editor .fs-10,
+.live .fs-10 {
+	font-size: 10px;
+}
+.doc-editor .fs-12,
+.doc-read .fs-12,
+.story .fs-12,
+.editor .fs-12,
+.live .fs-12 {
+	font-size: 12px;
+}
+.doc-editor .fs-14,
+.doc-read .fs-14,
+.story .fs-14,
+.editor .fs-14,
+.live .fs-14 {
+	font-size: 14px;
+}
+.doc-editor .fs-16,
+.doc-read .fs-16,
+.story .fs-16,
+.editor .fs-16,
+.live .fs-16 {
+	font-size: 16px;
+}
+.doc-editor .fs-18,
+.doc-read .fs-18,
+.story .fs-18,
+.editor .fs-18,
+.live .fs-18 {
+	font-size: 18px;
+}
+.doc-editor .fs-20,
+.doc-read .fs-20,
+.story .fs-20,
+.editor .fs-20,
+.live .fs-20 {
+	font-size: 20px;
+}
+.doc-editor .fs-24,
+.doc-read .fs-24,
+.story .fs-24,
+.editor .fs-24,
+.live .fs-24 {
+	font-size: 24px;
+}
+.doc-editor .fs-28,
+.doc-read .fs-28,
+.story .fs-28,
+.editor .fs-28,
+.live .fs-28 {
+	font-size: 28px;
+}
+.doc-editor .fs-32,
+.doc-read .fs-32,
+.story .fs-32,
+.editor .fs-32,
+.live .fs-32 {
+	font-size: 32px;
+}
+.doc-editor .fs-36,
+.doc-read .fs-36,
+.story .fs-36,
+.editor .fs-36,
+.live .fs-36 {
+	font-size: 36px;
+}
+.doc-editor .fs-48,
+.doc-read .fs-48,
+.story .fs-48,
+.editor .fs-48,
+.live .fs-48 {
+	font-size: 48px;
+}
 
 /* A heading's size is the heading's to decide. An fs-* span inside one wins on
    nearest-ancestor, so a pasted or leftover 12px span could render an H1 at
@@ -7455,7 +8121,32 @@ body.resizing-side {
 .write-page .write-inner {
 	font-family: var(--doc-font, var(--font-body));
 }
-.write-page .write-inner :is(h1, h2, h3, h4, p, span, b, i, em, strong, li, label, a, button, select, input, textarea, .doc-title-input, .doc-card-title, .doc-card-meta, .doc-comment, .subtle) {
+.write-page
+	.write-inner
+	:is(
+		h1,
+		h2,
+		h3,
+		h4,
+		p,
+		span,
+		b,
+		i,
+		em,
+		strong,
+		li,
+		label,
+		a,
+		button,
+		select,
+		input,
+		textarea,
+		.doc-title-input,
+		.doc-card-title,
+		.doc-card-meta,
+		.doc-comment,
+		.subtle
+	) {
 	font-family: inherit;
 }
 /* ...except the things whose whole job is to be a different face: the html
@@ -8245,19 +8936,34 @@ button.d20-stage.rolling {
 	margin: -12px 0 0 -2px; /* left/top land on the sprite's centre */
 	background: transparent;
 	box-shadow:
-		-8px 0 0 #4fa8ff, 8px 0 0 #4fa8ff,
-		-4px 4px 0 #ff4f79, 0 4px 0 #ff4f79, 4px 4px 0 #ff4f79,
-		-8px 8px 0 #ffd23f, -4px 8px 0 #ffd23f, 0 8px 0 #ffd23f, 4px 8px 0 #ffd23f, 8px 8px 0 #ffd23f,
-		-12px 12px 0 #ffd23f, -4px 12px 0 #ffd23f, 0 12px 0 #ffd23f, 4px 12px 0 #ffd23f, 12px 12px 0 #ffd23f,
-		-4px 16px 0 #ff4f79, 4px 16px 0 #ff4f79,
-		-8px 20px 0 #4fa8ff, 8px 20px 0 #4fa8ff;
+		-8px 0 0 #4fa8ff,
+		8px 0 0 #4fa8ff,
+		-4px 4px 0 #ff4f79,
+		0 4px 0 #ff4f79,
+		4px 4px 0 #ff4f79,
+		-8px 8px 0 #ffd23f,
+		-4px 8px 0 #ffd23f,
+		0 8px 0 #ffd23f,
+		4px 8px 0 #ffd23f,
+		8px 8px 0 #ffd23f,
+		-12px 12px 0 #ffd23f,
+		-4px 12px 0 #ffd23f,
+		0 12px 0 #ffd23f,
+		4px 12px 0 #ffd23f,
+		12px 12px 0 #ffd23f,
+		-4px 16px 0 #ff4f79,
+		4px 16px 0 #ff4f79,
+		-8px 20px 0 #4fa8ff,
+		8px 20px 0 #4fa8ff;
 	filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.45));
 }
 .gg-enemy.dive {
 	filter: brightness(1.35) drop-shadow(0 0 6px rgba(255, 210, 63, 0.7));
 }
 .gg-enemy.hit {
-	transition: transform 0.24s ease, opacity 0.24s ease;
+	transition:
+		transform 0.24s ease,
+		opacity 0.24s ease;
 	transform: scale(2.2);
 	opacity: 0;
 }
@@ -8303,7 +9009,9 @@ html.gg-live .bg-set.arcade .shot {
 .gg-battle.remote .gg-ship-tag,
 .gg-battle.remote .gg-enemy,
 .gg-battle.remote .gg-shot {
-	transition: left 0.09s linear, top 0.09s linear;
+	transition:
+		left 0.09s linear,
+		top 0.09s linear;
 }
 /* my HUD: the one thing on the layer that takes the pointer */
 .gg-hud {
@@ -8419,7 +9127,9 @@ button.ms-cup:active {
 }
 .ms-cup.remote,
 .ms-cup.remote svg {
-	transition: left 0.09s linear, top 0.09s linear;
+	transition:
+		left 0.09s linear,
+		top 0.09s linear;
 }
 .ms-cup.remote svg {
 	transition: transform 0.12s linear;
@@ -8647,7 +9357,12 @@ button.db-ball:active {
 	position: absolute;
 	inset: 1px;
 	border-radius: 50%;
-	background: radial-gradient(circle at 33% 27%, rgba(0, 0, 0, 0) 26%, rgba(4, 5, 14, 0.52) 68%, rgba(3, 4, 10, 0.92) 100%);
+	background: radial-gradient(
+		circle at 33% 27%,
+		rgba(0, 0, 0, 0) 26%,
+		rgba(4, 5, 14, 0.52) 68%,
+		rgba(3, 4, 10, 0.92) 100%
+	);
 	mix-blend-mode: multiply;
 }
 .db-spec {
@@ -8677,7 +9392,9 @@ button.db-ball:active {
 }
 .db-ball.remote {
 	pointer-events: none;
-	transition: left 0.09s linear, top 0.09s linear;
+	transition:
+		left 0.09s linear,
+		top 0.09s linear;
 }
 .db-tag {
 	position: absolute;
@@ -8962,7 +9679,10 @@ body.game-page .session-bar .sess-name {
 	inset: 0;
 	pointer-events: auto;
 	/* the pointer IS a paintbrush while the room is open */
-	cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='30' height='30'><text y='24' font-size='24'>🖌</text></svg>") 3 26, crosshair;
+	cursor:
+		url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='30' height='30'><text y='24' font-size='24'>🖌</text></svg>")
+			3 26,
+		crosshair;
 	display: block;
 }
 .ar-brush {
@@ -9281,12 +10001,21 @@ button.sk-gunbtn:hover {
 	display: block;
 	backdrop-filter: grayscale(0.85) brightness(0.8);
 	-webkit-backdrop-filter: grayscale(0.85) brightness(0.8);
-	background: radial-gradient(120% 120% at 50% 50%, transparent 42%, rgba(140, 10, 16, 0.42) 82%, rgba(90, 4, 8, 0.62) 100%);
+	background: radial-gradient(
+		120% 120% at 50% 50%,
+		transparent 42%,
+		rgba(140, 10, 16, 0.42) 82%,
+		rgba(90, 4, 8, 0.62) 100%
+	);
 	animation: vcx-close-in 1.6s ease-out;
 }
 @keyframes vcx-close-in {
-	from { opacity: 0; }
-	to { opacity: 1; }
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
 }
 .vcx-mote {
 	position: absolute;
@@ -9297,16 +10026,48 @@ button.sk-gunbtn:hover {
 	background: rgba(200, 170, 150, 0.35);
 	animation: vcx-rise 7s linear infinite;
 }
-.vcx-mote.m1 { left: 12%; animation-delay: 0s; }
-.vcx-mote.m2 { left: 30%; animation-delay: 1.4s; width: 10px; height: 10px; }
-.vcx-mote.m3 { left: 47%; animation-delay: 2.8s; }
-.vcx-mote.m4 { left: 62%; animation-delay: 0.9s; width: 5px; height: 5px; }
-.vcx-mote.m5 { left: 78%; animation-delay: 2.1s; }
-.vcx-mote.m6 { left: 90%; animation-delay: 3.5s; width: 9px; height: 9px; }
+.vcx-mote.m1 {
+	left: 12%;
+	animation-delay: 0s;
+}
+.vcx-mote.m2 {
+	left: 30%;
+	animation-delay: 1.4s;
+	width: 10px;
+	height: 10px;
+}
+.vcx-mote.m3 {
+	left: 47%;
+	animation-delay: 2.8s;
+}
+.vcx-mote.m4 {
+	left: 62%;
+	animation-delay: 0.9s;
+	width: 5px;
+	height: 5px;
+}
+.vcx-mote.m5 {
+	left: 78%;
+	animation-delay: 2.1s;
+}
+.vcx-mote.m6 {
+	left: 90%;
+	animation-delay: 3.5s;
+	width: 9px;
+	height: 9px;
+}
 @keyframes vcx-rise {
-	from { transform: translateY(0) rotate(0deg); opacity: 0; }
-	12% { opacity: 1; }
-	to { transform: translateY(-105vh) rotate(200deg); opacity: 0; }
+	from {
+		transform: translateY(0) rotate(0deg);
+		opacity: 0;
+	}
+	12% {
+		opacity: 1;
+	}
+	to {
+		transform: translateY(-105vh) rotate(200deg);
+		opacity: 0;
+	}
 }
 .vcx-word {
 	position: absolute;
@@ -9390,8 +10151,12 @@ html.vcx-taken .vcx-word {
 	border-color: rgba(220, 40, 40, 0.7);
 }
 @keyframes vcx-pulse {
-	from { box-shadow: 0 0 4px rgba(220, 40, 40, 0.3); }
-	to { box-shadow: 0 0 14px rgba(220, 40, 40, 0.75); }
+	from {
+		box-shadow: 0 0 4px rgba(220, 40, 40, 0.3);
+	}
+	to {
+		box-shadow: 0 0 14px rgba(220, 40, 40, 0.75);
+	}
 }
 /* the vecna theme's own clock is the tell: while a curse is live the
    pendulum hurries and the dimmed clockface sky glows red */
@@ -9457,7 +10222,9 @@ html.vcx-live[data-theme="vecna"] #vc-pend {
 	border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
 }
 .rk-tier.current {
-	box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 60%, transparent), var(--panel-glow);
+	box-shadow:
+		0 0 0 1px color-mix(in srgb, var(--accent) 60%, transparent),
+		var(--panel-glow);
 }
 .rk-tier-head {
 	display: flex;
@@ -9608,110 +10375,403 @@ html.vcx-live[data-theme="vecna"] #vc-pend {
 }
 /* a wide card carries the choices in two column pairs */
 @media (min-width: 720px) {
-	.option .prompt-grid, .prompt-banner .prompt-grid {
+	.option .prompt-grid,
+	.prompt-banner .prompt-grid {
 		grid-template-columns: max-content 1fr max-content 1fr;
 	}
 }
-.pc { font-weight: 700; cursor: help; font-size: 0.82em; letter-spacing: 0.02em; text-transform: uppercase; }
-.pc-val { min-width: 0; }
-.pc-season { color: #e0a84a; }
-.pc-canon { color: #7fb3ff; }
-.pc-place { color: #6fd39a; }
-.pc-relationship { color: #ff8fb1; }
-.pc-situation { color: #c9a0ff; }
-.pc-trope { color: #5fd0d6; }
-.pc-tone { color: #ffd166; }
-.pc-rating { color: #ff6b6b; }
-.pc-kinks { color: #ff9e7a; }
+.pc {
+	font-weight: 700;
+	cursor: help;
+	font-size: 0.82em;
+	letter-spacing: 0.02em;
+	text-transform: uppercase;
+}
+.pc-val {
+	min-width: 0;
+}
+.pc-season {
+	color: #e0a84a;
+}
+.pc-canon {
+	color: #7fb3ff;
+}
+.pc-place {
+	color: #6fd39a;
+}
+.pc-relationship {
+	color: #ff8fb1;
+}
+.pc-situation {
+	color: #c9a0ff;
+}
+.pc-trope {
+	color: #5fd0d6;
+}
+.pc-tone {
+	color: #ffd166;
+}
+.pc-rating {
+	color: #ff6b6b;
+}
+.pc-kinks {
+	color: #ff9e7a;
+}
 
 /* The admin prompt-library editor: one <details> per pool, rows of inputs. */
-.pe-pool { border: 1px solid var(--line); border-radius: var(--r-md); padding: 8px 12px; margin: 0 0 8px; background: var(--panel-2); text-align: left; }
-.pe-pool summary { cursor: pointer; font-weight: 700; }
-.pe-pool .subtle { margin: 6px 0 8px; font-size: 0.8rem; }
-.pe-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-.pe-table th { text-align: left; font-weight: 600; color: var(--muted); padding: 2px 6px 6px; }
-.pe-table td { padding: 2px 4px; vertical-align: middle; }
-.pe-table input, .pe-table select { width: 100%; font: inherit; font-size: 0.85rem; padding: 4px 6px; }
-.pe-table td:nth-child(2) { width: 72px; }
-.pe-table td:last-child { width: 36px; }
-.pe-rules { font-family: var(--font-mono); font-size: 0.78rem !important; }
-.pe-lines { width: 100%; font: inherit; font-size: 0.85rem; line-height: 1.45; }
-.pe-add { margin-top: 8px; }
-.pe-foot { display: flex; align-items: center; gap: 12px; margin: 12px 0 0; }
-.pe-doc h4 { margin: 12px 0 4px; font-size: 0.9rem; }
-.pe-doc-table { border-collapse: collapse; font-size: 0.82rem; width: 100%; }
-.pe-doc-table td { padding: 3px 8px 3px 0; vertical-align: top; border-top: 1px solid var(--line); }
-.pe-doc-table td:first-child { white-space: nowrap; width: 1%; }
-.pe-doc-list { font-size: 0.85rem; padding-left: 20px; margin: 4px 0; }
-.pe-doc code { font-family: var(--font-mono); font-size: 0.8em; }
+.pe-pool {
+	border: 1px solid var(--line);
+	border-radius: var(--r-md);
+	padding: 8px 12px;
+	margin: 0 0 8px;
+	background: var(--panel-2);
+	text-align: left;
+}
+.pe-pool summary {
+	cursor: pointer;
+	font-weight: 700;
+}
+.pe-pool .subtle {
+	margin: 6px 0 8px;
+	font-size: 0.8rem;
+}
+.pe-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 0.85rem;
+}
+.pe-table th {
+	text-align: left;
+	font-weight: 600;
+	color: var(--muted);
+	padding: 2px 6px 6px;
+}
+.pe-table td {
+	padding: 2px 4px;
+	vertical-align: middle;
+}
+.pe-table input,
+.pe-table select {
+	width: 100%;
+	font: inherit;
+	font-size: 0.85rem;
+	padding: 4px 6px;
+}
+.pe-table td:nth-child(2) {
+	width: 72px;
+}
+.pe-table td:last-child {
+	width: 36px;
+}
+.pe-rules {
+	font-family: var(--font-mono);
+	font-size: 0.78rem !important;
+}
+.pe-lines {
+	width: 100%;
+	font: inherit;
+	font-size: 0.85rem;
+	line-height: 1.45;
+}
+.pe-add {
+	margin-top: 8px;
+}
+.pe-foot {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin: 12px 0 0;
+}
+.pe-doc h4 {
+	margin: 12px 0 4px;
+	font-size: 0.9rem;
+}
+.pe-doc-table {
+	border-collapse: collapse;
+	font-size: 0.82rem;
+	width: 100%;
+}
+.pe-doc-table td {
+	padding: 3px 8px 3px 0;
+	vertical-align: top;
+	border-top: 1px solid var(--line);
+}
+.pe-doc-table td:first-child {
+	white-space: nowrap;
+	width: 1%;
+}
+.pe-doc-list {
+	font-size: 0.85rem;
+	padding-left: 20px;
+	margin: 4px 0;
+}
+.pe-doc code {
+	font-family: var(--font-mono);
+	font-size: 0.8em;
+}
 /* the host's per-option reroll, in the card's corner opposite the vote count */
-.option { position: relative; }
+.option {
+	position: relative;
+}
 /* the host's per-option reroll sits BESIDE the vote count, on the same
    centred line to its left, never over it (a one-line Simple card put the two
    in the same corner); the card that carries it pads its right for both */
-.opt-reroll { position: absolute; top: 50%; right: 84px; transform: translateY(-50%); padding: 4px 10px; border-radius: var(--r-sm, 6px); border: 1px solid var(--line); background: var(--panel-2); color: var(--muted); font: inherit; font-size: 0.8rem; line-height: 1.2; cursor: pointer; white-space: nowrap; text-indent: 0; }
-.option.has-reroll { padding-right: 176px; }
-.opt-remove:hover { color: var(--accent); border-color: var(--accent); }
-.opt-reroll:hover { color: var(--ink); border-color: var(--chip-brd); }
-.guided-controls .pm-reroll { align-self: end; }
+.opt-reroll {
+	position: absolute;
+	top: 50%;
+	right: 84px;
+	transform: translateY(-50%);
+	padding: 4px 10px;
+	border-radius: var(--r-sm, 6px);
+	border: 1px solid var(--line);
+	background: var(--panel-2);
+	color: var(--muted);
+	font: inherit;
+	font-size: 0.8rem;
+	line-height: 1.2;
+	cursor: pointer;
+	white-space: nowrap;
+	text-indent: 0;
+}
+.option.has-reroll {
+	padding-right: 176px;
+}
+.opt-remove:hover {
+	color: var(--accent);
+	border-color: var(--accent);
+}
+.opt-reroll:hover {
+	color: var(--ink);
+	border-color: var(--chip-brd);
+}
+.guided-controls .pm-reroll {
+	align-self: end;
+}
 /* the writers' reference editor on /admin: one block per category */
-.re-cat { margin: 0 0 10px; }
-.re-cat-head { display: flex; align-items: center; gap: 8px; margin: 0 0 4px; font-size: 0.85rem; }
-.re-cat-head .re-del { margin-left: auto; padding: 2px 8px; font-size: 0.8rem; }
-.re-addrow { display: flex; gap: 8px; align-items: center; margin: 6px 0; }
-.re-addrow input { flex: 1; font: inherit; font-size: 0.85rem; padding: 6px 8px; }
+.re-cat {
+	margin: 0 0 10px;
+}
+.re-cat-head {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin: 0 0 4px;
+	font-size: 0.85rem;
+}
+.re-cat-head .re-del {
+	margin-left: auto;
+	padding: 2px 8px;
+	font-size: 0.8rem;
+}
+.re-addrow {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+	margin: 6px 0;
+}
+.re-addrow input {
+	flex: 1;
+	font: inherit;
+	font-size: 0.85rem;
+	padding: 6px 8px;
+}
 /* AU worlds on /admin: a head row of label · weight · rules, then two place lists */
-.au-head { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; margin: 6px 0 8px; font-size: 0.85rem; }
-.au-head label { display: flex; flex-direction: column; gap: 2px; }
-.au-head input { font: inherit; font-size: 0.85rem; padding: 4px 6px; }
-.au-head label:nth-child(3) { flex: 1; min-width: 220px; }
-.au-head .au-del { margin-left: auto; }
-.au-lbl { display: block; font-size: 0.8rem; color: var(--muted); margin: 8px 0 3px; }
-.au-world { margin-left: 0; }
+.au-head {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	align-items: end;
+	margin: 6px 0 8px;
+	font-size: 0.85rem;
+}
+.au-head label {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+.au-head input {
+	font: inherit;
+	font-size: 0.85rem;
+	padding: 4px 6px;
+}
+.au-head label:nth-child(3) {
+	flex: 1;
+	min-width: 220px;
+}
+.au-head .au-del {
+	margin-left: auto;
+}
+.au-lbl {
+	display: block;
+	font-size: 0.8rem;
+	color: var(--muted);
+	margin: 8px 0 3px;
+}
+.au-world {
+	margin-left: 0;
+}
 
 /* /admin accounts: a search row over a list that scrolls in place once it
    outgrows the box, so a long directory never pushes the prompt library
    off the bottom of the page. */
-.admin-search { gap: 10px; align-items: center; margin: 0 0 6px; }
-.admin-search input { flex: 1; min-width: 200px; margin: 0; }
-.admin-search .gc-meta { flex: none; }
-.admin-scroll { max-height: 60vh; overflow-y: auto; overscroll-behavior: contain; padding-right: 4px; }
+.admin-search {
+	gap: 10px;
+	align-items: center;
+	margin: 0 0 6px;
+}
+.admin-search input {
+	flex: 1;
+	min-width: 200px;
+	margin: 0;
+}
+.admin-search .gc-meta {
+	flex: none;
+}
+.admin-scroll {
+	max-height: 60vh;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	padding-right: 4px;
+}
 
 /* /announcements: the admin's blog — one article per post, the shared
    WYSIWYG composer (admin only) above the list. The post's own first
    heading is its title, so the head row is just the date and Delete. */
-.ann-composer { margin: 0 0 22px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; }
-.ann-editor { min-height: 180px; width: 100%; font-family: var(--font-mono); resize: vertical; }
-.ann-editbox { margin-top: 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; }
-.ann-editbox.hidden { display: none; }
-.ann-edited { margin-left: 8px; font-style: italic; }
+.ann-composer {
+	margin: 0 0 22px;
+	padding: 12px 14px;
+	border: 1px solid var(--line);
+	border-radius: 14px;
+}
+.ann-editor {
+	min-height: 180px;
+	width: 100%;
+	font-family: var(--font-mono);
+	resize: vertical;
+}
+.ann-editbox {
+	margin-top: 12px;
+	padding: 12px 14px;
+	border: 1px solid var(--line);
+	border-radius: 14px;
+}
+.ann-editbox.hidden {
+	display: none;
+}
+.ann-edited {
+	margin-left: 8px;
+	font-style: italic;
+}
 /* Each post sits on the story surface, like a story line: readable over any theme's background. */
-.ann-post { padding: 1rem; margin: 0 0 14px; background: var(--story-bg); border-radius: 12px; }
-.ann-head { display: flex; align-items: baseline; gap: 12px; margin: 0 0 6px; }
-.ann-head .ann-acts { flex: none; margin-left: auto; display: flex; gap: 6px; }
-.ann-head .ann-acts button { padding: 6px 12px; font-size: 0.85rem; white-space: nowrap; min-width: auto; width: auto; }
-.ann-body { text-align: left; }
-.ann-body :is(h1, h2, h3) { margin: 0 0 0.4em; }
-.ann-body p { margin: 0 0 0.8em; }
-.ann-body > :last-child { margin-bottom: 0; }
+.ann-post {
+	padding: 1rem;
+	margin: 0 0 14px;
+	background: var(--story-bg);
+	border-radius: 12px;
+}
+/* on a desktop column the text needs air from the panel edge: 1rem reads as
+   hugging once the line is 800px long */
+@media (min-width: 700px) {
+	.ann-post {
+		padding: 1.4rem 1.8rem;
+	}
+}
+.ann-head {
+	display: flex;
+	align-items: baseline;
+	gap: 12px;
+	margin: 0 0 6px;
+}
+.ann-head .ann-acts {
+	flex: none;
+	margin-left: auto;
+	display: flex;
+	gap: 6px;
+}
+.ann-head .ann-acts button {
+	padding: 6px 12px;
+	font-size: 0.85rem;
+	white-space: nowrap;
+	min-width: auto;
+	width: auto;
+}
+.ann-body {
+	text-align: left;
+}
+.ann-body :is(h1, h2, h3) {
+	margin: 0 0 0.4em;
+}
+.ann-body p {
+	margin: 0 0 0.8em;
+}
+.ann-body > :last-child {
+	margin-bottom: 0;
+}
 
 /* /ranks, admin only: the trigger words under a badge's description */
-.rk-usage .rk-recipe { font-size: 0.8rem; color: var(--muted); margin: 4px 0 0; }
+.rk-usage .rk-recipe {
+	font-size: 0.8rem;
+	color: var(--muted);
+	margin: 4px 0 0;
+}
 
 /* dashboard: the newest announcement, one compact card above Welcome */
-.ann-card { padding: 12px 16px; }
-.ann-glimpse { display: grid; gap: 4px; text-align: left; }
-.ann-glimpse-tag { font-size: 0.75rem; color: var(--muted); letter-spacing: 0.02em; }
-.ann-glimpse-title { font-size: 1.02rem; }
-.ann-glimpse-text { margin: 0; color: var(--muted); font-size: 0.9rem; line-height: 1.4; }
-.ann-glimpse-more { font-size: 0.85rem; font-weight: 600; white-space: nowrap; margin-left: 0.4em; }
+.ann-card {
+	padding: 12px 16px;
+}
+.ann-glimpse {
+	display: grid;
+	gap: 4px;
+	text-align: left;
+}
+.ann-glimpse-tag {
+	font-size: 0.75rem;
+	color: var(--muted);
+	letter-spacing: 0.02em;
+}
+.ann-glimpse-title {
+	font-size: 1.02rem;
+}
+.ann-glimpse-text {
+	margin: 0;
+	color: var(--muted);
+	font-size: 0.9rem;
+	line-height: 1.4;
+}
+.ann-glimpse-more {
+	font-size: 0.85rem;
+	font-weight: 600;
+	white-space: nowrap;
+	margin-left: 0.4em;
+}
 
 /* /games: a coming-soon placeholder until there is something to play */
-.soon-card { text-align: center; padding: 48px 24px; }
-.soon-mark { font-size: 3rem; margin: 0 0 8px; }
-.soon-title { font-family: var(--font-display); font-size: 1.8rem; margin: 0 0 8px; }
-.soon-sub { margin: 0; }
-.dnav-tag { margin-left: auto; font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--line); border-radius: 99px; padding: 1px 7px; }
+.soon-card {
+	text-align: center;
+	padding: 48px 24px;
+}
+.soon-mark {
+	font-size: 3rem;
+	margin: 0 0 8px;
+}
+.soon-title {
+	font-family: var(--font-display);
+	font-size: 1.8rem;
+	margin: 0 0 8px;
+}
+.soon-sub {
+	margin: 0;
+}
+.dnav-tag {
+	margin-left: auto;
+	font-size: 0.7rem;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--muted);
+	border: 1px solid var(--line);
+	border-radius: 99px;
+	padding: 1px 7px;
+}
 
 /* Announcement border (components/tendril-border.js): the card's frame
    draws itself in the theme's accent, then a gradient of accent-2 and ink
@@ -9719,45 +10779,175 @@ html.vcx-live[data-theme="vecna"] #vc-pend {
 /* the card itself is only the frame's box (the stroke sits 1px in); the content
    block carries the panel colour and its own padding, rounded to the frame's
    inner radius and clipped, so the colour never shows outside the stroke */
-.card.tendril { position: relative; isolation: isolate; border-radius: 14px; border-color: transparent; background: transparent; padding: 2px; overflow: hidden; }
-.card.tendril > *:not(.vine) { position: relative; z-index: 1; background: var(--panel); padding: 1rem; border-radius: 12px; overflow: hidden; }
-.card.tendril > .vine { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 0; }
-.vine .vine-line { fill: none; stroke: var(--accent); stroke-width: 1.4; stroke-linecap: round; }
-.vine .vine-glow { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; opacity: 0; filter: blur(5px); }
-.vine .vine-shine { fill: none; stroke-width: 1.8; stroke-linecap: round; opacity: 0; }
-.ann-glimpse-tag { display: flex; align-items: center; gap: 6px; }
+.card.tendril {
+	position: relative;
+	isolation: isolate;
+	border-radius: 14px;
+	border-color: transparent;
+	background: transparent;
+	padding: 2px;
+	overflow: hidden;
+}
+.card.tendril > *:not(.vine) {
+	position: relative;
+	z-index: 1;
+	background: var(--panel);
+	padding: 1rem;
+	border-radius: 12px;
+	overflow: hidden;
+}
+.card.tendril > .vine {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	overflow: visible;
+	pointer-events: none;
+	z-index: 0;
+}
+.vine .vine-line {
+	fill: none;
+	stroke: var(--accent);
+	stroke-width: 1.4;
+	stroke-linecap: round;
+}
+.vine .vine-glow {
+	fill: none;
+	stroke: var(--accent);
+	stroke-width: 3;
+	stroke-linecap: round;
+	opacity: 0;
+	filter: blur(5px);
+}
+.vine .vine-shine {
+	fill: none;
+	stroke-width: 1.8;
+	stroke-linecap: round;
+	opacity: 0;
+}
+@media (min-width: 700px) {
+	.card.tendril > *:not(.vine) {
+		padding: 1.25rem 1.6rem;
+	}
+	.card.tendril > .vine {
+		margin-left: -0.5rem;
+	}
+}
+.ann-glimpse-tag {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
 
 /* a guided knob's label row: the name and, beside it, the checkbox that
    leaves that part out of the prompt entirely */
-.guided-controls .pm-lab { display: inline-flex; align-items: center; gap: 6px; }
+.guided-controls .pm-lab {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+}
 /* a native checkbox with no appearance reset inherits the site's input
    styling (padding, border-radius) and its mark drifts off-centre; drawn
    from scratch it is a box with the mark centred by grid placement */
-.guided-controls .pm-off { appearance: none; -webkit-appearance: none; margin: 0; padding: 0; width: 14px; height: 14px; flex: none; border: 1px solid var(--line); border-radius: 3px; background: var(--panel); display: inline-grid; place-content: center; cursor: pointer; vertical-align: middle; }
-.guided-controls .pm-off::before { content: ""; width: 8px; height: 8px; border-radius: 2px; background: var(--accent); transform: scale(0); transition: transform 0.12s ease; }
-.guided-controls .pm-off:checked { border-color: var(--accent); }
-.guided-controls .pm-off:checked::before { transform: scale(1); }
-.guided-controls .pm-off:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
-.guided-controls select:disabled { opacity: 0.45; }
+.guided-controls .pm-off {
+	appearance: none;
+	-webkit-appearance: none;
+	margin: 0;
+	padding: 0;
+	width: 14px;
+	height: 14px;
+	flex: none;
+	border: 1px solid var(--line);
+	border-radius: 3px;
+	background: var(--panel);
+	display: inline-grid;
+	place-content: center;
+	cursor: pointer;
+	vertical-align: middle;
+}
+.guided-controls .pm-off::before {
+	content: "";
+	width: 8px;
+	height: 8px;
+	border-radius: 2px;
+	background: var(--accent);
+	transform: scale(0);
+	transition: transform 0.12s ease;
+}
+.guided-controls .pm-off:checked {
+	border-color: var(--accent);
+}
+.guided-controls .pm-off:checked::before {
+	transform: scale(1);
+}
+.guided-controls .pm-off:focus-visible {
+	outline: 2px solid var(--accent-2);
+	outline-offset: 2px;
+}
+.guided-controls select:disabled {
+	opacity: 0.45;
+}
 
 /* the solo editor's prompt roller: the picker's knobs wrap inside the card,
    the rolled scenario reads like a ballot card, Insert appears with it */
-.prompt-roll-card { width: min(720px, calc(100vw - 32px)); max-width: none; max-height: calc(100vh - 32px); overflow-y: auto; text-align: left; box-sizing: border-box; }
+.prompt-roll-card {
+	width: min(720px, calc(100vw - 32px));
+	max-width: none;
+	max-height: calc(100vh - 32px);
+	overflow-y: auto;
+	text-align: left;
+	box-sizing: border-box;
+}
 /* the rolled card is a single list of category | value rows, whatever the
    width (the ballot's two-pair layout would overflow the modal), and a long
    value wraps rather than pushing the card wider */
-.prompt-roll-card .prompt-roll-result .prompt-grid { grid-template-columns: max-content 1fr; }
-.prompt-roll-card .prompt-roll-result { white-space: normal; overflow-wrap: anywhere; min-width: 0; max-width: 100%; text-indent: 0; padding: 14px 16px; }
-.prompt-roll-card .prompt-roll-result .pc-val { overflow-wrap: anywhere; }
-.prompt-roll-card .guided-controls { margin-top: 8px; }
-.prompt-roll-row { align-items: center; gap: 12px; margin: 12px 0 0; }
-.prompt-roll-result { display: block; margin: 12px 0 0; cursor: default; }
-.prompt-roll-card .share-foot { justify-content: flex-end; gap: 8px; }
+.prompt-roll-card .prompt-roll-result .prompt-grid {
+	grid-template-columns: max-content 1fr;
+}
+.prompt-roll-card .prompt-roll-result {
+	white-space: normal;
+	overflow-wrap: anywhere;
+	min-width: 0;
+	max-width: 100%;
+	text-indent: 0;
+	padding: 14px 16px;
+}
+.prompt-roll-card .prompt-roll-result .pc-val {
+	overflow-wrap: anywhere;
+}
+.prompt-roll-card .guided-controls {
+	margin-top: 8px;
+}
+.prompt-roll-row {
+	align-items: center;
+	gap: 12px;
+	margin: 12px 0 0;
+}
+.prompt-roll-result {
+	display: block;
+	margin: 12px 0 0;
+	cursor: default;
+}
+.prompt-roll-card .share-foot {
+	justify-content: flex-end;
+	gap: 8px;
+}
 
 /* the kink count beside the Kink menu: a narrow select on the same row */
-.guided-controls label:has(> .pm-count) { display: grid; grid-template-columns: 1fr auto; column-gap: 6px; }
-.guided-controls label:has(> .pm-count) > .pm-lab { grid-column: 1 / -1; }
-.guided-controls .pm-count { width: 3.4em; min-width: 0; padding-left: 6px; padding-right: 6px; }
+.guided-controls label:has(> .pm-count) {
+	display: grid;
+	grid-template-columns: 1fr auto;
+	column-gap: 6px;
+}
+.guided-controls label:has(> .pm-count) > .pm-lab {
+	grid-column: 1 / -1;
+}
+.guided-controls .pm-count {
+	width: 3.4em;
+	min-width: 0;
+	padding-left: 6px;
+	padding-right: 6px;
+}
 
 /* iOS Safari zooms the page in when a field under 16px takes focus — and the
    zoom outlives the page, so the next route opens "zoomed in". On touch
@@ -9824,7 +11014,9 @@ html.vcx-live[data-theme="vecna"] #vc-pend {
 	padding: 1rem;
 	border-radius: 12px;
 }
-.arch-detail.hidden { display: none; }
+.arch-detail.hidden {
+	display: none;
+}
 
 /* ---- Only the worn theme's background exists ------------------------------
    Every theme's .bg-set is mounted on every page (chrome.js). An inactive set
@@ -9833,7 +11025,9 @@ html.vcx-live[data-theme="vecna"] #vc-pend {
    themes nobody is wearing — which is what made iOS Safari/Chrome kill the
    tab. display: none takes them out of the render tree entirely; the theme
    swap becomes a cut instead of a 0.7s cross-fade, which is the right trade. */
-.bg-set { display: none; }
+.bg-set {
+	display: none;
+}
 [data-theme="arcade"] .bg-set.arcade,
 [data-theme="aurora"] .bg-set.aurora,
 [data-theme="bunker"] .bg-set.bunker,
@@ -9852,15 +11046,25 @@ html.vcx-live[data-theme="vecna"] #vc-pend {
 [data-theme="vecna"] .bg-set.vecna,
 [data-theme="video"] .bg-set.video,
 [data-theme="void"] .bg-set.void,
-[data-theme="wall"] .bg-set.wall { display: block; }
+[data-theme="wall"] .bg-set.wall {
+	display: block;
+}
 
 /* On touch devices even the worn theme stays lighter: backdrop blur is the
    single most expensive effect on a mobile GPU (re-blurs whatever scrolls
    beneath it every frame), and the ambient set drops to a still picture. */
 @media (hover: none) and (pointer: coarse) {
-	.bg-set *, .bg-set { animation: none !important; }
-	.bg-set * { filter: none !important; }
-	* { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+	.bg-set *,
+	.bg-set {
+		animation: none !important;
+	}
+	.bg-set * {
+		filter: none !important;
+	}
+	* {
+		backdrop-filter: none !important;
+		-webkit-backdrop-filter: none !important;
+	}
 }
 
 /* Ranks & unlocks: every card sits on the story surface, like a story line
@@ -9876,5 +11080,15 @@ html.vcx-live[data-theme="vecna"] #vc-pend {
 
 /* Signup: the Byler Offscreen membership line — the site's checkline, the
    box aligned to the first line of a question that may wrap. */
-.su-member { display: flex; align-items: flex-start; gap: 8px; text-align: left; font-size: 0.9rem; cursor: help; }
-.su-member input[type="checkbox"] { flex: none; margin-top: 3px; }
+.su-member {
+	display: flex;
+	align-items: flex-start;
+	gap: 8px;
+	text-align: left;
+	font-size: 0.9rem;
+	cursor: help;
+}
+.su-member input[type="checkbox"] {
+	flex: none;
+	margin-top: 3px;
+}

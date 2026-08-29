@@ -58,6 +58,13 @@ test("friend request lands in the target inbox and profile shows the state", asy
   const mikeFriends = (await ctx.api("/api/friends", undefined, mike.token)).data.friends;
   assert.deepEqual(willFriends.map((f) => f.username), ["mikewheeler"]);
   assert.deepEqual(mikeFriends.map((f) => f.username), ["willthewise"]);
+  // a row carries the public counts its tooltip shows, never an email or id
+  const row = willFriends[0];
+  assert.equal(typeof row.wordCount, "number");
+  assert.equal(typeof row.badges, "number");
+  assert.equal(typeof row.games, "number");
+  assert.equal(row.email, undefined);
+  assert.equal(row.id, undefined);
   const note = (await inboxOf(will)).messages.find((m) => m.type === "friend-accept");
   assert.ok(note);
   assert.equal(note.from.username, "mikewheeler");

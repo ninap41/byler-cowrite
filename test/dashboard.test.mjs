@@ -74,7 +74,7 @@ test("recentGames: finished games only, mine only", async () => {
 
 test("the dashboard rail is navigation: inbox count, start, join, solo write", async () => {
   const body = await fetch(ctx.url + "/dashboard").then((r) => r.text());
-  const rail = body.slice(body.indexOf("RIGHT RAIL"));
+  const rail = body.slice(body.indexOf("============ RAIL"));
 
   // every destination is a row in one nav, not a card of its own
   assert.ok(rail.includes('<nav class="card dash-nav"'), "one nav column");
@@ -97,6 +97,6 @@ test("the dashboard rail is navigation: inbox count, start, join, solo write", a
   assert.ok(rail.includes('class="card quote-card"'), "the quote is in the rail");
   assert.ok(rail.includes('id="friendsBox"'), "and so are friends");
   assert.ok(rail.indexOf('class="card dash-nav"') < rail.indexOf('class="card friends-card"') && rail.indexOf('class="card friends-card"') < rail.indexOf('class="card quote-card"'), "nav, friends, quote");
-  const main = body.slice(0, body.indexOf("RIGHT RAIL"));
+  const main = body.slice(0, body.indexOf("============ RAIL"));
   assert.ok(main.includes('id="writerSearch"') && !main.includes("writers-split"), "writers span their own card");
 });

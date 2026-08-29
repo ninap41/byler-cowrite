@@ -332,3 +332,13 @@ test("dashboard announcement glimpse: truncated plain-text preview, escaped, Rea
   assert.ok(!plain.includes("ann-glimpse-title"), "a derived title is not repeated above the preview");
   assert.ok(plain.includes("<p class=\"ann-glimpse-text\">No heading here, just words <a class=\"ann-glimpse-more\""), "the preview, with Read more riding its last line");
 });
+
+test("a friend row has no badge chip, carries a ✉ for the composer, and its tooltip lists the stats", async () => {
+  const { friendRowHtml, friendStatsTip } = await import("../public/js/dashboard-view.js");
+  const u = { username: "mikewheeler", color: "#ff5252", badge: "Puppy Mike", online: true, wordCount: 1234, badges: 2, games: 1 };
+  const html = friendRowHtml(u);
+  assert.ok(!html.includes("badge-chip"));
+  assert.match(html, /class="rg-msg" data-msg="mikewheeler"/);
+  assert.equal(friendStatsTip(u), "Online · Puppy Mike · 1,234 words · 2 badges · 1 game");
+  assert.match(friendStatsTip({ username: "x", online: false }), /^Offline$/);
+});

@@ -20,22 +20,22 @@
 	</head>
 	<body>
 		<div class="wrap">
-			<div class="archive-inner">
-				<div class="archive-head">
+			<div class="archive-inner wide ib-page">
+				<div class="archive-head ib-head">
 					<a class="ghost" href="/dashboard" style="text-decoration: none; padding: 10px 16px; border-radius: 12px">← Back</a>
-					<h2>📬 Inbox <span class="badge-chip hidden" id="inboxUnread"></span></h2>
+					<h2>📬 Inbox <span class="badge-chip ib-new hidden" id="inboxUnread"></span></h2>
+					<button class="ghost hidden ib-readall" id="inboxReadAll">Mark all read</button>
 				</div>
-				<!-- Mark-all-read sits with the description, not up in the head row:
-				     the topbar's own controls live in that corner. -->
-				<div class="row" style="align-items: center; margin: 0 0 14px; gap: 12px">
-					<p class="subtle" style="text-align: left; margin: 0; flex: 1 1 220px">
-						Friend requests, game invites and notes from other writers. Click to mark as read.
-					</p>
-					<button class="ghost hidden" id="inboxReadAll" style="flex: 0 0 auto">Mark all read</button>
-				</div>
+				<!-- kinds of message; each chip counts its conversations -->
+				<div class="ib-filters" id="inboxFilters" role="tablist"></div>
+				<!-- appears while any conversation is ticked -->
+				<div class="ib-bulk hidden" id="inboxBulk"></div>
 
-				<div class="card">
-					<div id="inboxList"></div>
+				<!-- the list beside the reading pane; under 860px the list is the
+				     page and an opened conversation covers it (.ib-reading) -->
+				<div class="ib-shell">
+					<div class="ib-list" id="inboxList"></div>
+					<div class="ib-pane" id="inboxPane"></div>
 				</div>
 			</div>
 		</div>
@@ -45,7 +45,7 @@
 			import { getToken } from "/js/api.js"
 			import { mountChrome, setUserChip } from "/js/chrome.js"
 			import { requireAuth } from "/js/auth-guard.js"
-			import { mountInbox } from "/js/inbox-panel.js"
+			import { mountInboxPage } from "/js/inbox-page.js"
 
 			mountChrome({ page: "inbox" })
 			const $ = (id) => document.getElementById(id)
@@ -53,10 +53,12 @@
 			// admin entrance in the nav — without it this page looks signed out.
 			setUserChip(await requireAuth("/"))
 
-			// The whole inbox — no limit, same rows and actions as the dashboard's
-			// preview, because they're the same module.
-			const panel = mountInbox({
+			// The whole inbox as two panes: conversations, and the one you opened.
+			const panel = mountInboxPage({
 				list: $("inboxList"),
+				filters: $("inboxFilters"),
+				pane: $("inboxPane"),
+				bulk: $("inboxBulk"),
 				unreadChip: $("inboxUnread"),
 				readAllBtn: $("inboxReadAll"),
 			})
