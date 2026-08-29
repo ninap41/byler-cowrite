@@ -15,6 +15,27 @@ export const siteName = () =>
 // "(host)" marker, placed AFTER a name everywhere it appears.
 export const whoMarks = (o) => (o?.host || o?.isHost ? '<span class="host-tag">(host)</span>' : "")
 
+// Gradient emojis, like the ones in an <h1>: wrap the LEADING emoji of an
+// element's first text node in <span class="emoji-grad"> so CSS can fill it
+// with the theme gradient (background-clip: text). Idempotent (a data flag),
+// and it only touches a leading emoji so the label text is untouched. A pure
+// emoji-only span (a nav/tab icon) is gradiented by CSS directly instead.
+const LEAD_EMOJI = /^(\s*)(\p{Extended_Pictographic}(?:\u200d\p{Extended_Pictographic}|[\uFE00-\uFE0F\u{1F3FB}-\u{1F3FF}])*)/u
+export function gradEmoji(el) {
+	if (!el || el.dataset.gradEmoji) return
+	const t = el.firstChild
+	if (!t || t.nodeType !== 3) return
+	const m = LEAD_EMOJI.exec(t.nodeValue || "")
+	if (!m || !m[2]) return
+	el.dataset.gradEmoji = "1"
+	const span = el.ownerDocument.createElement("span")
+	span.className = "emoji-grad"
+	span.textContent = m[1] + m[2]
+	t.nodeValue = (t.nodeValue || "").slice(m[0].length)
+	el.insertBefore(span, t)
+}
+export const gradEmojisIn = (root, sel) => (root || document).querySelectorAll(sel).forEach(gradEmoji)
+
 // Tiny round profile pic used beside names (roster, chat, players row,
 // writers directory). Empty string when the account has no picture.
 // avatarFit is the user's preference: "cover" crops to fill, "contain" zooms

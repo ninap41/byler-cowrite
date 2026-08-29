@@ -11100,3 +11100,16 @@ html.vcx-live[data-theme="vecna"] #vc-pend {
 .ann-imgs-head { display: flex; align-items: center; gap: 8px; }
 .ann-img-row { display: flex; gap: 6px; margin-top: 6px; align-items: center; }
 .ann-img-row input { flex: 1; }
+
+/* Gradient emojis, like an <h1>'s: the theme gradient fills the glyph. Used on
+   nav/dashboard/rail emojis — pure-emoji icon spans get it directly, and a
+   leading emoji beside a label is wrapped in .emoji-grad by gradEmojisIn(). */
+.emoji-grad,
+.dnav-ico,
+.dtab-ico {
+	background: var(--grad-1);
+	-webkit-background-clip: text;
+	background-clip: text;
+	-webkit-text-fill-color: transparent;
+	color: transparent;
+}

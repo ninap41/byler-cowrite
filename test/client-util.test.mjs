@@ -1,6 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { PALETTE, esc, safeColor, whoMarks, miniAvatar, oneLinePrompt } from "../public/js/util.js";
+import { installDom } from "./dom.mjs";
+installDom();
+import { PALETTE, esc, safeColor, whoMarks, miniAvatar, oneLinePrompt, gradEmoji, gradEmojisIn } from "../public/js/util.js";
 
 test("miniAvatar: img with fit class when set, empty otherwise, url escaped", () => {
   const cover = miniAvatar({ avatar: "https://img.com/a.png" });
@@ -69,4 +71,22 @@ test("promptHtml lays a guided prompt out as coloured category | choice rows, an
   assert.equal(promptHtml("Mike <b>finds</b> the drawing."), "Mike &lt;b&gt;finds&lt;/b&gt; the drawing.");
   assert.equal(promptHtml("• Season: x\n• Nope: <i>y</i>"), "• Season: x\n• Nope: &lt;i&gt;y&lt;/i&gt;");
   assert.equal(promptHtml(""), "");
+});
+
+test("gradEmoji: wraps a leading emoji (incl. variation selectors), leaves label + emoji-less text, idempotent", () => {
+  const mk = (txt) => { const el = document.createElement("a"); el.textContent = txt; return el; };
+  const a = mk("📣 Announcements"); gradEmoji(a);
+  assert.equal(a.innerHTML, '<span class="emoji-grad">📣</span> Announcements');
+  const g = mk("🕹️ Games"); gradEmoji(g); // variation-selector emoji
+  assert.match(g.innerHTML, /^<span class="emoji-grad">🕹️<\/span> Games$/);
+  const plain = mk("Games in progress"); gradEmoji(plain);
+  assert.equal(plain.innerHTML, "Games in progress", "no emoji, untouched");
+  assert.equal(plain.querySelector(".emoji-grad"), null);
+  const dbl = mk("📖 Beta"); gradEmoji(dbl); gradEmoji(dbl);
+  assert.equal(dbl.querySelectorAll(".emoji-grad").length, 1, "idempotent");
+  // gradEmojisIn wraps every match in a root
+  const root = document.createElement("div");
+  root.innerHTML = '<a>🏅 Ranks</a><a>🚪 Logout</a><h3>No emoji</h3>';
+  gradEmojisIn(root, "a, h3");
+  assert.equal(root.querySelectorAll(".emoji-grad").length, 2);
 });

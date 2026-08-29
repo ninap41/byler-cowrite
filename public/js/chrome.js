@@ -9,7 +9,7 @@ import { logoHtml, quillHtml } from "./logo.js"
 import { initNav } from "./nav.js"
 import { initBadgeTips } from "./badge-tips.js"
 import { initTooltips } from "./tooltip.js"
-import { safeColor, miniAvatar, siteName } from "./util.js"
+import { safeColor, miniAvatar, siteName, gradEmojisIn } from "./util.js"
 import { mountTurnAlert } from "./turn-alert.js"
 import { api, getToken, setToken } from "./api.js"
 
@@ -303,6 +303,10 @@ export function mountChrome({ page = "", nav = true, kofi = true } = {}) {
 		.catch(() => {})
 	const tips = initTooltips() // instant, theme-aware tooltips (js/tooltip.js)
 	initBadgeTips(document, tips) // hover any badge chip for its description
+	// Emojis in the nav drawer, the dashboard section headings, and the tabs get
+	// the same gradient fill an <h1> emoji has (the icon spans are handled by CSS
+	// directly; these carry a label alongside the emoji, so wrap just the emoji).
+	gradEmojisIn(document.body, ".nav-drawer a, .nav-logout, .dash-h")
 	if (nav) initNav()
 	if (kofi) mountKofi()
 	// off the game page, a poller pins the "your turn" toast with a link in
