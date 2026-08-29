@@ -262,6 +262,6 @@ file per group (`/dialogue` tags, `/action` verbs, `/delivery` modifiers,
 
 - The backend is `server.js` + `src/` (Express static + Socket.IO); the
   frontend is the multi-page app in `public/`. Live game state is in-memory;
-  snapshots make it durable. See `CLAUDE.md` for the full architecture guide.
+  snapshots make it durable.
 - Server-side `sanitizeRich()` is the trust boundary for all rich text —
   never render user HTML that hasn't passed through it.
