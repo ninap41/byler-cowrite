@@ -2160,10 +2160,29 @@ export function createGame(io) {
     savedAt: d.savedAt || 0, createdAt: d.createdAt || d.savedAt || 0, tags: d.tags || [],
     lines: (d.story || []).length, words: storyWords(d.story),
     hostName: store.users.find((u) => u.id === d.hostUserId)?.username ?? d.hostName ?? null,
-    writers: (d.writers || []).map((w) => ({
-      name: freshName(w.userId, w.name), color: cleanColor(w.color), isHost: d.hostUserId != null && w.userId === d.hostUserId,
-    })),
+    // every contributor, not just the current seats: a writer whose seat
+    // expired but who committed a line (or hosted) is still an author
+    writers: allContributors(d),
   });
+  function allContributors(d) {
+    const out = [];
+    const seen = new Set();
+    const push = (userId, name, color) => {
+      const key = userId ?? "name:" + name;
+      if (seen.has(key)) return;
+      seen.add(key);
+      const u = userId != null ? store.users.find((x) => x.id === userId) : null;
+      out.push({
+        name: freshName(userId, name || u?.username || "?"),
+        color: cleanColor(color || u?.color),
+        isHost: d.hostUserId != null && userId === d.hostUserId,
+      });
+    };
+    for (const w of d.writers || []) push(w.userId, w.name, w.color);
+    for (const l of d.story || []) if (l.userId != null) push(l.userId, l.name, l.color);
+    if (d.hostUserId != null) push(d.hostUserId, d.hostName, null);
+    return out;
+  }
   // A contributor is a contributor: holding a seat, having WRITTEN a line, or
   // being the original host all count — a seat that expired (ghost dropped,
   // the host went on without you) must not erase the story from your lists.

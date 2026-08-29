@@ -163,7 +163,13 @@ test("a contributor is a contributor: a writer whose seat expired still sees the
     await ctx2.emit(A, "end-game", {});
     const list = await ctx2.api("/api/games", null, mike.token, "GET");
     assert.ok(list.data.some((g) => g.code === code), "and in his previous games after the reveal");
-    assert.equal((await ctx2.api("/api/games/" + code, null, mike.token, "GET")).status, 200, "readable too");
+    const det = await ctx2.api("/api/games/" + code, null, mike.token, "GET");
+    assert.equal(det.status, 200, "readable too");
+    // and he is still LISTED as an author, seat or no seat (host first-class, no dupes)
+    const names = det.data.writers.map((w) => w.name);
+    assert.deepEqual(names.filter((n) => n === "mikewheeler").length, 1, "Mike listed once");
+    assert.ok(det.data.writers.find((w) => w.name === "willthewise" && w.isHost), "host listed once, crowned");
+    assert.equal(det.data.writers.length, 2);
     A.disconnect();
   } finally {
     await ctx2.stop?.();

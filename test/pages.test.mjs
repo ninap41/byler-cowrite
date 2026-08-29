@@ -669,7 +669,8 @@ test("archive: tags are read-only chips above the prompt with a ✎ that opens t
   const { readFileSync } = await import("node:fs");
   const html = readFileSync(new URL("../public/archive.html", import.meta.url), "utf8");
   const row = html.indexOf('id="archTagRow"'), prompt = html.indexOf('id="archPrompt"'), edit = html.indexOf('id="archTagEdit"');
-  assert.ok(row > -1 && edit > row && row < prompt, "tag row (with ✎) sits above the prompt");
+  assert.ok(row > -1 && edit > row && row < prompt, "tag row (with ＋) sits above the prompt");
+  assert.match(html, /id="archTagEdit"[^>]*>＋</, "the edit control is a small plus");
   const modal = html.indexOf('id="tagModal"');
   assert.ok(modal > -1 && html.indexOf('id="archTags"') > modal, "the tag editor mounts inside the modal only");
   const detail = html.slice(html.indexOf('id="archiveDetail"'), html.indexOf('id="tagModal"'));
