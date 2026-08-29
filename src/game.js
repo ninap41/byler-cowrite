@@ -11,7 +11,7 @@ import { storage, getJson } from "./storage.js";
 import { generateSimplePrompt, generateIntermediatePrompt, validateIntermediateData, EXPLICIT_LEVELS, MODES, MAX_KINKS } from "../lib/prompt-gen.js";
 import { readContent, writeContent } from "./content.js";
 import { randomTitle } from "../lib/titles.js";
-import { readDoc, writeDoc, canView, canEdit, canComment, anchorCids, anchorText, stripAnchor, stripAnchors, applySuggestion } from "./docs.js";
+import { readDoc, writeDoc, canView, canEdit, canComment, anchorCids, anchorText, stripAnchor, stripAnchors, commentBaseline, applySuggestion } from "./docs.js";
 
 // Curated scenario prompts + the guided-mode component pools (edit
 // content/prompts.json freely — no code changes). See docs/PROMPT_GENERATION.md.
@@ -1957,7 +1957,9 @@ export function createGame(io) {
         const want = [...anchorCids(doc.html), cid].sort().join(",");
         const got = [...anchorCids(next)].sort().join(",");
         if (want !== got) return; // an anchor was added, moved or removed beyond this one
-        if (stripAnchors(next) !== stripAnchors(doc.html)) return; // words/markup changed
+        // words/markup changed — but a split inline run (from wrapping an anchor
+        // inside <i>/<b>/… ) is not a change, so compare the rejoined baseline
+        if (commentBaseline(next) !== commentBaseline(doc.html)) return;
       }
       doc.html = next;
       doc.comments = [...(doc.comments || []), {

@@ -161,6 +161,24 @@ export function stripAnchors(html) {
   return out;
 }
 
+// Merge adjacent identical inline formatting tags that got SPLIT apart. When a
+// beta reader wraps a comment anchor around part of a run of italic (or bold,
+// etc.) text, the browser splits the <i> into <i>…</i><span cmt>…</span><i>…</i>;
+// after the anchor is stripped that leaves <i>…</i><i>…</i>, which is the same
+// prose but not the same bytes as the stored <i>……</i>. Collapsing the seam
+// makes the two comparable so the comment isn't refused for formatting the
+// reader never actually changed.
+const INLINE_SEAM = /<\/(i|em|b|strong|u|s|del)>(\s*)<\1>/gi;
+export function normalizeInline(html) {
+  let out = String(html ?? ""), prev;
+  do { prev = out; out = out.replace(INLINE_SEAM, "$2"); } while (out !== prev);
+  return out;
+}
+
+// The comparable shape of a document's html for the reader-comment guard:
+// anchors gone, split inline runs rejoined.
+export const commentBaseline = (html) => normalizeInline(stripAnchors(html));
+
 // The cids that may legally wear an underline: a comment that still exists
 // and hasn't been resolved. Resolving deliberately un-underlines the words, so
 // a resolved comment's cid is no more anchorable than a deleted one's.

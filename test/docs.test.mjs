@@ -853,3 +853,29 @@ test("one writer cannot delete another writer's sprint", async () => {
   const prof = await ctx.api("/api/users/aliceauthor", null, alice.token, "GET");
   assert.ok(prof.data.sprints.some((s) => s.at === a.data.sprint.at), "alice's sprint is untouched");
 });
+
+test("a beta reader can comment on part of an italic run (the split <i> tag doesn't refuse the comment)", async () => {
+  const doc = await newDoc(alice.token, "Italic fic");
+  const ITAL = "<p>he said <i>we speak the way we breathe</i> softly</p>";
+  await ctx.api("/api/docs/" + doc.id, { html: ITAL }, alice.token, "PUT");
+  await ctx.api("/api/docs/" + doc.id + "/readers", { username: "bobbeta" }, alice.token);
+  const stored = (await docOf(doc.id)).html;
+
+  const B = await ctx.conn();
+  B.emit("doc-open", { auth: bob.token, id: doc.id });
+  await ctx.wait(150);
+  // wrapping "the way" inside the italics splits the <i> the way a browser does
+  const cid = "f0f0f0f0f0f0";
+  const split = stored.replace(
+    "<i>we speak the way we breathe</i>",
+    `<i>we speak </i><span class="cmt" data-cid="${cid}"><i>the way</i></span><i> we breathe</i>`,
+  );
+  B.emit("doc-comment", { auth: bob.token, id: doc.id, cid, html: split, text: "love this line" });
+  await ctx.wait(200);
+
+  const after = await docOf(doc.id);
+  assert.equal(after.comments.length, 1, "the comment on italic text is accepted");
+  assert.equal(after.comments[0].text, "love this line");
+  assert.ok(after.html.includes(`data-cid="${cid}"`), "the underline is saved");
+  assert.equal(after.comments[0].orphaned, false);
+});
