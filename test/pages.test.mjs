@@ -631,7 +631,8 @@ test("every page loads the Font Awesome kit", async () => {
 
 test("the caret is visible inside a gradient-text heading in every editor", async () => {
   const css = (await page("/css/base.css")).body;
-  assert.match(css, /\.editor h1, \.doc-editor h1, \[contenteditable="true"\] h1,[\s\S]*?caret-color: var\(--accent-2\);/, "h1 in the game and solo editors names its caret");
+  // whitespace-tolerant: selectors may be one-per-line (Prettier) or inline
+  assert.match(css, /\.editor h1,\s*\.doc-editor h1,\s*\[contenteditable="true"\] h1,[\s\S]*?caret-color:\s*var\(--accent-2\);/, "h1 in the game and solo editors names its caret");
 });
 
 test("nothing hard-codes the fandom: the repo pack renders as Byler Cowrite everywhere, no 'Fandom Cowrite' anywhere", async () => {

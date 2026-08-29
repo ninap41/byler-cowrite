@@ -403,7 +403,7 @@ test("the off checkbox is drawn from scratch so its mark sits dead centre", asyn
   assert.match(rule, /appearance: none/);
   assert.match(rule, /display: inline-grid/);
   assert.match(rule, /place-content: center/);
-  assert.ok(css.includes(".guided-controls .pm-off:checked::before { transform: scale(1); }"));
+  assert.match(css, /\.guided-controls \.pm-off:checked::before \{\s*transform:\s*scale\(1\);\s*\}/);
 });
 
 test("First meeting switches the Relationship menu off: every row greyed, the select disabled and read as Random; another situation gives it back", () => {
