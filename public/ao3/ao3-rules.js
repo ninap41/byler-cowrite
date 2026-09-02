@@ -275,6 +275,16 @@ function closeOf(text, open) {
 	return text.length
 }
 
+// A selector made only of element names, `*`, pseudo-classes/elements,
+// attribute tests and combinators — `body`, `p > em`, `a:hover`, `.userstuff`
+// excluded — needs no `#workskin` note: AO3 prefixes it on save and it means
+// the same thing either way. Only a class or id written bare gets the note.
+export function elementOnly(sel) {
+	const s = sel.trim()
+	if (!s) return false
+	return !/[#.]/.test(s.replace(/\[[^\]]*\]/g, "").replace(/\([^)]*\)/g, ""))
+}
+
 export const MESSAGES = {
 	font_face: "@font-face is refused by AO3 — the whole skin fails to save until it is removed",
 	at_rule_dropped: "AO3 does not parse this at-rule; everything inside it is dropped",
@@ -284,7 +294,7 @@ export const MESSAGES = {
 	no_rules_for_selectors: "no declaration in this rule survives, so the whole rule is dropped",
 	no_valid_css_for_selectors: "a declaration with no property or no value",
 	no_valid_css: "nothing in this sheet survives AO3's cleaner",
-	workskin_prefix: "AO3 prefixes every selector with `#workskin ` on save — write it that way so the preview matches",
+	workskin_prefix: "AO3 prefixes every selector with `#workskin ` on save — write the class or id that way so the preview matches",
 }
 
 /**
@@ -323,7 +333,7 @@ export function lintCss(source) {
 		}
 		const selector = prelude.replace(/\s+/g, " ")
 		const rule = { selector, line, decls: [] }
-		if (!/^#workskin\b/.test(selector) && !selector.split(",").every((s) => /^\s*#workskin\b/.test(s))) {
+		if (!selector.split(",").every((s) => /^\s*#workskin\b/.test(s) || elementOnly(s))) {
 			problem({ line, selector, code: "workskin_prefix", message: MESSAGES.workskin_prefix, severity: "warning" })
 		}
 		for (const d of splitDecls(text.slice(open + 1, close), open + 1)) {

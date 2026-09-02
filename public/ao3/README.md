@@ -36,7 +36,7 @@ Transcribed from otwarchive `config/config.yml` (`SUPPORTED_CSS_PROPERTIES`, `SU
 
 **At-rules.** `@font-face` is refused outright (the skin fails to save, error `font_face`). `@import`, `@media`, `@keyframes`, `@supports` and the rest are not parsed as rules and vanish silently.
 
-**Selectors.** On save AO3 prefixes every selector with `#workskin `. A rule whose declarations all fail is dropped (`no_rules_for_selectors`). Comments are fine.
+**Selectors.** On save AO3 prefixes every selector with `#workskin `. The lint notes a bare class or id (`.note`, `#foo`) so the preview matches what AO3 will store; element-only selectors (`body`, `p`, `a:hover`, `p > em`) get no note, since they mean the same thing prefixed. A rule whose declarations all fail is dropped (`no_rules_for_selectors`). Comments are fine.
 
 **AO3's error ids** (shown on the skin form): `no_valid_css`, `banned_property`, `invalid_custom_property_name`, `banned_value_for_property`, `no_rules_for_selectors`, `no_valid_css_for_selectors`, `font_face`. The lint reports the same ids.
 

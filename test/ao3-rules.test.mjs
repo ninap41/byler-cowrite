@@ -94,6 +94,20 @@ test("lintCss: at-rules, dropped rules, prefix warning, line numbers, cleaned ou
   assert.ok(!r.cleaned.includes("calc") && !r.cleaned.includes("gap") && !r.cleaned.includes("@"));
 });
 
+test("the #workskin note is for bare classes and ids, never for element selectors", () => {
+  const codes = (css) => R.lintCss(css).problems.map((p) => p.code);
+  for (const sel of ["body", "html", "p", "span", "p > em", "a:hover", "*", "ul li", "p:first-child::before", "input[type=\"text\"]", "body, p"]) {
+    assert.deepEqual(codes(`${sel} { color: red }`), [], sel + " raises nothing");
+    assert.equal(R.elementOnly(sel), true, sel);
+  }
+  for (const sel of [".note", "#foo", "p.note", "div > .x", "#workskin2 p, .y"]) {
+    assert.deepEqual(codes(`${sel} { color: red }`), ["workskin_prefix"], sel + " gets the note");
+  }
+  assert.deepEqual(codes("#workskin .note { color: red }"), []);
+  assert.deepEqual(codes("#workskin .a, p { color: red }"), []);
+  assert.equal(R.elementOnly(""), false);
+});
+
 test("lintCss: a clean sheet has no problems, an all-dead sheet says no_valid_css, quotes/parens don't split", () => {
   const clean = R.lintCss(`#workskin .a { color: red; font-family: "A B", serif; content: "a; b"; background: url("https://x.com/a.png") }`);
   assert.deepEqual(clean.problems, []);
