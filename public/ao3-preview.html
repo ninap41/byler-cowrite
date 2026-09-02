@@ -1,107 +1,83 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>AO3 previewer: {{SITE_NAME}}</title>
-    <link rel="icon" type="image/x-icon" href="./favicon.ico?v=2" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inconsolata:wght@400;600;700&family=Space+Grotesk:wght@400;500;700&display=swap"
-      rel="stylesheet"
-    />
-    <!-- Deliberately chrome-free: no base.css, no chrome.js, no auth. The page
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>AO3 previewer: {{SITE_NAME}}</title>
+		<link rel="icon" type="image/x-icon" href="./favicon.ico?v=2" />
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Inconsolata:wght@400;600;700&family=Space+Grotesk:wght@400;500;700&display=swap"
+			rel="stylesheet"
+		/>
+		<!-- Deliberately chrome-free: no base.css, no chrome.js, no auth. The page
 		     is an AO3 work with the author's skin on it, and everything it needs
 		     lives in /ao3/. -->
 
-    <link rel="stylesheet" href="/ao3/preview.css" />
-  </head>
-  <body>
-    <header class="ap-bar">
-      <span class="ap-title">AO3 previewer</span>
-      <a href="/">← {{SITE_NAME}}</a>
-      <div class="ap-acts">
-        <label
-          data-tip="Show the work the way AO3 would after stripping what its cleaner refuses"
-          ><input type="checkbox" id="apStrict" checked /> Preview as AO3
-          would</label
-        >
-        <button class="ap-btn" id="apResetCss" type="button">Reset CSS</button>
-        <button class="ap-btn" id="apResetHtml" type="button">
-          Reset HTML
-        </button>
-      </div>
-    </header>
+		<link rel="stylesheet" href="./ao3/preview.css" />
+	</head>
+	<body>
+		<header class="ap-bar">
+			<span class="ap-title">AO3 previewer</span>
+			<a href="/">← {{SITE_NAME}}</a>
+			<div class="ap-acts">
+				<label data-tip="Show the work the way AO3 would after stripping what its cleaner refuses"
+					><input type="checkbox" id="apStrict" checked /> Preview as AO3 would</label
+				>
+				<button class="ap-btn" id="apResetCss" type="button">Reset CSS</button>
+				<button class="ap-btn" id="apResetHtml" type="button">Reset HTML</button>
+			</div>
+		</header>
 
-    <div class="ap-root" id="apRoot">
-      <main class="ap-work">
-        <!-- The AO3 page lives in an iframe: its own document, so AO3's site
-				     stylesheet (ao3-site.css) and the work skin can't leak into the
+		<div class="ap-root" id="apRoot">
+			<main class="ap-work">
+				<!-- The AO3 page lives in an iframe: its own document, so AO3's site
+				     stylesheet (default-skin-webscraped.css) and the work skin can't leak into the
 				     drawer, and the page runs the full width of the column the way it
 				     does on the site. preview.js writes the document. -->
-        <iframe id="apFrame" class="ap-frame" title="AO3 work preview"></iframe>
-      </main>
+				<iframe id="apFrame" class="ap-frame" title="AO3 work preview"></iframe>
+			</main>
 
-      <aside class="doc-side" id="apSide">
-        <div class="doc-side-card">
-          <div
-            class="doc-side-grip"
-            id="apGrip"
-            role="separator"
-            aria-orientation="vertical"
-            tabindex="0"
-            aria-label="Resize the CSS drawer"
-            title="Drag to resize · double-click to reset"
-          ></div>
-          <div class="doc-side-head">
-            <h3>Work skin CSS</h3>
-            <span class="ap-issues" id="apIssues"></span>
-            <button
-              class="ap-icon"
-              id="apExpand"
-              type="button"
-              aria-label="Expand the drawer"
-              title="Expand"
-            >
-              ⤢
-            </button>
-            <button
-              class="doc-side-close"
-              id="apMin"
-              type="button"
-              aria-label="Minimise the drawer"
-              title="Minimise"
-            >
-              −
-            </button>
-          </div>
-          <textarea
-            id="apCss"
-            spellcheck="false"
-            autocapitalize="off"
-            autocomplete="off"
-            placeholder="#workskin .userstuff p { … }"
-          ></textarea>
-          <div class="ap-lint" id="apLint"></div>
-        </div>
-      </aside>
-      <button
-        class="doc-side-tab hidden"
-        id="apTab"
-        type="button"
-        aria-expanded="false"
-        title="Open the CSS drawer"
-      >
-        CSS
-      </button>
-    </div>
+			<aside class="doc-side" id="apSide">
+				<div class="doc-side-card">
+					<div
+						class="doc-side-grip"
+						id="apGrip"
+						role="separator"
+						aria-orientation="vertical"
+						tabindex="0"
+						aria-label="Resize the CSS drawer"
+						title="Drag to resize · double-click to reset"
+					></div>
+					<div class="doc-side-head">
+						<h3>Work skin CSS</h3>
+						<span class="ap-issues" id="apIssues"></span>
+						<button class="ap-icon" id="apExpand" type="button" aria-label="Expand the drawer" title="Expand">⤢</button>
+						<button class="doc-side-close" id="apMin" type="button" aria-label="Minimise the drawer" title="Minimise">
+							−
+						</button>
+					</div>
+					<textarea
+						id="apCss"
+						spellcheck="false"
+						autocapitalize="off"
+						autocomplete="off"
+						placeholder="#workskin .userstuff p { … }"
+					></textarea>
+					<div class="ap-lint" id="apLint"></div>
+				</div>
+			</aside>
+			<button class="doc-side-tab hidden" id="apTab" type="button" aria-expanded="false" title="Open the CSS drawer">
+				CSS
+			</button>
+		</div>
 
-    <!-- the live skin: the parent keeps a mirror; the copy that paints lives in the iframe -->
-    <style id="apSkin"></style>
+		<!-- the live skin: the parent keeps a mirror; the copy that paints lives in the iframe -->
+		<style id="apSkin"></style>
 
-    <script type="module">
-      import { mountPreview } from "/ao3/preview.js";
-      mountPreview(document);
-    </script>
-  </body>
+		<script type="module">
+			import { mountPreview } from "/ao3/preview.js"
+			mountPreview(document)
+		</script>
+	</body>
 </html>

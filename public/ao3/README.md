@@ -11,7 +11,7 @@
 | `preview.js` | wiring: mounts `/js/components/side-drawer.js`, applies the CSS live, runs the lint |
 | `ao3-rules.js` | pure lint (`lintCss`, `propertyStatus`, `valueStatus`) mirroring otwarchive's `lib/css_cleaner.rb` |
 | `ao3-rules.json` | the same whitelist as data; `test/ao3-rules.test.mjs` fails if it drifts from the module |
-| `ao3-site.css` | AO3's own site stylesheet (the base look of the page, scraped from the live site) |
+| `default-skin-webscraped.css` | AO3's own site stylesheet (the base look of the page, scraped from the live site) |
 | `default-work.html` | a real AO3 work page, body only (header · work · footer), scraped from the live site — replace to change the default |
 | `default-skin.css` | the default work skin — replace to change the default |
 

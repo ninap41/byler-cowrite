@@ -64,7 +64,7 @@ export function mountPreview(
     storage = globalThis.localStorage,
     loadCss = () => fetchText("/ao3/default-skin.css"),
     loadHtml = () => fetchText("/ao3/default-work.html"),
-    loadSite = () => fetchText("/ao3/ao3-site.css"),
+    loadSite = () => fetchText("/ao3/default-skin-webscraped.css"),
   } = {},
 ) {
   const $ = (id) => doc.getElementById(id);
