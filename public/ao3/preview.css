@@ -1,0 +1,405 @@
+/* AO3 work-skin previewer — its OWN stylesheet. This page links neither
+   base.css nor chrome.js on purpose: the preview should look like an AO3
+   work (white page, serif prose), not like the app, and the author's skin
+   must not fight the site's tokens. The drawer rules below are a copy of the
+   `.doc-side*` family from base.css so public/js/components/side-drawer.js
+   (pure class-toggling JS) works here unchanged. */
+
+* {
+	box-sizing: border-box;
+}
+:root {
+	--ap-bar-h: 46px;
+	--ap-line: #d9d9d9;
+	--ap-panel: #f7f7f7;
+	--ap-ink: #222;
+	--ap-muted: #666;
+	--ap-accent: #900; /* AO3's red */
+	--ap-accent-2: #b53a3a;
+	--ap-warn: #8a6d00;
+	--ap-err: #a11;
+	--r-lg: 8px;
+	--r-md: 6px;
+	--doc-sticky: var(--ap-bar-h);
+	--footbar-h: 0px;
+}
+html,
+body {
+	margin: 0;
+	background: #fff;
+	color: var(--ap-ink);
+	font-family: Georgia, "Times New Roman", serif;
+}
+.hidden {
+	display: none;
+}
+button {
+	font: inherit;
+	cursor: pointer;
+}
+
+/* ---- the top strip ---- */
+.ap-bar {
+	position: sticky;
+	top: 0;
+	z-index: 30;
+	height: var(--ap-bar-h);
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	padding: 0 16px;
+	background: var(--ap-panel);
+	border-bottom: 1px solid var(--ap-line);
+	font-family: "Space Grotesk", Verdana, sans-serif;
+	font-size: 0.85rem;
+}
+.ap-bar .ap-title {
+	font-weight: 700;
+	color: var(--ap-accent);
+	text-decoration: none;
+}
+.ap-bar a {
+	color: var(--ap-muted);
+	text-decoration: none;
+}
+.ap-bar a:hover {
+	color: var(--ap-accent);
+}
+.ap-bar .ap-acts {
+	margin-left: auto;
+	display: flex;
+	gap: 8px;
+	align-items: center;
+}
+.ap-bar label {
+	display: inline-flex;
+	gap: 6px;
+	align-items: center;
+	color: var(--ap-muted);
+	user-select: none;
+}
+.ap-btn {
+	border: 1px solid var(--ap-line);
+	background: #fff;
+	color: var(--ap-ink);
+	border-radius: var(--r-md);
+	padding: 5px 10px;
+	font-size: 0.8rem;
+}
+.ap-btn:hover {
+	border-color: var(--ap-accent-2);
+	color: var(--ap-accent);
+}
+
+/* ---- the grid: the work, then the drawer column ---- */
+.ap-root {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) var(--doc-side-w, 300px);
+	gap: 0;
+	align-items: start;
+	min-height: calc(100vh - var(--ap-bar-h));
+}
+.ap-root.side-expanded {
+	grid-template-columns: minmax(0, 1fr) min(70vw, 900px);
+}
+.ap-root.side-closed {
+	grid-template-columns: minmax(0, 1fr);
+}
+.ap-root.side-closed .doc-side {
+	display: none;
+}
+
+/* ---- the work: AO3's reading column ---- */
+.ap-work {
+	padding: 28px 24px 80px;
+	min-width: 0;
+}
+#workskin {
+	max-width: 72ch;
+	margin: 0 auto;
+	font-size: 1.05rem;
+	line-height: 1.5;
+}
+/* a few of AO3's own defaults so an unskinned work reads like one */
+#workskin .userstuff p {
+	margin: 1.286em 0;
+}
+#workskin .userstuff blockquote {
+	margin: 1em 3em;
+	padding: 0;
+	font-style: italic;
+}
+#workskin .userstuff hr {
+	border: 0;
+	border-top: 1px solid var(--ap-line);
+	margin: 2em auto;
+	width: 33%;
+}
+#workskin h1,
+#workskin h2,
+#workskin h3 {
+	font-family: Georgia, serif;
+	font-weight: 400;
+	line-height: 1.2;
+}
+
+/* ---- the drawer (copied from base.css so side-drawer.js works) ---- */
+.doc-side {
+	align-self: stretch;
+	position: relative;
+	border-left: 1px solid var(--ap-line);
+	background: var(--ap-panel);
+}
+.doc-side-card {
+	position: sticky;
+	top: var(--doc-sticky);
+	height: calc(100vh - var(--doc-sticky));
+	max-height: calc(100vh - var(--doc-sticky));
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	text-align: left;
+	padding: 10px 12px 12px 20px; /* room for the grip, which sits on the inner edge */
+}
+.doc-side-grip {
+	position: absolute;
+	left: 0;
+	top: 0;
+	bottom: 0;
+	width: 14px;
+	cursor: col-resize;
+	touch-action: none;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+.doc-side-grip::before {
+	content: "";
+	width: 3px;
+	height: 42px;
+	border-radius: 3px;
+	background: var(--ap-line);
+	transition:
+		background 0.15s ease,
+		height 0.15s ease;
+}
+.doc-side-grip:hover::before,
+.doc-side-grip:focus-visible::before,
+body.resizing-side .doc-side-grip::before {
+	background: var(--ap-accent-2);
+	height: 72px;
+}
+.doc-side-grip:focus-visible {
+	outline: 2px solid var(--ap-accent-2);
+	outline-offset: -2px;
+}
+.side-expanded .doc-side-grip {
+	display: none; /* the width is fixed while expanded */
+}
+body.resizing-side {
+	user-select: none;
+	cursor: col-resize;
+}
+.doc-side-head {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-family: "Space Grotesk", Verdana, sans-serif;
+}
+.doc-side-head h3 {
+	margin: 0;
+	flex: 1 1 auto;
+	font-size: 0.9rem;
+	font-weight: 700;
+}
+.doc-side-close,
+.ap-icon {
+	flex: 0 0 auto;
+	width: 30px;
+	height: 30px;
+	min-width: 0;
+	border: 0;
+	background: none;
+	padding: 0;
+	font-size: 0.95rem;
+	line-height: 1;
+	color: var(--ap-muted);
+	border-radius: var(--r-md);
+}
+.doc-side-close:hover,
+.ap-icon:hover {
+	background: #e9e9e9;
+	color: var(--ap-ink);
+}
+.doc-side-tab {
+	position: fixed;
+	right: 0;
+	top: 50%;
+	transform: translateY(-50%);
+	z-index: 40;
+	border: 1px solid var(--ap-line);
+	border-right: 0;
+	background: var(--ap-panel);
+	color: var(--ap-ink);
+	border-radius: var(--r-md) 0 0 12px;
+	padding: 12px 10px;
+	cursor: pointer;
+	font-size: 0.85rem;
+	font-family: "Space Grotesk", Verdana, sans-serif;
+}
+.doc-side-tab:hover {
+	background: #e9e9e9;
+}
+.doc-side-tab.hidden {
+	display: none;
+}
+
+/* ---- the CSS editor and the lint list ---- */
+.ap-issues {
+	font-size: 0.72rem;
+	color: var(--ap-muted);
+	padding: 2px 7px;
+	border-radius: 999px;
+	background: #e9e9e9;
+}
+.ap-issues.has-err {
+	background: #f6dcdc;
+	color: var(--ap-err);
+}
+.ap-issues.has-warn {
+	background: #f4ebc7;
+	color: var(--ap-warn);
+}
+#apCss {
+	flex: 1 1 auto;
+	min-height: 120px;
+	margin-top: 8px;
+	width: 100%;
+	resize: none;
+	border: 1px solid var(--ap-line);
+	border-radius: var(--r-md);
+	background: #fff;
+	color: var(--ap-ink);
+	font-family: "Inconsolata", Menlo, Consolas, monospace;
+	font-size: 0.86rem;
+	line-height: 1.45;
+	padding: 10px 12px;
+	tab-size: 2;
+}
+#apCss:focus {
+	outline: 2px solid var(--ap-accent-2);
+	outline-offset: -1px;
+}
+.ap-lint {
+	flex: 0 0 auto;
+	max-height: 38%;
+	overflow: auto;
+	margin-top: 8px;
+	font-family: "Space Grotesk", Verdana, sans-serif;
+	font-size: 0.78rem;
+}
+.ap-lint:empty {
+	display: none;
+}
+.ap-lint-row {
+	display: block;
+	width: 100%;
+	text-align: left;
+	border: 0;
+	border-left: 3px solid var(--ap-err);
+	background: #fff;
+	border-radius: 0 var(--r-md) var(--r-md) 0;
+	padding: 6px 8px;
+	margin: 0 0 4px;
+	color: var(--ap-ink);
+	line-height: 1.35;
+}
+.ap-lint-row.warning {
+	border-left-color: var(--ap-warn);
+}
+.ap-lint-row:hover {
+	background: #f0f0f0;
+}
+.ap-lint-row .ln {
+	color: var(--ap-muted);
+	font-family: "Inconsolata", Menlo, monospace;
+	margin-right: 6px;
+}
+.ap-lint-row code {
+	font-family: "Inconsolata", Menlo, monospace;
+	color: var(--ap-accent);
+}
+.ap-lint-row .why {
+	display: block;
+	color: var(--ap-muted);
+}
+.ap-lint-ok {
+	color: #2a6f2a;
+	font-family: "Space Grotesk", Verdana, sans-serif;
+	font-size: 0.78rem;
+	margin-top: 8px;
+}
+
+/* ---- phones: the drawer becomes a sheet from the bottom ---- */
+@media (max-width: 860px) {
+	.ap-root,
+	.ap-root.side-expanded {
+		grid-template-columns: 1fr;
+	}
+	.doc-side {
+		position: fixed;
+		left: 0;
+		right: 0;
+		bottom: var(--footbar-h);
+		z-index: 60;
+		align-self: auto;
+		border-left: 0;
+		border-top: 1px solid var(--ap-line);
+	}
+	.doc-side-card {
+		position: static;
+		height: var(--doc-side-w, 300px);
+		max-height: 85vh;
+		margin: 0;
+		padding: 12px 14px 14px;
+	}
+	.side-expanded .doc-side-card {
+		height: 85vh;
+	}
+	.doc-side-grip {
+		left: 0;
+		right: 0;
+		top: 0;
+		bottom: auto;
+		width: auto;
+		height: 18px;
+		cursor: row-resize;
+	}
+	.doc-side-grip::before {
+		width: 44px;
+		height: 3px;
+	}
+	.doc-side-grip:hover::before,
+	.doc-side-grip:focus-visible::before,
+	body.resizing-side .doc-side-grip::before {
+		width: 72px;
+		height: 3px;
+	}
+	body.resizing-side {
+		cursor: row-resize;
+	}
+	.doc-side-head {
+		margin-top: 6px;
+	}
+	.ap-root:not(.side-closed) .ap-work {
+		padding-bottom: calc(var(--doc-side-w, 300px) + 20px);
+	}
+	.doc-side-tab {
+		top: auto;
+		bottom: 16px;
+	}
+	.ap-bar {
+		gap: 8px;
+		font-size: 0.78rem;
+	}
+}

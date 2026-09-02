@@ -66,6 +66,24 @@ body.home-page {
 	color: var(--ink);
 	text-decoration: none;
 }
+/* A plain link beside the brand: same face, quieter, lit on hover. */
+.tour-bar .bar-link {
+	font-family: var(--font-display);
+	font-weight: 700;
+	font-size: 0.72rem;
+	letter-spacing: 1px;
+	text-transform: uppercase;
+	color: var(--muted);
+	text-decoration: none;
+	padding: 4px 8px;
+	border-radius: 999px;
+	border: 1px solid var(--line);
+	transition: color var(--tsn), border-color var(--tsn);
+}
+.tour-bar .bar-link:hover {
+	color: var(--accent-2);
+	border-color: var(--accent-2);
+}
 .tour-rail {
 	margin-left: auto;
 	display: flex;

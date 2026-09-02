@@ -676,3 +676,25 @@ test("archive: tags are read-only chips above the prompt with a ✎ that opens t
   const detail = html.slice(html.indexOf('id="archiveDetail"'), html.indexOf('id="tagModal"'));
   assert.ok(!detail.includes('id="archTags"'), "no tag input on the page outside the modal");
 });
+
+// The AO3 previewer is a chrome-free island: its own stylesheet under
+// /ao3/, no base.css, no chrome.js, no auth — reached from the tour bar.
+test("/ao3-preview renders as its own page, links only /ao3/, and the tour bar points at it", async () => {
+  const r = await page("/ao3-preview");
+  assert.equal(r.status, 200);
+  assert.ok(!r.body.includes("{{"), "tokens filled");
+  assert.ok(r.body.includes('<meta name="site-name"'), "rendered through renderPage");
+  assert.ok(r.body.includes('href="/ao3/preview.css"'), "its own stylesheet");
+  assert.ok(!r.body.includes("/css/base.css"), "never the app's base.css");
+  assert.ok(!r.body.includes("/js/chrome.js") && !r.body.includes("auth-guard"), "no chrome, no login");
+  assert.ok(r.body.includes('id="workskin"') && r.body.includes('class="userstuff" id="apWork"'), "AO3's own ids");
+  for (const id of ["apRoot", "apSide", "apGrip", "apTab", "apMin", "apExpand", "apCss", "apLint", "apStrict", "apSkin"]) assert.ok(r.body.includes(`id="${id}"`), id);
+  for (const path of ["/ao3/preview.css", "/ao3/preview.js", "/ao3/ao3-rules.js", "/ao3/ao3-rules.json", "/ao3/default-work.html", "/ao3/default-skin.css"]) {
+    assert.equal((await page(path)).status, 200, path + " served");
+  }
+  const home = await page("/");
+  const bar = home.body.slice(home.body.indexOf('id="tourBar"'), home.body.indexOf('id="tourDots"'));
+  assert.match(bar, /<a class="bar-link" href="\/ao3-preview">AO3 previewer<\/a>/, "the tour bar links it");
+  const css = (await page("/css/home.css")).body;
+  assert.match(css, /\.tour-bar \.bar-link \{/, "and styles the link");
+});
