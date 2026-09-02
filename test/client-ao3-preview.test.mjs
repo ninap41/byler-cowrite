@@ -7,7 +7,7 @@ import { installDom } from "./dom.mjs";
 const PAGE = readFileSync(new URL("../public/ao3-preview.html", import.meta.url), "utf-8");
 const bodyOf = (html) => html.slice(html.indexOf("<body>") + 6, html.indexOf("<script type=\"module\">"));
 
-let mountPreview, lintRowHtml, issuesLabel, KEY_CSS, KEY_EXPANDED;
+let mountPreview, lintRowHtml, issuesLabel, frameHtml, KEY_CSS, KEY_EXPANDED;
 before(async () => {
   installDom();
   window.matchMedia = () => ({ matches: false, addEventListener() {}, removeEventListener() {} });
@@ -15,20 +15,23 @@ before(async () => {
   const src = readFileSync(new URL("../public/ao3/preview.js", import.meta.url), "utf-8")
     .replace('"/js/components/side-drawer.js"', '"../js/components/side-drawer.js"');
   const url = "data:text/javascript;base64," + Buffer.from(src.replace(/from "\.\.\/js/g, 'from "' + new URL("../public/js", import.meta.url).href).replace(/from "\.\/ao3-rules\.js"/, 'from "' + new URL("../public/ao3/ao3-rules.js", import.meta.url).href + '"')).toString("base64");
-  ({ mountPreview, lintRowHtml, issuesLabel, KEY_CSS, KEY_EXPANDED } = await import(url));
+  ({ mountPreview, lintRowHtml, issuesLabel, frameHtml, KEY_CSS, KEY_EXPANDED } = await import(url));
 });
 
 function fresh() {
   document.body.innerHTML = bodyOf(PAGE);
   localStorage.clear();
-  return mountPreview(document, { storage: localStorage, loadCss: async () => "#workskin p { color: red }", loadHtml: async () => "<p>hi</p>" });
+  return mountPreview(document, { storage: localStorage, loadCss: async () => "#workskin p { color: red }", loadHtml: async () => "<p>hi</p>", loadSite: async () => "body { margin: 0 }" });
 }
 const fire = (el, type) => el.dispatchEvent(new window.Event(type, { bubbles: true }));
 
-test("mounting loads the defaults, applies the skin and marks it AO3-clean", async () => {
+test("mounting writes the AO3 page into the frame with the site css and the skin, and marks it AO3-clean", async () => {
   const m = fresh();
   await m.ready;
-  assert.equal(document.getElementById("apWork").innerHTML, "<p>hi</p>");
+  const fd = m.frameDoc();
+  assert.equal(fd.body.innerHTML, "<p>hi</p>", "the work is the frame's body");
+  assert.equal(fd.getElementById("apSite").textContent, "body { margin: 0 }", "AO3's site css is the frame's base");
+  assert.match(fd.getElementById("apSkin").textContent, /color: red/, "the skin paints inside the frame");
   assert.equal(document.getElementById("apCss").value, "#workskin p { color: red }");
   assert.match(document.getElementById("apSkin").textContent, /color: red/);
   assert.equal(document.getElementById("apIssues").textContent, "AO3-clean");
@@ -44,6 +47,7 @@ test("the strict toggle renders the cleaned sheet, raw otherwise; the lint lists
   m.apply();
   const skin = document.getElementById("apSkin");
   assert.ok(!skin.textContent.includes("gap"), "strict: gap stripped");
+  assert.equal(m.frameDoc().getElementById("apSkin").textContent, skin.textContent, "the frame's copy follows");
   assert.equal(localStorage.getItem(KEY_CSS), css.value, "draft persisted");
   const rows = document.querySelectorAll("#apLint .ap-lint-row");
   assert.equal(rows.length, 1);
@@ -85,6 +89,21 @@ test("reset buttons restore the shipped defaults and forget the draft", async ()
   document.getElementById("apResetCss").click();
   assert.equal(css.value, "#workskin p { color: red }");
   assert.equal(localStorage.getItem(KEY_CSS), null);
+});
+
+test("reset HTML rewrites the frame from the shipped default", async () => {
+  const m = fresh();
+  await m.ready;
+  m.frameDoc().body.innerHTML = "<p>edited</p>";
+  document.getElementById("apResetHtml").click();
+  assert.equal(m.frameDoc().body.innerHTML, "<p>hi</p>");
+});
+
+test("frameHtml puts links in a new tab and carries both style blocks", () => {
+  const h = frameHtml({ siteCss: "a{}", skinCss: "b{}", body: "<p>x</p>" });
+  assert.match(h, /<base target="_blank">/);
+  assert.match(h, /<style id="apSite">a\{\}<\/style><style id="apSkin">b\{\}<\/style>/);
+  assert.match(h, /<body><p>x<\/p><\/body>/);
 });
 
 test("builders escape what they print", () => {

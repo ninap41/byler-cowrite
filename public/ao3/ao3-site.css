@@ -1,0 +1,962 @@
+/* == CORE: basic functional layout
+https://otwcode.github.io/docs/stylesheets-views.html#core
+*/
+
+body,
+.toggled form,
+.dynamic form,
+.secondary,
+.dropdown {
+	background: #fff;
+	color: #2a2a2a;
+	font:
+		100%/1.125 "Lucida Grande",
+		"Lucida Sans Unicode",
+		Verdana,
+		Helvetica,
+		sans-serif,
+		"GNU Unifont";
+	margin: 0;
+	padding: 0;
+}
+
+.heading {
+	font-family: Georgia, serif;
+}
+
+a,
+a:link {
+	color: #900;
+	text-decoration: none;
+}
+
+#header,
+#footer,
+#main,
+#dashboard {
+	padding: 1em 3em;
+}
+
+.landmark {
+	font-size: 0;
+	opacity: 0;
+}
+
+.hidden {
+	display: none;
+}
+
+li.blurb,
+fieldset,
+form dl {
+	border: 1px solid #ddd;
+	padding: 1em;
+	overflow: hidden;
+}
+
+.blurb li,
+.actions > *,
+.stats > *,
+.meta ul li {
+	list-style: none;
+	display: inline;
+	padding-left: 0.25em;
+}
+
+.actions form {
+	display: inline;
+}
+
+.actions input[type="submit"] {
+	margin: 0;
+}
+
+/* END == */
+/* == ELEMENTS
+https://otwcode.github.io/docs/stylesheets-views.html#elements
+*/
+
+/* MEYERS RESET. *********************************************** do not edit */
+
+html,
+body,
+div,
+span,
+applet,
+object,
+iframe,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+blockquote,
+pre,
+a,
+abbr,
+acronym,
+address,
+big,
+cite,
+code,
+del,
+dfn,
+em,
+img,
+ins,
+kbd,
+q,
+s,
+samp,
+small,
+strike,
+strong,
+sub,
+sup,
+tt,
+var,
+dl,
+dt,
+dd,
+ol,
+ul,
+li,
+fieldset,
+form,
+label,
+legend,
+table,
+caption,
+tbody,
+tfoot,
+thead,
+tr,
+th,
+td {
+	border: 0;
+	outline: 0;
+	font-weight: inherit;
+	font-style: inherit;
+	font-size: 100%;
+	font-family: inherit;
+	vertical-align: baseline;
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+/* *********************************************** end of uneditable rules */
+
+/* The global rules for normal elements */
+
+body {
+	font:
+		100%/1.125 "Lucida Grande",
+		"Lucida Sans Unicode",
+		Verdana,
+		Helvetica,
+		sans-serif,
+		"GNU Unifont";
+}
+
+a,
+a:link,
+a:visited:hover {
+	color: #111;
+	text-decoration: none;
+	border-bottom: 1px solid;
+}
+
+a:visited {
+	color: #666;
+	text-decoration: none;
+	border-bottom: 1px dashed;
+}
+
+a:hover {
+	color: #999;
+}
+
+a:active,
+a:focus,
+button:focus {
+	outline: 1px dotted;
+}
+
+a img {
+	border: 0;
+}
+
+a:focus img {
+	outline: 1px dotted;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.heading {
+	font-family: Georgia, serif;
+	font-weight: 400;
+	word-wrap: break-word;
+}
+
+h1 {
+	font-size: 2.5em;
+	line-height: 1;
+	margin: 0.5em 0;
+}
+
+h2 {
+	font-size: 2.143em;
+	line-height: 1;
+	margin: 0.429em 0;
+	display: inline;
+}
+
+/* 24px skipped: font-size: 1.714em; line-height: 1; margin: 0.429em 0 */
+
+h3 {
+	font-size: 1.286em;
+	line-height: 1;
+	margin: 0.5375em 0;
+}
+
+h4 {
+	font-size: 1.143em;
+	line-height: 1.125;
+	margin: 0.5em 0;
+}
+
+h5 {
+	font-size: 1em;
+	line-height: 1.286;
+	margin: 0.643em 0;
+}
+
+h6 {
+	font-size: 0.875em;
+	font-weight: 900;
+	line-height: 1.5;
+	margin: 1.5em 0;
+}
+
+p,
+li,
+dd,
+hr {
+	margin: 0.643em 0;
+}
+
+hr {
+	border: 0;
+	border-bottom: 3px double;
+}
+
+.clear {
+	clear: both;
+	height: 0;
+	border: 0;
+	margin: 0;
+	background: transparent;
+	opacity: 0;
+}
+
+blockquote,
+pre,
+address {
+	font:
+		1em "Lucida Grande",
+		"Lucida Sans Unicode",
+		Verdana,
+		Helvetica,
+		sans-serif;
+	margin: 0.643em;
+}
+
+blockquote p:first-child,
+address p:first-child {
+	margin-top: 0;
+}
+
+blockquote p:last-child,
+address p:first-child {
+	margin-bottom: 0;
+}
+
+kbd,
+tt,
+code,
+var,
+pre,
+samp {
+	font:
+		normal 0.857em "Monaco",
+		"Consolas",
+		Courier,
+		monospace;
+	font-variant-ligatures: none;
+	margin: auto;
+}
+
+pre {
+	white-space: pre-wrap;
+}
+
+strong,
+b {
+	font-weight: bold;
+}
+
+em,
+cite,
+i {
+	font-style: oblique;
+}
+
+cite em,
+em cite,
+cite i,
+i cite,
+i em,
+em i,
+em em,
+i i,
+cite cite {
+	font-style: normal;
+}
+
+em cite,
+i cite,
+ins,
+u {
+	text-decoration: underline;
+}
+
+del,
+strike {
+	text-decoration: line-through;
+}
+
+dfn,
+abbr,
+acronym {
+	cursor: help;
+}
+
+big {
+	font-size: 114%;
+}
+
+small,
+sub,
+sup {
+	font-size: 87.5%;
+}
+
+small small small small {
+	font-size: 100%;
+}
+
+sub {
+	vertical-align: sub;
+	line-height: 0;
+}
+
+sup {
+	vertical-align: super;
+	line-height: 0;
+}
+
+/*
+https://otwcode.github.io/docs/patterns/tables.html
+*/
+
+table {
+	background: #ddd;
+	border-collapse: collapse;
+	margin: auto;
+	width: 100%;
+	clear: right;
+}
+
+caption {
+	height: 0;
+	width: 0;
+	font-size: 0;
+	opacity: 0;
+	padding: 0;
+	margin: 0;
+}
+
+thead,
+tfoot {
+	border-bottom: 2px solid #bbb;
+	padding: 0.643em;
+	vertical-align: top;
+}
+
+tfoot td {
+	border-top: 1px solid #bbb;
+}
+
+td th {
+	padding-right: 1em;
+}
+
+tbody tr {
+	border-bottom: 1px solid #fff;
+}
+
+td {
+	padding: 0.25em;
+	vertical-align: top;
+}
+
+th {
+	text-align: start;
+}
+
+thead td {
+	background: #ddd;
+	border-bottom: 1px solid #fff;
+}
+
+th,
+tr:hover,
+col.name {
+	background: #fff;
+	border: 1px solid #bbb;
+	padding: 0.15em 0.5em 0.25em;
+	vertical-align: top;
+}
+
+th a,
+th a:visited,
+th a:link {
+	text-decoration: none;
+}
+
+tbody tr th {
+	text-align: start;
+}
+
+/* END == */
+/* == REGION: HEADER is #1 of the 4 regions shown on every page
+https://otwcode.github.io/docs/patterns/regions.html#header-region
+notice that CSS3 declarations sit are indented twice (four spaces) and always come last
+*/
+
+#header input,
+#header #search > *,
+#header #search .submit {
+	display: inline;
+	float: none;
+}
+
+#header .landmark {
+	clear: none;
+	font-size: 0;
+	border: none;
+}
+
+#header a,
+#header fieldset,
+#header form,
+#header p,
+#header li,
+#header h1,
+#small_login dl {
+	background: transparent;
+	font-size: 100%;
+	border: none;
+	padding: 0;
+	margin: 0;
+	border-radius: 0;
+	box-shadow: none;
+}
+
+#header {
+	font-size: 0.875em;
+	margin: 0 0 1em;
+	padding: 0;
+	position: relative;
+}
+
+#header li {
+	display: block;
+	float: left;
+	position: relative;
+}
+
+#header a,
+#header a:visited,
+#header .primary .open a,
+#header .primary .dropdown:hover a,
+#header .primary .dropdown a:focus {
+	color: #111;
+}
+
+#header .actions a:hover,
+#header .actions a:focus,
+#header .dropdown:hover a,
+#header .open a {
+	background: #ddd;
+}
+
+/* BRANDING: logo and title */
+
+#header .heading {
+	float: left;
+	padding: 0.375em;
+}
+
+/* 1.714em x 14px = 24px */
+#header .heading a {
+	color: #900;
+	font-size: 1.714em;
+	line-height: 1.75em;
+}
+
+#header .logo {
+	float: left;
+	height: 42px;
+}
+
+/* ACTION: dropdown */
+
+#header .menu,
+#small_login {
+	background: #ddd;
+	display: none;
+	padding: 0.25em 0;
+	position: absolute;
+	width: 20em;
+	z-index: 55;
+	box-shadow: 1px 1px 3px -1px #444;
+	background-image: -moz-linear-gradient(top, rgba(221, 221, 221, 0.98) 0%, rgba(204, 204, 204, 0.98) 100%);
+	background-image: -webkit-linear-gradient(top, rgba(221, 221, 221, 0.98) 0%, rgba(204, 204, 204, 0.98) 100%);
+	background-image: -o-linear-gradient(top, rgba(221, 221, 221, 0.98) 0%, rgba(204, 204, 204, 0.98) 100%);
+	background-image: linear-gradient(to bottom, rgba(221, 221, 221, 0.98) 0%, rgba(204, 204, 204, 0.98) 100%);
+	filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#fadddddd', endColorstr='#facccccc',GradientType=0);
+}
+
+#header .open .menu,
+#header .dropdown:hover .menu,
+.open + #small_login,
+#header .menu li {
+	display: block;
+	float: none;
+}
+
+#header .menu li {
+	border-bottom: 1px solid #888;
+	margin: 0 0.25em;
+	text-align: left;
+}
+
+#header .menu li:last-child {
+	border-bottom: none;
+}
+
+#header .dropdown .menu a {
+	background: transparent;
+	display: block;
+	padding: 0.75em 0.5em 0.5em;
+}
+
+#header .dropdown .menu a:hover,
+#header .dropdown .menu a:focus {
+	background: rgba(255, 255, 255, 0.25);
+}
+
+/* login and greeting */
+
+#login,
+#greeting {
+	float: right;
+	margin-right: 0.375em;
+}
+
+#header .user {
+	padding: 0.429em 0 0;
+	position: relative;
+	z-index: 20;
+}
+
+#header .user a,
+#small_login .action {
+	padding: 0.25em 0.75em;
+}
+
+#header .user a:hover,
+#header .user a:focus {
+	color: #900;
+	border-radius: 0.25em;
+}
+
+#login .open a:hover,
+#login .open a:focus {
+	background: #eee;
+}
+
+#greeting .user > li {
+	margin: 0 0.125em;
+}
+
+#greeting .menu {
+	right: 0;
+	box-shadow: -1px 1px 3px -1px #444;
+}
+
+/* square off bottom corners when the dropdown is visible */
+#greeting .open a,
+#greeting .dropdown:hover a {
+	border-radius: 0.25em 0.25em 0 0;
+}
+
+#greeting .dropdown .menu a {
+	border-radius: 0;
+}
+
+#greeting p.icon {
+	float: right;
+	height: auto;
+	padding: 0.429em 0.125em 0;
+	line-height: 1;
+	width: auto;
+}
+
+#greeting p.icon a {
+	display: block;
+	padding: 0;
+}
+
+#greeting img.icon {
+	height: 1.786em;
+	width: 1.786em;
+	background-size: 100%;
+}
+
+/* FORM: login */
+
+#small_login {
+	border: 2px solid #fff;
+	padding: 0.375em;
+	right: 0;
+	z-index: 10;
+	box-shadow: none;
+}
+
+#small_login form {
+	margin-top: 1.286em;
+}
+
+#small_login dt,
+#small_login dd {
+	margin: 0;
+	width: 99%;
+}
+
+#small_login dt,
+#small_login .submit {
+	border-bottom: none;
+	padding: 0.375em 0 0;
+}
+
+#small_login .actions {
+	float: none;
+	text-align: left;
+}
+
+#small_login .footnote {
+	float: left;
+	font-size: 0.857em;
+	padding: 0.375em 0;
+}
+
+#small_login .footnote li {
+	padding: 0 0.25em;
+}
+
+.dropdown #small_login .footnote a {
+	background: transparent;
+	border-bottom: 1px solid;
+}
+
+/* primary navigation */
+
+#header .primary {
+	background: #900 url(/images/skins/textures/tiles/red-ao3.png);
+	padding: 0 0;
+	width: 100%;
+	box-shadow:
+		inset 0 -6px 10px rgba(0, 0, 0, 0.35),
+		1px 1px 3px -1px rgba(0, 0, 0, 0.25),
+		inset 0 -1px 0 rgba(0, 0, 0, 0.85); /* instead of a bottom border to keep the container the same height as its contents */
+}
+
+#header .primary > li:first-of-type {
+	margin-left: 2em;
+}
+
+#header .primary a {
+	padding: 0.429em 0.75em;
+}
+
+#header .primary a {
+	color: #fff;
+}
+
+#header .primary .menu a {
+	color: #111;
+	padding: 0.75em 0.5em 0.5em;
+}
+
+/* search */
+
+#header .search {
+	float: right;
+	color: #2a2a2a;
+	margin-right: 0.25em;
+}
+
+#header #search input:focus {
+	color: #2a2a2a;
+	outline: 1px dotted;
+}
+
+#header #search .text,
+#header #search .button {
+	border: none;
+}
+
+/* 0.2857em x 14px = 4px because the input has a padding of 0.15em x 14px = 2px and it needs to match 0.429em x 14px = 6px */
+#header #search .text {
+	margin: 0.2857em 0.429em;
+}
+
+#header #search .button {
+	margin: 0;
+}
+
+/* CONTEXT: collections */
+
+#header h2 {
+	border-top: 1px solid;
+	clear: both;
+	color: #fff;
+	display: block;
+	font-size: 1.714em;
+	line-height: 1.5;
+	margin: 0;
+	padding: 0 0.375em;
+	text-shadow: none;
+}
+
+/* END == */
+/* == REGION: DASHBOARD is #2 of the 4 regions shown on every page
+https://otwcode.github.io/docs/patterns/regions.html#dashboard-region
+*/
+
+#dashboard {
+	width: 11.25em;
+	float: left;
+	padding: 0.5em;
+}
+
+#dashboard li {
+	padding: 0;
+}
+
+#dashboard a,
+#dashboard span {
+	color: #111;
+	display: block;
+	white-space: normal;
+	height: auto;
+	line-height: 2;
+	padding: 0 0.5625em;
+	margin: 0;
+	border: none;
+	background: transparent;
+	vertical-align: middle;
+	word-wrap: break-word;
+	box-shadow: none;
+}
+
+#dashboard a:hover {
+	background: #ddd;
+	color: #900;
+}
+
+#dashboard ul {
+	float: none;
+	display: block;
+	padding: 1.286em 0;
+	text-align: right;
+	border-top: 2px solid #ddd;
+	position: relative;
+}
+
+#dashboard .current {
+	background: #ccc;
+}
+
+#dashboard .secondary {
+	right: auto;
+}
+
+#dashboard.own {
+	background: transparent;
+	border-top: 15px solid #900;
+	border-bottom: 15px solid #900;
+	opacity: 1;
+	border-radius: 0.25em;
+}
+
+/* END == */
+/* == REGION: MAIN is #3 of the 4 regions shown on every page
+https://otwcode.github.io/docs/patterns/regions.html#main-region
+*/
+
+#main {
+	font-size: 0.875em;
+	line-height: 1.286;
+	margin: auto;
+	padding: 0.5em 2.5em 3.5em;
+	position: relative;
+	min-height: 450px;
+}
+
+#main:after {
+	content: " ";
+	display: block;
+	height: 0;
+	font-size: 0;
+	clear: both;
+	visibility: hidden;
+}
+
+#main.dashboard {
+	padding-left: 2em;
+	margin: 0.5em auto 1em 14em;
+}
+
+#main.home {
+	padding: 2em 7.5em 3.5em;
+}
+
+#main.errors {
+	background: url("/images/ao3_logos/sadface.png") top right no-repeat;
+}
+
+#main.error-502 {
+	background: url("/images/ao3_logos/ao3-502.png") top right no-repeat;
+}
+
+#main.error-503-maintenance {
+	background: url("/images/ao3_logos/logo-ruby.png") top right no-repeat;
+}
+
+#main.session {
+	background: url("/images/logo.png") 0.5em 3em no-repeat;
+}
+
+#main.authentication {
+	background: none;
+}
+
+#main.errors h2 {
+	display: block;
+	margin-top: 0;
+}
+
+#main.errors p,
+#main.errors .heading {
+	margin-right: 325px;
+}
+
+/* END == */
+/* == REGION: FOOTER is #4 of the 4 regions shown on every page
+https://otwcode.github.io/docs/patterns/regions.html#footer-region
+*/
+
+#footer {
+	background: #900 url("/images/skins/textures/tiles/red-ao3.png");
+	border-top: 2px solid;
+	color: #fff;
+	float: left;
+	font-size: 0.75em;
+	position: relative;
+	padding: 0;
+	width: 100%;
+}
+
+#footer ul {
+	border: 0;
+	clear: both;
+	margin: 1.5em 0;
+	padding: 1em 5%;
+	float: left;
+	text-align: left;
+	width: 90%;
+}
+
+#footer li {
+	position: relative;
+	display: block;
+}
+
+#footer a,
+#footer button {
+	background: transparent;
+	border: 0;
+	font-weight: 400;
+	margin: auto;
+	outline: 0;
+	padding: 0;
+	vertical-align: baseline;
+	box-shadow: none;
+	border-radius: 0;
+}
+
+#footer a,
+#footer button {
+	color: #fff;
+	display: inline;
+	text-decoration: underline;
+	line-height: 1.5;
+	white-space: normal;
+	text-underline-position: under;
+}
+
+#footer button {
+	cursor: pointer;
+	text-align: start;
+	height: unset;
+}
+
+#footer a:focus,
+#footer button:focus {
+	outline: 1px dotted;
+}
+
+#footer .module {
+	max-width: 20%;
+	padding: 0 2%;
+}
+
+#footer .menu {
+	margin: 0;
+	padding: 0;
+}
+
+#footer .heading {
+	display: block;
+	color: #fff;
+}

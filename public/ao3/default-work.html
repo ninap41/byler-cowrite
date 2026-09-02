@@ -1,11 +1,571 @@
-<!-- Placeholder work: the markup an AO3 work body carries inside
-     #workskin .userstuff. Replace this file with the real default. -->
-<h1>Untitled work</h1>
-<p>This is the previewer's placeholder work. Paste a work skin into the drawer on the right and watch it land here. AO3 wraps a work in <code>#workskin .userstuff</code>, and so does this page, so selectors written for AO3 apply verbatim.</p>
-<p class="note">A paragraph with <code>class="note"</code>, the way authors mark passages for a skin.</p>
-<blockquote><p>A blockquote, for letters, journal pages and the like.</p></blockquote>
-<p>Text messages are the classic work-skin case:</p>
-<p class="text">Mike: are you awake</p>
-<p class="text reply">Will: I am now</p>
-<hr />
-<p><em>Italics</em>, <strong>bold</strong>, <s>struck</s>, <u>underlined</u>, and a <a href="#">link</a>.</p>
+<!-- A real AO3 work page, body only (header, work, footer), scraped from the live site.
+     It is rendered inside the previewer's iframe with ao3-site.css as the base and the
+     drawer's work skin on top. Replace this file to change the default. -->
+<div id="outer" class="wrapper">
+		<ul id="skiplinks"><li><a href="#main">Main Content</a></li></ul>
+		
+
+<!-- BEGIN header -->
+
+<header id="header" class="region">
+
+<h1 class="heading">
+	<a href="/"><span>Archive With a Tone</span><img alt="Archive of Our Own" class="logo" src="https://archiveofourown.org/images/ao3_logos/logo_42.png"></a>
+</h1>
+
+	<nav id="greeting" aria-label="User">
+	<ul class="user navigation actions">
+		<li class="dropdown" aria-haspopup="true">
+			<a href="/users/justthegatekeeper" class="dropdown-toggle" data-toggle="dropdown" data-target="#">Hi, justthegatekeeper!</a>
+			<ul class="menu dropdown-menu">
+				<li><a href="/users/justthegatekeeper">My Dashboard</a></li>
+					<li><a href="/users/justthegatekeeper/subscriptions">My Subscriptions</a></li>
+					<li><a href="/users/justthegatekeeper/works">My Works</a></li>
+					<li><a href="/users/justthegatekeeper/bookmarks">My Bookmarks</a></li>
+					<li><a href="/users/justthegatekeeper/collections">My Collections</a></li>
+					<li><a href="/users/justthegatekeeper/readings">My History</a></li>
+				<li><a href="/users/justthegatekeeper/preferences">My Preferences</a></li>
+			</ul>
+		</li>
+		<li class="dropdown" aria-haspopup="true">
+			<a href="/works/new" class="dropdown-toggle" data-toggle="dropdown" data-target="#">Post</a>
+			<ul class="menu dropdown-menu">
+				<li><a href="/works/new">New Work</a></li>
+				<li><a href="/works/new?import=true">Import Work</a></li>
+			</ul>
+		</li>
+		<li><a rel="nofollow" data-method="delete" href="/">Log Out</a></li>
+	</ul>
+
+<p class="icon"><a href="/users/justthegatekeeper"><img alt="" class="icon" src="https://archiveofourown.org/rails/active_storage/representations/proxy/eyJfcmFpbHMiOnsiZGF0YSI6MzcxNDE0NTEsInB1ciI6ImJsb2JfaWQifX0=--3be45ad7e882b60192d8db9228bba6eb651f62fd/eyJfcmFpbHMiOnsiZGF0YSI6eyJmb3JtYXQiOiJqcGciLCJyZXNpemVfdG9fbGltaXQiOlsxMDAsMTAwXSwibG9hZGVyIjp7Im4iOi0xfX0sInB1ciI6InZhcmlhdGlvbiJ9fQ==--fb1da3623781351fb36c743584da71645585f6c4/justthegatekeeper.jpg"></a></p>
+</nav>
+
+
+<nav aria-label="Site">
+	<ul class="primary navigation actions">
+		<li class="dropdown" aria-haspopup="true">
+			<a href="/menu/fandoms" class="dropdown-toggle" data-toggle="dropdown" data-target="#">Fandoms</a>
+			<ul class="menu dropdown-menu">
+<li><a href="/media">All Fandoms</a></li>
+			<li id="medium_5"><a href="/media/Anime%20*a*%20Manga/fandoms">Anime &amp; Manga</a></li>
+			<li id="medium_3"><a href="/media/Books%20*a*%20Literature/fandoms">Books &amp; Literature</a></li>
+			<li id="medium_4"><a href="/media/Cartoons%20*a*%20Comics%20*a*%20Graphic%20Novels/fandoms">Cartoons &amp; Comics &amp; Graphic Novels</a></li>
+			<li id="medium_7"><a href="/media/Celebrities%20*a*%20Real%20People/fandoms">Celebrities &amp; Real People</a></li>
+			<li id="medium_2"><a href="/media/Movies/fandoms">Movies</a></li>
+			<li id="medium_6"><a href="/media/Music%20*a*%20Bands/fandoms">Music &amp; Bands</a></li>
+			<li id="medium_8"><a href="/media/Other%20Media/fandoms">Other Media</a></li>
+			<li id="medium_30198"><a href="/media/Theater/fandoms">Theater</a></li>
+			<li id="medium_1"><a href="/media/TV%20Shows/fandoms">TV Shows</a></li>
+			<li id="medium_476"><a href="/media/Video%20Games/fandoms">Video Games</a></li>
+			<li id="medium_9971"><a href="/media/Uncategorized%20Fandoms/fandoms">Uncategorized Fandoms</a></li>
+</ul>
+
+		</li>
+		<li class="dropdown" aria-haspopup="true">
+			<a href="/menu/browse" class="dropdown-toggle" data-toggle="dropdown" data-target="#">Browse</a>
+			<ul class="menu dropdown-menu">
+<li><a href="/works">Works</a></li>
+<li><a href="/bookmarks">Bookmarks</a></li>
+<li><a href="/tags">Tags</a></li>
+<li><a href="/collections">Collections</a></li>
+</ul>
+
+		</li>
+		<li class="dropdown" aria-haspopup="true">
+			<a href="/menu/search" class="dropdown-toggle" data-toggle="dropdown" data-target="#">Search</a>
+			<ul class="menu dropdown-menu">
+<li><a href="/works/search">Works</a></li>
+<li><a href="/bookmarks/search">Bookmarks</a></li>
+<li><a href="/tags/search">Tags</a></li>
+<li><a href="/people/search">People</a></li>
+</ul>
+
+		</li>
+		<li class="dropdown" aria-haspopup="true">
+			<a href="/menu/about" class="dropdown-toggle" data-toggle="dropdown" data-target="#">About</a>
+			<ul class="menu dropdown-menu">
+<li><a href="/about">About Us</a></li>
+<li><a href="/admin_posts">News</a></li>
+<li><a href="/faq">FAQ</a></li>
+<li><a href="/wrangling_guidelines">Wrangling Guidelines</a></li>
+<li><a href="/donate">Donate or Volunteer</a></li>
+</ul>
+
+		</li>
+		<li class="search"><form class="search" id="search" role="search" aria-label="Work" action="/works/search" accept-charset="UTF-8" method="get">
+<fieldset>
+	<p>
+		<label class="landmark" for="site_search">Work Search</label>
+		<input class="text" id="site_search" aria-describedby="site_search_tooltip" type="text" name="work_search[query]">
+		<span class="tip" role="tooltip" id="site_search_tooltip">tip: "uchiha sasuke/uzumaki naruto" angst kudos&gt;10</span>
+		<span class="submit actions"><input type="submit" value="Search" class="button"></span>
+	</p>
+</fieldset>
+</form></li>
+	</ul>
+</nav>
+
+
+
+<div class="clear"></div>
+
+</header>
+
+
+
+<!-- END header -->
+
+		<div id="inner" class="wrapper">
+			<!-- BEGIN sidebar -->
+			<!-- END sidebar -->
+
+			<!-- BEGIN main -->
+			<div id="main" class="works-show region" role="main">
+
+				<div class="flash"></div>
+				<!--page description, messages-->
+<ul class="landmark skip">
+<li><a name="top">&nbsp;</a></li>
+<li><a href="#work">Skip header</a></li>
+</ul>
+<!--/descriptions-->
+
+<!--subnav-->
+<!--/subnav-->
+
+<!-- BEGIN revealed -->
+<!-- BEGIN work -->
+<div class="work">
+	<!--work description, metadata, notes and messages-->
+	<!-- BEGIN navigation -->
+<h3 class="landmark heading">Actions</h3>
+<ul class="work navigation actions">
+
+
+
+
+
+	<li class="bookmark">
+		<a class="bookmark_form_placement_open" href="#bookmark-form">Bookmark</a>
+		<a class="hidden bookmark_form_placement_close" href="#" style="display: none;">Cancel Bookmark</a>
+	</li>
+
+	<li class="mark">
+			<form class="button_to" method="post" action="/works/79566811/mark_for_later"><input type="hidden" name="_method" value="patch" autocomplete="off"><button type="submit">Mark for Later</button><input type="hidden" name="authenticity_token" value="JhJC-GGfssGUoeU1O7AyXW6NSgr4zp8i8hNMfSdNmaxOJfzJkz36OUiRBGP3TPVjZFVsKFhaQWh2684wGH-Trw" autocomplete="off"></form>
+	</li>
+
+<li class="comments" id="show_comments_link_top">
+		<a data-remote="true" href="/comments/show_comments?work_id=79566811">Comments </a>
+</li>
+
+
+
+	<li class="share">
+		<a class="modal modal-attached" title="Share Work" href="/works/79566811/share" aria-controls="modal">Share</a>
+	</li>
+
+	<li class="subscribe">
+		<form class="ajax-create-destroy" id="new_subscription" data-create-value="Subscribe" data-destroy-value="Unsubscribe" action="/users/justthegatekeeper/subscriptions" accept-charset="UTF-8" method="post"><input type="hidden" name="authenticity_token" value="JhJC-GGfssGUoeU1O7AyXW6NSgr4zp8i8hNMfSdNmaxOJfzJkz36OUiRBGP3TPVjZFVsKFhaQWh2684wGH-Trw" autocomplete="off">
+<input autocomplete="off" type="hidden" value="79566811" name="subscription[subscribable_id]" id="subscription_subscribable_id">
+<input autocomplete="off" type="hidden" value="Work" name="subscription[subscribable_type]" id="subscription_subscribable_type">
+<input type="submit" name="commit" value="Subscribe">
+</form>
+	</li>
+ <button  >Download</button>
+	 
+	</li>
+</ul>
+<!-- END navigation -->
+
+
+	<h3 class="landmark heading">Work Header</h3>
+
+<div class="wrapper">
+
+<dl class="work meta group">
+				<dt class="rating tags">
+
+						Rating:
+				</dt>
+
+				<dd class="rating tags">
+					<ul class="commas">
+						 <li><a class="tag" href="/tags/Teen%20And%20Up%20Audiences/works">Awesome</a></li>
+					</ul>
+				</dd>
+				<dt class="warning tags">
+
+						<a href="/tos_faq#tags">Archive Warning</a>:
+				</dt>
+
+				<dd class="warning tags">
+					<ul class="commas">
+						 <li><a class="tag" href="/tags/Choose%20Not%20To%20Use%20Archive%20Warnings/works">Creator Chose Not To Use Archive Warnings</a></li>
+					</ul>
+				</dd>
+				<dt class="category tags">
+
+						Category:
+				</dt>
+
+				<dd class="category tags">
+					<ul class="commas">
+						 <li><a class="tag" href="/tags/M*s*M/works">M/M</a></li>
+					</ul>
+				</dd>
+				<dt class="fandom tags">
+
+						Fandom:
+				</dt>
+
+				<dd class="fandom tags">
+					<ul class="commas">
+						 <li><a class="tag" href="/tags/Stranger%20Things%20(TV%202016)/works">Stranger Things (TV 2016)</a></li>
+					</ul>
+				</dd>
+				<dt class="relationship tags">
+
+						Relationship:
+				</dt>
+
+				<dd class="relationship tags">
+					<ul class="commas">
+						 <li><a class="tag" href="/tags/Will%20Byers*s*Mike%20Wheeler/works">Will Byers/Mike Wheeler</a></li>
+					</ul>
+				</dd>
+				<dt class="character tags">
+
+						Characters:
+				</dt>
+
+				<dd class="character tags">
+					<ul class="commas">
+						 <li><a class="tag" href="/tags/Mike%20Wheeler/works">Mike Wheeler</a></li><li><a class="tag" href="/tags/Will%20Byers/works">Will Byers</a></li><li><a class="tag" href="/tags/Dustin%20Henderson/works">Dustin Henderson</a></li><li><a class="tag" href="/tags/Lucas%20Sinclair/works">Lucas Sinclair</a></li><li><a class="tag" href="/tags/Robin%20Buckley/works">Robin Buckley</a></li>
+					</ul>
+				</dd>
+				<dt class="freeform tags">
+
+						Additional Tags:
+				</dt>
+
+				<dd class="freeform tags">
+					<ul class="commas">
+						 <li><a class="tag" href="/tags/Blood%20and%20Injury/works">Blood and Injury</a></li><li><a class="tag" href="/tags/Past%20Violence/works">Past Violence</a></li><li><a class="tag" href="/tags/Near%20Death%20Experiences/works">Near Death Experiences</a></li><li><a class="tag" href="/tags/Pre-Stranger%20Things%205/works">Pre-Stranger Things 5</a></li><li><a class="tag" href="/tags/Hurt*s*Comfort/works">Hurt/Comfort</a></li><li><a class="tag" href="/tags/Happy%20Ending/works">Happy Ending</a></li><li><a class="tag" href="/tags/Ambiguous%20Relationships/works">Ambiguous Relationships</a></li>
+					</ul>
+				</dd>
+
+		<dt class="language">
+			Language:
+		</dt>
+		<dd class="language" lang="en">
+			English
+		</dd>
+
+
+
+	<dt class="stats">Stats:</dt>
+	<dd class="stats">
+<!-- end of cache -->
+
+		<dl class="stats"><dt class="published">Published:</dt><dd class="published">2026-02-15</dd><dt class="words">Words:</dt><dd class="words">5,110</dd><dt class="chapters">Chapters:</dt><dd class="chapters">1/1</dd><dt class="comments">Comments:</dt><dd class="comments">7</dd><dt class="kudos">Kudos:</dt><dd class="kudos">70</dd><dt class="bookmarks">Bookmarks:</dt><dd class="bookmarks"><a href="/works/79566811/bookmarks">7</a></dd><dt class="hits">Hits:</dt><dd class="hits">468</dd></dl>
+		</dd>
+</dl>
+</div>
+
+
+	<div id="work-skin" class="wrapper">
+
+
+		<!-- BODY -->
+		
+		<div id="workskin">
+			
+			<div class="preface group">
+<h2 class="title heading">
+	Bottled Up, Falling Down
+</h2>
+<h3 class="byline heading">
+	<a rel="author" href="/users/Hollow_Cathedral/pseuds/Hollow_Cathedral">Hollow_Cathedral</a>
+</h3>
+
+
+		<div class="summary module">
+			<h3 class="heading">Summary:</h3>
+				<blockquote class="userstuff">
+					<p>He almost didn't see the bridge coming up. The clear drop off of the edge had all his muscles locking up. He slammed his foot on the brake and the beamer screeched as it swerved whipping back and forth at the sudden friction. Will was slammed into the console. He let out a cry and brought his hands up to his face.</p><p>"Fuck Mike! What happened?!"</p><p>or</p><p>Mike developed a fear of heights from the quarry, and faces it.</p>
+				</blockquote>
+		</div>
+
+		<div class="notes module">
+<h3 class="heading">Notes:</h3>
+
+
+
+
+
+
+	<p class="jump">
+			(See the end of the work for <a href="#work_endnotes">notes</a>.)
+	</p>
+</div>
+
+
+</div>
+
+		<!--/descriptions-->
+
+			<!--chapter content-->
+			<div id="chapters" role="article">
+					<h3 class="landmark heading" id="work">Work Text:</h3>
+						<div class="userstuff"><p>Mike stood on the edge of the cliff-side. His head spinning as he looked over and down to the distant lake surface. Legs heavy and refusing to move a safe distance away he swayed in place; the desperate pounding of his heart thumping against his chest. He feels a shift beneath him and then the ground gave away. His shoes dragging across loose soil he twisted around digging his nails into the earth, across rocks, his grip too weak to hold. He tries to shout but nothing comes out; his breath choked back in his throat. Cold wind blasts his hair back as he drops down the cliff face. Freezing tears pulling out of his eyes from the wind. He could barely see the waters of midnight rushing to meet him. Heart freezing he pulled his arms up to cover his face just as he hit the wate—</p><p>He jerked awake with choked gasp, his heart still thumping. Mike ran his hands over his sweat-soaked sheets and body. <em>Just a dream. I'm in bed…. on the ground.. solid ground… </em>He lay his head back onto his pillow and focused on taking in slower breaths like he'd overheard his mom tell Nancy once. His eyes stared up at the ceiling though he couldn't see it in the darkness. <em>It must be pretty late still…</em> After a few minutes of focused breathing, Mike rolled out of bed and slowly made his way to the door, a hand held in front of him in the dark searching for the handle. He found his way out into the hallway and found the stairs were visible in the dim moonlight shining through one of the windows. He grabbed the railing and padded gently downstairs heading for the kitchen. He had just reached the landing and was about to walk past the basement stairs.</p><p>Movement in the shadows freezes him in place.</p><p>"Mike..?" his shoulders relax. <em>Will.</em></p><p>"What are you doing up?" Will's gentle voice carries clearly in the silent house.</p><p>"Couldn't sleep." It wasn't a lie.</p><p>"Me either. I was going to make myself some tea, do you want some?"</p><p>Mike nods his head then realizes Will probably can't see him, "..yeah, I'd like that.."</p><p>He follows Will's shadow across the tile and winces away when the kitchen lamp flares on with a click. "Sorry!" Will hisses. Mike's eyes adjust slowly as he blinks and Will is already rummaging in the cabinet for the tea bags. Mike moves past him to grab the kettle and fill it before setting it on the stove-top. Will had already pulled out a couple of mugs and set them out with some chamomile tea bags resting inside.</p><p>He took a moment to get a good look at his friend. The stiffness in his shoulders and dark circles under his eyes. Will turned his head to check on the temperature of the stove and Mike saw a dried tear track shifting in the light on his cheek. His heart lurched.</p><p>"Are you okay?"</p><p>Will paused, "I'm fine, just tired", he murmured.</p><p>"You've been crying, is it the nightmares again?"</p><p>Will rubbed his face with his sleeve and looked away from him. "It's always the nightmares, but I can handle them."</p><p>"…Will…" he hesitates trying to find the words he means to say, "…I know you can handle them, but I'm here to help…if I can…" the last words falter out. <em>I don't even know if I can help him anymore. Not like I used to.</em></p><p>Will opens his mouth just as the kettle starts to work itself up into a scream, and he quickly grabs the kettle off the heat and the noise simmers down, a dull bubbling can be heard within. He busies himself with pouring the steaming water into each of the mugs and then shutting off the stove, pouring out the rest of the water. Mike focuses on his mug, watches the color of the tea leech out into the water slowly tinting it until the bottom of the cup is covered. Will pulls the tea bag from his own mug and Mike does the same, throwing the used bag into the trash with a faint wet slap. He follows Will into the living room, and finds the lamp on the side table to flick on. Will had already settled on the couch, his knees drawn up, holding the warm drink close to his stomach; almost curling himself around the small source of heat. Mike grabs a nearby blanket and lays it over Will and himself as he sits next to him. He takes a slow sip and lets the warmth wash through him.</p><p>"You do help."</p><p>Mike looks over at him. Will is staring into his mug.</p><p>"Just being here, it helps", he continues, "…I know it's not real, but being near you…talking with you. It brings me back."</p><p>Mike is hit with a wave of gratitude from those words. His chest feels full and like his relief could flow over and pour out of him. And something else blooms too. <em>I can do something right at least.</em></p><p>"That's good, that's….cool."</p><p>Will gives him a bemused look, "…yeah it's cool", he teases.</p><p>"Shut up, you know what I mean." Mike nudges his shoulder softly.</p><p>"Yeah… I do." Will smiles to himself and shifts so he's sitting up higher. "What about you?"</p><p>Mike gives a questioning hum mid-sip.</p><p>"Are you okay? I know you said you couldn't sleep. I didn't know if it was for the same reasons I couldn't…"</p><p>Mike takes his time to swallow the tea in his mouth. Trying to think of a response that wouldn't bring too many questions.</p><p>"It's…for similar reasons…but you help too." He can feel Will shift next to him and he doesn't say anything, like he's waiting for Mike to continue.</p><p>Mike takes another sip. <em>I can't bring that up not when he's dealing with so much already.</em></p><p>Silence settles between them as they each finish up their drinks.</p><p>&nbsp;</p><p>&nbsp;</p><p>Mike was lounging on one of the station couches listening to Lucas and Dustin heatedly discussing whether or not there was a gaping plot hole in the latest X-Men comic. He rolled his gaze over to the DJ booth where Will was helping Robin with her radio show, subbing in for Steve who was stuck at home with a stomach virus. He could hear the radio show playing through a nearby speaker and felt a fond smile hovering on his lips when Will played the girl screaming sound effect after Robin mentioned the upcoming book fair at the public library. Robin shot Will a look and he mouthed 'sorry' as he fumbled through the cassettes to find a more fitting sound.</p><p>The sounds of Uptown Girl distort and fall into static on the speaker and Mike sits up seeing the alarm in Robin and Will's body language. He rises and strides over to the door of the booth.</p><p>"What happened?"</p><p>"I don't know! The power just fluxed!" Robin whined as she twisted dials and slapped her hand against the side of one of the various audio systems lining the walls.</p><p>"Robin do you know where the manual is? Maybe we could find something in there?" Will asked. He leaned down to open a few of the cabinets under the desk. Mike crouches down next to him and looks in the adjacent cabinets. Will pulls his head out from under the counter-top. "Found it." He holds up a large dusty binder.</p><p>They gather around to look through the pages.</p><p>"What happened to the music?" Dustin walks in followed by Lucas.</p><p>Will doesn't take his eyes off the manual, "We're trying to figure that out."</p><p>"Here let me see" Dustin squeezes in on Mike's other side pushing him further in Will. Mike tries to keep his focus on the figures and instructions in front of him, but all comprehension slips from his mind like water.</p><p>"Aha here!" Dustin triumphantly jabs his finger to the top of a graphic of the radio tower, "the remote radio head could be the culprit. We'd need someone to go up there and check if it's still plugged in."</p><p>Mike could feel Dustin and Will's eyes on him. <em>Of course they would expect him to; he's the one who usually charges headfirst into things.</em> He forces himself to take a slow breath and starts leaving the booth heading outside, the others following behind. The sun is shining bright today and there's a warm summer breeze that pulls at their skin. Mike walks until he's craning his neck back to stare up at the signal tower of the WSQK. The metal creaking a little from stronger winds up top. Far, far up top. <em>I can't do this.</em> He looks over to his friends all staring up towards the peak.</p><p>Lucas whistles lowly, "that's quite a climb, do you have that in you Wheeler?"</p><p>Mike grimaces slightly at the good-natured jab, Max had rubbed off on Lucas a lot it seems. He takes another peek at the monstrosity of metal reaching into the sky. <em>Nope. It is not happening.</em> "Actually, I think I might need to rely on you for this one Lucas."</p><p>Lucas gives him a surprised look as he slaps a hand on his shoulder, playing it off casually. "I'm pretty tired, so it'd take me longer to get up there." Again, not a lie.</p><p>"Okay man", he shrugs about to walk over to start his climb and Robin squawks at him to "HOLD IT" as she powers down the tower. They watch as Lucas makes his way up the tower ladders, the faint clanging of metal on shoe soles and bare hands echoing down. Mike can't take his eyes off his friend, his heart still pounds as if he was the one high off the ground with only rusty metal railings to keep him from falling.</p><p>"Hey".</p><p>He feels a nudge on his arm and he looks down at Will. His eyes staring at his face as if he was trying to read something.</p><p>"You okay?" Will said it barely loud enough for him to hear. Mike gave him a stiff nod and cleared his throat. Eyes darting back up to Lucas who was nearing the top his figure as small as one of their D&amp;D figurines. A few seconds later he was at the top. A few more seconds.</p><p>A distant yell, "I fixed it! I'm coming back down!"</p><p>Cheers filled the air from Dustin and Robin as Will gave a standing ovation. Mike kept watching and waiting for Lucas to come back to earth. It wasn't until his sneakers landed back on the grass that Mike let out the breath he had been holding somewhere along Lucas' journey down. Lucas jogged back up to them beaming and skin shining,</p><p>"You owe me Wheeler", he said between heavier breaths. Mike pushed a smile onto his face.</p><p>"Yeah, yeah I owe you one."</p><p>"Let's go back inside before we're all as sweaty as you are", Dustin teased holding his nose between two fingers.</p><p>Lucas holds out his arms and starts stalking towards Dustin, "I can make you sweaty now."</p><p>"Lucas don't TOUCH ME!" Dustin laughs and yells as he darts away from a bear hug.</p><p>&nbsp;</p><p>&nbsp;</p><p>Mike gripped the frame of Steve's beamer and yanked himself into the driver's seat, opposite of him Will launched himself into the passengers seat. They slammed their doors and Mike in habit reached for the seatbelt— "Mike DRIVE" Will shouted at him.</p><p><em>Right. Demogorgon. No time for safety.</em></p><p>Mike shoved his foot into the floorboard, the tires screeching before gaining traction and they both were pushed back into their seats as the car shot off down the road into the night. The engine whirred and the median lines flew past blending together as if they were a solid line. Mike chanced a glance up into the rear-view mirror and saw the monster running after them on all fours.</p><p>"Shit shit shit shit."</p><p>He pressed the pedal down to the floor and focused back on the flashing roadway. They were on the outskirts of Hawkins, so thankfully long country roads were common. Will had been quiet so far, he looked over and <em>shit.</em> Will was sitting stiffly in his seat his mouth gasping and eyes fluttering clearly in the hive mind.</p><p>"Will! Will wake up!" Mike yelled as he tried to focus on the road ahead. He could hear a choking sound coming from him. Fear flashed in him, wild and sharp and he reached over and hand and grabbed one of his hands. "WILL! Don't do this to me, come back to me!"</p><p>The hand squeezed back hard, "I… I can hear you… Mike…I'm….I can see it following us."</p><p>Mike forced himself to breath through his nose as he tried to think. He saw a field in the distance coming up fast and jerked the wheel turning into the empty corn stalks. The hissing and thunks of the stalks slamming against the windshield filled the air. <em>Fuck can't see shit like this. Maybe this wasn't the best idea. </em>Still with an inter-dimensional monster right behind the only path was forward. Mike threw the wheel back and forth to try and throw off the demo before doing a wide turn and gunning it back to where he thought the main road was.</p><p>Will gasped next to him, "it stopped."</p><p>"What?"</p><p>"It stopped chasing us. I…I think it… shit it figured it out", his grip on Mike's hand loosened some and with a quick glance Mike confirmed that Will's eyes were open, he was back.</p><p>The beamer burst out onto the road and Mike rolled the wheel back the way they were heading, speeding off, though not at the breakneck speed they were before.</p><p>"Are you sure they're not following us anymore?"</p><p>"Not the big one, I don't know if there are more. We should keep going just in case, find a place to hide the car."</p><p>"Yeah, okay." Mike readjusted his hands on the wheel and they continued down the road. Mike's eyes kept darting to the treeline, half expecting to see demodogs or even another demogorgon running alongside them with flashing teeth and slobber dripping. He almost didn't see the bridge coming up. The clear drop off of the edge had all his muscles locking up. He slammed his foot on the brake and the beamer screeched as it swerved whipping back and forth at the sudden friction. Will was slammed into the console. He let out a cry and brought his hands up to his face.</p><p>"Fuck Mike! What happened?!" Will groaned.&nbsp;</p><p>Mike's eyes were locked on the cliff edge, his whole chest moving with his rapid breaths.<em> I can't go over that. I can't. I'll fall. I'll</em> —"Mike!" He jerked at Will's hand grabbing his arm and then his shoulder. Wide eyes darted to Will's face and he felt the little air he had in his lungs punch out of him. <em>He's bleeding, oh god he's bleeding and it's my fault.</em> Will's forehead and his upper cheek were red, likely from the force his face was hit with, and there was a thick trail of blood pouring out of his nose.</p><p>"Will…"</p><p>"Are you okay?" Will was fully facing him in his seat looking him all over. Mike's chest tightened and he looked ahead at the edge and then back at Will.</p><p>"I can't." His voice came out much smaller than he meant it to.</p><p>"Mike what do you mean— I mean I can't! I can't go over that!" Mike gestures to the bridge, "I… fuck I'm so sorry Will. I didn't mean to hurt you. I'm so sorry."</p><p>"Close your eyes." Will leaned over and now has one hand on the wheel next to his and he's frowning.</p><p>"Close my eyes...what?"</p><p>"We need to keep going and get over this bridge so close your damn eyes Michael", his voice clear and strong, enunciated with him spitting out some of the blood that dripped into his mouth as he talked. Mike let his eyes flutter closed and tried again to breath through his nose.</p><p>"Good, now press down on the gas."</p><p>"Press down on the gas?!" Mike's voice rose to a strained pitch</p><p>"Yes! Press down on the gas! I'll steer! Just trust me!"</p><p><em>'Just trust me'. I do trust you…I trust you..</em></p><p>He presses down on the pedal and the car lurches forward again.</p><p>"That's it, hold it steady", Will's voice is closer now, low and calm. Mike feels the wheel move under his hands and he lets go completely, allowing Will total control. He can hear the crunching of the gravel under the tires turn into the soft creaking of wood. The hairs on the back of his neck stand on end. <em>We're on the bridge, oh god.</em></p><p>"You're doing great", Will's other hand finds his and starts rubbing his thumb over the back of it, "Just keep pressing the gas, and go a bit faster." The thumps coming from the car as it hit the cross-sections of the bridge as they moved marked their passage, and after the fifth thump Mike started to get nervous again.</p><p>Mike cleared his throat and tried to sound braver than he felt, "Are we almost over?"</p><p>"We're nearly there."</p><p>He felt a wet drop land on his arm. The initial warmth quickly cooling in the air and matching his body heat. Then another.</p><p>The sound of gravel grating under the tires hit Mike's ears like a blessing. His eyes shot open and saw open road ahead of them. Will's hands were still on the wheel and rubbing his own hand. He gently moved his hands back to the wheel feeling the thin sliding wet on his arm and seeing blood running down.</p><p>Will fell back in his seat and put a hand to his face. "Okay, get us out of here Mike."</p><p>He obediently picked up on the gas and drove further down the road. The engine noise growing to a dull roar didn't fully cover the sound of Will coughing after leaning his head back too far; blood must have poured down his throat. A dull lump had settled halfway down Mike's own throat, preventing any words from coming out. Not that he knew what he could say to make this right. <em>Focus, you've got to get us off the road first.</em></p><p>Mike revved the engine as he picked up even more speed, no buildings in sight. Eventually, Will made a noise that resembled an "Ah!" and pointed out the shadow silhouette of a barn. Mike slowed and pulled off the road cautiously looking towards the nearby house, but there were no cars and no lights.</p><p>"I think the McCorkle's moved when the rifts split Hawkins…" Will murmured.</p><p>Mike gave a hum and pulled the car up to the barn doors. Will started to get out of his seat before Mike grabbed his arm.</p><p>"You're not getting up, not until I have chance to look at your face."</p><p>Will fell back into his seat with a huff. Mike got out and heaved the large wooden doors open before getting back in and pulling the car into the barn. He then pulled the doors closed and turned on one of the lights that thankfully still had power. Will opened his door then and put his feet on the ground, sitting sideways looking up at him. In the orange glow Mike could see the amount of blood that had soaked into Will's shirt and on his pants. His eyes traced up the dried red that covered half his throat and his chin smeared with it. The redness from before was turning into a nasty bruise across his face.</p><p>"Holy shit."</p><p>"Damn I look that bad?" Will's lips turned into a soft smile, jarring against the blood.</p><p>"Fuck I'm so sorry Will", Mike moved quickly to his side and lifted his head with both of his hands, "what hurts? Is anything…broken…?" Mike's mouth feels dry at the thought that he may have broken Will's nose.</p><p>"Nothing's broken…I don't think..?" Will squints his face in thought and winces, "though my face hurts, and my nose." Mike gently runs his fingers over his forehead and cheek.</p><p>"It hurts here?"</p><p>"Yeah", he replies voice gone a little breathy.</p><p>Mike lets go of his face and opens the door to the backseat.</p><p>"What are you doing?"</p><p>"Looking for that water bottle…there it is." Mike pulls his water bottle out of his backpack and goes down onto on knee to better stabilize himself. He then starts ripping off fabric from his shirt.</p><p>"Mike you don't have to do that. "</p><p>He finishes ripping off the scrap of fabric and tips the water bottle to wet it. " I know, but let me clean you up." He swipes the wet tip of the cloth against Will's neck and notices how the other boy shivers slightly.</p><p>"Sorry if it's cold."</p><p>"It's okay."</p><p>Mike continues with quick swipes, gently cleaning off the dried red from his skin. He works his way up Will's neck and then re-wets the cloth before cleaning his chin. He drags the cloth across Will's lips and tries to ignore the surge of shame that comes over him.</p><p>"I'm sorry I hurt you."</p><p>Will tries to respond past the rubbing. "Ish okayyuh."</p><p>"No it's not, it shouldn't have happened. I'm just too much of a fucking coward and you got hurt because of it." The cloth now dabbing delicately under his nose.</p><p>Will reaches up and grabs Mike's shoulder. "Mike stop."</p><p>He pauses his hand still holding the wet cloth to his upper lip. Not daring to look further up and meet Will's eyes.</p><p>"I know you didn't mean for this to happen, and I don't blame you."</p><p>"You should.."</p><p>"I'm not the only one in pain here, Mike."</p><p>Mike ducked his head down and slowly finished up cleaning Will's face still not looking him in the eyes. He stands up once he's done and stows the water bottle away. He's about to close the door, when the walkie lets out a loud beep from the backseat.</p><p>"Frodo and Sam do you copy? Over." Will perked up at Dustin's voice.</p><p>Mike grabbed up the walkie and clicked the button to speak, "Sam and Frodo here. Over."</p><p>"Too many Uruk-hai out. Find a safe spot and stay put. Over."</p><p>"Safe spot found, staying put. Is the rest of the fellowship safe? Over."</p><p>"The fellowship is safe. Will reach out when good for travel. Over and out."</p><p>Will stands up, "At least the others are okay." He starts walking around the barn looking around.</p><p>"Yeah, but we're stuck till the demos clear out and.. what are you doing?"</p><p>Will is halfway up the ladder that leads to the loft and keeps climbing, "I'm checking out the loft."</p><p>"Yeah I see that, but why?"</p><p>Will peeks over his shoulder giving Mike a 'duh' look, "to find a good place to sleep. If we're stuck here, we might as well get some rest. You definitely need it", he snickers.</p><p>"Hey!" Mike runs up to the ladder and starts climbing. He pokes his head over the edge and sees that Will started shoving the hay into piles. He joins in and soon they have large enough piles for a makeshift mattress. Will removes his jacket and folds it onto the head of their mattress.</p><p>"I'll go turn out the light." Mike retreats back down the ladder and runs over to the car to grab his flashlight. Then shuts off the barn light. Using the flashlight to get back up to the loft he sees that Will has already laid down and shifts a little on the hay.</p><p>"It's not the most comfortable, but it works", he says looking up at Mike.</p><p>Mike follows Will's lead and takes off his jacket for his pillow too. He lays down on his back and can feel the heat radiating from the other boy. He clicks the flashlight off leaving them in thick black night. He hears the shifting and rustling of the dried hay next to him as Will adjusts some more. Mike closes his eyes, ready to not think about the day anymore.</p><p>"Mike."</p><p>He opens his eyes again, not that it matters there's no difference in what he can see.</p><p>"Yeah?"</p><p>He hears Will take a slow breath.</p><p>"Nevermind."</p><p>"No, ask me."</p><p>"It's not important."</p><p>"Ask me anyway."</p><p>Will gives another huff and goes quiet, Mike is about to press again...</p><p>"Are you afraid of heights?" his voice came out so soft, as if he was scared to ask.</p><p>Mike felt his cheeks burn and his face twisted at the thick and heavy shame that slapped down onto his chest. <em>So pathetic. Scared of heights. Like there's not so many more things you should be scared of. Some leader you are. Can't even drive over a fucking bridge.</em></p><p>"Mike?"</p><p>He lets out a sigh. "Yeah…" <em>He's going to think less of you now. He'll think you're weak, not good enough.</em></p><p>"When did that happen? I remember you would always climb higher than I could ever could on the playground, and you dared me to join you that one time on your roof so we could look at the stars and find all the constellations.."</p><p>Mike could hear the smile in his voice and the warmth of the memories flooded through him chasing away his thoughts.</p><p>"It happened while you were gone…"</p><p>"While we were in Lenora?"</p><p>"No, when you were missing."</p><p>"Oh…yeah. No one ever told me what all happened while I was in the upside down…"</p><p>"We told you."</p><p>"You guys told me some of the things that happened, but I know that wasn't everything." Mike picked up a blade of straw and began twisting it between his fingers. "Mom and Jonathan keep things about that week from me too. I try not to push, but it bugs me sometimes…not knowing…"</p><p>"I'm sorry, for not telling you."</p><p>"It's okay, and you still don't have to tell me."</p><p>Mike breaks apart the straw and lets it fall on his chest before picking up another one to fidget with.</p><p>"The fear of heights… it came from one of the days… we had split up. Lucas and I were mad at each other because he said El was tricking us into not finding you and I didn't think it was true. And then El ran off because she accidentally hurt Lucas during the fight. Dustin and I were looking for her, and for you." He quickly added. Will gave a small hum. "And we ran into Troy and James, they chased us to the quarry, you know that ledge at the top looking over the whole place?" Will gives a gentle "mhmm".</p><p>"Yeah, well they cornered us there and Troy had a knife. Dustin tried to fight him off, but Troy grabbed him and held the knife to Dustin's neck." Mike could feel the shakiness in his chest, that instability he had felt then; not knowing if his friend was going to be okay. He felt a hand lay on his arm, he had gone quiet for too long. Will's thumb rubbed against his skin in slow circles.</p><p>"And Troy said that if I didn't jump that he would cut out Dustin's teeth." The circles stuttered then continued.</p><p>"And I went over to the edge and looked over to see how far down it went. And it was so far, I felt dizzy just standing on the edge. Troy was counting down and I know Dustin was yelling at me not to do it, but I didn't know if Troy was going to hurt him." Mike took another deep breath, "And I stepped off the cliff…"</p><p>Will's hand was holding onto his arm now, no longer relaxed.</p><p>"…I knew as soon as I stepped off that it was too late to go back, and that I was going to die from the fall. I don't remember being able to think of anything, I didn't have much time falling anyway. El showed up then and pulled me back up to safety. That's when she broke Troy's arm. I guess now you see why he deserved it…"</p><p>"Mike", Wills voice sounded hoarse. Then he was being pulled into a crushing hug, "I could have lost you…" Mike could feel wet spots through his shirt where Will's head rested on his shoulder. He wrapped his arms around Will and squeezed, letting him know he was still there.</p><p><em>'I could have lost you'… I did say I knew I would have died and…. I would have died…if El hadn't been there… I would have…</em></p><p>His grip on Will became tighter and he buried his face in Will's shoulder too. "Oh god… I could have died…" Will's hand gripped his shoulder and his other hand went up to his hair, holding his head. He felt the tears coming before they started soaking Will's shirt; hot and tight around his eyes. His chest jerking from the heaving sobs that started pouring out of him. The hand on his shoulder started rubbing his back soothingly, which pulled even more tears from him. After awhile he felt his throat had gone sore and his whole body relaxed into Will.</p><p>"I'm sorry I never told you." His voice was scratchy and barely audible past Will's shoulder.</p><p>"You don't need to apologize." Will paused and he continued, quieter, "I'm sorry for making you drive over the bridge."</p><p>Mike pulled away and tried grabbing Will's shoulders, one found it's mark the other found his face, the unhurt side thankfully, and Will laughed as Mike fumbled his other hand down to the shoulder.</p><p>"Stop laughing at me, I'm trying to be serious", he couldn't keep the smile out of his voice and knew Will heard it.</p><p>"Okay okay."</p><p>"You don't need to apologize for the bridge. You didn't know, and you were right, we needed to find somewhere safe. I wasn't able to do what was needed in that moment, so you protected me, protected us. Thank you Will."</p><p>He felt a gentle bump against his forehead and he leaned forward into it.</p><p>"Crazy together right?" Will mumbled.</p><p>Mike chuckled, "Yeah crazy together."</p><p>"And I'll be here if you ever need to climb anything, I won't let you fall, not while I'm there."</p><p>Mike closed his eyes as sudden tears pooled there and ran down his cheeks.</p><p>"I know you won't."</p><p>&nbsp;</p></div>
+			</div>
+			<!--/chapter-->
+
+				<!--afterword-->
+				<div class="afterword preface group">
+						<!--work endnotes-->
+<div id="work_endnotes" class="end notes module">
+<h3 class="heading">Notes:</h3>
+<blockquote class="userstuff"><p>Got the idea for this one from miwiheroes on tumblr.</p><p>A friend of mine suggested I end this with a less emotional beat in which Will basically is like "I'm glad you're able to manage your fear of heights now" and pushes him off the loft. I obviously decided not to do that lol.</p><p>I'm also on a lovely discord server made by Bylers for Bylers; note it is 18+ and anti-censorship. Thanks again for reading!</p><p><a href="https://discord.gg/kRsdhPyN5" rel="nofollow"> <img width="350px" src="https://64.media.tumblr.com/3afe5cc6d13c27fc0c98202971fd8daf/a883d1fa665a741a-68/s1280x1920/111ee17486b13005688bcc06e6abc855d5d201ab.pnj"> </a></p></blockquote>
+</div>
+<!--/work endnotes-->
+				</div>
+				<!--/afterword-->
+
+		</div>
+		<!-- END work skin -->
+	</div>
+</div>
+<!-- END work -->
+
+<!-- BEGIN comment section -->
+<!-- Gets embedded anywhere we need to list comments on a top-level commentable. We need the local variable "commentable" here. -->
+<div id="feedback" class="feedback">
+
+<h3 class="landmark heading">Actions</h3>
+
+<ul class="actions">
+		<li><a href="#main">↑ Top</a></li>
+
+
+
+
+
+
+		<li>
+			<form id="new_kudo" action="/kudos" accept-charset="UTF-8" method="post"><input type="hidden" name="authenticity_token" value="JhJC-GGfssGUoeU1O7AyXW6NSgr4zp8i8hNMfSdNmaxOJfzJkz36OUiRBGP3TPVjZFVsKFhaQWh2684wGH-Trw" autocomplete="off">
+				<input autocomplete="off" value="79566811" type="hidden" name="kudo[commentable_id]" id="kudo_commentable_id">
+				<input autocomplete="off" value="Work" type="hidden" name="kudo[commentable_type]" id="kudo_commentable_type">
+				<input type="submit" name="commit" value="Kudos ♥" id="kudo_submit">
+</form>      </li>
+		<li>
+		</li>
+
+
+		<li>
+			<a class="bookmark_form_placement_open" href="#bookmark-form">Bookmark</a>
+		</li>
+
+
+			<li id="show_comments_link"><a data-remote="true" href="/comments/show_comments?work_id=79566811">Comments (7)</a></li>
+</ul>
+
+
+<div id="kudos_message"></div>
+
+
+	<h3 class="landmark heading">Kudos</h3>
+<div id="kudos">
+		<p class="kudos">
+				<a href="/users/FriesBeforeGuyzzzzzz">FriesBeforeGuyzzzzzz</a>, <a href="/users/theUniverseIs_AndWeAre86">theUniverseIs_AndWeAre86</a>, <a href="/users/LadyArtemisia28">LadyArtemisia28</a>, <a href="/users/andriel_myloves">andriel_myloves</a>, <a href="/users/FandomLover24">FandomLover24</a>, <a href="/users/extraterrestrial_mess">extraterrestrial_mess</a>, <a href="/users/laurken24">laurken24</a>, <a href="/users/maceylikesmovies">maceylikesmovies</a>, <a href="/users/lalalalaura">lalalalaura</a>, <a href="/users/messrlin">messrlin</a>, <a href="/users/mishjudge">mishjudge</a>, <a href="/users/bubbyhanbroski_halenstein419">bubbyhanbroski_halenstein419</a>, <a href="/users/Hellhound22">Hellhound22</a>, <a href="/users/BethanyDarkRose">BethanyDarkRose</a>, <a href="/users/autumncomesshewill">autumncomesshewill</a>, <a href="/users/Federoakafede">Federoakafede</a>, <a href="/users/Forbiddendorito">Forbiddendorito</a>, <a href="/users/emotional_traffic_cone">emotional_traffic_cone</a>, <a href="/users/Ryoko0162">Ryoko0162</a>, <a href="/users/schoolshotout">schoolshotout</a>, <a href="/users/Remus_gangRemus_gang">Remus_gangRemus_gang</a>, <a href="/users/Aquensee">Aquensee</a>, <a href="/users/ghost_tour_of_88">ghost_tour_of_88</a>, <a href="/users/readerElliot">readerElliot</a>, <a href="/users/Gr_yz">Gr_yz</a>, <a href="/users/nebraska_dreaming">nebraska_dreaming</a>, <a href="/users/Local_Knife_Seller">Local_Knife_Seller</a>, <a href="/users/yourlionheartx">yourlionheartx</a>, <a href="/users/Mi_lio">Mi_lio</a>, <a href="/users/sadgirlwinter365">sadgirlwinter365</a>, <a href="/users/shireratsmakemecrazy">shireratsmakemecrazy</a>, <a href="/users/nostalgic_obsession">nostalgic_obsession</a>, <a href="/users/healthewrld">healthewrld</a>, <a href="/users/ShallowRivrLesbian">ShallowRivrLesbian</a>, <a href="/users/nesssa">nesssa</a>, <a href="/users/IEatStarsAndDirt">IEatStarsAndDirt</a>, <a href="/users/theyhaveupto20sides">theyhaveupto20sides</a>, <a href="/users/cxptain">cxptain</a>, <a href="/users/Fangirl308">Fangirl308</a>, <a href="/users/Agustmint">Agustmint</a>, <a href="/users/fireball07">fireball07</a>, <a href="/users/tomat0head">tomat0head</a>, <a href="/users/Golden_Halo1963">Golden_Halo1963</a>, <a href="/users/Iforgot2020">Iforgot2020</a>, <a href="/users/ZiggyHeart">ZiggyHeart</a>, <a href="/users/Yamitowo">Yamitowo</a>, <a href="/users/foolsfall">foolsfall</a>, <a href="/users/iluvcats_13">iluvcats_13</a>, <a href="/users/Zen_2598">Zen_2598</a>, <a href="/users/cowboylikegrey">cowboylikegrey</a><span id="kudos_more_connector">, and </span><a id="kudos_more_link" data-remote="true" href="/works/79566811/kudos?before=8828484216">8 more users</a>
+					 as well as 
+				12 guests
+			 left kudos on this work!
+		</p>
+</div>
+
+
+
+<h3 class="landmark heading"><a id="comments">Comments</a></h3>
+
+
+	<div id="add_comment_placeholder" title="top level comment">
+		<div id="add_comment">
+			<!-- expects the local variables comment, commentable, and button_name -->
+<div class="post comment" id="comment_form_for_79566811">
+<form class="new_comment" id="comment_for_79566811" action="/works/79566811/comments" accept-charset="UTF-8" method="post"><input type="hidden" name="authenticity_token" value="JhJC-GGfssGUoeU1O7AyXW6NSgr4zp8i8hNMfSdNmaxOJfzJkz36OUiRBGP3TPVjZFVsKFhaQWh2684wGH-Trw" autocomplete="off">
+	<fieldset>
+		<legend>Post Comment</legend>
+
+
+
+
+
+
+
+
+				<h4 class="heading">Comment as <span class="byline">justthegatekeeper</span>
+					<input autocomplete="off" value="37592991" id="comment_pseud_id_for_79566811" type="hidden" name="comment[pseud_id]">
+				</h4>
+
+			<p class="footnote">Plain text with limited HTML  <a class="help symbol question modal modal-attached" aria-label="Html help" href="/help/html" aria-controls="modal"><span class="symbol question"><span>?</span></span></a></p>
+
+		<p>
+			<label for="comment_content_for_79566811" class="landmark">Comment</label>
+			<textarea id="comment_content_for_79566811" class="comment_form observe_textlength" title="Enter Comment" name="comment[comment_content]"></textarea><span role="alert" id="comment_content_for_79566811_LV_validation_message" class=" LV_validation_message LV_valid"></span>
+			<input type="hidden" id="controller_name_for_79566811" name="controller_name" value="works">
+		</p>
+		<p class="character_counter" tabindex="0"><span id="comment_content_for_79566811_counter" class="value" data-maxlength="10000" aria-valuenow="10000">10000</span> characters left</p>
+
+		<p class="submit actions">
+				<input type="submit" name="commit" value="Comment" id="comment_submit_for_79566811" data-disable-with="Please wait...">
+			</p>
+	</fieldset>
+</form></div>
+<div class="clear"></div>
+
+		</div>
+	</div>
+
+<!-- If we have javascript, here is where the comments will be spiffily inserted -->
+<!-- If not, and show_comments is true, here is where the comments will be rendered -->
+<div id="comments_placeholder" style="display:none;">
+</div>
+
+
+	<div id="bookmark_form_placement" class="wrapper toggled" style="display: none;">
+			<div class="post bookmark" id="bookmark-form">
+<h3 class="landmark heading">Bookmark</h3>
+
+
+
+
+
+
+<form action="/works/79566811/bookmarks" accept-charset="UTF-8" method="post"><input type="hidden" name="authenticity_token" value="JhJC-GGfssGUoeU1O7AyXW6NSgr4zp8i8hNMfSdNmaxOJfzJkz36OUiRBGP3TPVjZFVsKFhaQWh2684wGH-Trw" autocomplete="off">
+	<fieldset>
+		<legend>Bookmark</legend>
+			<p class="close actions">
+					<a class="bookmark_form_placement_close" href="#comments" aria-label="cancel" style="display: none;">×</a>
+			</p>
+
+		<h4 class="heading">
+				<span class="byline">
+					justthegatekeeper, 
+					<input autocomplete="off" value="37592991" type="hidden" name="bookmark[pseud_id]" id="bookmark_pseud_id">
+				</span>
+			 save a bookmark!
+		</h4>
+
+
+		<fieldset>
+			<legend>Write Comments</legend>
+			<dl>
+				<dt><label for="bookmark_notes">Notes</label></dt>
+				<dd>
+						<p class="footnote" id="notes-field-description-summary">
+							The creator's summary is added automatically.
+						</p>
+					<p class="footnote" id="notes-field-description-html">
+						Plain text with limited HTML  <a class="help symbol question modal modal-attached" aria-label="Html help" href="/help/html" aria-controls="modal"><span class="symbol question"><span>?</span></span></a> Embedded images (&lt;img&gt; tags) will be displayed as HTML, including the image's source link and any alt text.
+					</p>
+					<textarea rows="4" id="bookmark_notes" class="observe_textlength" aria-describedby="notes-field-description-summary notes-field-description-html" name="bookmark[bookmarker_notes]"></textarea>
+					<p class="character_counter" tabindex="0"><span id="bookmark_notes_counter" class="value" data-maxlength="5000" aria-valuenow="5000">5000</span> characters left</p>
+				</dd>
+
+				<dt><label for="bookmark_tag_string_autocomplete">Your tags</label></dt>
+				<dd>
+						<p class="footnote" id="tag-string-description">
+							The creator's tags are added automatically.
+						</p>
+					<ul class="autocomplete"><li class="input"><input type="text" class="text" autocomplete="off" role="combobox" aria-expanded="true" aria-autocomplete="list" id="bookmark_tag_string_autocomplete"><div class="autocomplete dropdown" style="display: none;"></div></li></ul><input class="autocomplete" data-autocomplete-method="/autocomplete/tag?type=all" data-autocomplete-hint-text="Start typing for suggestions!" data-autocomplete-no-results-text="(No suggestions found)" data-autocomplete-min-chars="1" data-autocomplete-searching-text="Searching..." size="60" aria-describedby="tag-string-description" type="text" name="bookmark[tag_string]" id="bookmark_tag_string" style="display: none;">
+					<p class="character_counter">
+						Comma separated, 150 characters per tag
+					</p>
+				</dd>
+
+				<dt><label for="bookmark_collection_names_autocomplete">Add to collections</label></dt>
+				<dd>
+					<ul class="autocomplete"><li class="input"><input type="text" class="text" autocomplete="off" role="combobox" aria-expanded="true" aria-autocomplete="list" id="bookmark_collection_names_autocomplete"><div class="autocomplete dropdown" style="display: none;"></div></li></ul><input class="autocomplete" data-autocomplete-method="/autocomplete/open_collection_names" data-autocomplete-hint-text="Start typing for suggestions!" data-autocomplete-no-results-text="(No suggestions found)" data-autocomplete-min-chars="1" data-autocomplete-searching-text="Searching..." size="60" type="text" name="bookmark[collection_names]" id="bookmark_collection_names" style="display: none;">
+				</dd>
+			</dl>
+		</fieldset>
+
+		<fieldset>
+			<legend>Choose Type and Post</legend>
+			<p> 
+				<input name="bookmark[private]" type="hidden" value="0" autocomplete="off"><input type="checkbox" value="1" name="bookmark[private]" id="bookmark_private"> <label for="bookmark_private">Private bookmark</label>
+				<input name="bookmark[rec]" type="hidden" value="0" autocomplete="off"><input type="checkbox" value="1" name="bookmark[rec]" id="bookmark_rec"> <label for="bookmark_rec">Rec</label>
+			</p>
+			<p class="submit actions">
+				<input type="submit" name="commit" value="Create">
+			</p>
+		</fieldset>
+	</fieldset>
+</form></div>
+
+	</div>
+
+</div>
+<!-- END comments -->
+
+<!-- END comment section -->
+<!-- END revealed -->
+
+
+
+				<div class="clear"><!--presentational--></div>
+			</div>
+			<!-- END main -->
+		</div>
+<div id="footer" role="contentinfo" class="region">
+<h3 class="landmark heading">Footer</h3>
+<ul class="navigation actions">
+			<li class="module group">
+				<h4 class="heading">Customize</h4>
+				<ul class="menu">
+					<li><form class="button_to" method="post" action="/skins/unset"><button type="submit">Default</button><input type="hidden" name="authenticity_token" value="JhJC-GGfssGUoeU1O7AyXW6NSgr4zp8i8hNMfSdNmaxOJfzJkz36OUiRBGP3TPVjZFVsKFhaQWh2684wGH-Trw" autocomplete="off"></form></li>
+						<li><form class="button_to" method="post" action="/skins/891/set"><button type="submit">Low Vision Default</button><input type="hidden" name="authenticity_token" value="JhJC-GGfssGUoeU1O7AyXW6NSgr4zp8i8hNMfSdNmaxOJfzJkz36OUiRBGP3TPVjZFVsKFhaQWh2684wGH-Trw" autocomplete="off"></form></li>
+						<li><form class="button_to" method="post" action="/skins/929/set"><button type="submit">Reversi</button><input type="hidden" name="authenticity_token" value="JhJC-GGfssGUoeU1O7AyXW6NSgr4zp8i8hNMfSdNmaxOJfzJkz36OUiRBGP3TPVjZFVsKFhaQWh2684wGH-Trw" autocomplete="off"></form></li>
+						<li><form class="button_to" method="post" action="/skins/932/set"><button type="submit">Snow Blue</button><input type="hidden" name="authenticity_token" value="JhJC-GGfssGUoeU1O7AyXW6NSgr4zp8i8hNMfSdNmaxOJfzJkz36OUiRBGP3TPVjZFVsKFhaQWh2684wGH-Trw" autocomplete="off"></form></li>
+				</ul>
+			</li>
+	<li class="module group">
+		<h4 class="heading">About the Archive</h4>
+		<ul class="menu">
+			<li><a href="/site_map">Site Map</a></li>
+			<li><a href="/diversity">Diversity Statement</a></li>
+			<li><a href="/tos">Terms of Service</a></li>
+			<li><a href="/content">Content Policy</a></li>
+			<li><a href="/privacy">Privacy Policy</a></li>
+			<li><a href="/takedown">DMCA &amp; TIDA Policies</a> </li>
+			<li><a href="https://www.otwstatus.org">Site Status</a></li>
+		</ul>
+	</li>
+	<li class="module group">
+		<h4 class="heading">Contact Us</h4>
+		<ul class="menu">
+			<li><a href="/abuse_reports/new">Policy Questions &amp; Abuse Reports</a></li>
+			<li><a href="/support">Technical Support &amp; Feedback</a></li>
+		</ul>
+	</li>
+	<li class="module group">
+		<h4 class="heading">Development</h4>
+		<ul class="menu">
+				<li>
+					<a href="https://github.com/otwcode/otwarchive/commits/v1.6.0.3">otwarchive v1.6.0.3</a>
+				</li>
+			<li><a href="/known_issues">Known Issues</a></li>
+			<li>
+				<a title="View License" href="https://www.gnu.org/licenses/old-licenses/gpl-2.0.html">GPL-2.0-or-later</a> by the <a title="Organization for Transformative Works" href="https://transformativeworks.org/">OTW</a>
+			</li>
+		</ul>
+	</li>
+</ul>
+</div>
+
+	</div>
+
+
+
+<div id="modal-bg" class="modal-closer"><div class="loading"></div></div><div id="modal-wrap" class="modal-closer"><div id="modal"><div class="content userstuff"></div><div class="footer"><span class="title"></span><a class="action modal-closer" href="#">Close</a></div></div></div>

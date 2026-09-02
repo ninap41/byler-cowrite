@@ -1,6 +1,6 @@
 # AO3 work-skin previewer
 
-`/ao3-preview` is a standalone page: an AO3-shaped work (`#workskin .userstuff`) on a white page, a large CSS drawer beside it, and a lint that says what AO3's cleaner will strip. It needs no login and links **none** of the app's chrome (no `base.css`, no `chrome.js`, no theme). Everything it needs is in this directory.
+`/ao3-preview` is a standalone page: a real AO3 work page rendered full-width inside an **iframe** (AO3's site stylesheet as the base, the scraped page as the body, the work skin on top — its own document, so nothing leaks into the drawer and AO3's `body`/`#header`/`#main` rules apply the way they do on the site), a large CSS drawer beside it, and a lint that says what AO3's cleaner will strip. It needs no login and links **none** of the app's chrome (no `base.css`, no `chrome.js`, no theme). Everything it needs is in this directory.
 
 ## Files
 
@@ -11,8 +11,9 @@
 | `preview.js` | wiring: mounts `/js/components/side-drawer.js`, applies the CSS live, runs the lint |
 | `ao3-rules.js` | pure lint (`lintCss`, `propertyStatus`, `valueStatus`) mirroring otwarchive's `lib/css_cleaner.rb` |
 | `ao3-rules.json` | the same whitelist as data; `test/ao3-rules.test.mjs` fails if it drifts from the module |
-| `default-work.html` | the placeholder work body — replace with the real default |
-| `default-skin.css` | the placeholder skin — replace with the real default |
+| `ao3-site.css` | AO3's own site stylesheet (the base look of the page, scraped from the live site) |
+| `default-work.html` | a real AO3 work page, body only (header · work · footer), scraped from the live site — replace to change the default |
+| `default-skin.css` | the default work skin — replace to change the default |
 
 The drawer: `−` minimises to an edge tab, `⤢` expands to ~70vw, the grip on its inner edge resizes (drag, double-click resets, arrow keys). Open state, width, expanded state, the CSS draft and the strict toggle all persist per browser (`cowriteAo3*` keys in localStorage). "Preview as AO3 would" shows the work with the failing declarations removed; untick it to render the CSS raw.
 
