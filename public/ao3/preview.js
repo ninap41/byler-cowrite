@@ -54,8 +54,10 @@ async function fetchText(url) {
 // The frame's document: AO3's site stylesheet as the base, the work skin on
 // top, the scraped page as the body. Written with document.write rather than
 // srcdoc so the same code runs under jsdom.
-export function frameHtml({ siteCss = "", skinCss = "", body = "" } = {}) {
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><base target="_blank"><style id="apSite">${siteCss}</style><style id="apSkin">${skinCss}</style></head><body>${body}</body></html>`;
+// AO3 stamps these on <body>; parts of the site skin key off them.
+export const AO3_BODY_CLASS = "logged-in javascript";
+export function frameHtml({ siteCss = "", skinCss = "", body = "", bodyClass = AO3_BODY_CLASS } = {}) {
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><base target="_blank"><style id="apSite">${siteCss}</style><style id="apSkin">${skinCss}</style></head><body class="${bodyClass}">${body}</body></html>`;
 }
 
 export function mountPreview(

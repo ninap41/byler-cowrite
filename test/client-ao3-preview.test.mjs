@@ -103,7 +103,7 @@ test("frameHtml puts links in a new tab and carries both style blocks", () => {
   const h = frameHtml({ siteCss: "a{}", skinCss: "b{}", body: "<p>x</p>" });
   assert.match(h, /<base target="_blank">/);
   assert.match(h, /<style id="apSite">a\{\}<\/style><style id="apSkin">b\{\}<\/style>/);
-  assert.match(h, /<body><p>x<\/p><\/body>/);
+  assert.match(h, /<body class="logged-in javascript"><p>x<\/p><\/body>/);
 });
 
 test("builders escape what they print", () => {
