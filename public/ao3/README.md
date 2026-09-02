@@ -15,7 +15,7 @@
 | `default-work.html` | a real AO3 work page, body only (header · work · footer), scraped from the live site — replace to change the default |
 | `default-skin.css` | the default work skin — replace to change the default |
 
-The drawer: `−` minimises to an edge tab, `⤢` expands to ~70vw, the grip on its inner edge resizes (drag, double-click resets, arrow keys). Open state, width, expanded state, the CSS draft and the strict toggle all persist per browser (`cowriteAo3*` keys in localStorage). "Preview as AO3 would" shows the work with the failing declarations removed; untick it to render the CSS raw.
+The drawer: `−` minimises to an edge tab, `⤢` expands to ~70vw, the grip on its inner edge resizes (drag, double-click resets, arrow keys). Typing paints the skin at once but saves nothing; **Save CSS** (or ⌘/Ctrl+S in the editor) keeps the CSS in this browser's localStorage (`cowriteAo3Css`) and it comes back on the next visit, and **Reset CSS** returns to the shipped default and forgets the save. Open state, width, expanded state and the strict toggle persist the same way (`cowriteAo3*` keys). "Preview as AO3 would" shows the work with the failing declarations removed; untick it to render the CSS raw.
 
 ## What AO3 allows and prohibits
 

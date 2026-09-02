@@ -14,8 +14,11 @@
 	--ap-panel: #f7f7f7;
 	--ap-ink: #222;
 	--ap-muted: #666;
-	--ap-accent: #900; /* AO3's red */
-	--ap-accent-2: #b53a3a;
+	/* No red text anywhere in the previewer's own chrome: the accent is a dark
+	   ink so nothing here reads as part of the AO3 page. Red survives only as
+	   the thin error border and the count pill on a lint row. */
+	--ap-accent: #222;
+	--ap-accent-2: #555;
 	--ap-warn: #8a6d00;
 	--ap-err: #a11;
 	--r-lg: 8px;
@@ -85,6 +88,15 @@ button {
 	border-radius: var(--r-md);
 	padding: 5px 10px;
 	font-size: 0.8rem;
+}
+.ap-btn:disabled {
+	opacity: 0.55;
+	cursor: default;
+}
+.ap-btn.ap-save:not(:disabled) {
+	border-color: var(--ap-accent);
+	color: var(--ap-accent);
+	font-weight: 700;
 }
 .ap-btn:hover {
 	border-color: var(--ap-accent-2);
@@ -243,7 +255,7 @@ body.resizing-side {
 }
 .ap-issues.has-err {
 	background: #f6dcdc;
-	color: var(--ap-err);
+	color: var(--ap-ink);
 }
 .ap-issues.has-warn {
 	background: #f4ebc7;
@@ -306,7 +318,8 @@ body.resizing-side {
 }
 .ap-lint-row code {
 	font-family: "Inconsolata", Menlo, monospace;
-	color: var(--ap-accent);
+	color: var(--ap-ink);
+	font-weight: 700;
 }
 .ap-lint-row .why {
 	display: block;

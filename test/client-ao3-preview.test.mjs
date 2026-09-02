@@ -48,7 +48,7 @@ test("the strict toggle renders the cleaned sheet, raw otherwise; the lint lists
   const skin = document.getElementById("apSkin");
   assert.ok(!skin.textContent.includes("gap"), "strict: gap stripped");
   assert.equal(m.frameDoc().getElementById("apSkin").textContent, skin.textContent, "the frame's copy follows");
-  assert.equal(localStorage.getItem(KEY_CSS), css.value, "draft persisted");
+  assert.equal(localStorage.getItem(KEY_CSS), null, "typing alone saves nothing");
   const rows = document.querySelectorAll("#apLint .ap-lint-row");
   assert.equal(rows.length, 1);
   assert.equal(rows[0].dataset.line, "1");
@@ -80,23 +80,41 @@ test("minimise closes the drawer to its tab, expand toggles the wide class, both
   assert.equal(localStorage.getItem(KEY_EXPANDED), null);
 });
 
-test("reset buttons restore the shipped defaults and forget the draft", async () => {
+test("Save keeps the CSS in localStorage and it comes back on the next mount; Reset restores the default and forgets it", async () => {
   const m = fresh();
   await m.ready;
   const css = document.getElementById("apCss");
-  css.value = "x";
+  const saveBtn = document.getElementById("apSave");
+  assert.equal(saveBtn.disabled, true, "nothing to save yet");
+  assert.equal(saveBtn.textContent, "Saved");
+  css.value = "#workskin p { color: blue }";
   fire(css, "input");
+  assert.equal(saveBtn.disabled, false, "an edit lights Save");
+  assert.equal(saveBtn.textContent, "Save CSS");
+  saveBtn.click();
+  assert.equal(localStorage.getItem(KEY_CSS), "#workskin p { color: blue }");
+  assert.equal(saveBtn.disabled, true);
+  // a fresh mount with the same storage finds the saved CSS, not the default
+  document.body.innerHTML = bodyOf(PAGE);
+  const m2 = mountPreview(document, { storage: localStorage, loadCss: async () => "#workskin p { color: red }", loadHtml: async () => "<p>hi</p>", loadSite: async () => "" });
+  await m2.ready;
+  assert.equal(document.getElementById("apCss").value, "#workskin p { color: blue }");
+  assert.equal(document.getElementById("apSave").disabled, true, "matches the store");
   document.getElementById("apResetCss").click();
-  assert.equal(css.value, "#workskin p { color: red }");
+  assert.equal(document.getElementById("apCss").value, "#workskin p { color: red }");
   assert.equal(localStorage.getItem(KEY_CSS), null);
+  assert.equal(document.getElementById("apSave").disabled, true, "the default counts as saved");
+  assert.equal(document.getElementById("apResetHtml"), null, "no Reset HTML");
 });
 
-test("reset HTML rewrites the frame from the shipped default", async () => {
+test("Cmd/Ctrl+S in the editor saves", async () => {
   const m = fresh();
   await m.ready;
-  m.frameDoc().body.innerHTML = "<p>edited</p>";
-  document.getElementById("apResetHtml").click();
-  assert.equal(m.frameDoc().body.innerHTML, "<p>hi</p>");
+  const css = document.getElementById("apCss");
+  css.value = "#workskin p { color: green }";
+  fire(css, "input");
+  css.dispatchEvent(new window.KeyboardEvent("keydown", { key: "s", metaKey: true, bubbles: true, cancelable: true }));
+  assert.equal(localStorage.getItem(KEY_CSS), "#workskin p { color: green }");
 });
 
 test("frameHtml puts links in a new tab and carries both style blocks", () => {

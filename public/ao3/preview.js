@@ -9,7 +9,6 @@ import { mountSideDrawer } from "/js/components/side-drawer.js";
 import { lintCss } from "./ao3-rules.js";
 
 export const KEY_CSS = "cowriteAo3Css";
-export const KEY_HTML = "cowriteAo3Html";
 export const KEY_DRAWER = "cowriteAo3Drawer";
 export const KEY_EXPANDED = "cowriteAo3Expanded";
 export const KEY_STRICT = "cowriteAo3Strict";
@@ -146,14 +145,37 @@ export function mountPreview(
     issues.textContent = label.text;
     issues.className = "ap-issues " + label.cls;
   }
+  // ---- saving: explicit, to localStorage ----
+  // Typing only paints; Save is what keeps the CSS for next time. The button
+  // reads "Saved" while the box matches what is stored (or the default when
+  // nothing is), so an unsaved edit is always visible.
+  const saveBtn = $("apSave");
+  const savedCss = () => get(KEY_CSS) ?? defaults.css;
+  const paintDirty = () => {
+    const dirty = css.value !== savedCss();
+    if (saveBtn) {
+      saveBtn.disabled = !dirty;
+      saveBtn.textContent = dirty ? "Save CSS" : "Saved";
+    }
+  };
+  const save = () => {
+    set(KEY_CSS, css.value);
+    paintDirty();
+  };
+  saveBtn?.addEventListener("click", save);
   let timer = null;
   css.addEventListener("input", () => {
-    set(KEY_CSS, css.value);
+    paintDirty();
     clearTimeout(timer);
     timer = setTimeout(apply, 120);
   });
   // Tab indents instead of leaving the box — it is a code editor
   css.addEventListener("keydown", (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
+      e.preventDefault();
+      save();
+      return;
+    }
     if (e.key !== "Tab") return;
     e.preventDefault();
     const { selectionStart: s, selectionEnd: en, value } = css;
@@ -182,15 +204,11 @@ export function mountPreview(
   $("apResetCss")?.addEventListener("click", () => {
     css.value = defaults.css;
     set(KEY_CSS, null);
+    paintDirty();
     apply();
   });
-  $("apResetHtml")?.addEventListener("click", () => {
-    body = defaults.html;
-    set(KEY_HTML, null);
-    writeFrame();
-  });
 
-  // ---- load the shipped defaults, prefer the saved draft ----
+  // ---- load the shipped defaults, prefer the saved CSS ----
   const ready = Promise.all([
     loadCss().catch(() => ""),
     loadHtml().catch(() => ""),
@@ -198,8 +216,9 @@ export function mountPreview(
   ]).then(([c, h, site]) => {
     defaults = { css: c, html: h };
     siteCss = site;
-    css.value = get(KEY_CSS) ?? c;
-    body = get(KEY_HTML) ?? h;
+    css.value = savedCss();
+    body = h;
+    paintDirty();
     apply();
     writeFrame();
   });
@@ -208,6 +227,7 @@ export function mountPreview(
     ready,
     drawer,
     apply,
+    save,
     frameDoc,
     get expanded() {
       return expanded;
