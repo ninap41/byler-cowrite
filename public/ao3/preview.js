@@ -7,7 +7,7 @@
 
 import { mountSideDrawer } from "/js/components/side-drawer.js";
 import { lintCss } from "./ao3-rules.js";
-import { highlightCss } from "./css-highlight.js";
+import { createEditor } from "./editor.js";
 
 export const KEY_CSS = "cowriteAo3Css";
 export const KEY_DRAWER = "cowriteAo3Drawer";
@@ -73,14 +73,13 @@ export function mountPreview(
 ) {
   const $ = (id) => doc.getElementById(id);
   const root = $("apRoot");
-  const css = $("apCss");
+  const codeHost = $("apCode");
   const skin = $("apSkin");
   const frame = $("apFrame");
   const lint = $("apLint");
   const issues = $("apIssues");
   const strict = $("apStrict");
   const expandBtn = $("apExpand");
-  const hl = $("apHl")?.querySelector("code") || null;
   const root_el = doc.documentElement;
   const get = (k) => {
     try {
@@ -137,25 +136,21 @@ export function mountPreview(
     root_el.setAttribute("data-theme", t === "light" ? "light" : "dark");
     set(KEY_THEME, t === "light" ? "light" : "dark");
     paintTheme();
+    css?.setDark?.(theme() === "dark");
   };
   root_el.setAttribute("data-theme", get(KEY_THEME) === "light" ? "light" : "dark");
   themeBtn?.addEventListener("click", () => setTheme(theme() === "dark" ? "light" : "dark"));
   paintTheme();
 
-  // ---- the highlight layer under the textarea ----
-  let badLines = new Set();
-  let warnLines = new Set();
-  const paintHl = () => {
-    if (!hl) return;
-    hl.innerHTML = highlightCss(css.value, { badLines, warnLines });
-  };
-  const syncScroll = () => {
-    const pre = hl?.parentElement;
-    if (!pre) return;
-    pre.scrollTop = css.scrollTop;
-    pre.scrollLeft = css.scrollLeft;
-  };
-  css.addEventListener("scroll", syncScroll);
+  // ---- the editor (CodeMirror) ----
+  // `css` is the adapter editor.js returns: .value in/out, problems in, theme.
+  // Created with onChange/onSave bound to functions defined further down.
+  const css = createEditor(codeHost, {
+    value: "",
+    dark: theme() === "dark",
+    onChange: () => onEdit(),
+    onSave: () => save(),
+  });
 
   // ---- download ----
   $("apDownload")?.addEventListener("click", () => {
@@ -190,10 +185,7 @@ export function mountPreview(
     const text = css.value;
     last = lintCss(text);
     skin.textContent = isStrict() ? last.cleaned : text;
-    badLines = new Set(last.problems.filter((p) => p.severity === "error").map((p) => p.line));
-    warnLines = new Set(last.problems.filter((p) => p.severity !== "error").map((p) => p.line));
-    paintHl();
-    syncScroll();
+    css.setProblems(last.problems);
     const fs = frameDoc()?.getElementById("apSkin");
     if (fs) fs.textContent = skin.textContent;
     lint.innerHTML = lintHtml(last.problems);
@@ -220,29 +212,11 @@ export function mountPreview(
   };
   saveBtn?.addEventListener("click", save);
   let timer = null;
-  css.addEventListener("input", () => {
+  function onEdit() {
     paintDirty();
-    // repaint the tokens at once; the lint's line tints follow with apply()
-    badLines = new Set();
-    warnLines = new Set();
-    paintHl();
     clearTimeout(timer);
     timer = setTimeout(apply, 120);
-  });
-  // Tab indents instead of leaving the box — it is a code editor
-  css.addEventListener("keydown", (e) => {
-    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
-      e.preventDefault();
-      save();
-      return;
-    }
-    if (e.key !== "Tab") return;
-    e.preventDefault();
-    const { selectionStart: s, selectionEnd: en, value } = css;
-    css.value = value.slice(0, s) + "\t" + value.slice(en);
-    css.selectionStart = css.selectionEnd = s + 1;
-    css.dispatchEvent(new Event("input"));
-  });
+  }
   if (strict) {
     strict.checked = get(KEY_STRICT) !== "0";
     strict.addEventListener("change", () => {
@@ -250,15 +224,11 @@ export function mountPreview(
       apply();
     });
   }
-  // a lint row puts the caret on its line
+  // a lint row selects its line in the editor
   lint.addEventListener("click", (e) => {
     const row = e.target.closest?.(".ap-lint-row");
     if (!row) return;
-    const line = Number(row.dataset.line) || 1;
-    const lines = css.value.split("\n");
-    const at = lines.slice(0, line - 1).reduce((n, l) => n + l.length + 1, 0);
-    css.focus();
-    css.setSelectionRange(at, at + (lines[line - 1] || "").length);
+    css.gotoLine(Number(row.dataset.line) || 1);
   });
 
   $("apResetCss")?.addEventListener("click", () => {
@@ -288,6 +258,7 @@ export function mountPreview(
     drawer,
     apply,
     save,
+    editor: css,
     frameDoc,
     setTheme,
     theme,
