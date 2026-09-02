@@ -684,11 +684,11 @@ test("/ao3-preview renders as its own page, links only /ao3/, and the tour bar p
   assert.equal(r.status, 200);
   assert.ok(!r.body.includes("{{"), "tokens filled");
   assert.ok(r.body.includes('<meta name="site-name"'), "rendered through renderPage");
-  assert.ok(r.body.includes('href="/ao3/preview.css"'), "its own stylesheet");
+  assert.match(r.body, /href="\.?\/ao3\/preview\.css"/, "its own stylesheet");
   assert.ok(!r.body.includes("/css/base.css"), "never the app's base.css");
   assert.ok(!r.body.includes("/js/chrome.js") && !r.body.includes("auth-guard"), "no chrome, no login");
   assert.ok(r.body.includes('<iframe id="apFrame"'), "the AO3 page renders in its own frame");
-  assert.equal((r.body.match(/href="\/ao3\/preview\.css"/g) || []).length, 1, "the stylesheet is linked once");
+  assert.equal((r.body.match(/href="\.?\/ao3\/preview\.css"/g) || []).length, 1, "the stylesheet is linked once");
   for (const id of ["apRoot", "apSide", "apGrip", "apTab", "apMin", "apExpand", "apCss", "apLint", "apStrict", "apSkin"]) assert.ok(r.body.includes(`id="${id}"`), id);
   for (const path of ["/ao3/preview.css", "/ao3/preview.js", "/ao3/ao3-rules.js", "/ao3/ao3-rules.json", "/ao3/default-skin-webscraped.css", "/ao3/default-work.html", "/ao3/default-skin.css"]) {
     assert.equal((await page(path)).status, 200, path + " served");
