@@ -8,14 +8,15 @@
 | --- | --- |
 | `../ao3-preview.html` | the page (top-level of `public/` so the `PAGES` route loop in `server.js` finds it) |
 | `preview.css` | all of the page's styling, including a copy of the app's `.doc-side*` drawer rules |
-| `preview.js` | wiring: mounts `/js/components/side-drawer.js`, applies the CSS live, runs the lint |
+| `preview.js` | wiring: mounts `/js/components/side-drawer.js`, applies the CSS live, runs the lint, paints the highlight layer, theme, save, download |
+| `css-highlight.js` | pure CSS syntax highlighter (`highlightCss(text, {badLines, warnLines})` → HTML; every character of the input comes back escaped in order) |
 | `ao3-rules.js` | pure lint (`lintCss`, `propertyStatus`, `valueStatus`) mirroring otwarchive's `lib/css_cleaner.rb` |
 | `ao3-rules.json` | the same whitelist as data; `test/ao3-rules.test.mjs` fails if it drifts from the module |
 | `default-skin-webscraped.css` | AO3's own site stylesheet (the base look of the page, scraped from the live site) |
 | `default-work.html` | a real AO3 work page, body only (header · work · footer), scraped from the live site — replace to change the default |
 | `default-skin.css` | the default work skin — replace to change the default |
 
-The drawer: `−` minimises to an edge tab, `⤢` expands to ~70vw, the grip on its inner edge resizes (drag, double-click resets, arrow keys). Typing paints the skin at once but saves nothing; **Save CSS** (or ⌘/Ctrl+S in the editor) keeps the CSS in this browser's localStorage (`cowriteAo3Css`) and it comes back on the next visit, and **Reset CSS** returns to the shipped default and forgets the save. Open state, width, expanded state and the strict toggle persist the same way (`cowriteAo3*` keys). "Preview as AO3 would" shows the work with the failing declarations removed; untick it to render the CSS raw.
+The drawer: `−` minimises to an edge tab, `⤢` expands to ~70vw, the grip on its inner edge resizes (drag, double-click resets, arrow keys). The previewer's own chrome (bar, drawer, editor — never the AO3 page) has a **dark theme by default** and a light one (☾/☀ in the bar, remembered as `cowriteAo3Theme`). The editor is a transparent textarea over a `<pre>` painted by `css-highlight.js`, so the CSS is **syntax-highlighted in both themes** (colours are `--hl-*` tokens in `preview.css`) and a line the lint would drop is tinted red, a warning amber. ⬇ downloads the editor's CSS as `work-skin.css`. Typing paints the skin at once but saves nothing; **Save CSS** (or ⌘/Ctrl+S in the editor) keeps the CSS in this browser's localStorage (`cowriteAo3Css`) and it comes back on the next visit, and **Reset CSS** returns to the shipped default and forgets the save. Open state, width, expanded state and the strict toggle persist the same way (`cowriteAo3*` keys). "Preview as AO3 would" shows the work with the failing declarations removed; untick it to render the CSS raw.
 
 ## What AO3 allows and prohibits
 

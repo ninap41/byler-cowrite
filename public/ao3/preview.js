@@ -7,11 +7,14 @@
 
 import { mountSideDrawer } from "/js/components/side-drawer.js";
 import { lintCss } from "./ao3-rules.js";
+import { highlightCss } from "./css-highlight.js";
 
 export const KEY_CSS = "cowriteAo3Css";
 export const KEY_DRAWER = "cowriteAo3Drawer";
 export const KEY_EXPANDED = "cowriteAo3Expanded";
 export const KEY_STRICT = "cowriteAo3Strict";
+export const KEY_THEME = "cowriteAo3Theme";
+export const DOWNLOAD_NAME = "work-skin.css";
 
 const esc = (s) =>
   String(s ?? "").replace(
@@ -77,6 +80,8 @@ export function mountPreview(
   const issues = $("apIssues");
   const strict = $("apStrict");
   const expandBtn = $("apExpand");
+  const hl = $("apHl")?.querySelector("code") || null;
+  const root_el = doc.documentElement;
   const get = (k) => {
     try {
       return storage?.getItem(k);
@@ -118,6 +123,53 @@ export function mountPreview(
   });
   paintExpanded();
 
+  // ---- theme: dark by default, the browser's choice remembered ----
+  const themeBtn = $("apTheme");
+  const theme = () => (root_el.getAttribute("data-theme") === "light" ? "light" : "dark");
+  const paintTheme = () => {
+    if (!themeBtn) return;
+    const t = theme();
+    themeBtn.textContent = t === "dark" ? "☾" : "☀";
+    themeBtn.setAttribute("aria-pressed", String(t === "dark"));
+    themeBtn.title = t === "dark" ? "Switch to light" : "Switch to dark";
+  };
+  const setTheme = (t) => {
+    root_el.setAttribute("data-theme", t === "light" ? "light" : "dark");
+    set(KEY_THEME, t === "light" ? "light" : "dark");
+    paintTheme();
+  };
+  root_el.setAttribute("data-theme", get(KEY_THEME) === "light" ? "light" : "dark");
+  themeBtn?.addEventListener("click", () => setTheme(theme() === "dark" ? "light" : "dark"));
+  paintTheme();
+
+  // ---- the highlight layer under the textarea ----
+  let badLines = new Set();
+  let warnLines = new Set();
+  const paintHl = () => {
+    if (!hl) return;
+    hl.innerHTML = highlightCss(css.value, { badLines, warnLines });
+  };
+  const syncScroll = () => {
+    const pre = hl?.parentElement;
+    if (!pre) return;
+    pre.scrollTop = css.scrollTop;
+    pre.scrollLeft = css.scrollLeft;
+  };
+  css.addEventListener("scroll", syncScroll);
+
+  // ---- download ----
+  $("apDownload")?.addEventListener("click", () => {
+    const blob = new Blob([css.value], { type: "text/css" });
+    const url = URL.createObjectURL(blob);
+    const a = doc.createElement("a");
+    a.href = url;
+    a.download = DOWNLOAD_NAME;
+    doc.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+  });
+
   // ---- the frame ----
   let siteCss = "";
   let body = "";
@@ -138,6 +190,10 @@ export function mountPreview(
     const text = css.value;
     last = lintCss(text);
     skin.textContent = isStrict() ? last.cleaned : text;
+    badLines = new Set(last.problems.filter((p) => p.severity === "error").map((p) => p.line));
+    warnLines = new Set(last.problems.filter((p) => p.severity !== "error").map((p) => p.line));
+    paintHl();
+    syncScroll();
     const fs = frameDoc()?.getElementById("apSkin");
     if (fs) fs.textContent = skin.textContent;
     lint.innerHTML = lintHtml(last.problems);
@@ -166,6 +222,10 @@ export function mountPreview(
   let timer = null;
   css.addEventListener("input", () => {
     paintDirty();
+    // repaint the tokens at once; the lint's line tints follow with apply()
+    badLines = new Set();
+    warnLines = new Set();
+    paintHl();
     clearTimeout(timer);
     timer = setTimeout(apply, 120);
   });
@@ -229,6 +289,8 @@ export function mountPreview(
     apply,
     save,
     frameDoc,
+    setTheme,
+    theme,
     get expanded() {
       return expanded;
     },

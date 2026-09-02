@@ -3,6 +3,11 @@
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<script>
+			// The previewer's own theme (bar, drawer, editor — never the AO3 page in
+			// the frame), applied before first paint. Dark unless the browser chose light.
+			try { document.documentElement.setAttribute("data-theme", localStorage.getItem("cowriteAo3Theme") === "light" ? "light" : "dark") } catch (e) { document.documentElement.setAttribute("data-theme", "dark") }
+		</script>
 		<title>AO3 previewer: {{SITE_NAME}}</title>
 		<link rel="icon" type="image/x-icon" href="./favicon.ico?v=2" />
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -26,6 +31,8 @@
 				>
 				<button class="ap-btn ap-save" id="apSave" type="button" title="Save the CSS in this browser (⌘/Ctrl+S)">Save CSS</button>
 				<button class="ap-btn" id="apResetCss" type="button" title="Back to the shipped default; forgets the saved CSS">Reset CSS</button>
+				<button class="ap-btn ap-icon-btn" id="apDownload" type="button" aria-label="Download the CSS" title="Download the CSS as work-skin.css">⬇</button>
+				<button class="ap-btn ap-icon-btn" id="apTheme" type="button" aria-label="Switch between dark and light" title="Dark / light">☾</button>
 			</div>
 		</header>
 
@@ -57,13 +64,17 @@
 							−
 						</button>
 					</div>
-					<textarea
-						id="apCss"
-						spellcheck="false"
-						autocapitalize="off"
-						autocomplete="off"
-						placeholder="#workskin .userstuff p { … }"
-					></textarea>
+					<div class="ap-code" id="apCode">
+						<!-- the highlight layer: css-highlight.js paints the textarea's text here -->
+						<pre id="apHl" aria-hidden="true"><code></code></pre>
+						<textarea
+							id="apCss"
+							spellcheck="false"
+							autocapitalize="off"
+							autocomplete="off"
+							placeholder="#workskin .userstuff p { … }"
+						></textarea>
+					</div>
 					<div class="ap-lint" id="apLint"></div>
 				</div>
 			</aside>

@@ -10,27 +10,93 @@
 }
 :root {
 	--ap-bar-h: 46px;
-	--ap-line: #d9d9d9;
-	--ap-panel: #f7f7f7;
-	--ap-ink: #222;
-	--ap-muted: #666;
-	/* No red text anywhere in the previewer's own chrome: the accent is a dark
-	   ink so nothing here reads as part of the AO3 page. Red survives only as
-	   the thin error border and the count pill on a lint row. */
-	--ap-accent: #222;
-	--ap-accent-2: #555;
-	--ap-warn: #8a6d00;
-	--ap-err: #a11;
 	--r-lg: 8px;
 	--r-md: 6px;
 	--doc-sticky: var(--ap-bar-h);
 	--footbar-h: 0px;
+	color-scheme: dark;
+	/* ---- dark is the default theme; html[data-theme="light"] below swaps the
+	   tokens. Only the previewer's own chrome (bar, drawer, editor) is themed —
+	   the AO3 page in the frame keeps AO3's own look. No red text anywhere in
+	   this chrome: red survives only as the thin error border and count pill. */
+	--ap-bg: #14161a;
+	--ap-panel: #1b1e24;
+	--ap-line: #2c313a;
+	--ap-ink: #e8e8ea;
+	--ap-muted: #9aa3ad;
+	--ap-accent: #f2f2f2;
+	--ap-accent-2: #b9c0c9;
+	--ap-hover: #262a32;
+	--ap-warn: #e0b33a;
+	--ap-err: #d24646;
+	--ap-err-bg: #3a1e1e;
+	--ap-warn-bg: #3a331a;
+	--ap-pill: #2a2e36;
+	--ap-code-bg: #0f1115;
+	--ap-code-ink: #e6e6e6;
+	--ap-caret: #ffffff;
+	--ap-sel: #2b3a55;
+	/* syntax colours */
+	--hl-comment: #7a8390;
+	--hl-at: #f0abfc;
+	--hl-sel: #7dd3fc;
+	--hl-sel-id: #93c5fd;
+	--hl-sel-class: #c4b5fd;
+	--hl-sel-pseudo: #a5f3fc;
+	--hl-prop: #93c5fd;
+	--hl-custom: #d8b4fe;
+	--hl-val: #e6e6e6;
+	--hl-num: #fbbf24;
+	--hl-color: #fcd34d;
+	--hl-str: #86efac;
+	--hl-fn: #5eead4;
+	--hl-imp: #fb923c;
+	--hl-punct: #9aa3ad;
+	--hl-bad-bg: rgba(210, 70, 70, 0.16);
+	--hl-warn-bg: rgba(224, 179, 58, 0.14);
+}
+html[data-theme="light"] {
+	color-scheme: light;
+	--ap-bg: #ffffff;
+	--ap-panel: #f7f7f7;
+	--ap-line: #d9d9d9;
+	--ap-ink: #222;
+	--ap-muted: #666;
+	--ap-accent: #222;
+	--ap-accent-2: #555;
+	--ap-hover: #e9e9e9;
+	--ap-warn: #8a6d00;
+	--ap-err: #a11;
+	--ap-err-bg: #f6dcdc;
+	--ap-warn-bg: #f4ebc7;
+	--ap-pill: #e9e9e9;
+	--ap-code-bg: #ffffff;
+	--ap-code-ink: #222;
+	--ap-caret: #111;
+	--ap-sel: #cfe3ff;
+	--hl-comment: #8a8a8a;
+	--hl-at: #a21caf;
+	--hl-sel: #0b5cad;
+	--hl-sel-id: #1d4ed8;
+	--hl-sel-class: #6d28d9;
+	--hl-sel-pseudo: #0e7490;
+	--hl-prop: #1d4ed8;
+	--hl-custom: #7e22ce;
+	--hl-val: #222;
+	--hl-num: #b45309;
+	--hl-color: #a16207;
+	--hl-str: #15803d;
+	--hl-fn: #0f766e;
+	--hl-imp: #c2410c;
+	--hl-punct: #666;
+	--hl-bad-bg: rgba(170, 17, 17, 0.1);
+	--hl-warn-bg: rgba(138, 109, 0, 0.12);
 }
 html,
 body {
 	margin: 0;
-	/* background: #fff; */
-	/* color: var(--ap-ink); */
+	background: var(--ap-bg);
+	color: var(--ap-ink);
 	font-family: Georgia, "Times New Roman", serif;
 }
 .hidden {
@@ -83,7 +149,7 @@ button {
 }
 .ap-btn {
 	border: 1px solid var(--ap-line);
-	background: #fff;
+	background: var(--ap-bg);
 	color: var(--ap-ink);
 	border-radius: var(--r-md);
 	padding: 5px 10px;
@@ -101,6 +167,13 @@ button {
 .ap-btn:hover {
 	border-color: var(--ap-accent-2);
 	color: var(--ap-accent);
+	background: var(--ap-hover);
+}
+.ap-btn.ap-icon-btn {
+	min-width: 34px;
+	padding: 5px 8px;
+	font-size: 0.9rem;
+	line-height: 1;
 }
 
 /* ---- the grid: the work, then the drawer column ---- */
@@ -219,7 +292,7 @@ body.resizing-side {
 }
 .doc-side-close:hover,
 .ap-icon:hover {
-	background: #e9e9e9;
+	background: var(--ap-hover);
 	color: var(--ap-ink);
 }
 .doc-side-tab {
@@ -239,7 +312,7 @@ body.resizing-side {
 	font-family: "Space Grotesk", Verdana, sans-serif;
 }
 .doc-side-tab:hover {
-	background: #e9e9e9;
+	background: var(--ap-hover);
 }
 .doc-side-tab.hidden {
 	display: none;
@@ -251,35 +324,141 @@ body.resizing-side {
 	color: var(--ap-muted);
 	padding: 2px 7px;
 	border-radius: 999px;
-	background: #e9e9e9;
+	background: var(--ap-pill);
 }
 .ap-issues.has-err {
-	background: #f6dcdc;
+	background: var(--ap-err-bg);
 	color: var(--ap-ink);
 }
 .ap-issues.has-warn {
-	background: #f4ebc7;
+	background: var(--ap-warn-bg);
 	color: var(--ap-warn);
 }
-#apCss {
+/* ---- the code editor: a transparent textarea over a highlighted <pre> ----
+   Both layers share every metric (font, size, line-height, padding, wrap,
+   tab-size) so the painted tokens sit exactly under the invisible text the
+   caret moves through. The textarea keeps the caret, selection and scroll;
+   preview.js mirrors its scroll onto the <pre>. */
+.ap-code {
+	position: relative;
 	flex: 1 1 auto;
 	min-height: 120px;
 	margin-top: 8px;
-	width: 100%;
-	resize: none;
 	border: 1px solid var(--ap-line);
 	border-radius: var(--r-md);
-	background: #fff;
-	color: var(--ap-ink);
+	background: var(--ap-code-bg);
+	overflow: hidden;
+}
+.ap-code:focus-within {
+	outline: 2px solid var(--ap-accent-2);
+	outline-offset: -1px;
+}
+.ap-code > pre,
+.ap-code > textarea {
+	position: absolute;
+	inset: 0;
+	margin: 0;
+	padding: 10px 12px;
+	border: 0;
 	font-family: "Inconsolata", Menlo, Consolas, monospace;
 	font-size: 0.86rem;
 	line-height: 1.45;
-	padding: 10px 12px;
 	tab-size: 2;
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+	overflow: auto;
+	background: transparent;
 }
-#apCss:focus {
-	outline: 2px solid var(--ap-accent-2);
-	outline-offset: -1px;
+.ap-code > pre {
+	color: var(--hl-val);
+	pointer-events: none;
+	overflow: hidden; /* the textarea scrolls; the pre follows it */
+}
+.ap-code > pre code {
+	font: inherit;
+	display: block;
+}
+#apCss {
+	width: 100%;
+	height: 100%;
+	resize: none;
+	color: transparent;
+	caret-color: var(--ap-caret);
+	outline: none;
+	-webkit-text-fill-color: transparent;
+}
+#apCss::placeholder {
+	color: var(--ap-muted);
+	-webkit-text-fill-color: var(--ap-muted);
+}
+#apCss::selection {
+	background: var(--ap-sel);
+	color: transparent;
+}
+/* the tokens */
+.hl-line {
+	display: block;
+	min-height: 1.45em;
+}
+.hl-line.hl-bad {
+	background: var(--hl-bad-bg);
+	box-shadow: inset 3px 0 0 var(--ap-err);
+}
+.hl-line.hl-warn {
+	background: var(--hl-warn-bg);
+	box-shadow: inset 3px 0 0 var(--ap-warn);
+}
+.hl-comment {
+	color: var(--hl-comment);
+	font-style: italic;
+}
+.hl-at {
+	color: var(--hl-at);
+	font-weight: 700;
+}
+.hl-sel {
+	color: var(--hl-sel);
+}
+.hl-sel-id {
+	color: var(--hl-sel-id);
+	font-weight: 700;
+}
+.hl-sel-class {
+	color: var(--hl-sel-class);
+}
+.hl-sel-pseudo,
+.hl-sel-attr {
+	color: var(--hl-sel-pseudo);
+}
+.hl-prop {
+	color: var(--hl-prop);
+}
+.hl-custom {
+	color: var(--hl-custom);
+}
+.hl-val {
+	color: var(--hl-val);
+}
+.hl-num {
+	color: var(--hl-num);
+}
+.hl-color {
+	color: var(--hl-color);
+	text-decoration: underline 2px; /* its own colour, set inline per token */
+	text-underline-offset: 2px;
+}
+.hl-str {
+	color: var(--hl-str);
+}
+.hl-fn {
+	color: var(--hl-fn);
+}
+.hl-imp {
+	color: var(--hl-imp);
+	font-weight: 700;
+}
+.hl-punct {
+	color: var(--hl-punct);
 }
 .ap-lint {
 	flex: 0 0 auto;
@@ -298,7 +477,7 @@ body.resizing-side {
 	text-align: left;
 	border: 0;
 	border-left: 3px solid var(--ap-err);
-	background: #fff;
+	background: var(--ap-bg);
 	border-radius: 0 var(--r-md) var(--r-md) 0;
 	padding: 6px 8px;
 	margin: 0 0 4px;
@@ -309,7 +488,7 @@ body.resizing-side {
 	border-left-color: var(--ap-warn);
 }
 .ap-lint-row:hover {
-	background: #f0f0f0;
+	background: var(--ap-hover);
 }
 .ap-lint-row .ln {
 	color: var(--ap-muted);
@@ -326,7 +505,7 @@ body.resizing-side {
 	color: var(--ap-muted);
 }
 .ap-lint-ok {
-	color: #2a6f2a;
+	color: var(--ap-muted);
 	font-family: "Space Grotesk", Verdana, sans-serif;
 	font-size: 0.78rem;
 	margin-top: 8px;

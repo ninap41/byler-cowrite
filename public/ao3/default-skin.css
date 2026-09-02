@@ -1,26 +1,2 @@
 /* Placeholder work skin. Replace this file with the real default.
    Everything here passes AO3's cleaner — see ao3/README.md for the rules. */
-
-#workskin .note {
-  font-style: italic;
-  color: #555;
-  border-left: 3px solid #900;
-  padding-left: 1em;
-}
-
-#workskin .text {
-  max-width: 60%;
-  margin: 0.4em 0;
-  padding: 0.5em 0.9em;
-  border-radius: 14px;
-  background: #e5e5ea;
-  color: #000;
-  font-family: Helvetica, Arial, sans-serif;
-  font-size: 0.9em;
-}
-
-#workskin .text.reply {
-  margin-left: 40%;
-  background: #0b84fe;
-  color: #fff;
-}
