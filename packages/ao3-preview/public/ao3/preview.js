@@ -8,7 +8,8 @@
 // the app's side drawer, copied in (side-drawer.js) so the package has no import outside itself
 import { mountSideDrawer } from "./side-drawer.js";
 import { lintCss, splitSelectors, storedSelector, cleanKind } from "./ao3-rules.js";
-import { createEditor } from "./editor.js";
+import { createEditor, createHtmlEditor } from "./editor.js";
+import { KEY_WORK, WORK_DEFAULTS, cleanWork, sameWork, renderWork, workFormHtml, readWorkForm } from "./work-content.js";
 import { mountInspector } from "./inspect.js";
 
 export const KEY_CSS = "cowriteAo3Css";
@@ -32,6 +33,10 @@ export const PAGES = [
   { id: "bookmarks", label: "Bookmarks" },
 ];
 export const KEY_PAGE = "cowriteAo3Page";
+// the drawer's tab: CSS or Work Content
+export const KEY_TAB = "cowriteAo3Tab";
+export const TABS = ["css", "work"];
+export const cleanTab = (t) => (TABS.includes(t) ? t : "css");
 // the warnings panel's height (px) under the editor — the grip between them
 export const KEY_LINT_H = "cowriteAo3LintH";
 export const LINT_MIN = 56;
@@ -199,7 +204,8 @@ export function mountPreview(
     id = cleanPage(id);
     set(KEY_PAGE, id);
     if (pageSel) pageSel.value = id;
-    body = await loadHtml(id).catch(() => "");
+    rawBody = await loadHtml(id).catch(() => "");
+    body = renderBody();
     writeFrame();
     apply();
   }
@@ -282,6 +288,7 @@ export function mountPreview(
   // ---- theme: dark by default, the browser's choice remembered ----
   const themeBtn = $("apTheme");
   const theme = () => (root_el.getAttribute("data-theme") === "light" ? "light" : "dark");
+  const htmlEditors = new Map(); // Work Content field id → CodeMirror HTML editor (filled below)
   const paintTheme = () => {
     if (!themeBtn) return;
     const t = theme();
@@ -294,10 +301,97 @@ export function mountPreview(
     set(KEY_THEME, t === "light" ? "light" : "dark");
     paintTheme();
     css?.setDark?.(theme() === "dark");
+    for (const ed of htmlEditors.values()) ed.setDark(theme() === "dark");
   };
   root_el.setAttribute("data-theme", get(KEY_THEME) === "light" ? "light" : "dark");
   themeBtn?.addEventListener("click", () => setTheme(theme() === "dark" ? "light" : "dark"));
   paintTheme();
+
+  // ---- the drawer's tabs: CSS | Work Content ----
+  const tabBtns = { css: $("apTabCss"), work: $("apTabWork") };
+  const panels = { css: $("apPanelCss"), work: $("apPanelWork") };
+  const tab = () => cleanTab(get(KEY_TAB));
+  function setTab(t) {
+    t = cleanTab(t);
+    set(KEY_TAB, t);
+    for (const k of TABS) {
+      tabBtns[k]?.classList.toggle("on", k === t);
+      tabBtns[k]?.setAttribute("aria-selected", String(k === t));
+      panels[k]?.classList.toggle("hidden", k !== t);
+    }
+  }
+  for (const k of TABS) tabBtns[k]?.addEventListener("click", () => setTab(k));
+  setTab(tab());
+
+  // ---- Work Content: the values that fill the work page's tokens ----
+  // (work-content.js: the fields, the boilerplate, the renderer). Typing
+  // re-renders the work page; Save keeps the values in this browser.
+  const savedWork = () => {
+    try {
+      const raw = get(KEY_WORK);
+      return raw ? cleanWork(JSON.parse(raw)) : cleanWork(WORK_DEFAULTS);
+    } catch {
+      return cleanWork(WORK_DEFAULTS);
+    }
+  };
+  let work = savedWork();
+  const workForm = $("apWorkForm");
+  const workSave = $("apWorkSave");
+  const paintWorkDirty = () => {
+    if (!workSave) return;
+    const dirty = !sameWork(work, savedWork());
+    workSave.disabled = !dirty;
+    workSave.textContent = dirty ? "Save content" : "Saved";
+  };
+  let workTimer = 0;
+  function workChanged() {
+    work = readWorkForm(workForm);
+    paintWorkDirty();
+    clearTimeout(workTimer);
+    workTimer = setTimeout(() => {
+      if (page() !== "work") return;
+      body = renderBody();
+      writeFrame();
+      apply();
+    }, 150);
+  }
+  function buildWorkForm() {
+    if (!workForm) return;
+    htmlEditors.clear();
+    workForm.innerHTML = workFormHtml(work);
+    for (const host of workForm.querySelectorAll(".ap-work-code")) {
+      const id = host.dataset.field;
+      const ta = workForm.querySelector(`textarea[name="${id}"]`);
+      htmlEditors.set(
+        id,
+        createHtmlEditor(host, {
+          value: ta?.value ?? "",
+          dark: theme() === "dark",
+          rows: Number(host.dataset.rows) || 4,
+          onChange: (v) => {
+            if (ta) ta.value = v;
+            workChanged();
+          },
+        }),
+      );
+    }
+    paintWorkDirty();
+  }
+  workForm?.addEventListener("input", (e) => {
+    if (e.target.matches?.("input, select")) workChanged();
+  });
+  workForm?.addEventListener("submit", (e) => e.preventDefault());
+  workSave?.addEventListener("click", () => {
+    set(KEY_WORK, JSON.stringify(work));
+    paintWorkDirty();
+  });
+  $("apWorkReset")?.addEventListener("click", () => {
+    set(KEY_WORK, null);
+    work = cleanWork(WORK_DEFAULTS);
+    buildWorkForm();
+    workChanged();
+  });
+  buildWorkForm();
 
   // ---- the editor (CodeMirror) ----
   // `css` is the adapter editor.js returns: .value in/out, problems in, theme.
@@ -324,7 +418,9 @@ export function mountPreview(
 
   // ---- the frame ----
   let siteCss = "";
-  let body = "";
+  let body = ""; // what the frame shows
+  let rawBody = ""; // the page as loaded — the work page is a template of {{TOKEN}}s
+  const renderBody = () => (page() === "work" ? renderWork(rawBody, work) : rawBody);
   const frameDoc = () => frame?.contentDocument || null;
   function writeFrame() {
     const d = frameDoc();
@@ -455,7 +551,8 @@ export function mountPreview(
     defaults = { css: c, html: h };
     siteCss = site;
     css.value = savedCss();
-    body = h;
+    rawBody = h;
+    body = renderBody();
     paintDirty();
     // the frame first: the no-match check reads the page
     writeFrame();
@@ -485,6 +582,14 @@ export function mountPreview(
       if (kindSel) kindSel.value = cleanKind(k);
       apply();
     },
+    get tab() {
+      return tab();
+    },
+    setTab,
+    get work() {
+      return work;
+    },
+    workEditor: (id) => htmlEditors.get(id),
     get crumbs() {
       return path;
     },

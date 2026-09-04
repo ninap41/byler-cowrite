@@ -7,7 +7,7 @@ import { installDom } from "./dom.mjs";
 const PAGE = readFileSync(new URL("../public/ao3-preview.html", import.meta.url), "utf-8");
 const bodyOf = (html) => html.slice(html.indexOf("<body>") + 6, html.indexOf("<script type=\"module\">"));
 
-let pathOf, picker, mountPreview, lintRowHtml, issuesLabel, frameHtml, crumbsHtml, unmatchedRules, NO_MATCH, NO_MATCH_SITE, KEY_KIND, DEFAULT_KIND, DOWNLOAD_NAMES, PAGES, KEY_PAGE, DEFAULT_PAGE, pageFile, KEY_LINT_H, LINT_MIN, LINT_DEFAULT, KEY_CSS, KEY_EXPANDED, KEY_THEME, DOWNLOAD_NAME, selectorFor, STYLE_ID, OUTSIDE_CLASS, OUTSIDE_NOTE;
+let pathOf, picker, mountPreview, lintRowHtml, issuesLabel, frameHtml, crumbsHtml, unmatchedRules, NO_MATCH, NO_MATCH_SITE, KEY_KIND, DEFAULT_KIND, DOWNLOAD_NAMES, PAGES, KEY_PAGE, DEFAULT_PAGE, pageFile, KEY_TAB, KEY_LINT_H, LINT_MIN, LINT_DEFAULT, KEY_CSS, KEY_EXPANDED, KEY_THEME, DOWNLOAD_NAME, selectorFor, STYLE_ID, OUTSIDE_CLASS, OUTSIDE_NOTE;
 before(async () => {
   const dom = installDom();
   window.matchMedia = () => ({ matches: false, addEventListener() {}, removeEventListener() {} });
@@ -28,15 +28,16 @@ before(async () => {
   // the page imports the drawer by absolute path; node needs a resolvable one
   const asData = (code) => "data:text/javascript;base64," + Buffer.from(code).toString("base64");
   const abs = (rel) => new URL(rel, import.meta.url).href;
-  const pickerSrc = readFileSync(new URL("../public/ao3/color-picker.js", import.meta.url), "utf-8").replace('"/vendor/codemirror.js?v=3"', JSON.stringify(abs("../public/vendor/codemirror.js"))).replace('"./css-values.js"', JSON.stringify(abs("../public/ao3/css-values.js")));
+  const pickerSrc = readFileSync(new URL("../public/ao3/color-picker.js", import.meta.url), "utf-8").replace('"/vendor/codemirror.js?v=4"', JSON.stringify(abs("../public/vendor/codemirror.js"))).replace('"./css-values.js"', JSON.stringify(abs("../public/ao3/css-values.js")));
   const pickerUrl = asData(pickerSrc);
-  const editorSrc = readFileSync(new URL("../public/ao3/editor.js", import.meta.url), "utf-8").replace('"/vendor/codemirror.js?v=3"', JSON.stringify(abs("../public/vendor/codemirror.js"))).replace('"./ao3-rules.js"', JSON.stringify(abs("../public/ao3/ao3-rules.js"))).replace('"./css-values.js"', JSON.stringify(abs("../public/ao3/css-values.js"))).replace('"./color-picker.js"', JSON.stringify(pickerUrl));
+  const editorSrc = readFileSync(new URL("../public/ao3/editor.js", import.meta.url), "utf-8").replace('"/vendor/codemirror.js?v=4"', JSON.stringify(abs("../public/vendor/codemirror.js"))).replace('"./ao3-rules.js"', JSON.stringify(abs("../public/ao3/ao3-rules.js"))).replace('"./css-values.js"', JSON.stringify(abs("../public/ao3/css-values.js"))).replace('"./color-picker.js"', JSON.stringify(pickerUrl));
   const src = readFileSync(new URL("../public/ao3/preview.js", import.meta.url), "utf-8")
     .replace('"./side-drawer.js"', JSON.stringify(abs("../public/ao3/side-drawer.js")))
     .replace('"./ao3-rules.js"', JSON.stringify(abs("../public/ao3/ao3-rules.js")))
     .replace('"./editor.js"', JSON.stringify(asData(editorSrc)))
-    .replace('"./inspect.js"', JSON.stringify(abs("../public/ao3/inspect.js")));
-  ({ mountPreview, lintRowHtml, issuesLabel, frameHtml, crumbsHtml, unmatchedRules, NO_MATCH, NO_MATCH_SITE, KEY_KIND, DEFAULT_KIND, DOWNLOAD_NAMES, PAGES, KEY_PAGE, DEFAULT_PAGE, pageFile, KEY_LINT_H, LINT_MIN, LINT_DEFAULT, KEY_CSS, KEY_EXPANDED, KEY_THEME, DOWNLOAD_NAME } = await import(asData(src)));
+    .replace('"./inspect.js"', JSON.stringify(abs("../public/ao3/inspect.js")))
+    .replace('"./work-content.js"', JSON.stringify(abs("../public/ao3/work-content.js")));
+  ({ mountPreview, lintRowHtml, issuesLabel, frameHtml, crumbsHtml, unmatchedRules, NO_MATCH, NO_MATCH_SITE, KEY_KIND, DEFAULT_KIND, DOWNLOAD_NAMES, PAGES, KEY_PAGE, DEFAULT_PAGE, pageFile, KEY_TAB, KEY_LINT_H, LINT_MIN, LINT_DEFAULT, KEY_CSS, KEY_EXPANDED, KEY_THEME, DOWNLOAD_NAME } = await import(asData(src)));
   ({ selectorFor, pathOf, STYLE_ID, OUTSIDE_CLASS, OUTSIDE_NOTE } = await import(abs("../public/ao3/inspect.js")));
   picker = await import(pickerUrl);
 });
@@ -548,7 +549,7 @@ test("the Page dropdown: lists every scraped page in order, defaults to the work
   assert.deepEqual(asked, ["work"], "the work page loads first");
   assert.equal(m.page, "work");
   assert.equal(m.kind, "site", "defaults: the Work page, a Site skin");
-  assert.equal(document.querySelector(".doc-side-head h3").textContent, "CSS");
+  assert.equal(document.getElementById("apTabCss").textContent, "CSS");
   assert.equal(sel.value, "work");
   sel.value = "tags";
   sel.dispatchEvent(new window.Event("change", { bubbles: true }));
@@ -681,4 +682,98 @@ test("inspecting shows the element hierarchy as breadcrumbs: hover a crumb to ou
   fd.dispatchEvent(new fd.defaultView.KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
   assert.equal(crumbs.hidden, true);
   assert.equal(m.crumbs.length, 0);
+});
+
+test("the drawer's tabs: CSS | Work Content — the choice persists; the Work panel holds the edit-form fields with the shipped work's values, html fields as CodeMirror HTML editors; edits re-render the work live; Save/Reset", async () => {
+  const W = await import(new URL("../public/ao3/work-content.js", import.meta.url).href);
+  const tpl = readFileSync(new URL("../public/ao3/html/work.html", import.meta.url), "utf-8");
+  document.body.innerHTML = bodyOf(PAGE);
+  localStorage.clear();
+  const m = mountPreview(document, { storage: localStorage, loadCss: async () => "", loadHtml: async () => tpl, loadSite: async () => "" });
+  await m.ready;
+  // tabs
+  const tCss = document.getElementById("apTabCss"), tWork = document.getElementById("apTabWork");
+  const pCss = document.getElementById("apPanelCss"), pWork = document.getElementById("apPanelWork");
+  assert.equal(m.tab, "css");
+  assert.ok(tCss.classList.contains("on") && !pCss.classList.contains("hidden") && pWork.classList.contains("hidden"));
+  tWork.click();
+  assert.equal(m.tab, "work");
+  assert.equal(localStorage.getItem(KEY_TAB), "work");
+  assert.ok(tWork.classList.contains("on") && tWork.getAttribute("aria-selected") === "true" && pCss.classList.contains("hidden") && !pWork.classList.contains("hidden"));
+  // the form: one control per field, boilerplate values
+  const form = document.getElementById("apWorkForm");
+  for (const f of W.WORK_FIELDS) {
+    if (f.kind === "checks") assert.ok(form.querySelector(`input[name="${f.id}"]`), f.id);
+    else assert.ok(form.querySelector(`[name="${f.id}"]`), f.id);
+  }
+  assert.equal(form.querySelector('[name="title"]').value, "Bottled Up, Falling Down");
+  assert.equal(form.querySelector('[name="rating"]').value, "Teen And Up Audiences");
+  assert.equal(form.querySelector('[name="characters"]').value, "Mike Wheeler, Will Byers, Dustin Henderson, Lucas Sinclair, Robin Buckley");
+  assert.ok(form.querySelector('input[name="categories"][value="M/M"]').checked);
+  assert.equal(form.querySelectorAll(".ap-work-code .cm-editor").length, W.WORK_FIELDS.filter((f) => f.kind === "html").length, "every html field is a CodeMirror editor");
+  assert.match(m.workEditor("summary").value, /^<p>He almost didn't see/);
+  assert.match(m.workEditor("chapterText").value, /Mike stood on the edge/);
+  assert.equal(document.getElementById("apWorkSave").textContent, "Saved");
+  assert.equal(document.getElementById("apWorkSave").disabled, true);
+  // the frame shows the rendered template — no token survives
+  let fd = m.frameDoc();
+  assert.equal(fd.querySelector("h2.title").textContent.trim(), "Bottled Up, Falling Down");
+  assert.ok(!/\{\{[A-Z_]+\}\}/.test(fd.body.innerHTML), "no token left in the page");
+  assert.equal(fd.querySelectorAll("dd.character.tags a.tag").length, 5);
+  // edit the title → re-rendered
+  const title = form.querySelector('[name="title"]');
+  title.value = "A New Title";
+  title.dispatchEvent(new window.Event("input", { bubbles: true }));
+  assert.equal(m.work.title, "A New Title");
+  assert.equal(document.getElementById("apWorkSave").disabled, false);
+  await new Promise((r) => setTimeout(r, 200));
+  fd = m.frameDoc();
+  assert.equal(fd.querySelector("h2.title").textContent.trim(), "A New Title");
+  // edit the summary in its editor → re-rendered; an emptied one omits the module
+  m.workEditor("summary").value = "<p>Short.</p>";
+  await new Promise((r) => setTimeout(r, 200));
+  fd = m.frameDoc();
+  assert.equal(fd.querySelector(".summary.module blockquote").innerHTML.trim(), "<p>Short.</p>");
+  m.workEditor("summary").value = "";
+  await new Promise((r) => setTimeout(r, 200));
+  assert.equal(m.frameDoc().querySelector(".summary.module"), null, "an empty summary has no module, as on AO3");
+  // a chapter preface appears only when filled
+  m.workEditor("chapterNotes").value = "<p>cn</p>";
+  await new Promise((r) => setTimeout(r, 200));
+  fd = m.frameDoc();
+  assert.equal(fd.querySelector("#chapters .chapter.preface #notes blockquote").innerHTML, "<p>cn</p>");
+  // tags: a checkbox and a comma list
+  form.querySelector('input[name="warnings"][value="Major Character Death"]').checked = true;
+  form.querySelector('input[name="warnings"]').dispatchEvent(new window.Event("input", { bubbles: true }));
+  const fand = form.querySelector('[name="fandoms"]');
+  fand.value = "Stranger Things (TV 2016), Byler <x>";
+  fand.dispatchEvent(new window.Event("input", { bubbles: true }));
+  await new Promise((r) => setTimeout(r, 200));
+  fd = m.frameDoc();
+  assert.deepEqual(Array.from(fd.querySelectorAll("dd.warning.tags a.tag")).map((a) => a.textContent), ["Creator Chose Not To Use Archive Warnings", "Major Character Death"]);
+  assert.deepEqual(Array.from(fd.querySelectorAll("dd.fandom.tags a.tag")).map((a) => a.textContent), ["Stranger Things (TV 2016)", "Byler <x>"], "tag text is escaped, not markup");
+  // Save → localStorage; a remount restores it; Reset → boilerplate
+  document.getElementById("apWorkSave").click();
+  assert.equal(JSON.parse(localStorage.getItem(W.KEY_WORK)).title, "A New Title");
+  assert.equal(document.getElementById("apWorkSave").textContent, "Saved");
+  document.body.innerHTML = bodyOf(PAGE);
+  const m2 = mountPreview(document, { storage: localStorage, loadCss: async () => "", loadHtml: async () => tpl, loadSite: async () => "" });
+  await m2.ready;
+  assert.equal(m2.tab, "work", "the tab is remembered");
+  assert.equal(m2.work.title, "A New Title");
+  assert.equal(m2.frameDoc().querySelector("h2.title").textContent.trim(), "A New Title");
+  document.getElementById("apWorkReset").click();
+  await new Promise((r) => setTimeout(r, 200));
+  assert.equal(localStorage.getItem(W.KEY_WORK), null);
+  assert.equal(m2.work.title, "Bottled Up, Falling Down");
+  assert.equal(m2.frameDoc().querySelector("h2.title").textContent.trim(), "Bottled Up, Falling Down");
+  // on another page the values stay but the frame is that page, untouched
+  await m2.setPage("tags");
+  const before = m2.frameDoc().body.innerHTML;
+  const t2 = document.getElementById("apWorkForm").querySelector('[name="title"]');
+  t2.value = "Elsewhere";
+  t2.dispatchEvent(new window.Event("input", { bubbles: true }));
+  await new Promise((r) => setTimeout(r, 200));
+  assert.equal(m2.frameDoc().body.innerHTML, before);
+  assert.equal(m2.work.title, "Elsewhere");
 });

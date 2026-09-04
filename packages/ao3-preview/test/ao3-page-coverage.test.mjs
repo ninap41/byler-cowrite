@@ -8,9 +8,11 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { JSDOM } from "jsdom";
 import { selectorFor } from "../public/ao3/inspect.js";
+import { renderWork, WORK_DEFAULTS } from "../public/ao3/work-content.js";
 import { lintCss } from "../public/ao3/ao3-rules.js";
 
-const PAGE = readFileSync(new URL("../public/ao3/html/work.html", import.meta.url), "utf-8");
+// the work page is a template; walk it as the previewer renders it
+const PAGE = renderWork(readFileSync(new URL("../public/ao3/html/work.html", import.meta.url), "utf-8"), WORK_DEFAULTS);
 const SKIP = new Set(["SCRIPT", "STYLE", "NOSCRIPT", "TEMPLATE"]);
 
 // property → [value to declare, computed-style key, expected computed value]

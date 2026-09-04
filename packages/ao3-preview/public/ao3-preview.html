@@ -78,13 +78,17 @@
 						title="Drag to resize · double-click to reset"
 					></div>
 					<div class="doc-side-head">
-						<h3>CSS</h3>
+						<div class="ap-tabs" role="tablist" aria-label="Drawer">
+							<button class="ap-tab on" id="apTabCss" type="button" role="tab" aria-selected="true" aria-controls="apPanelCss">CSS</button>
+							<button class="ap-tab" id="apTabWork" type="button" role="tab" aria-selected="false" aria-controls="apPanelWork">Work Content</button>
+						</div>
 						<span class="ap-issues" id="apIssues"></span>
 						<button class="ap-icon" id="apExpand" type="button" aria-label="Expand the drawer" title="Expand">⤢</button>
 						<button class="doc-side-close" id="apMin" type="button" aria-label="Minimise the drawer" title="Minimise">
 							−
 						</button>
 					</div>
+					<div class="ap-panel" id="apPanelCss" role="tabpanel">
 					<!-- CodeMirror mounts here (public/ao3/editor.js, served from /vendor/codemirror.js) -->
 					<div class="ap-code" id="apCode"></div>
 					<div
@@ -97,6 +101,17 @@
 						title="Drag to resize the warnings · double-click to reset"
 					></div>
 					<div class="ap-lint" id="apLint"></div>
+					</div>
+					<!-- Work Content: the fields of AO3's work/chapter edit forms (work-content.js);
+					     the work page is a template whose tokens these fill. -->
+					<div class="ap-panel ap-work-panel hidden" id="apPanelWork" role="tabpanel">
+						<div class="ap-work-acts">
+							<button class="ap-btn ap-save" id="apWorkSave" type="button" title="Save these values in this browser">Save content</button>
+							<button class="ap-btn" id="apWorkReset" type="button" title="Back to the shipped work; forgets the saved values">Reset content</button>
+							<span class="ap-work-note">The work page shows these live.</span>
+						</div>
+						<form class="ap-work-form" id="apWorkForm" autocomplete="off"></form>
+					</div>
 				</div>
 			</aside>
 			<button class="doc-side-tab hidden" id="apTab" type="button" aria-expanded="false" title="Open the CSS drawer">

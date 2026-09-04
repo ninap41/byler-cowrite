@@ -8,7 +8,7 @@
 // picker is a separate panel, and the pointer leaving the editor must not
 // tear the input out from under it.
 
-import { EditorView, Decoration, ViewPlugin, WidgetType, StateField, StateEffect, showTooltip } from "/vendor/codemirror.js?v=3"
+import { EditorView, Decoration, ViewPlugin, WidgetType, StateField, StateEffect, showTooltip } from "/vendor/codemirror.js?v=4"
 import { NAMED_COLORS } from "./css-values.js"
 
 // ---- finding colours ----

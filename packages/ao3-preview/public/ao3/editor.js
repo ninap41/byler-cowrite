@@ -19,6 +19,7 @@ import {
 	historyKeymap,
 	indentWithTab,
 	cssLanguage,
+	html,
 	autocompletion,
 	completionKeymap,
 	startCompletion,
@@ -38,7 +39,7 @@ import {
 	closeBracketsKeymap,
 	highlightSelectionMatches,
 	searchKeymap,
-} from "/vendor/codemirror.js?v=3"
+} from "/vendor/codemirror.js?v=4"
 import { PROPERTIES, SHORTHANDS } from "./ao3-rules.js"
 import { valuesFor } from "./css-values.js"
 import { colorPicker } from "./color-picker.js"
@@ -303,6 +304,58 @@ export function createEditor(host, { value = "", dark = true, onChange, onSave }
 			view.focus()
 			startCompletion(view)
 			return { line: view.state.doc.lineAt(caret).number, existed: false }
+		},
+	}
+}
+
+/**
+ * createHtmlEditor(host, { value, dark, onChange }) → { get value, set value, setDark, focus, view }
+ * A small HTML editor for the Work Content fields: HTML mode, wrapping, no
+ * gutter, the same two themes as the CSS editor. `rows` sets a minimum height.
+ */
+export function createHtmlEditor(host, { value = "", dark = true, onChange, rows = 4 } = {}) {
+	const themeSlot = new Compartment()
+	const themeFor = (d) => (d ? [oneDark] : [lightTheme, syntaxHighlighting(lightHighlight)])
+	const state = EditorState.create({
+		doc: value,
+		extensions: [
+			EditorView.theme({
+				"&": { fontSize: "0.82rem", minHeight: rows * 1.45 + 1 + "em" },
+				".cm-scroller": { fontFamily: '"Inconsolata", Menlo, Consolas, monospace', lineHeight: "1.45", overflow: "auto", maxHeight: "60vh" },
+				".cm-content": { padding: "6px 0" },
+				"&.cm-focused": { outline: "none" },
+			}),
+			themeSlot.of(themeFor(dark)),
+			history(),
+			drawSelection(),
+			highlightSpecialChars(),
+			bracketMatching(),
+			closeBrackets(),
+			html(),
+			autocompletion(),
+			EditorView.lineWrapping,
+			keymap.of([...closeBracketsKeymap, ...completionKeymap, ...defaultKeymap, ...historyKeymap, indentWithTab]),
+			EditorView.updateListener.of((u) => {
+				if (u.docChanged) onChange?.(u.state.doc.toString())
+			}),
+		],
+	})
+	const view = new EditorView({ state, parent: host })
+	return {
+		view,
+		get value() {
+			return view.state.doc.toString()
+		},
+		set value(v) {
+			const next = String(v ?? "")
+			if (next === view.state.doc.toString()) return
+			view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: next } })
+		},
+		setDark(d) {
+			view.dispatch({ effects: themeSlot.reconfigure(themeFor(!!d)) })
+		},
+		focus() {
+			view.focus()
 		},
 	}
 }
