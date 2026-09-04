@@ -32,7 +32,7 @@ before(async () => {
   const pickerUrl = asData(pickerSrc);
   const editorSrc = readFileSync(new URL("../public/ao3/editor.js", import.meta.url), "utf-8").replace('"/vendor/codemirror.js?v=3"', JSON.stringify(abs("../public/vendor/codemirror.js"))).replace('"./ao3-rules.js"', JSON.stringify(abs("../public/ao3/ao3-rules.js"))).replace('"./css-values.js"', JSON.stringify(abs("../public/ao3/css-values.js"))).replace('"./color-picker.js"', JSON.stringify(pickerUrl));
   const src = readFileSync(new URL("../public/ao3/preview.js", import.meta.url), "utf-8")
-    .replace('"/js/components/side-drawer.js"', JSON.stringify(abs("../public/js/components/side-drawer.js")))
+    .replace('"./side-drawer.js"', JSON.stringify(abs("../public/ao3/side-drawer.js")))
     .replace('"./ao3-rules.js"', JSON.stringify(abs("../public/ao3/ao3-rules.js")))
     .replace('"./editor.js"', JSON.stringify(asData(editorSrc)))
     .replace('"./inspect.js"', JSON.stringify(abs("../public/ao3/inspect.js")));

@@ -5,7 +5,8 @@
 // `mountPreview(doc, opts)` takes the document plus injectable storage and
 // loaders so a jsdom test can drive it without a server.
 
-import { mountSideDrawer } from "/js/components/side-drawer.js";
+// the app's side drawer, copied in (side-drawer.js) so the package has no import outside itself
+import { mountSideDrawer } from "./side-drawer.js";
 import { lintCss, splitSelectors, storedSelector, cleanKind } from "./ao3-rules.js";
 import { createEditor } from "./editor.js";
 import { mountInspector } from "./inspect.js";

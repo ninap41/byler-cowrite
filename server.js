@@ -42,9 +42,14 @@ app.use((req, res, next) => {
 // middleware so /index.html can't leak an unrendered copy. Auth is enforced
 // client-side + on every API/socket call — these are still just files.
 const PAGES = ["index", "dashboard", "game", "archive", "stories", "profile", "settings", "write", "writes", "inbox", "admin", "ranks", "announcements", "games", "reset", "ao3-preview"];
+// The AO3 previewer is a workspace package (packages/ao3-preview): its page
+// and its /ao3/ + /vendor/codemirror.js files are served from there, after
+// the app's own public/ so nothing of the app's is shadowed.
+const AO3_DIR = join(__dirname, "packages", "ao3-preview", "public");
+const PACKAGE_PAGES = { "ao3-preview": AO3_DIR };
 const pageHtml = new Map();
 const servePage = (page) => (_req, res) => {
-  if (!pageHtml.has(page)) pageHtml.set(page, renderPage(readFileSync(join(__dirname, "public", page + ".html"), "utf-8")));
+  if (!pageHtml.has(page)) pageHtml.set(page, renderPage(readFileSync(join(PACKAGE_PAGES[page] || join(__dirname, "public"), page + ".html"), "utf-8")));
   res.type("html").send(pageHtml.get(page));
 };
 app.get("/", servePage("index"));
@@ -53,7 +58,9 @@ for (const page of PAGES) {
   if (page !== "index") app.get("/" + page, servePage(page));
 }
 app.use("/vendor", express.static(join(__dirname, "public", "vendor"), { maxAge: "7d" })); // before the general static, or it would answer first
+app.use("/vendor", express.static(join(AO3_DIR, "vendor"), { maxAge: "7d" }));
 app.use(express.static(join(__dirname, "public")));
+app.use(express.static(AO3_DIR));
 app.use("/sounds", express.static(join(__dirname, "sounds"), { maxAge: "7d" }));
 // The raw body is kept (req.rawBody) because Discord's interaction signature
 // is computed over the exact bytes sent — a re-serialized JSON wouldn't verify.

@@ -1,0 +1,19 @@
+{
+  "name": "@byler-cowrite/ao3-preview",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "AO3 work/site skin previewer: a real AO3 work page in a frame beside a CodeMirror CSS editor with AO3's own cleaner rules, an element inspector, whitelist completions and a colour picker. No build step at runtime; the CodeMirror bundle is committed.",
+  "scripts": {
+    "test": "node --test \"test/**/*.test.mjs\"",
+    "build-codemirror": "node scripts/build-codemirror.mjs"
+  },
+  "devDependencies": {
+    "@codemirror/lang-css": "^6.3.1",
+    "@codemirror/lint": "^6.9.7",
+    "@codemirror/theme-one-dark": "^6.1.3",
+    "codemirror": "^6.0.2",
+    "esbuild": "^0.28.2",
+    "jsdom": "^29.1.1"
+  }
+}
