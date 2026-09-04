@@ -550,7 +550,7 @@ test("the Page dropdown: lists every scraped page in order, defaults to the work
   assert.deepEqual(asked, ["work"], "the work page loads first");
   assert.equal(m.page, "work");
   assert.equal(m.kind, "site", "defaults: the Work page, a Site skin");
-  assert.equal(document.getElementById("apTabCss").textContent, "CSS");
+  assert.match(document.getElementById("apTabCss").textContent, /CSS/);
   assert.equal(sel.value, "work");
   sel.value = "tags";
   sel.dispatchEvent(new window.Event("change", { bubbles: true }));
@@ -810,4 +810,36 @@ test("Work Content fields are validated under AO3's HTML rules: diagnostics in t
   assert.equal(warn.hidden, false);
   assert.match(warn.textContent, /takes no HTML/);
   assert.equal(badge("title").textContent, "1 note");
+});
+
+test("the tab bar follows the Editor Tabs design: a glyph per tab, CSS yellow and Work Content orange on top of the active tab, count pills that follow the lint", async () => {
+  const tpl = readFileSync(new URL("../public/ao3/html/work.html", import.meta.url), "utf-8");
+  document.body.innerHTML = bodyOf(PAGE);
+  localStorage.clear();
+  const m = mountPreview(document, { storage: localStorage, loadCss: async () => "#workskin p { color: red }", loadHtml: async () => tpl, loadSite: async () => "" });
+  await m.ready;
+  const css = readFileSync(new URL("../public/ao3/preview.css", import.meta.url), "utf-8");
+  assert.match(css, /--ap-tab-css: #ffd766;/, "CSS accent is yellow");
+  assert.match(css, /--ap-tab-work: #f6a13a;/, "Work Content accent is orange");
+  assert.match(css, /\.ap-tab-css\.on \{\s*border-top-color: var\(--ap-tab-css\);/);
+  assert.match(css, /\.ap-tab-work\.on \{\s*border-top-color: var\(--ap-tab-work\);/);
+  assert.match(css, /\.ap-tab \{[^}]*border-top: 2px solid transparent;[^}]*border-right: 1px solid var\(--ap-tab-sep\);/s, "the reference's 2px top accent and right separator");
+  assert.match(css, /\.doc-side-head \{[^}]*height: 40px;[^}]*background: var\(--ap-tabbar\);/s, "a 40px bar in the darker ink");
+  const tCss = document.getElementById("apTabCss"), tWork = document.getElementById("apTabWork");
+  assert.equal(tCss.querySelector(".ap-tab-ico").textContent, "{}");
+  assert.equal(tWork.querySelector(".ap-tab-ico").textContent, "</>");
+  assert.ok(tCss.classList.contains("ap-tab-css") && tWork.classList.contains("ap-tab-work"));
+  // count pills: CSS follows the lint, Work Content the fields' problems
+  const cssN = document.getElementById("apTabCssN"), workN = document.getElementById("apTabWorkN");
+  assert.equal(cssN.hidden, true);
+  type(m, "#workskin p { color: red; gap: 1px }\n#nothing { color: red }");
+  m.apply();
+  assert.equal(cssN.hidden, false);
+  assert.equal(cssN.textContent, "2");
+  assert.equal(workN.hidden, true, "the boilerplate is clean");
+  m.workEditor("summary").value = '<p style="x">a</p><font>b</font>';
+  assert.equal(workN.hidden, false);
+  assert.equal(workN.textContent, "2");
+  m.workEditor("summary").value = "<p>ok</p>";
+  assert.equal(workN.hidden, true);
 });

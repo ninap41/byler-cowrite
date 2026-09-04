@@ -355,36 +355,114 @@ body.resizing-side {
 	font-size: 0.9rem;
 	font-weight: 700;
 }
-/* the drawer's two tabs: CSS | Work Content */
+/* The drawer's tab bar — after the "Editor Tabs" design: a 40px strip in a
+   darker ink than the panel, each tab a mono label with a small glyph, the
+   active one lifted to the panel's colour with a 2px accent on top and its
+   bottom edge open onto the panel; a count pill when a tab has warnings.
+   CSS wears a yellow accent, Work Content an orange one. */
+:root {
+	--ap-tab-css: #ffd766;
+	--ap-tab-work: #f6a13a;
+	--ap-tabbar: #141416;
+	--ap-tabpanel: #1b1b1e;
+	--ap-tab-ink: rgba(255, 255, 255, 0.45);
+	--ap-tab-ink-on: #fff;
+	--ap-tab-line: rgba(255, 255, 255, 0.09);
+	--ap-tab-sep: rgba(255, 255, 255, 0.07);
+	--ap-tab-pill: #8a6d1a;
+	--ap-tab-pill-ink: #ffd766;
+}
+html[data-theme="light"] {
+	--ap-tabbar: #ececee;
+	--ap-tabpanel: #ffffff;
+	--ap-tab-ink: rgba(0, 0, 0, 0.5);
+	--ap-tab-ink-on: #111;
+	--ap-tab-line: rgba(0, 0, 0, 0.12);
+	--ap-tab-sep: rgba(0, 0, 0, 0.08);
+	--ap-tab-pill: #f3dd8c;
+	--ap-tab-pill-ink: #6b4f00;
+}
+.doc-side-head {
+	/* the bar bleeds to the card's edges, above the grip's gutter */
+	margin: -10px -12px 0 -20px;
+	padding-left: 8px;
+	height: 40px;
+	background: var(--ap-tabbar);
+	border-bottom: 1px solid var(--ap-tab-line);
+	align-items: stretch;
+	gap: 0;
+}
+.doc-side-head .ap-issues {
+	align-self: center;
+	margin-left: 10px;
+}
+.doc-side-head .ap-icon,
+.doc-side-head .doc-side-close {
+	align-self: center;
+	color: var(--ap-tab-ink);
+}
+.doc-side-head .doc-side-close {
+	margin-right: 6px;
+}
 .ap-tabs {
 	flex: 1 1 auto;
 	display: flex;
-	gap: 2px;
+	align-items: stretch;
+	gap: 0;
 }
 .ap-tab {
 	all: unset;
+	display: flex;
+	align-items: center;
+	gap: 8px;
 	cursor: pointer;
-	padding: 5px 10px;
-	border-radius: var(--r-md);
-	font: 700 0.82rem "Space Grotesk", Verdana, sans-serif;
-	color: var(--ap-ink);
-	opacity: 0.6;
+	padding: 0 16px;
+	margin-bottom: -1px;
+	font: 500 12.5px/1 "Inconsolata", "JetBrains Mono", Menlo, Consolas, monospace;
+	color: var(--ap-tab-ink);
+	background: transparent;
+	border-top: 2px solid transparent;
+	border-right: 1px solid var(--ap-tab-sep);
+	border-bottom: 1px solid var(--ap-tab-line);
+	transition: color 0.12s;
 }
 .ap-tab:hover,
 .ap-tab:focus-visible {
-	opacity: 1;
-	background: var(--ap-hover);
+	color: var(--ap-tab-ink-on);
 }
 .ap-tab.on {
-	opacity: 1;
-	background: var(--ap-hover);
-	color: var(--ap-accent);
+	color: var(--ap-tab-ink-on);
+	background: var(--ap-tabpanel);
+	border-bottom-color: var(--ap-tabpanel);
+}
+.ap-tab-css.on {
+	border-top-color: var(--ap-tab-css);
+}
+.ap-tab-work.on {
+	border-top-color: var(--ap-tab-work);
+}
+.ap-tab-ico {
+	font-size: 11px;
+	opacity: 0.7;
+}
+.ap-tab-n {
+	background: var(--ap-tab-pill);
+	color: var(--ap-tab-pill-ink);
+	font: 600 10px/1.4 "Inconsolata", "JetBrains Mono", Menlo, monospace;
+	padding: 1px 6px;
+	border-radius: 9px;
+}
+.ap-tab-n[hidden] {
+	display: none;
 }
 .ap-panel {
 	display: flex;
 	flex-direction: column;
 	flex: 1 1 auto;
 	min-height: 0;
+}
+.doc-side-card {
+	background: var(--ap-tabpanel);
 }
 .ap-panel.hidden {
 	display: none;

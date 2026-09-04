@@ -349,10 +349,12 @@ export function mountPreview(
   const issueLabel = (n, worst) => (n ? `${n} ${worst === "error" ? (n === 1 ? "problem" : "problems") : n === 1 ? "note" : "notes"}` : "");
   function lintWork() {
     if (!workForm) return;
+    let total = 0;
     for (const f of WORK_FIELDS) {
       if (f.kind !== "html" && f.kind !== "text") continue;
       if (f.kind === "text" && !(f.id in { title: 1, chapterTitle: 1 })) continue;
       const problems = lintField(f.id, work[f.id]);
+      total += problems.filter((p) => p.severity !== "info").length;
       const badge = workForm.querySelector(`.ap-work-issues[data-for="${f.id}"]`);
       const worst = problems.some((p) => p.severity === "error") ? "error" : problems.some((p) => p.severity === "warning") ? "warning" : "info";
       if (badge) {
@@ -367,6 +369,11 @@ export function mountPreview(
         warn.innerHTML = problems.map((p) => `<div class="${p.severity}">${esc(p.message)}</div>`).join("");
         warn.hidden = !problems.length;
       }
+    }
+    const workN = $("apTabWorkN");
+    if (workN) {
+      workN.textContent = String(total);
+      workN.hidden = !total;
     }
   }
   let workTimer = 0;
@@ -530,6 +537,11 @@ export function mountPreview(
     split?.classList.toggle("hidden", !last.problems.length);
     const label = issuesLabel(last.problems);
     issues.textContent = label.text;
+    const cssN = $("apTabCssN");
+    if (cssN) {
+      cssN.textContent = String(last.problems.length);
+      cssN.hidden = !last.problems.length;
+    }
     issues.className = "ap-issues " + label.cls;
   }
   // ---- saving: explicit, to localStorage ----
