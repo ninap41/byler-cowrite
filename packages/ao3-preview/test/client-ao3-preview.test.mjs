@@ -139,9 +139,30 @@ test("Cmd/Ctrl+S in the editor saves", async () => {
   assert.equal(localStorage.getItem(KEY_CSS), "#workskin p { color: green }");
 });
 
+test("the frame is a picture, not a site: links, buttons and forms are inert, hrefs kept, and relative links resolve against AO3 rather than this app", async () => {
+  const m = fresh('<div id="workskin"><p>hi</p></div><a id="home" href="/">home</a><a id="w" href="/works">works</a><form id="f" action="/works/search"><input type="submit" id="go" value="Go"></form><button id="b">b</button>');
+  await m.ready;
+  const fd = m.frameDoc();
+  assert.equal(fd.querySelector("base").getAttribute("href"), "https://archiveofourown.org/");
+  assert.equal(fd.getElementById("home").href, "https://archiveofourown.org/", "a scraped root-relative link points at AO3, never at /");
+  assert.equal(fd.getElementById("w").getAttribute("href"), "/works", "the href attribute is untouched, so a:link styles hold");
+  const ME = fd.defaultView.MouseEvent;
+  for (const id of ["home", "w", "go", "b"]) {
+    const ev = new ME("click", { bubbles: true, cancelable: true });
+    fd.getElementById(id).dispatchEvent(ev);
+    assert.ok(ev.defaultPrevented, id + " goes nowhere");
+  }
+  const sub = new fd.defaultView.Event("submit", { bubbles: true, cancelable: true });
+  fd.getElementById("f").dispatchEvent(sub);
+  assert.ok(sub.defaultPrevented, "forms never submit");
+  const p = new ME("click", { bubbles: true, cancelable: true });
+  fd.querySelector("p").dispatchEvent(p);
+  assert.ok(!p.defaultPrevented, "plain text clicks are left alone");
+});
+
 test("frameHtml puts links in a new tab and carries both style blocks", () => {
   const h = frameHtml({ siteCss: "a{}", skinCss: "b{}", body: "<p>x</p>" });
-  assert.match(h, /<base target="_blank">/);
+  assert.match(h, /<base href="https:\/\/archiveofourown\.org\/" target="_blank">/);
   assert.match(h, /<style id="apSite">a\{\}<\/style><style id="apSkin">b\{\}<\/style>/);
   assert.match(h, /<body class="logged-in javascript"><p>x<\/p><\/body>/);
 });

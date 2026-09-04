@@ -113,8 +113,32 @@ async function fetchText(url) {
 // srcdoc so the same code runs under jsdom.
 // AO3 stamps these on <body>; parts of the site skin key off them.
 export const AO3_BODY_CLASS = "logged-in javascript";
+export const AO3_ORIGIN = "https://archiveofourown.org";
+
+// The page in the frame is a picture to style, not a site to browse: every
+// link, button and form in it is inert. hrefs stay, so a:link / a:visited /
+// :hover rules paint exactly as on AO3 — the click just goes nowhere, and
+// never to one of THIS app's routes (a scraped "/" or "/works" would).
+export function inertLinks(d) {
+  if (!d || d.__apInert) return;
+  d.__apInert = true;
+  const stop = (e) => {
+    // <summary> keeps working: opening a <details> is styling, not navigation
+    const t = e.target?.closest?.("a, button, input[type=submit], input[type=image]");
+    if (t) e.preventDefault();
+  };
+  d.addEventListener("click", stop, true);
+  d.addEventListener("auxclick", stop, true);
+  d.addEventListener("submit", (e) => e.preventDefault(), true);
+  d.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && e.target?.closest?.("a, input, button")) e.preventDefault();
+  }, true);
+}
+
 export function frameHtml({ siteCss = "", skinCss = "", body = "", bodyClass = AO3_BODY_CLASS } = {}) {
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><base target="_blank"><style id="apSite">${siteCss}</style><style id="apSkin">${skinCss}</style></head><body class="${bodyClass}">${body}</body></html>`;
+  // <base href> resolves the scraped pages' root-relative links against AO3,
+  // never against this app's routes; the page is inert anyway (inertLinks)
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><base href="${AO3_ORIGIN}/" target="_blank"><style id="apSite">${siteCss}</style><style id="apSkin">${skinCss}</style></head><body class="${bodyClass}">${body}</body></html>`;
 }
 
 export function mountPreview(
@@ -298,6 +322,7 @@ export function mountPreview(
     d.open();
     d.write(frameHtml({ siteCss, skinCss: skin.textContent, body }));
     d.close();
+    inertLinks(d);
     mountInspect(d);
   }
 
