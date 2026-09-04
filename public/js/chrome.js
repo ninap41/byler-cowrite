@@ -4,6 +4,9 @@
 import { towerSvg } from "./components/cleradin-tower.js"
 import { clockSvg } from "./components/vecna-clock.js"
 import { treesBackHtml, treesFrontHtml } from "./components/castle-trees.js"
+
+// The AO3 skin previewer is its own site (its own repo, ao3-skin-previewer)
+export const AO3_PREVIEWER_URL = "https://ao3-skin-previewer.replit.app"
 import { initTheme, THEMES, THEME_LABELS } from "./theme.js"
 import { logoHtml, quillHtml } from "./logo.js"
 import { initNav } from "./nav.js"
@@ -123,6 +126,7 @@ const NAV = (page) => `
 		<a href="/profile" ${page === "profile" ? 'aria-current="page"' : ""}>🏆 Profile</a>
 		<a href="/ranks" ${page === "ranks" ? 'aria-current="page"' : ""}>🏅 Ranks &amp; unlocks</a>
 		<a href="/settings" ${page === "settings" ? 'aria-current="page"' : ""}>⚙️ Settings</a>
+		<a href="${AO3_PREVIEWER_URL}" class="nav-glow" target="_blank" rel="noopener">🎨 AO3 skin previewer</a>
 		<a href="/admin" class="hidden" id="navAdmin" ${page === "admin" ? 'aria-current="page"' : ""}>🛡️ Admin</a>
 	</nav>`
 

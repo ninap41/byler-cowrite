@@ -1286,6 +1286,26 @@ a.solo-title:hover {
 .nav-drawer a:hover {
 	border-color: var(--accent-2);
 }
+/* the AO3 skin previewer: a door out to its own site, so it glows */
+.nav-drawer a.nav-glow {
+	border-color: color-mix(in srgb, var(--accent-2) 55%, transparent);
+	animation: nav-glow 2.6s ease-in-out infinite;
+}
+@keyframes nav-glow {
+	0%,
+	100% {
+		box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent-2) 0%, transparent);
+	}
+	50% {
+		box-shadow: 0 0 14px 1px color-mix(in srgb, var(--accent-2) 45%, transparent);
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	.nav-drawer a.nav-glow {
+		animation: none;
+		box-shadow: 0 0 10px 0 color-mix(in srgb, var(--accent-2) 35%, transparent);
+	}
+}
 /* No focus ring on menu links — the accent border is the focus cue, like hover. */
 .nav-drawer a:focus,
 .nav-drawer button:focus {

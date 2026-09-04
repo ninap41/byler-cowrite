@@ -1300,8 +1300,10 @@ a.rg-row {
 	display: none;
 }
 
-/* "New solo write" pulses with a soft accent-2 glow: the thing to reach for */
-#soloBtn {
+/* "New solo write" pulses with a soft accent-2 glow: the thing to reach for —
+   and so does the AO3 skin previewer row, a door out to its own site */
+#soloBtn,
+.dnav-glow {
 	border: 1px solid color-mix(in srgb, var(--accent-2) 55%, transparent);
 	border-radius: var(--r-md);
 	animation: dnav-glow 2.6s ease-in-out infinite;
@@ -1316,7 +1318,8 @@ a.rg-row {
 	}
 }
 @media (prefers-reduced-motion: reduce) {
-	#soloBtn {
+	#soloBtn,
+	.dnav-glow {
 		animation: none;
 		box-shadow: 0 0 10px 0 color-mix(in srgb, var(--accent-2) 35%, transparent);
 	}

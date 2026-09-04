@@ -1,7 +1,7 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { startServer } from "./helpers.mjs";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 
 let ctx;
 before(async () => (ctx = await startServer()));
@@ -705,9 +705,28 @@ test("/ao3-preview renders as its own page, links only /ao3/, and the tour bar p
   const work = (await page("/ao3/html/work.html")).body;
   assert.ok(work.includes('id="workskin"') && work.includes('id="header"') && work.includes('id="footer"'), "the default work is a whole AO3 page body");
   assert.ok(!/<script|<\/head>|<body/i.test(work), "body-only, no scripts");
+});
+
+// The previewer is its own site now: linked out from the tour bar, the nav
+// drawer and the dashboard rail, each link glowing (theme tokens only).
+test("the AO3 skin previewer is linked out to ao3-skin-previewer.replit.app from the tour bar, the nav drawer and the dashboard rail, and every link glows", async () => {
+  const SITE = "https://ao3-skin-previewer.replit.app";
   const home = await page("/");
   const bar = home.body.slice(home.body.indexOf('id="tourBar"'), home.body.indexOf('id="tourDots"'));
-  assert.match(bar, /<a class="bar-link" href="\/ao3-preview">AO3 previewer<\/a>/, "the tour bar links it");
-  const css = (await page("/css/home.css")).body;
-  assert.match(css, /\.tour-bar \.bar-link \{/, "and styles the link");
+  assert.match(bar, new RegExp(`<a class="bar-link bar-link-glow" href="${SITE}" target="_blank" rel="noopener">🎨 AO3 skin previewer</a>`), "the tour bar links it");
+  assert.ok(!home.body.includes('href="/ao3-preview"'), "no in-app route link is left");
+  const homeCss = (await page("/css/home.css")).body;
+  assert.match(homeCss, /\.tour-bar \.bar-link-glow \{[^}]*animation: bar-link-glow/s);
+  const chrome = (await page("/js/chrome.js")).body;
+  assert.ok(chrome.includes(`export const AO3_PREVIEWER_URL = "${SITE}"`));
+  assert.match(chrome, /<a href="\$\{AO3_PREVIEWER_URL\}" class="nav-glow" target="_blank" rel="noopener">🎨 AO3 skin previewer<\/a>/, "the nav drawer lists it");
+  const base = (await page("/css/base.css")).body;
+  assert.match(base, /\.nav-drawer a\.nav-glow \{[^}]*animation: nav-glow/s);
+  const dash = readFileSync(new URL("../public/dashboard.html", import.meta.url), "utf-8");
+  assert.match(dash, new RegExp(`<a class="dnav dnav-glow" href="${SITE}" target="_blank" rel="noopener">`), "the dashboard rail lists it");
+  const dashCss = (await page("/css/dashboard.css")).body;
+  assert.match(dashCss, /#soloBtn,\s*\.dnav-glow \{[^}]*animation: dnav-glow/s);
+  for (const css of [homeCss, base, dashCss]) {
+    for (const block of css.match(/@keyframes (bar-link-glow|nav-glow|dnav-glow)[^}]*\}[^}]*\}[^}]*\}/g) || []) assert.ok(!/#[0-9a-f]{3,6}\b/i.test(block), "the glow is theme tokens, no hard-coded colour");
+  }
 });
