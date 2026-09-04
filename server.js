@@ -8,7 +8,7 @@
 import express from "express";
 import { createServer } from "http";
 import { Server } from "socket.io";
-import { readFileSync } from "fs";
+import { readFileSync, existsSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import { storage, describeStorage } from "./src/storage.js";
@@ -41,12 +41,15 @@ app.use((req, res, next) => {
 // tokens from the content pack's site.json. Registered BEFORE the static
 // middleware so /index.html can't leak an unrendered copy. Auth is enforced
 // client-side + on every API/socket call — these are still just files.
-const PAGES = ["index", "dashboard", "game", "archive", "stories", "profile", "settings", "write", "writes", "inbox", "admin", "ranks", "announcements", "games", "reset", "ao3-preview"];
-// The AO3 previewer is a workspace package (packages/ao3-preview): its page
-// and its /ao3/ + /vendor/codemirror.js files are served from there, after
-// the app's own public/ so nothing of the app's is shadowed.
-const AO3_DIR = join(__dirname, "packages", "ao3-preview", "public");
-const PACKAGE_PAGES = { "ao3-preview": AO3_DIR };
+// The AO3 skin previewer is its own repository (ao3-skin-previewer), expected
+// as a SIBLING directory of this one (AO3_PREVIEW_DIR overrides). When it is
+// there, its page and its /ao3/ + /vendor/codemirror.js files are served
+// after the app's own public/ so nothing of the app's is shadowed; when it
+// is not, /ao3-preview simply 404s and the rest of the app is unaffected.
+const AO3_DIR = process.env.AO3_PREVIEW_DIR || join(__dirname, "..", "ao3-skin-previewer", "public");
+const HAS_AO3 = existsSync(join(AO3_DIR, "ao3-preview.html"));
+const PACKAGE_PAGES = HAS_AO3 ? { "ao3-preview": AO3_DIR } : {};
+const PAGES = ["index", "dashboard", "game", "archive", "stories", "profile", "settings", "write", "writes", "inbox", "admin", "ranks", "announcements", "games", "reset", ...(HAS_AO3 ? ["ao3-preview"] : [])];
 const pageHtml = new Map();
 const servePage = (page) => (_req, res) => {
   if (!pageHtml.has(page)) pageHtml.set(page, renderPage(readFileSync(join(PACKAGE_PAGES[page] || join(__dirname, "public"), page + ".html"), "utf-8")));
@@ -58,9 +61,9 @@ for (const page of PAGES) {
   if (page !== "index") app.get("/" + page, servePage(page));
 }
 app.use("/vendor", express.static(join(__dirname, "public", "vendor"), { maxAge: "7d" })); // before the general static, or it would answer first
-app.use("/vendor", express.static(join(AO3_DIR, "vendor"), { maxAge: "7d" }));
+if (HAS_AO3) app.use("/vendor", express.static(join(AO3_DIR, "vendor"), { maxAge: "7d" }));
 app.use(express.static(join(__dirname, "public")));
-app.use(express.static(AO3_DIR));
+if (HAS_AO3) app.use(express.static(AO3_DIR));
 app.use("/sounds", express.static(join(__dirname, "sounds"), { maxAge: "7d" }));
 // The raw body is kept (req.rawBody) because Discord's interaction signature
 // is computed over the exact bytes sent — a re-serialized JSON wouldn't verify.

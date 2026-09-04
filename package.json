@@ -6,10 +6,9 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "node --test \"test/**/*.test.mjs\" \"packages/*/test/**/*.test.mjs\"",
+    "test": "node --test \"test/**/*.test.mjs\"",
     "reseed-content": "node scripts/reseed-content.mjs",
-    "discord-register": "node scripts/discord-register.mjs",
-    "build-codemirror": "npm run build-codemirror -w @byler-cowrite/ao3-preview"
+    "discord-register": "node scripts/discord-register.mjs"
   },
   "dependencies": {
     "express": "^4.21.2",
@@ -20,8 +19,5 @@
   "devDependencies": {
     "jsdom": "^29.1.1",
     "socket.io-client": "^4.8.3"
-  },
-  "workspaces": [
-    "packages/*"
-  ]
+  }
 }

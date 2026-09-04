@@ -1,6 +1,7 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { startServer } from "./helpers.mjs";
+import { existsSync } from "node:fs";
 
 let ctx;
 before(async () => (ctx = await startServer()));
@@ -679,7 +680,8 @@ test("archive: tags are read-only chips above the prompt with a ✎ that opens t
 
 // The AO3 previewer is a chrome-free island: its own stylesheet under
 // /ao3/, no base.css, no chrome.js, no auth — reached from the tour bar.
-test("/ao3-preview renders as its own page, links only /ao3/, and the tour bar points at it", async () => {
+const HAS_AO3 = existsSync(new URL("../../ao3-skin-previewer/public/ao3-preview.html", import.meta.url));
+test("/ao3-preview renders as its own page, links only /ao3/, and the tour bar points at it", { skip: !HAS_AO3 && "the ao3-skin-previewer sibling repo is not checked out" }, async () => {
   const r = await page("/ao3-preview");
   assert.equal(r.status, 200);
   assert.ok(!r.body.includes("{{"), "tokens filled");
