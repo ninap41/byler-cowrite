@@ -725,8 +725,11 @@ test("the AO3 skin previewer is linked out to ao3-skin-previewer.replit.app from
   const dash = readFileSync(new URL("../public/dashboard.html", import.meta.url), "utf-8");
   assert.match(dash, new RegExp(`<a class="dnav dnav-glow" href="${SITE}" target="_blank" rel="noopener">`), "the dashboard rail lists it");
   const dashCss = (await page("/css/dashboard.css")).body;
-  assert.match(dashCss, /#soloBtn,\s*\.dnav-glow \{[^}]*animation: dnav-glow/s);
+  assert.match(dashCss, /\n\.dnav-glow \{[^}]*animation: dnav-glow/s, "the previewer row glows");
+  assert.ok(!/#soloBtn[^{]*\{[^}]*animation/s.test(dashCss), "solo write no longer glows — one beacon per rail");
+  assert.match(dash, /<span class="dnav-new">New<\/span>/, "with a NEW pill");
+  assert.match(dashCss, /\.dnav-new \{[^}]*animation: dnav-new/s, "that pulses");
   for (const css of [homeCss, base, dashCss]) {
-    for (const block of css.match(/@keyframes (bar-link-glow|nav-glow|dnav-glow)[^}]*\}[^}]*\}[^}]*\}/g) || []) assert.ok(!/#[0-9a-f]{3,6}\b/i.test(block), "the glow is theme tokens, no hard-coded colour");
+    for (const block of css.match(/@keyframes (bar-link-glow|nav-glow|dnav-glow|dnav-new)[^}]*\}[^}]*\}[^}]*\}/g) || []) assert.ok(!/#[0-9a-f]{3,6}\b/i.test(block), "the glow is theme tokens, no hard-coded colour");
   }
 });

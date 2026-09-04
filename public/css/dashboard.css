@@ -1300,9 +1300,9 @@ a.rg-row {
 	display: none;
 }
 
-/* "New solo write" pulses with a soft accent-2 glow: the thing to reach for —
-   and so does the AO3 skin previewer row, a door out to its own site */
-#soloBtn,
+/* The AO3 skin previewer row pulses with a soft accent-2 glow and wears a
+   NEW pill that pulses with it: the door out to its own site is the thing to
+   notice. (Solo write no longer glows — one beacon per rail.) */
 .dnav-glow {
 	border: 1px solid color-mix(in srgb, var(--accent-2) 55%, transparent);
 	border-radius: var(--r-md);
@@ -1318,10 +1318,40 @@ a.rg-row {
 	}
 }
 @media (prefers-reduced-motion: reduce) {
-	#soloBtn,
 	.dnav-glow {
 		animation: none;
 		box-shadow: 0 0 10px 0 color-mix(in srgb, var(--accent-2) 35%, transparent);
+	}
+}
+
+.dnav-new {
+	flex: 0 0 auto;
+	margin-left: auto;
+	padding: 2px 7px;
+	border-radius: 999px;
+	font-family: var(--font-display);
+	font-size: 0.62rem;
+	font-weight: 800;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	background: var(--accent-2);
+	color: var(--btn-ink);
+	animation: dnav-new 1.4s ease-in-out infinite;
+}
+@keyframes dnav-new {
+	0%,
+	100% {
+		transform: scale(1);
+		opacity: 1;
+	}
+	50% {
+		transform: scale(1.12);
+		opacity: 0.75;
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	.dnav-new {
+		animation: none;
 	}
 }
 
