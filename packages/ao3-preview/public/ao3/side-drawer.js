@@ -11,10 +11,14 @@
 //
 // `storage` is injectable so tests don't need a real localStorage.
 
-export const SIDE_MIN = 240
-export const SIDE_MAX = 560
+// The previewer's copy: NO upper limit on the drawer — it may be dragged as
+// wide as the window minus a sliver of the page (SIDE_KEEP), and as narrow as
+// SIDE_MIN. (The app's own drawer caps at 560.)
+export const SIDE_MIN = 120
+export const SIDE_KEEP = 80
 export const SIDE_DEFAULT = 300
-export const clampWidth = (px) => Math.min(SIDE_MAX, Math.max(SIDE_MIN, Math.round(Number(px) || SIDE_DEFAULT)))
+export const sideMax = () => Math.max(SIDE_MIN, (globalThis.document?.defaultView?.innerWidth || globalThis.innerWidth || 1e6) - SIDE_KEEP)
+export const clampWidth = (px) => Math.min(sideMax(), Math.max(SIDE_MIN, Math.round(Number(px) || SIDE_DEFAULT)))
 
 // Under this width the drawer stops being a column and becomes a sheet that
 // comes up from the bottom — the same breakpoint the comments rail uses.

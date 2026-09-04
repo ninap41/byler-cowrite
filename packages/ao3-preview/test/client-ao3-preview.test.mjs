@@ -547,6 +547,8 @@ test("the Page dropdown: lists every scraped page in order, defaults to the work
   await m.ready;
   assert.deepEqual(asked, ["work"], "the work page loads first");
   assert.equal(m.page, "work");
+  assert.equal(m.kind, "site", "defaults: the Work page, a Site skin");
+  assert.equal(document.querySelector(".doc-side-head h3").textContent, "CSS");
   assert.equal(sel.value, "work");
   sel.value = "tags";
   sel.dispatchEvent(new window.Event("change", { bubbles: true }));
@@ -626,4 +628,17 @@ test("the ⌖ toggle wears an instant tooltip titled Element Selector instead of
   const css = readFileSync(new URL("../public/ao3/preview.css", import.meta.url), "utf-8");
   assert.match(css, /\.ap-tipwrap:hover \.ap-tip,\s*\.ap-tipwrap:focus-within \.ap-tip \{/, "shown on hover and focus");
   assert.ok(!/\.ap-tip[^{]*\{[^}]*transition-delay/.test(css), "no delay");
+});
+
+test("the CSS drawer has no width cap: it may be dragged to nearly the whole window, and the warnings may take nearly the whole drawer", async () => {
+  const D = await import(new URL("../public/ao3/side-drawer.js", import.meta.url).href);
+  assert.equal(D.SIDE_MAX, undefined, "no fixed maximum");
+  window.innerWidth = 2000;
+  assert.equal(D.clampWidth(1800), 1800);
+  assert.equal(D.clampWidth(5000), 2000 - D.SIDE_KEEP, "only the window bounds it");
+  assert.equal(D.clampWidth(10), D.SIDE_MIN);
+  const m = fresh();
+  await m.ready;
+  m.setLintHeight(100000);
+  assert.ok(m.lintHeight >= 1e6 - 240 || m.lintHeight > 5000, "jsdom has no layout: the cap is effectively none");
 });

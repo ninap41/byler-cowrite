@@ -202,7 +202,9 @@ export function mountPreview(
   // ---- the warnings panel's height: the grip between editor and list ----
   const split = $("apSplit");
   const side = $("apSide");
-  const lintMax = () => Math.max(LINT_MIN, Math.round((side?.getBoundingClientRect().height || 900) * 0.7) || 900);
+  // no cap beyond leaving the editor its own minimum (120px, .ap-code) — the
+  // warnings may take the rest of the drawer
+  const lintMax = () => Math.max(LINT_MIN, Math.round((side?.getBoundingClientRect().height || 1e6) - 120 - 120) || 1e6);
   let lintH = clampLint(get(KEY_LINT_H) ?? LINT_DEFAULT);
   const paintLint = () => side?.style.setProperty("--ap-lint-h", lintH + "px");
   function setLintHeight(px, { save = true } = {}) {
