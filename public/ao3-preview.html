@@ -26,9 +26,11 @@
 			<span class="ap-title">AO3 previewer</span>
 			<a href="/">← {{SITE_NAME}}</a>
 			<div class="ap-acts">
-				<label data-tip="Show the work the way AO3 would after stripping what its cleaner refuses"
-					><input type="checkbox" id="apStrict" checked /> Preview as AO3 would</label
-				>
+				<select class="ap-btn ap-kind" id="apKind" aria-label="Kind of skin" title="Work skin: AO3 prefixes every selector with #workskin and it styles the work only. Site skin: applied to the whole page as written.">
+					<option value="work">Work skin</option>
+					<option value="site">Site skin</option>
+				</select>
+				<button class="ap-btn ap-icon-btn" id="apInspect" type="button" aria-pressed="false" aria-label="Inspect elements" title="Inspect: hover the work, click an element to add its selector to the CSS (Esc to stop)">⌖</button>
 				<button class="ap-btn ap-save" id="apSave" type="button" title="Save the CSS in this browser (⌘/Ctrl+S)">Save CSS</button>
 				<button class="ap-btn" id="apResetCss" type="button" title="Back to the shipped default; forgets the saved CSS">Reset CSS</button>
 				<button class="ap-btn ap-icon-btn" id="apDownload" type="button" aria-label="Download the CSS" title="Download the CSS as work-skin.css">⬇</button>
@@ -74,8 +76,10 @@
 			</button>
 		</div>
 
-		<!-- the live skin: the parent keeps a mirror; the copy that paints lives in the iframe -->
-		<style id="apSkin"></style>
+		<!-- the skin as text only: type="text/plain" keeps it INERT here, so a
+		     `button { … }` or `body { … }` rule can never restyle the previewer's own
+		     chrome. The copy that paints is the iframe's #apSkin. -->
+		<style id="apSkin" type="text/plain"></style>
 
 		<script type="module">
 			import { mountPreview } from "/ao3/preview.js"

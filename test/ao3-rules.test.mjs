@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import * as R from "../public/ao3/ao3-rules.js";
+import * as V from "../public/ao3/css-values.js";
 
 const json = JSON.parse(readFileSync(new URL("../public/ao3/ao3-rules.json", import.meta.url), "utf-8"));
 
@@ -90,7 +91,7 @@ test("lintCss: at-rules, dropped rules, prefix warning, line numbers, cleaned ou
   assert.deepEqual(by("workskin_prefix").map((p) => [p.line, p.severity]), [[8, "warning"]]);
   assert.deepEqual(by("no_rules_for_selectors").map((p) => p.selector), ["#workskin .dead"]);
   assert.equal(r.rules.length, 4);
-  assert.equal(r.cleaned, `#workskin .userstuff p {\n  color: red;\n}\n\n.unprefixed {\n  color: blue;\n}\n\n#workskin .ok {\n  transform: rotate(10deg);\n  color: rgba(0, 0, 0, .5) !important;\n}`);
+  assert.equal(r.cleaned, `#workskin .userstuff p {\n  color: red;\n}\n\n#workskin .unprefixed {\n  color: blue;\n}\n\n#workskin .ok {\n  transform: rotate(10deg);\n  color: rgba(0, 0, 0, .5) !important;\n}`);
   assert.ok(!r.cleaned.includes("calc") && !r.cleaned.includes("gap") && !r.cleaned.includes("@"));
 });
 
@@ -118,7 +119,64 @@ test("lintCss: a clean sheet has no problems, an all-dead sheet says no_valid_cs
   assert.deepEqual(R.lintCss("").problems, []);
 });
 
-test("the shipped default skin is AO3-clean", () => {
+test("the shipped default skin is AO3-clean as the SITE skin it is", () => {
   const css = readFileSync(new URL("../public/ao3/default-skin.css", import.meta.url), "utf-8");
-  assert.deepEqual(R.lintCss(css).problems, []);
+  assert.deepEqual(R.lintCss(css, { kind: "site" }).problems, []);
+  assert.ok(R.lintCss(css).problems.some((p) => p.code === "workskin_prefix"), "read as a work skin it is full of site selectors — which is why the previewer defaults to Site skin");
+});
+
+test("lintCss kind: a site skin is stored as written, a work skin prefixed", () => {
+  assert.deepEqual(R.SKIN_KINDS, ["work", "site"]);
+  assert.equal(R.cleanKind("site"), "site");
+  assert.equal(R.cleanKind("junk"), "work");
+  const src = "#header { color: red }\n.x, #workskin em { color: blue }";
+  const site = R.lintCss(src, { kind: "site" });
+  assert.deepEqual(site.problems, []);
+  assert.equal(site.cleaned, "#header {\n  color: red;\n}\n\n.x, #workskin em {\n  color: blue;\n}");
+  const work = R.lintCss(src);
+  assert.deepEqual(work.problems.map((p) => p.code), ["workskin_prefix", "workskin_prefix"]);
+  assert.equal(work.cleaned, "#workskin #header {\n  color: red;\n}\n\n#workskin .x, #workskin em {\n  color: blue;\n}");
+  assert.equal(R.storedSelector("p, .x", "site"), "p, .x");
+});
+
+test("css-values: every suggested value is one AO3 keeps, every key a property AO3 keeps", () => {
+  for (const [prop, list] of Object.entries(V.VALUES)) {
+    assert.equal(R.propertyStatus(prop).ok, true, prop + " is whitelisted");
+    for (const k of list) {
+      assert.match(k, /^[a-z0-9][a-z0-9-]*$/, `${prop}: ${k} is a bare identifier`);
+      assert.equal(R.valueStatus(prop, k).ok, true, `${prop}: ${k} passes the value check`);
+    }
+  }
+  for (const [prop, fns] of Object.entries(V.FUNCTIONS)) {
+    assert.equal(R.propertyStatus(prop).ok, true, prop);
+    for (const f of fns) {
+      assert.ok(!R.FORBIDDEN_FUNCTIONS.includes(f), f + " is forbidden");
+      const sample = f === "url" ? "url(https://example.org/a.png)" : f + "(1)";
+      const st = R.valueStatus(f === "url" && !R.URL_PROPERTIES.includes(prop) ? "background" : prop, sample);
+      assert.equal(st.ok, true, `${prop}: ${sample} — ${st.message || ""}`);
+    }
+  }
+  for (const c of V.NAMED_COLORS) assert.equal(R.valueStatus("color", c).ok, true, c);
+  for (const p of V.COLOR_PROPERTIES) assert.equal(R.propertyStatus(p).ok, true, p);
+  assert.deepEqual(V.valuesFor("-webkit-transform"), V.valuesFor("transform"), "vendor prefix looked through");
+  const t = V.valuesFor("transform").map((v) => v.label);
+  assert.ok(t.includes("rotate(") && t.includes("none") && !t.includes("rgb("));
+  const c = V.valuesFor("color").map((v) => v.label);
+  assert.ok(c.includes("rgba(") && c.includes("rebeccapurple") && !c.includes("color-stop("));
+  const u = V.valuesFor("no-such-thing").map((v) => v.label);
+  assert.deepEqual(u, [...V.GLOBALS, V.IMPORTANT], "an unknown property still gets the globals and !important");
+  for (const p of Object.keys(V.VALUES)) {
+    const labels = V.valuesFor(p).map((v) => v.label);
+    assert.equal(new Set(labels).size, labels.length, p + ": no duplicate option");
+    assert.equal(labels.at(-1), V.IMPORTANT);
+  }
+});
+
+test("storedSelector: the cleaned sheet carries every selector as AO3 stores it", () => {
+  assert.equal(R.storedSelector("button"), "#workskin button");
+  assert.equal(R.storedSelector("#workskin p"), "#workskin p");
+  assert.equal(R.storedSelector("#workskinner"), "#workskin #workskinner", "a word that only starts with the letters is prefixed");
+  assert.equal(R.storedSelector("p, #workskin em,  .x:has(a, b) "), "#workskin p, #workskin em, #workskin .x:has(a, b)");
+  const r = R.lintCss("button { color: red }\n#workskin p { color: blue }");
+  assert.equal(r.cleaned, "#workskin button {\n  color: red;\n}\n\n#workskin p {\n  color: blue;\n}");
 });

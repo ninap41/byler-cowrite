@@ -285,6 +285,33 @@ export function elementOnly(sel) {
 	return !/[#.]/.test(s.replace(/\[[^\]]*\]/g, "").replace(/\([^)]*\)/g, ""))
 }
 
+// A selector list split on its top-level commas only — a comma inside
+// `:has(a, b)` or `:is(...)` stays put.
+export function splitSelectors(sel) {
+	const out = []
+	let depth = 0, start = 0
+	for (let i = 0; i < sel.length; i++) {
+		const c = sel[i]
+		if (c === "(") depth++
+		else if (c === ")") depth = Math.max(0, depth - 1)
+		else if (c === "," && depth === 0) { out.push(sel.slice(start, i)); start = i + 1 }
+	}
+	out.push(sel.slice(start))
+	return out
+}
+export const WORKSKIN = "#workskin"
+// The two kinds of skin AO3 cleans with the same rules: a WORK skin is stored
+// with every selector prefixed `#workskin ` (unless it already starts so) and
+// reaches only the work; a SITE skin is stored as written and dresses the
+// whole page. `kind` is "work" | "site".
+export const SKIN_KINDS = ["work", "site"]
+export const cleanKind = (k) => (k === "site" ? "site" : "work")
+export function storedSelector(sel, kind = "work") {
+	const parts = splitSelectors(sel).map((s) => s.trim()).filter(Boolean)
+	if (cleanKind(kind) === "site") return parts.join(", ")
+	return parts.map((s) => (new RegExp("^" + WORKSKIN + "\\b").test(s) ? s : WORKSKIN + " " + s)).join(", ")
+}
+
 export const MESSAGES = {
 	font_face: "@font-face is refused by AO3 — the whole skin fails to save until it is removed",
 	at_rule_dropped: "AO3 does not parse this at-rule; everything inside it is dropped",
@@ -294,7 +321,7 @@ export const MESSAGES = {
 	no_rules_for_selectors: "no declaration in this rule survives, so the whole rule is dropped",
 	no_valid_css_for_selectors: "a declaration with no property or no value",
 	no_valid_css: "nothing in this sheet survives AO3's cleaner",
-	workskin_prefix: "AO3 prefixes every selector with `#workskin ` on save — write the class or id that way so the preview matches",
+	workskin_prefix: "AO3 prefixes every selector with `#workskin ` on save — the preview shows it that way; write it so to be clear",
 }
 
 /**
@@ -303,7 +330,8 @@ export const MESSAGES = {
  *  problems: [{ line, selector, prop?, value?, code, message, severity }]
  *  cleaned:  the sheet as AO3 would keep it (failing declarations and rules removed)
  */
-export function lintCss(source) {
+export function lintCss(source, { kind = "work" } = {}) {
+	kind = cleanKind(kind)
 	const text = stripComments(String(source || ""))
 	const rules = []
 	const problems = []
@@ -333,7 +361,7 @@ export function lintCss(source) {
 		}
 		const selector = prelude.replace(/\s+/g, " ")
 		const rule = { selector, line, decls: [] }
-		if (!selector.split(",").every((s) => /^\s*#workskin\b/.test(s) || elementOnly(s))) {
+		if (kind === "work" && !splitSelectors(selector).every((s) => /^\s*#workskin\b/.test(s) || elementOnly(s))) {
 			problem({ line, selector, code: "workskin_prefix", message: MESSAGES.workskin_prefix, severity: "warning" })
 		}
 		for (const d of splitDecls(text.slice(open + 1, close), open + 1)) {
@@ -369,6 +397,9 @@ export function lintCss(source) {
 	}
 	const kept = rules.filter((r) => r.decls.some((d) => d.ok))
 	if (!kept.length && text.trim()) problem({ line: 1, selector: "", code: "no_valid_css", message: MESSAGES.no_valid_css })
-	const cleaned = kept.map((r) => `${r.selector} {\n${r.decls.filter((d) => d.ok).map((d) => `  ${d.prop}: ${d.value};`).join("\n")}\n}`).join("\n\n")
+	// stored the way AO3 stores it: css_cleaner prefixes every selector with
+	// `#workskin ` unless it already starts with it — so a bare `button` rule
+	// previews as `#workskin button`, reaching exactly what it reaches on AO3
+	const cleaned = kept.map((r) => `${storedSelector(r.selector, kind)} {\n${r.decls.filter((d) => d.ok).map((d) => `  ${d.prop}: ${d.value};`).join("\n")}\n}`).join("\n\n")
 	return { rules, problems, cleaned }
 }

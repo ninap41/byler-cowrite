@@ -6,15 +6,19 @@
 // loaders so a jsdom test can drive it without a server.
 
 import { mountSideDrawer } from "/js/components/side-drawer.js";
-import { lintCss } from "./ao3-rules.js";
+import { lintCss, splitSelectors, storedSelector, cleanKind } from "./ao3-rules.js";
 import { createEditor } from "./editor.js";
+import { mountInspector } from "./inspect.js";
 
 export const KEY_CSS = "cowriteAo3Css";
 export const KEY_DRAWER = "cowriteAo3Drawer";
 export const KEY_EXPANDED = "cowriteAo3Expanded";
-export const KEY_STRICT = "cowriteAo3Strict";
 export const KEY_THEME = "cowriteAo3Theme";
-export const DOWNLOAD_NAME = "work-skin.css";
+export const KEY_KIND = "cowriteAo3Kind";
+// the shipped default is a site skin, so that is the first-visit kind
+export const DEFAULT_KIND = "site";
+export const DOWNLOAD_NAMES = { work: "work-skin.css", site: "site-skin.css" };
+export const DOWNLOAD_NAME = DOWNLOAD_NAMES.work;
 
 const esc = (s) =>
   String(s ?? "").replace(
@@ -30,6 +34,32 @@ export function lintRowHtml(p) {
     ? `<code>${esc(p.prop)}</code>${p.value ? `: <code>${esc(p.value.length > 60 ? p.value.slice(0, 57) + "…" : p.value)}</code>` : ""}`
     : `<code>${esc(p.selector)}</code>`;
   return `<button type="button" class="ap-lint-row ${p.severity}" data-line="${p.line}"><span class="ln">L${p.line}</span>${what}<span class="why">${esc(p.message)}</span></button>`;
+}
+
+// A kept rule none of whose selectors matches anything on the page — a
+// #workskin-prefixed selector for the header, the tag block, a button row:
+// AO3 stores it, the browser finds nothing, and the previewer says so instead
+// of staying silent. The selector is judged as AO3 stores it (prefixed unless
+// it already starts with #workskin). An invalid selector is left to the lint.
+export const NO_MATCH = "matches no element inside #workskin \u2014 only the title, summary, notes and chapter text are reachable by a work skin";
+export const NO_MATCH_SITE = "matches no element on this page";
+export function unmatchedRules(rules, doc, kind = "work") {
+  if (!doc || typeof doc.querySelector !== "function") return [];
+  kind = cleanKind(kind);
+  const out = [];
+  for (const r of rules || []) {
+    let matched = false;
+    for (const raw of splitSelectors(r.selector)) {
+      const s = raw.trim();
+      if (!s) continue;
+      const stored = storedSelector(s, kind);
+      try {
+        if (doc.querySelector(stored)) { matched = true; break; }
+      } catch { matched = true; break; }
+    }
+    if (!matched) out.push({ line: r.line, selector: r.selector, code: "no_match", message: kind === "site" ? NO_MATCH_SITE : NO_MATCH, severity: "warning" });
+  }
+  return out;
 }
 
 export function lintHtml(problems) {
@@ -78,7 +108,6 @@ export function mountPreview(
   const frame = $("apFrame");
   const lint = $("apLint");
   const issues = $("apIssues");
-  const strict = $("apStrict");
   const expandBtn = $("apExpand");
   const root_el = doc.documentElement;
   const get = (k) => {
@@ -93,6 +122,17 @@ export function mountPreview(
       v == null ? storage?.removeItem(k) : storage?.setItem(k, v);
     } catch (e) {}
   };
+
+  // ---- the kind of skin: work (prefixed, the work only) or site (whole page) ----
+  const kindSel = $("apKind");
+  const kind = () => cleanKind(get(KEY_KIND) || DEFAULT_KIND);
+  if (kindSel) {
+    kindSel.value = kind();
+    kindSel.addEventListener("change", () => {
+      set(KEY_KIND, cleanKind(kindSel.value));
+      apply();
+    });
+  }
 
   // ---- the drawer ----
   const drawer = mountSideDrawer({
@@ -158,7 +198,7 @@ export function mountPreview(
     const url = URL.createObjectURL(blob);
     const a = doc.createElement("a");
     a.href = url;
-    a.download = DOWNLOAD_NAME;
+    a.download = DOWNLOAD_NAMES[kind()];
     doc.body.appendChild(a);
     a.click();
     a.remove();
@@ -175,18 +215,51 @@ export function mountPreview(
     d.open();
     d.write(frameHtml({ siteCss, skinCss: skin.textContent, body }));
     d.close();
+    mountInspect(d);
   }
 
-  // ---- the skin ----
+  // ---- the inspector: hover the work, click an element, get its selector ----
+  // The frame document is new after every write, so the inspector is remounted
+  // there; the toggle's state carries over.
+  const inspectBtn = $("apInspect");
+  let inspector = null;
+  const paintInspect = () => {
+    const on = !!inspector?.active;
+    if (!inspectBtn) return;
+    inspectBtn.classList.toggle("on", on);
+    inspectBtn.setAttribute("aria-pressed", String(on));
+  };
+  function mountInspect(d) {
+    const wasOn = !!inspector?.active;
+    inspector?.destroy();
+    inspector = mountInspector(d, {
+      kind,
+      onChange: paintInspect,
+      onPick: (selector) => {
+        if (!drawer.open) drawer.setOpen(true);
+        css.appendRule(selector);
+        onEdit();
+      },
+    });
+    if (wasOn) inspector.setActive(true);
+    paintInspect();
+  }
+  inspectBtn?.addEventListener("click", () => inspector?.setActive(!inspector.active));
+
+  // ---- the skin: always what AO3 would render, the cleaner's output ----
   let defaults = { css: "", html: "" };
   let last = { problems: [], cleaned: "" };
-  const isStrict = () => !!strict?.checked;
   function apply() {
-    const text = css.value;
-    last = lintCss(text);
-    skin.textContent = isStrict() ? last.cleaned : text;
+    const res = lintCss(css.value, { kind: kind() });
+    const fd = frameDoc();
+    const unmatched = unmatchedRules(res.rules, fd?.getElementById("workskin") ? fd : null, kind());
+    // one verdict per rule: a rule that matches nothing needs no prefix note on top
+    const dead = new Set(unmatched.map((u) => u.line));
+    const problems = [...res.problems.filter((p) => !(p.code === "workskin_prefix" && dead.has(p.line))), ...unmatched].sort((a, b) => a.line - b.line);
+    last = { ...res, problems };
+    skin.textContent = last.cleaned;
     css.setProblems(last.problems);
-    const fs = frameDoc()?.getElementById("apSkin");
+    const fs = fd?.getElementById("apSkin");
     if (fs) fs.textContent = skin.textContent;
     lint.innerHTML = lintHtml(last.problems);
     const label = issuesLabel(last.problems);
@@ -217,13 +290,6 @@ export function mountPreview(
     clearTimeout(timer);
     timer = setTimeout(apply, 120);
   }
-  if (strict) {
-    strict.checked = get(KEY_STRICT) !== "0";
-    strict.addEventListener("change", () => {
-      set(KEY_STRICT, strict.checked ? "1" : "0");
-      apply();
-    });
-  }
   // a lint row selects its line in the editor
   lint.addEventListener("click", (e) => {
     const row = e.target.closest?.(".ap-lint-row");
@@ -249,8 +315,9 @@ export function mountPreview(
     css.value = savedCss();
     body = h;
     paintDirty();
-    apply();
+    // the frame first: the no-match check reads the page
     writeFrame();
+    apply();
   });
 
   return {
@@ -260,6 +327,20 @@ export function mountPreview(
     save,
     editor: css,
     frameDoc,
+    get kind() {
+      return kind();
+    },
+    setKind(k) {
+      set(KEY_KIND, cleanKind(k));
+      if (kindSel) kindSel.value = cleanKind(k);
+      apply();
+    },
+    get inspector() {
+      return inspector;
+    },
+    get inspecting() {
+      return !!inspector?.active;
+    },
     setTheme,
     theme,
     get expanded() {

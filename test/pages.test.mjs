@@ -689,7 +689,7 @@ test("/ao3-preview renders as its own page, links only /ao3/, and the tour bar p
   assert.ok(!r.body.includes("/js/chrome.js") && !r.body.includes("auth-guard"), "no chrome, no login");
   assert.ok(r.body.includes('<iframe id="apFrame"'), "the AO3 page renders in its own frame");
   assert.equal((r.body.match(/href="\.?\/ao3\/preview\.css"/g) || []).length, 1, "the stylesheet is linked once");
-  for (const id of ["apRoot", "apSide", "apGrip", "apTab", "apMin", "apExpand", "apLint", "apStrict", "apSkin", "apSave", "apResetCss", "apDownload", "apTheme", "apCode"]) assert.ok(r.body.includes(`id="${id}"`), id);
+  for (const id of ["apRoot", "apSide", "apGrip", "apTab", "apMin", "apExpand", "apLint", "apInspect", "apKind", "apSkin", "apSave", "apResetCss", "apDownload", "apTheme", "apCode"]) assert.ok(r.body.includes(`id="${id}"`), id);
   assert.ok(!r.body.includes("apResetHtml"), "Reset CSS is the only reset");
   assert.ok(r.body.includes('localStorage.getItem("cowriteAo3Theme") === "light" ? "light" : "dark"'), "theme set before first paint, dark by default");
   assert.ok(!r.body.includes('id="apCss"') && !r.body.includes('id="apHl"'), "the editor is CodeMirror, not a textarea");

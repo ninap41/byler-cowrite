@@ -1,2 +1,430 @@
 /* Placeholder work skin. Replace this file with the real default.
    Everything here passes AO3's cleaner — see ao3/README.md for the rules. */
+/* For when creator style is turned off */
+/* YOUR CUSTOM CSS GOES HERE */
+/* Placeholder work skin. Replace this file with the real default.
+   Everything here passes AO3's cleaner — see ao3/README.md for the rules. */
+/* For when creator style is turned off */
+/* YOUR CUSTOM CSS GOES HERE */
+#outer {
+	position: relative;
+
+	/* Optional: ensure outer has a defined size or content */
+}
+
+#outer::before {
+	content: "";
+	position: absolute;
+	height: 100%;
+	width: 100%;
+	background-image: url("https://cdn.pixabay.com/photo/2021/09/16/08/56/leaves-6629581_1280.png");
+	background-position: center;
+	background-blend-mode: overlay;
+	z-index: -1;
+	opacity: 0.3;
+}
+
+.home .primary .icon {
+	width: 90px;
+	height: 90px;
+}
+
+.home .primary .icon::after {
+	background-image: url("https://i.postimg.cc/hj3NMZB1/character-frame.png");
+	background-size: 90px 90px;
+	display: inline-block;
+	width: 90px;
+	height: 90px;
+	content: "";
+	position: absolute;
+	left: 0px;
+	top: 0px;
+	z-index: 1;
+}
+
+#greeting .icon img {
+	box-shadow: none;
+	border: 1px solid #000;
+}
+
+#header {
+	background-image: url("https://i.imgur.com/oxJvyhS.gif");
+	background-position: center;
+	background-size: cover;
+	/* background-size: auto 280px; */
+}
+
+#header h1.heading a::before {
+	content: "";
+	width: 150px;
+	height: 150px;
+	background-image: url("https://media1.tenor.com/m/X-J3nFTqwZQAAAAC/green-color.gif");
+	background-size: cover;
+	background-position: center;
+	margin: 20px;
+}
+
+#header h1 a {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	margin: 0;
+}
+
+#header .logo,
+#header .heading sup,
+#header h1.heading span {
+	display: none;
+}
+
+#header .primary li:not(.search),
+#header .dropdown .menu li:hover a,
+#header .primary li a,
+#greeting .dropdown .menu a,
+#greeting li a {
+	font-variant: small-caps;
+	color: #000 !important;
+	background: #fff !important;
+	box-shadow: none;
+}
+
+#header .dropdown:hover a,
+#greeting .dropdown .menu a:hover,
+#greeting li a:hover {
+	background: #498350 !important;
+	color: #fff;
+}
+
+#header .dropdown .menu,
+#greeting .dropdown .menu {
+	border: 2px solid #000;
+}
+
+li.blurb,
+.listbox li.blurb {
+	border: 40px solid transparent;
+	border-image: url("https://www.pngitem.com/pimgs/m/131-1314353_transparent-leaf-border-transparent-background-foliage-border-hd.png")
+		20% round;
+	box-shadow: 0 0 4px #000;
+}
+
+li.comment:not(.child) {
+	border: 40px solid transparent;
+	border-image: url("https://i.postimg.cc/9FgCLH0x/character-sheet-border.png") 20% round;
+	margin-bottom: 1em;
+}
+
+#workskin {
+	text-align: justify;
+	border: 50px solid transparent;
+	border-image: url("https://www.pngitem.com/pimgs/m/131-1314353_transparent-leaf-border-transparent-background-foliage-border-hd.png")
+		40% round;
+	background: #f7f7f7;
+	padding: 24px;
+	margin-top: 2em;
+}
+
+ul.tags li a:before {
+	content: "  🎲  ";
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.heading {
+	font-variant: small-caps;
+	color: #000;
+}
+
+.splash .module h3 {
+	color: #000;
+	font-variant: small-caps;
+}
+
+fieldset dl,
+fieldset fieldset {
+	background: #ffff00;
+	color: #000 !important;
+	font-variant: small-caps;
+	border: 2px solid #000;
+	box-shadow: none;
+}
+
+form.verbose legend,
+.verbose form legend {
+	background: #ffff00;
+	border: 2px solid #000;
+	color: #000;
+	font-variant: small-caps;
+	box-shadow: none;
+}
+
+.listbox,
+fieldset fieldset.listbox {
+	background: #fff;
+	border: 2px solid #000;
+	font-variant: small-caps;
+}
+
+#footer h4.heading {
+	color: #fff;
+	font-variant: small-caps;
+	font-size: 120%;
+}
+
+fieldset {
+	background: #fff;
+	border: 40px solid transparent;
+	border-image: url("https://i.postimg.cc/9FgCLH0x/character-sheet-border.png") 20% round;
+	box-shadow: 0 0 4px #000;
+}
+
+.actions a,
+.actions a:link,
+.action,
+.action:link,
+.actions button,
+.actions input,
+input[type="submit"],
+input[type="file"],
+button,
+.actions label {
+	background: #243d25;
+	font-variant: small-caps;
+	color: #fdfcfc;
+	border: 1px solid #000;
+	font-size: 100%;
+	box-shadow: none;
+}
+
+#dashboard .actions a,
+#dashboard .actions a:visited {
+	background: #243d25;
+	border: 1px solid #000;
+	color: #fafafa !important;
+	font-variant: small-caps;
+}
+
+.current,
+#dashboard .current,
+#main .current {
+	background: #000;
+	color: #fff;
+	font-variant: small-caps;
+	border: none;
+}
+
+#dashboard .actions a:hover,
+#dashboard .actions a:focus {
+	box-shadow: none;
+	text-shadow: none;
+	border: none;
+	background: #00ff1e;
+	color: #000;
+	font-weight: bold;
+}
+
+.actions a:active,
+.current,
+a.current,
+a:link.current,
+.current a:visited {
+	color: #f7f7f7;
+	background: #243b24;
+	border-color: #000;
+	box-shadow: inset 1px 1px 3px #333;
+}
+
+.actions a:hover,
+.actions button:hover,
+.actions input:hover,
+.actions a:focus,
+.actions button:focus,
+.actions input:focus,
+label.action:hover,
+.action:hover,
+.action:focus,
+a.tag:hover {
+	color: #000;
+	background: #04ff00;
+	box-shadow: inset 2px 2px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* works */
+#header ul.primary,
+#footer {
+	position: relative;
+	background: #243d24;
+}
+#header ul.primary::before,
+#footer::before {
+	position: relative;
+	background: url("https://cdn.pixabay.com/photo/2021/09/16/08/56/leaves-6629581_1280.png");
+	z-index: -1;
+}
+
+.comment .icon .anonymous,
+.comment .icon .visitor,
+.skins .primary .icon,
+.index .skins .icon,
+.index .mystery .icon,
+.index .tag .icon,
+.index .tagset .icon,
+.abbreviated .icon .anonymous,
+.abbreviated .icon .visitor {
+	background: url("https://i.postimg.cc/nhHZVV5D/misc-icon.png");
+	background-repeat: no-repeat;
+	background-size: contain;
+}
+
+.comment .icon .anonymous,
+.comment .icon .visitor,
+.comment .icon,
+.index .mystery .icon,
+.index .tag .icon,
+.index .tagset .icon,
+.abbreviated .icon .anonymous,
+.abbreviated .icon .visitor .comment .icon {
+	border: 1px solid #000;
+}
+
+.index .skins .icon {
+	width: 50px;
+	height: 50px;
+}
+
+.index .skins .icon::after {
+	background-image: url("https://i.postimg.cc/hj3NMZB1/character-frame.png");
+	background-size: 50px 50px;
+	display: inline-block;
+	width: 50px;
+	height: 50px;
+	content: "";
+	position: absolute;
+	left: 0px;
+	top: 0px;
+	z-index: 1;
+}
+
+.skins .primary .icon {
+	width: 90px;
+	height: 90px;
+}
+
+div.comment,
+li.comment {
+	border: 2px solid #000;
+}
+
+.comment div.icon {
+	border: none;
+}
+
+.comment h4.byline,
+.comment h4.byline a {
+	background: #000;
+	color: #fff !important;
+}
+
+#dashboard.own {
+	background: #f0b7b7;
+	border: 2px solid #000;
+}
+
+.splash .news blockquote p:first-child {
+	padding-left: 105px;
+	background: url("https://i.postimg.cc/dtNw5c34/d20.png");
+	background-size: 90px 80px;
+	background-position-x: left;
+	background-position-y: top;
+	background-repeat: no-repeat;
+}
+
+.required .autocomplete,
+p.notice,
+.notice,
+.comment_notice,
+.kudos_notice,
+ul.notes,
+.caution,
+.error,
+.comment_error,
+.kudos_error,
+.alert.flash {
+	background: #b60c0c;
+	border: 1px solid #000;
+	font-variant: small-caps;
+}
+
+.splash .module h3,
+.splash .news li,
+.home .header h2,
+li.comment,
+dl.meta,
+.bookmark .user,
+#header .menu li,
+#dashboard .secondary,
+ul.notes,
+.flash,
+.notice,
+tbody tr,
+thead td,
+#header #small_login,
+fieldset,
+form dl,
+fieldset dl dl,
+fieldset fieldset fieldset,
+fieldset fieldset dl dl,
+dd.hideme,
+form blockquote.userstuff,
+form dt,
+.actions a:active,
+.current,
+a.current,
+.current a:visited,
+.search span.tip,
+.listbox,
+fieldset fieldset.listbox {
+	border-color: #000;
+}
+
+#dashboard ul {
+	border: 1px solid transparent;
+}
+
+dl.work.meta.group {
+	background: #f7f7f7;
+	border: none;
+	border-image: url("https://www.pngitem.com/pimgs/m/131-1314353_transparent-leaf-border-transparent-background-foliage-border-hd.png")
+		10% round;
+	background: #f7f7f7;
+}
+
+a.dropdown-toggle {
+	background: #233c24 !important;
+}
+
+p.kudos {
+	background: #d1ead2 !important;
+}
+p.kudos > a {
+	color: #083a0e;
+}
+
+#show_comments_link > a,
+#header .primary li a {
+	background: #243d25 !important;
+	color: white !important;
+}
+
+#site_search {
+	background: white;
+}
+
+li#show_comments_link_top.comments > a {
+	background: #243d25;
+	color: white;
+}

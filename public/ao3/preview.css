@@ -129,10 +129,25 @@ button {
 	color: var(--ap-accent);
 	font-weight: 700;
 }
+.ap-btn.on {
+	border-color: var(--ap-accent);
+	color: var(--ap-accent);
+	background: var(--ap-hover);
+	font-weight: 700;
+}
 .ap-btn:hover {
 	border-color: var(--ap-accent-2);
 	color: var(--ap-accent);
 	background: var(--ap-hover);
+}
+select.ap-kind {
+	appearance: none;
+	-webkit-appearance: none;
+	padding-right: 22px;
+	background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0l5 6 5-6z' fill='%23999'/></svg>");
+	background-repeat: no-repeat;
+	background-position: right 8px center;
+	cursor: pointer;
 }
 .ap-btn.ap-icon-btn {
 	min-width: 34px;
