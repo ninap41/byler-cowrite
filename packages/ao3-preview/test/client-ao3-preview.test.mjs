@@ -7,7 +7,7 @@ import { installDom } from "./dom.mjs";
 const PAGE = readFileSync(new URL("../public/ao3-preview.html", import.meta.url), "utf-8");
 const bodyOf = (html) => html.slice(html.indexOf("<body>") + 6, html.indexOf("<script type=\"module\">"));
 
-let LABEL_CAPTION, LABEL_HINT, picker, mountPreview, lintRowHtml, issuesLabel, frameHtml, unmatchedRules, NO_MATCH, NO_MATCH_SITE, KEY_KIND, DEFAULT_KIND, DOWNLOAD_NAMES, PAGES, KEY_PAGE, DEFAULT_PAGE, pageFile, KEY_LINT_H, LINT_MIN, LINT_DEFAULT, KEY_CSS, KEY_EXPANDED, KEY_THEME, DOWNLOAD_NAME, selectorFor, STYLE_ID, OUTSIDE_CLASS, OUTSIDE_NOTE;
+let picker, mountPreview, lintRowHtml, issuesLabel, frameHtml, unmatchedRules, NO_MATCH, NO_MATCH_SITE, KEY_KIND, DEFAULT_KIND, DOWNLOAD_NAMES, PAGES, KEY_PAGE, DEFAULT_PAGE, pageFile, KEY_LINT_H, LINT_MIN, LINT_DEFAULT, KEY_CSS, KEY_EXPANDED, KEY_THEME, DOWNLOAD_NAME, selectorFor, STYLE_ID, OUTSIDE_CLASS, OUTSIDE_NOTE;
 before(async () => {
   const dom = installDom();
   window.matchMedia = () => ({ matches: false, addEventListener() {}, removeEventListener() {} });
@@ -37,7 +37,7 @@ before(async () => {
     .replace('"./editor.js"', JSON.stringify(asData(editorSrc)))
     .replace('"./inspect.js"', JSON.stringify(abs("../public/ao3/inspect.js")));
   ({ mountPreview, lintRowHtml, issuesLabel, frameHtml, unmatchedRules, NO_MATCH, NO_MATCH_SITE, KEY_KIND, DEFAULT_KIND, DOWNLOAD_NAMES, PAGES, KEY_PAGE, DEFAULT_PAGE, pageFile, KEY_LINT_H, LINT_MIN, LINT_DEFAULT, KEY_CSS, KEY_EXPANDED, KEY_THEME, DOWNLOAD_NAME } = await import(asData(src)));
-  ({ selectorFor, STYLE_ID, OUTSIDE_CLASS, OUTSIDE_NOTE, LABEL_CAPTION, LABEL_HINT } = await import(abs("../public/ao3/inspect.js")));
+  ({ selectorFor, STYLE_ID, OUTSIDE_CLASS, OUTSIDE_NOTE } = await import(abs("../public/ao3/inspect.js")));
   picker = await import(pickerUrl);
 });
 
@@ -261,17 +261,13 @@ test("the inspector: toggle on, hover outlines + labels, a click appends the sel
   const fd = m.frameDoc();
   assert.ok(fd.getElementById(STYLE_ID), "the hover styles are injected into the frame");
   assert.ok(fd.documentElement.classList.contains("ap-inspecting"), "the crosshair class is on the frame's html");
-  const early = fd.querySelector(".ap-insp-label");
-  assert.equal(early.hidden, false, "the label shows at once, before any hover");
-  assert.equal(early.querySelector(".ap-insp-cap").textContent, LABEL_CAPTION);
-  assert.equal(early.querySelector(".ap-insp-sel").textContent, LABEL_HINT);
+  assert.equal(fd.querySelector(".ap-insp-label").hidden, true, "the in-frame label waits for a hover");
   const p = fd.querySelector("p.x");
   const MouseEvent = fd.defaultView.MouseEvent;
   p.dispatchEvent(new MouseEvent("mousemove", { bubbles: true, clientX: 10, clientY: 10 }));
   assert.ok(p.classList.contains("ap-insp-hover"), "hovered element outlined");
   const label = fd.querySelector(".ap-insp-label");
-  assert.equal(label.querySelector(".ap-insp-cap").textContent, LABEL_CAPTION, "the caption sits above the selector");
-  assert.equal(label.querySelector(".ap-insp-sel").textContent, "#workskin p.x");
+  assert.equal(label.textContent, "#workskin p.x");
   assert.equal(label.hidden, false);
   // pick it
   const ev = new MouseEvent("click", { bubbles: true, cancelable: true });
@@ -413,12 +409,12 @@ test("the inspector marks chrome outside the work: grey outline and a label that
   btn.dispatchEvent(new MouseEvent("mousemove", { bubbles: true, clientX: 5, clientY: 5 }));
   assert.ok(btn.classList.contains(OUTSIDE_CLASS), "outside: the grey outline class");
   const label = fd.querySelector(".ap-insp-label");
-  assert.equal(label.querySelector(".ap-insp-sel").textContent, "#workskin button.btn \u00b7 " + OUTSIDE_NOTE);
+  assert.equal(label.textContent, "#workskin button.btn \u00b7 " + OUTSIDE_NOTE);
   assert.ok(label.classList.contains(OUTSIDE_CLASS));
   const p = fd.querySelector("p.x");
   p.dispatchEvent(new MouseEvent("mousemove", { bubbles: true, clientX: 5, clientY: 5 }));
   assert.ok(!p.classList.contains(OUTSIDE_CLASS) && !btn.classList.contains(OUTSIDE_CLASS), "inside: plain hover, the outside mark cleared from the last element");
-  assert.equal(label.querySelector(".ap-insp-sel").textContent, "#workskin p.x");
+  assert.equal(label.textContent, "#workskin p.x");
   assert.ok(!label.classList.contains(OUTSIDE_CLASS));
   btn.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
   assert.match(m.editor.value, /#workskin button\.btn \{/, "the pick is still allowed");
@@ -444,7 +440,7 @@ test("skin kind: Site skin is the default, applies the sheet as written to the w
   const btn = fd.querySelector("button");
   const MouseEvent = fd.defaultView.MouseEvent;
   btn.dispatchEvent(new MouseEvent("mousemove", { bubbles: true, clientX: 5, clientY: 5 }));
-  assert.equal(fd.querySelector(".ap-insp-label .ap-insp-sel").textContent, "button.btn");
+  assert.equal(fd.querySelector(".ap-insp-label").textContent, "button.btn");
   assert.ok(!btn.classList.contains(OUTSIDE_CLASS), "a site skin has no outside");
   btn.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
   assert.match(m.editor.value, /\nbutton\.btn \{\n/);
@@ -453,7 +449,7 @@ test("skin kind: Site skin is the default, applies the sheet as written to the w
   assert.equal(selectorFor(fd.getElementById("header"), { kind: "site" }), "#header", "chrome outside the work is bare");
   const px = fd.querySelector("p.x");
   px.dispatchEvent(new MouseEvent("mousemove", { bubbles: true, clientX: 5, clientY: 5 }));
-  assert.equal(fd.querySelector(".ap-insp-label .ap-insp-sel").textContent, "#workskin p.x");
+  assert.equal(fd.querySelector(".ap-insp-label").textContent, "#workskin p.x");
   px.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
   assert.match(m.editor.value, /\n#workskin p\.x \{\n/);
   // download name follows the kind
@@ -615,4 +611,19 @@ test("the grip between editor and warnings resizes the warnings panel — drag, 
   assert.equal(m3.lintHeight, 333);
   assert.equal(document.getElementById("apSide").style.getPropertyValue("--ap-lint-h"), "333px");
   void m2;
+});
+
+test("the ⌖ toggle wears an instant tooltip titled Element Selector instead of a native title", () => {
+  document.body.innerHTML = bodyOf(PAGE);
+  const btn = document.getElementById("apInspect");
+  assert.equal(btn.getAttribute("title"), null, "no native title — it would show late and double up");
+  const tip = document.getElementById("apInspectTip");
+  assert.equal(btn.getAttribute("aria-describedby"), "apInspectTip");
+  assert.equal(tip.getAttribute("role"), "tooltip");
+  assert.equal(tip.querySelector("b").textContent, "Element Selector");
+  assert.match(tip.textContent, /click an element to add its rule/);
+  assert.ok(btn.parentElement.classList.contains("ap-tipwrap"), "the hover wrapper is what shows it");
+  const css = readFileSync(new URL("../public/ao3/preview.css", import.meta.url), "utf-8");
+  assert.match(css, /\.ap-tipwrap:hover \.ap-tip,\s*\.ap-tipwrap:focus-within \.ap-tip \{/, "shown on hover and focus");
+  assert.ok(!/\.ap-tip[^{]*\{[^}]*transition-delay/.test(css), "no delay");
 });

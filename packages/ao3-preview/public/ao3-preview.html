@@ -44,7 +44,10 @@
 					<option value="tags">Tags</option>
 					<option value="bookmarks">Bookmarks</option>
 				</select>
-				<button class="ap-btn ap-icon-btn" id="apInspect" type="button" aria-pressed="false" aria-label="Inspect elements" title="Inspect: hover the work, click an element to add its selector to the CSS (Esc to stop)">⌖</button>
+				<span class="ap-tipwrap">
+					<button class="ap-btn ap-icon-btn" id="apInspect" type="button" aria-pressed="false" aria-label="Element selector" aria-describedby="apInspectTip">⌖</button>
+					<span class="ap-tip" id="apInspectTip" role="tooltip"><b>Element Selector</b>Hover the page, click an element to add its rule to the CSS. Esc to stop.</span>
+				</span>
 				<button class="ap-btn ap-save" id="apSave" type="button" title="Save the CSS in this browser (⌘/Ctrl+S)">Save CSS</button>
 				<button class="ap-btn" id="apResetCss" type="button" title="Back to the shipped default; forgets the saved CSS">Reset CSS</button>
 				<button class="ap-btn ap-icon-btn" id="apDownload" type="button" aria-label="Download the CSS" title="Download the CSS as work-skin.css">⬇</button>

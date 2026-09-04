@@ -148,6 +148,49 @@ button {
 	opacity: 0.75;
 	margin-right: -2px;
 }
+/* An instant tooltip for a bar control: no native-title delay. Shows on hover
+   and on keyboard focus; the <b> is its title line. */
+.ap-tipwrap {
+	position: relative;
+	display: inline-flex;
+}
+.ap-tip {
+	position: absolute;
+	top: calc(100% + 8px);
+	right: 0;
+	z-index: 20;
+	width: max-content;
+	max-width: 260px;
+	padding: 8px 10px;
+	border: 1px solid var(--ap-line);
+	border-radius: var(--r-md);
+	background: var(--ap-panel);
+	color: var(--ap-ink);
+	font-size: 0.78rem;
+	line-height: 1.35;
+	font-weight: 400;
+	text-transform: none;
+	letter-spacing: 0;
+	white-space: normal;
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+	pointer-events: none;
+	opacity: 0;
+	visibility: hidden;
+	transform: translateY(-3px);
+	transition: opacity 0.08s, transform 0.08s, visibility 0s 0.08s;
+}
+.ap-tip b {
+	display: block;
+	font-weight: 700;
+	margin-bottom: 3px;
+}
+.ap-tipwrap:hover .ap-tip,
+.ap-tipwrap:focus-within .ap-tip {
+	opacity: 1;
+	visibility: visible;
+	transform: none;
+	transition: opacity 0.08s, transform 0.08s;
+}
 select.ap-kind {
 	appearance: none;
 	-webkit-appearance: none;
