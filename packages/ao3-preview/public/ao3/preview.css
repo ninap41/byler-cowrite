@@ -231,13 +231,13 @@ select.ap-kind {
 	min-width: 0;
 	height: calc(100vh - var(--ap-bar-h));
 }
-/* The element hierarchy while inspecting — a strip pinned to the foot of the
+/* The element hierarchy while inspecting — a strip pinned to the top of the
    preview column, in the parent page so no skin can restyle it. */
 .ap-crumbs {
 	position: absolute;
 	left: 0;
 	right: 0;
-	bottom: 0;
+	top: 0;
 	z-index: 5;
 	display: flex;
 	align-items: center;
@@ -247,9 +247,9 @@ select.ap-kind {
 	white-space: nowrap;
 	background: var(--ap-panel);
 	color: var(--ap-ink);
-	border-top: 1px solid var(--ap-line);
+	border-bottom: 1px solid var(--ap-line);
 	font: 12px/1.3 Menlo, Consolas, monospace;
-	box-shadow: 0 -6px 18px rgba(0, 0, 0, 0.25);
+	box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
 }
 .ap-crumbs[hidden] {
 	display: none;

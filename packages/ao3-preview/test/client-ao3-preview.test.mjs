@@ -658,6 +658,9 @@ test("inspecting shows the element hierarchy as breadcrumbs: hover a crumb to ou
   assert.match(crumbsHtml([{ text: "<b>" }]), /&lt;b&gt;/, "escaped");
   p.dispatchEvent(new ME("mousemove", { bubbles: true, clientX: 5, clientY: 5 }));
   assert.equal(crumbs.hidden, false);
+  assert.equal(crumbs.nextElementSibling?.id, "apFrame", "the strip sits at the top of the preview, above the frame");
+  const css = readFileSync(new URL("../public/ao3/preview.css", import.meta.url), "utf-8");
+  assert.match(css, /\.ap-crumbs \{[^}]*\btop: 0;/, "pinned to the top");
   const chips = Array.from(crumbs.querySelectorAll(".ap-crumb"));
   assert.deepEqual(chips.map((c) => c.textContent), ["div#outer.wrapper", "div#main.region", "div#workskin", "div.userstuff", "p.x"]);
   assert.ok(chips[4].classList.contains("leaf"), "the hovered element is the leaf");
