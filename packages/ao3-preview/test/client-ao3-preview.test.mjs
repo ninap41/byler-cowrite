@@ -7,7 +7,7 @@ import { installDom } from "./dom.mjs";
 const PAGE = readFileSync(new URL("../public/ao3-preview.html", import.meta.url), "utf-8");
 const bodyOf = (html) => html.slice(html.indexOf("<body>") + 6, html.indexOf("<script type=\"module\">"));
 
-let picker, mountPreview, lintRowHtml, issuesLabel, frameHtml, unmatchedRules, NO_MATCH, NO_MATCH_SITE, KEY_KIND, DEFAULT_KIND, DOWNLOAD_NAMES, KEY_CSS, KEY_EXPANDED, KEY_THEME, DOWNLOAD_NAME, selectorFor, STYLE_ID, OUTSIDE_CLASS, OUTSIDE_NOTE;
+let picker, mountPreview, lintRowHtml, issuesLabel, frameHtml, unmatchedRules, NO_MATCH, NO_MATCH_SITE, KEY_KIND, DEFAULT_KIND, DOWNLOAD_NAMES, PAGES, KEY_PAGE, DEFAULT_PAGE, pageFile, KEY_CSS, KEY_EXPANDED, KEY_THEME, DOWNLOAD_NAME, selectorFor, STYLE_ID, OUTSIDE_CLASS, OUTSIDE_NOTE;
 before(async () => {
   const dom = installDom();
   window.matchMedia = () => ({ matches: false, addEventListener() {}, removeEventListener() {} });
@@ -36,12 +36,12 @@ before(async () => {
     .replace('"./ao3-rules.js"', JSON.stringify(abs("../public/ao3/ao3-rules.js")))
     .replace('"./editor.js"', JSON.stringify(asData(editorSrc)))
     .replace('"./inspect.js"', JSON.stringify(abs("../public/ao3/inspect.js")));
-  ({ mountPreview, lintRowHtml, issuesLabel, frameHtml, unmatchedRules, NO_MATCH, NO_MATCH_SITE, KEY_KIND, DEFAULT_KIND, DOWNLOAD_NAMES, KEY_CSS, KEY_EXPANDED, KEY_THEME, DOWNLOAD_NAME } = await import(asData(src)));
+  ({ mountPreview, lintRowHtml, issuesLabel, frameHtml, unmatchedRules, NO_MATCH, NO_MATCH_SITE, KEY_KIND, DEFAULT_KIND, DOWNLOAD_NAMES, PAGES, KEY_PAGE, DEFAULT_PAGE, pageFile, KEY_CSS, KEY_EXPANDED, KEY_THEME, DOWNLOAD_NAME } = await import(asData(src)));
   ({ selectorFor, STYLE_ID, OUTSIDE_CLASS, OUTSIDE_NOTE } = await import(abs("../public/ao3/inspect.js")));
   picker = await import(pickerUrl);
 });
 
-function fresh(html = "<p>hi</p>") {
+function fresh(html = '<div id="workskin"><p>hi</p></div>') {
   document.body.innerHTML = bodyOf(PAGE);
   localStorage.clear();
   return mountPreview(document, { storage: localStorage, loadCss: async () => "#workskin p { color: red }", loadHtml: async () => html, loadSite: async () => "body { margin: 0 }" });
@@ -53,7 +53,7 @@ test("mounting writes the AO3 page into the frame with the site css and the skin
   const m = fresh();
   await m.ready;
   const fd = m.frameDoc();
-  assert.equal(fd.body.innerHTML, "<p>hi</p>", "the work is the frame's body");
+  assert.equal(fd.body.innerHTML, '<div id="workskin"><p>hi</p></div>', "the work is the frame's body");
   assert.equal(fd.getElementById("apSite").textContent, "body { margin: 0 }", "AO3's site css is the frame's base");
   assert.match(fd.getElementById("apSkin").textContent, /color: red/, "the skin paints inside the frame");
   assert.equal(m.editor.value, "#workskin p { color: red }");
@@ -493,4 +493,49 @@ test("colour picker: every colour value wears a swatch; the hover tooltip holds 
   assert.equal(picker.replacement("#F00", "#00ff00"), "#00ff00");
   assert.equal(picker.replacement("#ff000080", "#00ff00"), "rgba(0, 255, 0, 0.502)");
   assert.deepEqual(picker.colorSpans("color: red; border: 1px solid #123; x: border-red-x; y: rgb(1,2,3)").map((c) => c.text), ["red", "#123", "rgb(1,2,3)"]);
+});
+
+test("the Page dropdown: lists every scraped page in order, defaults to the work, swaps the frame's body on change, is remembered, and every file exists script-free", async () => {
+  const { readdirSync } = await import("node:fs");
+  const dir = new URL("../public/ao3/html/", import.meta.url);
+  const files = readdirSync(dir).filter((f) => f.endsWith(".html")).sort();
+  assert.deepEqual(files, PAGES.map((p) => p.id + ".html").sort(), "one file per page, no strays");
+  for (const f of files) {
+    const html = readFileSync(new URL(f, dir), "utf-8");
+    assert.ok(html.includes('id="main"') && html.includes('id="header"') && html.includes('id="footer"'), f + " is a whole AO3 page body");
+    assert.ok(!/<script|<body|<\/head>/i.test(html), f + " has no scripts and is body-only");
+    assert.ok(!/authenticity_token/.test(html), f + " carries no CSRF token");
+  }
+  assert.equal(DEFAULT_PAGE, "work");
+  assert.equal(pageFile("bookmarks"), "/ao3/html/bookmarks.html");
+  assert.equal(pageFile("junk"), "/ao3/html/work.html");
+  // the select mirrors PAGES
+  document.body.innerHTML = bodyOf(PAGE);
+  localStorage.clear();
+  const sel = document.getElementById("apPage");
+  assert.deepEqual(Array.from(sel.options).map((o) => [o.value, o.textContent]), PAGES.map((p) => [p.id, p.label]));
+  assert.equal(document.querySelector('label[for="apPage"]').textContent, "Page");
+  const asked = [];
+  const m = mountPreview(document, { storage: localStorage, loadCss: async () => "#header { color: red }", loadHtml: async (id) => { asked.push(id); return `<div id="header">${id}</div><div id="workskin"><p>hi</p></div>`; }, loadSite: async () => "" });
+  await m.ready;
+  assert.deepEqual(asked, ["work"], "the work page loads first");
+  assert.equal(m.page, "work");
+  assert.equal(sel.value, "work");
+  sel.value = "tags";
+  sel.dispatchEvent(new window.Event("change", { bubbles: true }));
+  await new Promise((r) => setTimeout(r, 20));
+  assert.deepEqual(asked, ["work", "tags"]);
+  assert.equal(m.frameDoc().getElementById("header").textContent, "tags", "the frame shows the chosen page");
+  assert.equal(localStorage.getItem(KEY_PAGE), "tags");
+  assert.equal(m.frameDoc().getElementById("apSkin").textContent.trim().length > 0, true, "the skin is re-applied to the new page");
+  await m.setPage("nope");
+  assert.equal(m.page, "work", "an unknown id falls back to the work");
+  // remembered across a mount
+  localStorage.setItem(KEY_PAGE, "collections");
+  document.body.innerHTML = bodyOf(PAGE);
+  const asked2 = [];
+  const m2 = mountPreview(document, { storage: localStorage, loadCss: async () => "", loadHtml: async (id) => { asked2.push(id); return "<p>x</p>"; }, loadSite: async () => "" });
+  await m2.ready;
+  assert.deepEqual(asked2, ["collections"]);
+  assert.equal(document.getElementById("apPage").value, "collections");
 });

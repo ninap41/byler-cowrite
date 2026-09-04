@@ -16,6 +16,25 @@ export const KEY_DRAWER = "cowriteAo3Drawer";
 export const KEY_EXPANDED = "cowriteAo3Expanded";
 export const KEY_THEME = "cowriteAo3Theme";
 export const KEY_KIND = "cowriteAo3Kind";
+// The AO3 pages the frame can show (public/ao3/html/<id>.html): the work page
+// first — a hand-curated chapter with its comments — then the site pages
+// scripts/scrape-pages.mjs scrapes. The Page dropdown lists them in this order.
+export const PAGES = [
+  { id: "work", label: "Work" },
+  { id: "home", label: "Homepage" },
+  { id: "media", label: "Fandoms" },
+  { id: "dashboard", label: "Dashboard" },
+  { id: "works", label: "Works" },
+  { id: "works-search", label: "Works search" },
+  { id: "people-search", label: "People search" },
+  { id: "collections", label: "Collections" },
+  { id: "tags", label: "Tags" },
+  { id: "bookmarks", label: "Bookmarks" },
+];
+export const KEY_PAGE = "cowriteAo3Page";
+export const DEFAULT_PAGE = "work";
+export const cleanPage = (id) => (PAGES.some((p) => p.id === id) ? id : DEFAULT_PAGE);
+export const pageFile = (id) => "/ao3/html/" + cleanPage(id) + ".html";
 // the shipped default is a site skin, so that is the first-visit kind
 export const DEFAULT_KIND = "site";
 export const DOWNLOAD_NAMES = { work: "work-skin.css", site: "site-skin.css" };
@@ -98,7 +117,7 @@ export function mountPreview(
   {
     storage = globalThis.localStorage,
     loadCss = () => fetchText("/ao3/default-skin.css"),
-    loadHtml = () => fetchText("/ao3/default-work.html"),
+    loadHtml = (id) => fetchText(pageFile(id)),
     loadSite = () => fetchText("/ao3/default-skin-webscraped.css"),
   } = {},
 ) {
@@ -134,6 +153,22 @@ export function mountPreview(
       apply();
     });
   }
+
+  // ---- the page in the frame ----
+  const pageSel = $("apPage");
+  const page = () => cleanPage(get(KEY_PAGE) || DEFAULT_PAGE);
+  if (pageSel) pageSel.value = page();
+  async function showPage(id) {
+    id = cleanPage(id);
+    set(KEY_PAGE, id);
+    if (pageSel) pageSel.value = id;
+    body = await loadHtml(id).catch(() => "");
+    writeFrame();
+    apply();
+  }
+  pageSel?.addEventListener("change", () => {
+    showPage(pageSel.value);
+  });
 
   // ---- the drawer ----
   const drawer = mountSideDrawer({
@@ -253,7 +288,8 @@ export function mountPreview(
   function apply() {
     const res = lintCss(css.value, { kind: kind() });
     const fd = frameDoc();
-    const unmatched = unmatchedRules(res.rules, fd?.getElementById("workskin") ? fd : null, kind());
+    // a work skin is judged only on a page with a work; a site skin on any page
+    const unmatched = unmatchedRules(res.rules, fd && (kind() === "site" || fd.getElementById("workskin")) ? fd : null, kind());
     // one verdict per rule: a rule that matches nothing needs no prefix note on top
     const dead = new Set(unmatched.map((u) => u.line));
     const problems = [...res.problems.filter((p) => !(p.code === "workskin_prefix" && dead.has(p.line))), ...unmatched].sort((a, b) => a.line - b.line);
@@ -308,7 +344,7 @@ export function mountPreview(
   // ---- load the shipped defaults, prefer the saved CSS ----
   const ready = Promise.all([
     loadCss().catch(() => ""),
-    loadHtml().catch(() => ""),
+    loadHtml(page()).catch(() => ""),
     loadSite().catch(() => ""),
   ]).then(([c, h, site]) => {
     defaults = { css: c, html: h };
@@ -331,6 +367,10 @@ export function mountPreview(
     get kind() {
       return kind();
     },
+    get page() {
+      return page();
+    },
+    setPage: showPage,
     setKind(k) {
       set(KEY_KIND, cleanKind(k));
       if (kindSel) kindSel.value = cleanKind(k);

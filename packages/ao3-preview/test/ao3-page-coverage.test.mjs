@@ -10,7 +10,7 @@ import { JSDOM } from "jsdom";
 import { selectorFor } from "../public/ao3/inspect.js";
 import { lintCss } from "../public/ao3/ao3-rules.js";
 
-const PAGE = readFileSync(new URL("../public/ao3/default-work.html", import.meta.url), "utf-8");
+const PAGE = readFileSync(new URL("../public/ao3/html/work.html", import.meta.url), "utf-8");
 const SKIP = new Set(["SCRIPT", "STYLE", "NOSCRIPT", "TEMPLATE"]);
 
 // property → [value to declare, computed-style key, expected computed value]

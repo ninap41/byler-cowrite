@@ -697,10 +697,10 @@ test("/ao3-preview renders as its own page, links only /ao3/, and the tour bar p
   const cm = await fetch(ctx.url + "/vendor/codemirror.js");
   assert.equal(cm.status, 200, "the vendored CodeMirror bundle is served");
   assert.match(cm.headers.get("cache-control") || "", /max-age=6048/, "and cacheable like the rest of /vendor");
-  for (const path of ["/ao3/preview.css", "/ao3/preview.js", "/ao3/ao3-rules.js", "/ao3/ao3-rules.json", "/ao3/default-skin-webscraped.css", "/ao3/default-work.html", "/ao3/default-skin.css"]) {
+  for (const path of ["/ao3/preview.css", "/ao3/preview.js", "/ao3/ao3-rules.js", "/ao3/ao3-rules.json", "/ao3/default-skin-webscraped.css", "/ao3/html/work.html", "/ao3/html/home.html", "/ao3/html/bookmarks.html", "/ao3/default-skin.css"]) {
     assert.equal((await page(path)).status, 200, path + " served");
   }
-  const work = (await page("/ao3/default-work.html")).body;
+  const work = (await page("/ao3/html/work.html")).body;
   assert.ok(work.includes('id="workskin"') && work.includes('id="header"') && work.includes('id="footer"'), "the default work is a whole AO3 page body");
   assert.ok(!/<script|<\/head>|<body/i.test(work), "body-only, no scripts");
   const home = await page("/");
