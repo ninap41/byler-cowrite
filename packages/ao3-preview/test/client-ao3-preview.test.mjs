@@ -469,6 +469,9 @@ test("colour picker: every colour value wears a swatch; the hover tooltip holds 
   assert.ok(tip, "the picker tooltip is shown");
   const input = tip.querySelector("input[type=color]");
   assert.equal(input.value, "#ff0000");
+  assert.equal(tip.querySelector(".ap-color-cap").textContent, "Color picker", "the floating tip says what it is");
+  assert.equal(input.getAttribute("aria-label"), "Color picker");
+  assert.equal(input.title, "Color picker");
   input.value = "#00ff00";
   input.dispatchEvent(new window.Event("input", { bubbles: true }));
   assert.match(view.state.doc.line(2).text, /color: #00ff00;/, "the value is rewritten in place");

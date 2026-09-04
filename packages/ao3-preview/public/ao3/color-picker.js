@@ -186,11 +186,15 @@ function tooltipFor({ from, to }) {
 			const input = document.createElement("input")
 			input.type = "color"
 			input.value = parsed ? toHex(parsed.r, parsed.g, parsed.b) : "#000000"
-			input.title = "Pick a colour"
+			input.title = "Color picker"
+			input.setAttribute("aria-label", "Color picker")
+			const caption = document.createElement("span")
+			caption.className = "ap-color-cap"
+			caption.textContent = "Color picker"
 			const label = document.createElement("span")
 			label.className = "ap-color-val"
 			label.textContent = text
-			dom.append(input, label)
+			dom.append(caption, input, label)
 			const write = () => {
 				const cur = view.state.field(pickerField, false)
 				if (!cur) return
@@ -262,6 +266,8 @@ const theme = EditorView.baseTheme({
 		borderRadius: "6px",
 		font: "12px/1 Menlo, Consolas, monospace",
 	},
+	".ap-color-cap": { fontWeight: "700", letterSpacing: "0.03em", textTransform: "uppercase", fontSize: "10px", opacity: "0.8" },
+	".ap-color-val": { opacity: "0.85" },
 	".ap-color-tip input[type=color]": {
 		width: "28px",
 		height: "22px",
