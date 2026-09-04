@@ -8,6 +8,7 @@ The AO3 skin previewer, a workspace package of Byler Cowrite. A real AO3 work pa
 - `ao3/editor.js` — the CodeMirror adapter (`createEditor`), AO3-whitelist completions (`css-values.js` for values), the colour picker (`color-picker.js`).
 - `ao3/inspect.js` — the element inspector (`selectorFor`, `mountInspector`, `pathOf`).
 - `ao3/work-content.js` — the Work Content tab: the edit-form fields, the boilerplate values (the shipped work), the `{{TOKEN}}` renderer for `html/work.html` (a template), the form builders.
+- `ao3/html-rules.js` — AO3's HTML sanitizer rules as a lint for those fields (allowed tags/attributes/protocols, class rules, embed hosts, length limits), from otwarchive's sanitizer config and the formatting FAQ.
 - `ao3/html/*.html` — the pages the Page dropdown offers: `work.html` (a hand-curated chapter with its comments) and the site pages `scripts/scrape-pages.mjs` scrapes (`node scripts/scrape-pages.mjs [id…]` re-scrapes; the list is `SCRAPED_PAGES` there and `PAGES` in preview.js).
 - `ao3/side-drawer.js` — a copy of the app's drawer component.
 - `vendor/codemirror.js` — the committed esbuild bundle of `scripts/codemirror-entry.js`; rebuild with `npm run build-codemirror` (here or from the repo root).

@@ -36,7 +36,8 @@ before(async () => {
     .replace('"./ao3-rules.js"', JSON.stringify(abs("../public/ao3/ao3-rules.js")))
     .replace('"./editor.js"', JSON.stringify(asData(editorSrc)))
     .replace('"./inspect.js"', JSON.stringify(abs("../public/ao3/inspect.js")))
-    .replace('"./work-content.js"', JSON.stringify(abs("../public/ao3/work-content.js")));
+    .replace('"./work-content.js"', JSON.stringify(abs("../public/ao3/work-content.js")))
+    .replace('"./html-rules.js"', JSON.stringify(abs("../public/ao3/html-rules.js")));
   ({ mountPreview, lintRowHtml, issuesLabel, frameHtml, crumbsHtml, unmatchedRules, NO_MATCH, NO_MATCH_SITE, KEY_KIND, DEFAULT_KIND, DOWNLOAD_NAMES, PAGES, KEY_PAGE, DEFAULT_PAGE, pageFile, KEY_TAB, KEY_LINT_H, LINT_MIN, LINT_DEFAULT, KEY_CSS, KEY_EXPANDED, KEY_THEME, DOWNLOAD_NAME } = await import(asData(src)));
   ({ selectorFor, pathOf, STYLE_ID, OUTSIDE_CLASS, OUTSIDE_NOTE } = await import(abs("../public/ao3/inspect.js")));
   picker = await import(pickerUrl);
@@ -776,4 +777,37 @@ test("the drawer's tabs: CSS | Work Content — the choice persists; the Work pa
   await new Promise((r) => setTimeout(r, 200));
   assert.equal(m2.frameDoc().body.innerHTML, before);
   assert.equal(m2.work.title, "Elsewhere");
+});
+
+test("Work Content fields are validated under AO3's HTML rules: diagnostics in the editor, a count on the label, messages under a title input", async () => {
+  const tpl = readFileSync(new URL("../public/ao3/html/work.html", import.meta.url), "utf-8");
+  document.body.innerHTML = bodyOf(PAGE);
+  localStorage.clear();
+  const m = mountPreview(document, { storage: localStorage, loadCss: async () => "", loadHtml: async () => tpl, loadSite: async () => "" });
+  await m.ready;
+  m.setTab("work");
+  const form = document.getElementById("apWorkForm");
+  const badge = (id) => form.querySelector(`.ap-work-issues[data-for="${id}"]`);
+  assert.equal(badge("summary").hidden, true, "the boilerplate is clean");
+  m.workEditor("summary").value = '<p class="note" style="color:red">s</p><script>1</script>';
+  assert.deepEqual(m.workProblems("summary").map((p) => p.code), ["removed_with_contents", "class_not_here", "inline_style"]);
+  assert.equal(badge("summary").hidden, false);
+  assert.equal(badge("summary").textContent, "3 problems");
+  assert.ok(badge("summary").classList.contains("error"));
+  await new Promise((r) => setTimeout(r, 80));
+  const view = m.workEditor("summary").view;
+  const { forEachDiagnostic } = await import(new URL("../public/vendor/codemirror.js", import.meta.url).href).catch(() => ({}));
+  assert.ok(view.dom.querySelector(".cm-lintRange, .cm-lint-marker") || forEachDiagnostic, "diagnostics are rendered in the editor");
+  // the same markup is fine in the work text (class allowed there)
+  m.workEditor("chapterText").value = '<p class="note">s</p>';
+  assert.deepEqual(m.workProblems("chapterText"), []);
+  assert.equal(badge("chapterText").hidden, true);
+  // a title with HTML gets its message under the input
+  const t = form.querySelector('[name="title"]');
+  t.value = "<b>T</b>";
+  t.dispatchEvent(new window.Event("input", { bubbles: true }));
+  const warn = form.querySelector('.ap-work-warn[data-for="title"]');
+  assert.equal(warn.hidden, false);
+  assert.match(warn.textContent, /takes no HTML/);
+  assert.equal(badge("title").textContent, "1 note");
 });

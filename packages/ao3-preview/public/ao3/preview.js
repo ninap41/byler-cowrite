@@ -9,7 +9,8 @@
 import { mountSideDrawer } from "./side-drawer.js";
 import { lintCss, splitSelectors, storedSelector, cleanKind } from "./ao3-rules.js";
 import { createEditor, createHtmlEditor } from "./editor.js";
-import { KEY_WORK, WORK_DEFAULTS, cleanWork, sameWork, renderWork, workFormHtml, readWorkForm } from "./work-content.js";
+import { KEY_WORK, WORK_FIELDS, WORK_DEFAULTS, cleanWork, sameWork, renderWork, workFormHtml, readWorkForm } from "./work-content.js";
+import { lintField } from "./html-rules.js";
 import { mountInspector } from "./inspect.js";
 
 export const KEY_CSS = "cowriteAo3Css";
@@ -343,10 +344,36 @@ export function mountPreview(
     workSave.disabled = !dirty;
     workSave.textContent = dirty ? "Save content" : "Saved";
   };
+  // AO3's HTML rules on every html/title field: diagnostics in the editor, a
+  // count on the label, the messages of a text field under it
+  const issueLabel = (n, worst) => (n ? `${n} ${worst === "error" ? (n === 1 ? "problem" : "problems") : n === 1 ? "note" : "notes"}` : "");
+  function lintWork() {
+    if (!workForm) return;
+    for (const f of WORK_FIELDS) {
+      if (f.kind !== "html" && f.kind !== "text") continue;
+      if (f.kind === "text" && !(f.id in { title: 1, chapterTitle: 1 })) continue;
+      const problems = lintField(f.id, work[f.id]);
+      const badge = workForm.querySelector(`.ap-work-issues[data-for="${f.id}"]`);
+      const worst = problems.some((p) => p.severity === "error") ? "error" : problems.some((p) => p.severity === "warning") ? "warning" : "info";
+      if (badge) {
+        badge.textContent = issueLabel(problems.length, worst);
+        badge.hidden = !problems.length;
+        badge.className = "ap-work-issues " + (problems.length ? worst : "");
+      }
+      const ed = htmlEditors.get(f.id);
+      if (ed) ed.setProblems(problems);
+      const warn = workForm.querySelector(`.ap-work-warn[data-for="${f.id}"]`);
+      if (warn && !ed) {
+        warn.innerHTML = problems.map((p) => `<div class="${p.severity}">${esc(p.message)}</div>`).join("");
+        warn.hidden = !problems.length;
+      }
+    }
+  }
   let workTimer = 0;
   function workChanged() {
     work = readWorkForm(workForm);
     paintWorkDirty();
+    lintWork();
     clearTimeout(workTimer);
     workTimer = setTimeout(() => {
       if (page() !== "work") return;
@@ -376,6 +403,7 @@ export function mountPreview(
       );
     }
     paintWorkDirty();
+    lintWork();
   }
   workForm?.addEventListener("input", (e) => {
     if (e.target.matches?.("input, select")) workChanged();
@@ -590,6 +618,7 @@ export function mountPreview(
       return work;
     },
     workEditor: (id) => htmlEditors.get(id),
+    workProblems: (id) => lintField(id, work[id]),
     get crumbs() {
       return path;
     },

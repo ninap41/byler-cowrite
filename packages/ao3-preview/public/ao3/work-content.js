@@ -167,7 +167,7 @@ export function workFormHtml(values) {
 		// and preview.js mounts a CodeMirror HTML editor in the host beside it
 		else if (f.kind === "html") control = `<textarea id="${idFor(f)}" name="${f.id}" rows="${f.rows || 4}" spellcheck="false" hidden>${esc(v[f.id])}</textarea><div class="ap-work-code" data-field="${f.id}" data-rows="${f.rows || 4}"></div>`;
 		else control = `<input type="text" id="${idFor(f)}" name="${f.id}" value="${esc(v[f.id])}" />`;
-		return `${head}<div class="ap-work-row" data-kind="${f.kind}"><label for="${idFor(f)}${f.kind === "checks" ? "_0" : ""}">${esc(f.label)}</label>${control}</div>`;
+		return `${head}<div class="ap-work-row" data-kind="${f.kind}" data-field="${f.id}"><label for="${idFor(f)}${f.kind === "checks" ? "_0" : ""}">${esc(f.label)}<span class="ap-work-issues" data-for="${f.id}" hidden></span></label>${control}<div class="ap-work-warn" data-for="${f.id}" hidden></div></div>`;
 	});
 	return rows.join("");
 }

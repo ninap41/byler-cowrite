@@ -172,7 +172,7 @@ export function toDiagnostics(state, problems) {
 		const n = Math.min(Math.max(1, p.line | 0), state.doc.lines)
 		const line = state.doc.line(n)
 		const from = line.from + (line.text.length - line.text.trimStart().length)
-		out.push({ from, to: Math.max(from, line.to), severity: p.severity === "error" ? "error" : "warning", message: p.message, source: p.code })
+		out.push({ from, to: Math.max(from, line.to), severity: p.severity === "error" ? "error" : p.severity === "info" ? "info" : "warning", message: p.message, source: p.code })
 	}
 	return out
 }
@@ -333,6 +333,8 @@ export function createHtmlEditor(host, { value = "", dark = true, onChange, rows
 			closeBrackets(),
 			html(),
 			autocompletion(),
+			// AO3's HTML rules run in preview.js and land here as diagnostics
+			lintGutter(),
 			EditorView.lineWrapping,
 			keymap.of([...closeBracketsKeymap, ...completionKeymap, ...defaultKeymap, ...historyKeymap, indentWithTab]),
 			EditorView.updateListener.of((u) => {
@@ -350,6 +352,9 @@ export function createHtmlEditor(host, { value = "", dark = true, onChange, rows
 			const next = String(v ?? "")
 			if (next === view.state.doc.toString()) return
 			view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: next } })
+		},
+		setProblems(list) {
+			view.dispatch(setDiagnostics(view.state, toDiagnostics(view.state, list || [])))
 		},
 		setDark(d) {
 			view.dispatch({ effects: themeSlot.reconfigure(themeFor(!!d)) })

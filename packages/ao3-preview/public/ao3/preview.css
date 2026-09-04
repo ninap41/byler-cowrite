@@ -437,6 +437,34 @@ body.resizing-side {
 	outline: 2px solid var(--ap-accent-2);
 	outline-offset: -1px;
 }
+.ap-work-issues {
+	margin-left: 8px;
+	padding: 1px 7px;
+	border-radius: 999px;
+	font-size: 0.7rem;
+	font-weight: 700;
+	background: var(--ap-hover);
+	color: var(--ap-ink);
+}
+.ap-work-issues.error {
+	background: rgba(255, 82, 82, 0.18);
+	color: #ff6b6b;
+}
+.ap-work-issues.warning {
+	background: rgba(255, 196, 0, 0.18);
+	color: #e0a800;
+}
+.ap-work-warn {
+	font-size: 0.75rem;
+	line-height: 1.35;
+	opacity: 0.85;
+}
+.ap-work-warn .error {
+	color: #ff6b6b;
+}
+.ap-work-warn .warning {
+	color: #e0a800;
+}
 .ap-work-checks {
 	display: flex;
 	flex-wrap: wrap;
