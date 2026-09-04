@@ -10,6 +10,8 @@ export const LABEL_CLASS = "ap-insp-label";
 export const HOVER_CLASS = "ap-insp-hover";
 export const OUTSIDE_CLASS = "ap-insp-outside";
 export const OUTSIDE_NOTE = "outside the work \u2014 a work skin can't style this";
+export const LABEL_CAPTION = "Element Selector";
+export const LABEL_HINT = "hover an element \u00b7 click to add its rule \u00b7 Esc to stop";
 
 // Only what sits inside #workskin is reachable by a work skin (AO3 prefixes
 // every selector with it). The header, the tag block, the action rows and the
@@ -46,7 +48,9 @@ html.ap-inspecting, html.ap-inspecting * { cursor: crosshair !important; }
 .${HOVER_CLASS} { outline: 2px solid #ff2d95 !important; outline-offset: -2px; background-color: rgba(255, 45, 149, 0.08) !important; }
 .${HOVER_CLASS}.${OUTSIDE_CLASS} { outline-color: #9a9a9a !important; outline-style: dashed !important; background-color: rgba(120, 120, 120, 0.1) !important; }
 .${LABEL_CLASS}.${OUTSIDE_CLASS} { background: #6b6b6b; }
-.${LABEL_CLASS} { position: fixed; z-index: 2147483647; pointer-events: none; font: 600 12px/1.3 Menlo, Consolas, monospace; color: #fff; background: #ff2d95; padding: 2px 7px; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.3); white-space: nowrap; max-width: 60vw; overflow: hidden; text-overflow: ellipsis; }
+.${LABEL_CLASS} { position: fixed; z-index: 2147483647; pointer-events: none; font: 600 12px/1.3 Menlo, Consolas, monospace; color: #fff; background: #ff2d95; padding: 4px 8px 5px; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.3); white-space: nowrap; max-width: 60vw; overflow: hidden; text-overflow: ellipsis; }
+.${LABEL_CLASS} .ap-insp-cap { display: block; font: 700 10px/1.2 "Space Grotesk", Verdana, sans-serif; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.85; margin-bottom: 2px; }
+.${LABEL_CLASS} .ap-insp-sel { display: block; }
 `;
 
 export function mountInspector(frameDoc, { onPick, onChange, kind = () => "work" } = {}) {
@@ -61,6 +65,18 @@ export function mountInspector(frameDoc, { onPick, onChange, kind = () => "work"
     if (t.classList?.contains(LABEL_CLASS)) return null;
     if (t === frameDoc.documentElement || t === frameDoc.body) return null;
     return t;
+  };
+  // caption above, selector under it; `textContent` of the label reads as the selector alone
+  const setLabel = (text) => {
+    if (!label) return;
+    label.replaceChildren();
+    const cap = frameDoc.createElement("span");
+    cap.className = "ap-insp-cap";
+    cap.textContent = LABEL_CAPTION;
+    const sel = frameDoc.createElement("span");
+    sel.className = "ap-insp-sel";
+    sel.textContent = text;
+    label.append(cap, sel);
   };
   const clearHover = () => {
     hovered?.classList.remove(HOVER_CLASS, OUTSIDE_CLASS);
@@ -80,7 +96,7 @@ export function mountInspector(frameDoc, { onPick, onChange, kind = () => "work"
     }
     if (label) {
       label.hidden = false;
-      label.textContent = outside ? `${selectorFor(t, { kind: k })} \u00b7 ${OUTSIDE_NOTE}` : selectorFor(t, { kind: k });
+      setLabel(outside ? `${selectorFor(t, { kind: k })} \u00b7 ${OUTSIDE_NOTE}` : selectorFor(t, { kind: k }));
       label.classList.toggle(OUTSIDE_CLASS, outside);
       const w = frameDoc.documentElement.clientWidth || 0;
       const h = frameDoc.documentElement.clientHeight || 0;
@@ -114,7 +130,11 @@ export function mountInspector(frameDoc, { onPick, onChange, kind = () => "work"
       (frameDoc.head || root).appendChild(style);
       label = frameDoc.createElement("div");
       label.className = LABEL_CLASS;
-      label.hidden = true;
+      // shown at once, top-left, with the hint — the first hover replaces it
+      setLabel(LABEL_HINT);
+      label.style.left = "12px";
+      label.style.top = "12px";
+      label.hidden = false;
       (frameDoc.body || root).appendChild(label);
       root.classList.add("ap-inspecting");
       frameDoc.addEventListener("mousemove", onMove, true);

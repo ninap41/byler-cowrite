@@ -32,6 +32,11 @@ export const PAGES = [
   { id: "bookmarks", label: "Bookmarks" },
 ];
 export const KEY_PAGE = "cowriteAo3Page";
+// the warnings panel's height (px) under the editor — the grip between them
+export const KEY_LINT_H = "cowriteAo3LintH";
+export const LINT_MIN = 56;
+export const LINT_DEFAULT = 200;
+export const clampLint = (px, max = 900) => Math.min(max, Math.max(LINT_MIN, Math.round(Number(px) || LINT_DEFAULT)));
 export const DEFAULT_PAGE = "work";
 export const cleanPage = (id) => (PAGES.some((p) => p.id === id) ? id : DEFAULT_PAGE);
 export const pageFile = (id) => "/ao3/html/" + cleanPage(id) + ".html";
@@ -170,6 +175,48 @@ export function mountPreview(
     showPage(pageSel.value);
   });
 
+  // ---- the warnings panel's height: the grip between editor and list ----
+  const split = $("apSplit");
+  const side = $("apSide");
+  const lintMax = () => Math.max(LINT_MIN, Math.round((side?.getBoundingClientRect().height || 900) * 0.7) || 900);
+  let lintH = clampLint(get(KEY_LINT_H) ?? LINT_DEFAULT);
+  const paintLint = () => side?.style.setProperty("--ap-lint-h", lintH + "px");
+  function setLintHeight(px, { save = true } = {}) {
+    lintH = clampLint(px, lintMax());
+    paintLint();
+    if (save) set(KEY_LINT_H, String(lintH));
+  }
+  paintLint();
+  if (split) {
+    let drag = null;
+    split.addEventListener("pointerdown", (e) => {
+      drag = { y: e.clientY, h: lintH };
+      split.setPointerCapture?.(e.pointerId);
+      doc.body.classList.add("resizing-lint");
+      e.preventDefault();
+    });
+    split.addEventListener("pointermove", (e) => {
+      if (!drag) return;
+      // the grip sits above the list: dragging UP makes the list taller
+      setLintHeight(drag.h + (drag.y - e.clientY), { save: false });
+    });
+    const end = () => {
+      if (!drag) return;
+      drag = null;
+      doc.body.classList.remove("resizing-lint");
+      set(KEY_LINT_H, String(lintH));
+    };
+    split.addEventListener("pointerup", end);
+    split.addEventListener("pointercancel", end);
+    split.addEventListener("dblclick", () => setLintHeight(LINT_DEFAULT));
+    split.addEventListener("keydown", (e) => {
+      const step = e.shiftKey ? 40 : 12;
+      if (e.key === "ArrowUp") (e.preventDefault(), setLintHeight(lintH + step));
+      else if (e.key === "ArrowDown") (e.preventDefault(), setLintHeight(lintH - step));
+      else if (e.key === "Home") (e.preventDefault(), setLintHeight(LINT_DEFAULT));
+    });
+  }
+
   // ---- the drawer ----
   const drawer = mountSideDrawer({
     grid: root,
@@ -299,6 +346,7 @@ export function mountPreview(
     const fs = fd?.getElementById("apSkin");
     if (fs) fs.textContent = skin.textContent;
     lint.innerHTML = lintHtml(last.problems);
+    split?.classList.toggle("hidden", !last.problems.length);
     const label = issuesLabel(last.problems);
     issues.textContent = label.text;
     issues.className = "ap-issues " + label.cls;
@@ -370,6 +418,10 @@ export function mountPreview(
     get page() {
       return page();
     },
+    get lintHeight() {
+      return lintH;
+    },
+    setLintHeight,
     setPage: showPage,
     setKind(k) {
       set(KEY_KIND, cleanKind(k));

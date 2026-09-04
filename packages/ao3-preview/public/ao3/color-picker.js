@@ -194,7 +194,11 @@ function tooltipFor({ from, to }) {
 			const label = document.createElement("span")
 			label.className = "ap-color-val"
 			label.textContent = text
-			dom.append(caption, input, label)
+			// the caption sits ABOVE the picker; the input and the value share the row under it
+			const row = document.createElement("div")
+			row.className = "ap-color-row"
+			row.append(input, label)
+			dom.append(caption, row)
 			const write = () => {
 				const cur = view.state.field(pickerField, false)
 				if (!cur) return
@@ -260,12 +264,14 @@ const theme = EditorView.baseTheme({
 	},
 	".cm-tooltip.ap-color-tip": {
 		display: "flex",
-		alignItems: "center",
-		gap: "8px",
+		flexDirection: "column",
+		alignItems: "flex-start",
+		gap: "5px",
 		padding: "6px 8px",
 		borderRadius: "6px",
 		font: "12px/1 Menlo, Consolas, monospace",
 	},
+	".ap-color-row": { display: "flex", alignItems: "center", gap: "8px" },
 	".ap-color-cap": { fontWeight: "700", letterSpacing: "0.03em", textTransform: "uppercase", fontSize: "10px", opacity: "0.8" },
 	".ap-color-val": { opacity: "0.85" },
 	".ap-color-tip input[type=color]": {

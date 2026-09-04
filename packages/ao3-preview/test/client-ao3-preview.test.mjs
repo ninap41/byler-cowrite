@@ -7,7 +7,7 @@ import { installDom } from "./dom.mjs";
 const PAGE = readFileSync(new URL("../public/ao3-preview.html", import.meta.url), "utf-8");
 const bodyOf = (html) => html.slice(html.indexOf("<body>") + 6, html.indexOf("<script type=\"module\">"));
 
-let picker, mountPreview, lintRowHtml, issuesLabel, frameHtml, unmatchedRules, NO_MATCH, NO_MATCH_SITE, KEY_KIND, DEFAULT_KIND, DOWNLOAD_NAMES, PAGES, KEY_PAGE, DEFAULT_PAGE, pageFile, KEY_CSS, KEY_EXPANDED, KEY_THEME, DOWNLOAD_NAME, selectorFor, STYLE_ID, OUTSIDE_CLASS, OUTSIDE_NOTE;
+let LABEL_CAPTION, LABEL_HINT, picker, mountPreview, lintRowHtml, issuesLabel, frameHtml, unmatchedRules, NO_MATCH, NO_MATCH_SITE, KEY_KIND, DEFAULT_KIND, DOWNLOAD_NAMES, PAGES, KEY_PAGE, DEFAULT_PAGE, pageFile, KEY_LINT_H, LINT_MIN, LINT_DEFAULT, KEY_CSS, KEY_EXPANDED, KEY_THEME, DOWNLOAD_NAME, selectorFor, STYLE_ID, OUTSIDE_CLASS, OUTSIDE_NOTE;
 before(async () => {
   const dom = installDom();
   window.matchMedia = () => ({ matches: false, addEventListener() {}, removeEventListener() {} });
@@ -36,8 +36,8 @@ before(async () => {
     .replace('"./ao3-rules.js"', JSON.stringify(abs("../public/ao3/ao3-rules.js")))
     .replace('"./editor.js"', JSON.stringify(asData(editorSrc)))
     .replace('"./inspect.js"', JSON.stringify(abs("../public/ao3/inspect.js")));
-  ({ mountPreview, lintRowHtml, issuesLabel, frameHtml, unmatchedRules, NO_MATCH, NO_MATCH_SITE, KEY_KIND, DEFAULT_KIND, DOWNLOAD_NAMES, PAGES, KEY_PAGE, DEFAULT_PAGE, pageFile, KEY_CSS, KEY_EXPANDED, KEY_THEME, DOWNLOAD_NAME } = await import(asData(src)));
-  ({ selectorFor, STYLE_ID, OUTSIDE_CLASS, OUTSIDE_NOTE } = await import(abs("../public/ao3/inspect.js")));
+  ({ mountPreview, lintRowHtml, issuesLabel, frameHtml, unmatchedRules, NO_MATCH, NO_MATCH_SITE, KEY_KIND, DEFAULT_KIND, DOWNLOAD_NAMES, PAGES, KEY_PAGE, DEFAULT_PAGE, pageFile, KEY_LINT_H, LINT_MIN, LINT_DEFAULT, KEY_CSS, KEY_EXPANDED, KEY_THEME, DOWNLOAD_NAME } = await import(asData(src)));
+  ({ selectorFor, STYLE_ID, OUTSIDE_CLASS, OUTSIDE_NOTE, LABEL_CAPTION, LABEL_HINT } = await import(abs("../public/ao3/inspect.js")));
   picker = await import(pickerUrl);
 });
 
@@ -240,12 +240,17 @@ test("the inspector: toggle on, hover outlines + labels, a click appends the sel
   const fd = m.frameDoc();
   assert.ok(fd.getElementById(STYLE_ID), "the hover styles are injected into the frame");
   assert.ok(fd.documentElement.classList.contains("ap-inspecting"), "the crosshair class is on the frame's html");
+  const early = fd.querySelector(".ap-insp-label");
+  assert.equal(early.hidden, false, "the label shows at once, before any hover");
+  assert.equal(early.querySelector(".ap-insp-cap").textContent, LABEL_CAPTION);
+  assert.equal(early.querySelector(".ap-insp-sel").textContent, LABEL_HINT);
   const p = fd.querySelector("p.x");
   const MouseEvent = fd.defaultView.MouseEvent;
   p.dispatchEvent(new MouseEvent("mousemove", { bubbles: true, clientX: 10, clientY: 10 }));
   assert.ok(p.classList.contains("ap-insp-hover"), "hovered element outlined");
   const label = fd.querySelector(".ap-insp-label");
-  assert.equal(label.textContent, "#workskin p.x");
+  assert.equal(label.querySelector(".ap-insp-cap").textContent, LABEL_CAPTION, "the caption sits above the selector");
+  assert.equal(label.querySelector(".ap-insp-sel").textContent, "#workskin p.x");
   assert.equal(label.hidden, false);
   // pick it
   const ev = new MouseEvent("click", { bubbles: true, cancelable: true });
@@ -387,12 +392,12 @@ test("the inspector marks chrome outside the work: grey outline and a label that
   btn.dispatchEvent(new MouseEvent("mousemove", { bubbles: true, clientX: 5, clientY: 5 }));
   assert.ok(btn.classList.contains(OUTSIDE_CLASS), "outside: the grey outline class");
   const label = fd.querySelector(".ap-insp-label");
-  assert.equal(label.textContent, "#workskin button.btn \u00b7 " + OUTSIDE_NOTE);
+  assert.equal(label.querySelector(".ap-insp-sel").textContent, "#workskin button.btn \u00b7 " + OUTSIDE_NOTE);
   assert.ok(label.classList.contains(OUTSIDE_CLASS));
   const p = fd.querySelector("p.x");
   p.dispatchEvent(new MouseEvent("mousemove", { bubbles: true, clientX: 5, clientY: 5 }));
   assert.ok(!p.classList.contains(OUTSIDE_CLASS) && !btn.classList.contains(OUTSIDE_CLASS), "inside: plain hover, the outside mark cleared from the last element");
-  assert.equal(label.textContent, "#workskin p.x");
+  assert.equal(label.querySelector(".ap-insp-sel").textContent, "#workskin p.x");
   assert.ok(!label.classList.contains(OUTSIDE_CLASS));
   btn.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
   assert.match(m.editor.value, /#workskin button\.btn \{/, "the pick is still allowed");
@@ -418,7 +423,7 @@ test("skin kind: Site skin is the default, applies the sheet as written to the w
   const btn = fd.querySelector("button");
   const MouseEvent = fd.defaultView.MouseEvent;
   btn.dispatchEvent(new MouseEvent("mousemove", { bubbles: true, clientX: 5, clientY: 5 }));
-  assert.equal(fd.querySelector(".ap-insp-label").textContent, "button.btn");
+  assert.equal(fd.querySelector(".ap-insp-label .ap-insp-sel").textContent, "button.btn");
   assert.ok(!btn.classList.contains(OUTSIDE_CLASS), "a site skin has no outside");
   btn.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
   assert.match(m.editor.value, /\nbutton\.btn \{\n/);
@@ -427,7 +432,7 @@ test("skin kind: Site skin is the default, applies the sheet as written to the w
   assert.equal(selectorFor(fd.getElementById("header"), { kind: "site" }), "#header", "chrome outside the work is bare");
   const px = fd.querySelector("p.x");
   px.dispatchEvent(new MouseEvent("mousemove", { bubbles: true, clientX: 5, clientY: 5 }));
-  assert.equal(fd.querySelector(".ap-insp-label").textContent, "#workskin p.x");
+  assert.equal(fd.querySelector(".ap-insp-label .ap-insp-sel").textContent, "#workskin p.x");
   px.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
   assert.match(m.editor.value, /\n#workskin p\.x \{\n/);
   // download name follows the kind
@@ -470,6 +475,8 @@ test("colour picker: every colour value wears a swatch; the hover tooltip holds 
   const input = tip.querySelector("input[type=color]");
   assert.equal(input.value, "#ff0000");
   assert.equal(tip.querySelector(".ap-color-cap").textContent, "Color picker", "the floating tip says what it is");
+  assert.equal(tip.firstElementChild.className, "ap-color-cap", "the caption comes first — above the picker");
+  assert.ok(tip.querySelector(".ap-color-row input[type=color]"), "the input sits in the row under it");
   assert.equal(input.getAttribute("aria-label"), "Color picker");
   assert.equal(input.title, "Color picker");
   input.value = "#00ff00";
@@ -541,4 +548,50 @@ test("the Page dropdown: lists every scraped page in order, defaults to the work
   await m2.ready;
   assert.deepEqual(asked2, ["collections"]);
   assert.equal(document.getElementById("apPage").value, "collections");
+});
+
+test("the grip between editor and warnings resizes the warnings panel — drag, arrow keys, double-click reset — and the height is remembered like the drawer's width", async () => {
+  const m = fresh();
+  await m.ready;
+  const side = document.getElementById("apSide");
+  const split = document.getElementById("apSplit");
+  assert.equal(split.getAttribute("role"), "separator");
+  assert.ok(split.classList.contains("hidden"), "no warnings, no grip");
+  assert.equal(m.lintHeight, LINT_DEFAULT);
+  assert.equal(side.style.getPropertyValue("--ap-lint-h"), LINT_DEFAULT + "px");
+  type(m, "#workskin p { color: red; gap: 1px }");
+  m.apply();
+  assert.ok(!split.classList.contains("hidden"), "a warning brings the grip");
+  // drag up 60px → 60px taller; saved on release
+  const PE = window.PointerEvent || window.MouseEvent;
+  split.dispatchEvent(new PE("pointerdown", { bubbles: true, clientY: 500, pointerId: 1 }));
+  assert.ok(document.body.classList.contains("resizing-lint"));
+  split.dispatchEvent(new PE("pointermove", { bubbles: true, clientY: 440, pointerId: 1 }));
+  assert.equal(m.lintHeight, LINT_DEFAULT + 60);
+  assert.equal(side.style.getPropertyValue("--ap-lint-h"), LINT_DEFAULT + 60 + "px");
+  assert.equal(localStorage.getItem(KEY_LINT_H), null, "not saved mid-drag");
+  split.dispatchEvent(new PE("pointerup", { bubbles: true, clientY: 440, pointerId: 1 }));
+  assert.ok(!document.body.classList.contains("resizing-lint"));
+  assert.equal(localStorage.getItem(KEY_LINT_H), String(LINT_DEFAULT + 60), "saved on release");
+  // keys
+  split.dispatchEvent(new window.KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
+  assert.equal(m.lintHeight, LINT_DEFAULT + 48);
+  split.dispatchEvent(new window.KeyboardEvent("keydown", { key: "ArrowUp", shiftKey: true, bubbles: true }));
+  assert.equal(m.lintHeight, LINT_DEFAULT + 88);
+  // floor
+  m.setLintHeight(1);
+  assert.equal(m.lintHeight, LINT_MIN);
+  // reset
+  split.dispatchEvent(new window.MouseEvent("dblclick", { bubbles: true }));
+  assert.equal(m.lintHeight, LINT_DEFAULT);
+  // remembered
+  localStorage.setItem(KEY_LINT_H, "333");
+  const m2 = fresh();
+  localStorage.setItem(KEY_LINT_H, "333");
+  document.body.innerHTML = bodyOf(PAGE);
+  const m3 = mountPreview(document, { storage: localStorage, loadCss: async () => "", loadHtml: async () => "<p>x</p>", loadSite: async () => "" });
+  await m3.ready;
+  assert.equal(m3.lintHeight, 333);
+  assert.equal(document.getElementById("apSide").style.getPropertyValue("--ap-lint-h"), "333px");
+  void m2;
 });
