@@ -41,6 +41,19 @@ export function selectorFor(el, { kind = "work" } = {}) {
   return kind === "site" && outsideWork(el) ? own : "#workskin " + own;
 }
 
+// The element's ancestry, outermost first, html/body left out — what the
+// breadcrumb strip shows. Each step is {el, text} with text = tag#id.classes.
+export function pathOf(el) {
+  const out = [];
+  for (let n = el; n && n.nodeType === 1; n = n.parentElement) {
+    const tag = n.tagName.toLowerCase();
+    if (tag === "html" || tag === "body") break;
+    const classes = Array.from(n.classList || []).filter((c) => !OWN.test(c));
+    out.unshift({ el: n, text: tag + (n.id ? "#" + n.id : "") + classes.map((c) => "." + c).join("") });
+  }
+  return out;
+}
+
 const FRAME_CSS = `
 html.ap-inspecting, html.ap-inspecting * { cursor: crosshair !important; }
 .${HOVER_CLASS} { outline: 2px solid #ff2d95 !important; outline-offset: -2px; background-color: rgba(255, 45, 149, 0.08) !important; }
@@ -49,7 +62,7 @@ html.ap-inspecting, html.ap-inspecting * { cursor: crosshair !important; }
 .${LABEL_CLASS} { position: fixed; z-index: 2147483647; pointer-events: none; font: 600 12px/1.3 Menlo, Consolas, monospace; color: #fff; background: #ff2d95; padding: 2px 7px; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.3); white-space: nowrap; max-width: 60vw; overflow: hidden; text-overflow: ellipsis; }
 `;
 
-export function mountInspector(frameDoc, { onPick, onChange, kind = () => "work" } = {}) {
+export function mountInspector(frameDoc, { onPick, onChange, onHover, kind = () => "work" } = {}) {
   let active = false;
   let hovered = null;
   let label = null;
@@ -67,9 +80,9 @@ export function mountInspector(frameDoc, { onPick, onChange, kind = () => "work"
     hovered = null;
     if (label) label.hidden = true;
   };
-  const onMove = (e) => {
-    const t = target(e);
-    if (!t) return clearHover();
+  // outline t and name it; `at` places the label (a crumb hover has no pointer
+  // in the frame, so it labels the element's own top-left corner)
+  const paint = (t, at) => {
     const k = kind();
     const outside = k !== "site" && outsideWork(t);
     if (t !== hovered) {
@@ -84,12 +97,20 @@ export function mountInspector(frameDoc, { onPick, onChange, kind = () => "work"
       label.classList.toggle(OUTSIDE_CLASS, outside);
       const w = frameDoc.documentElement.clientWidth || 0;
       const h = frameDoc.documentElement.clientHeight || 0;
-      const x = Math.max(0, Math.min((e.clientX ?? 0) + 14, Math.max(0, w - 260)));
-      const y = (e.clientY ?? 0) + 18 > h - 24 ? (e.clientY ?? 0) - 26 : (e.clientY ?? 0) + 18;
+      const x = Math.max(0, Math.min((at.x ?? 0) + 14, Math.max(0, w - 260)));
+      const y = (at.y ?? 0) + 18 > h - 24 ? (at.y ?? 0) - 26 : (at.y ?? 0) + 18;
       label.style.left = x + "px";
       label.style.top = y + "px";
     }
   };
+  const onMove = (e) => {
+    const t = target(e);
+    if (!t) return clearHover();
+    paint(t, { x: e.clientX, y: e.clientY });
+    onHover?.(t, pathOf(t));
+  };
+  // the pointer leaving the frame keeps the breadcrumb (it is where the
+  // pointer is going); only the outline and label go
   const onLeave = () => clearHover();
   const onClick = (e) => {
     e.preventDefault();
@@ -139,6 +160,18 @@ export function mountInspector(frameDoc, { onPick, onChange, kind = () => "work"
     setActive,
     get active() {
       return active;
+    },
+    // a breadcrumb's hover: outline that ancestor (label at its corner); null clears
+    highlight(el) {
+      if (!active) return;
+      if (!el) return clearHover();
+      const r = el.getBoundingClientRect?.() || { left: 0, top: 0 };
+      paint(el, { x: Math.max(0, r.left), y: Math.max(0, r.top) });
+    },
+    // a breadcrumb's click: pick that ancestor
+    pick(el) {
+      if (!active || !el) return;
+      onPick?.(selectorFor(el, { kind: kind() }), el);
     },
     destroy() {
       setActive(false);

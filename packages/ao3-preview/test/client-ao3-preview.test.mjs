@@ -7,7 +7,7 @@ import { installDom } from "./dom.mjs";
 const PAGE = readFileSync(new URL("../public/ao3-preview.html", import.meta.url), "utf-8");
 const bodyOf = (html) => html.slice(html.indexOf("<body>") + 6, html.indexOf("<script type=\"module\">"));
 
-let picker, mountPreview, lintRowHtml, issuesLabel, frameHtml, unmatchedRules, NO_MATCH, NO_MATCH_SITE, KEY_KIND, DEFAULT_KIND, DOWNLOAD_NAMES, PAGES, KEY_PAGE, DEFAULT_PAGE, pageFile, KEY_LINT_H, LINT_MIN, LINT_DEFAULT, KEY_CSS, KEY_EXPANDED, KEY_THEME, DOWNLOAD_NAME, selectorFor, STYLE_ID, OUTSIDE_CLASS, OUTSIDE_NOTE;
+let pathOf, picker, mountPreview, lintRowHtml, issuesLabel, frameHtml, crumbsHtml, unmatchedRules, NO_MATCH, NO_MATCH_SITE, KEY_KIND, DEFAULT_KIND, DOWNLOAD_NAMES, PAGES, KEY_PAGE, DEFAULT_PAGE, pageFile, KEY_LINT_H, LINT_MIN, LINT_DEFAULT, KEY_CSS, KEY_EXPANDED, KEY_THEME, DOWNLOAD_NAME, selectorFor, STYLE_ID, OUTSIDE_CLASS, OUTSIDE_NOTE;
 before(async () => {
   const dom = installDom();
   window.matchMedia = () => ({ matches: false, addEventListener() {}, removeEventListener() {} });
@@ -36,8 +36,8 @@ before(async () => {
     .replace('"./ao3-rules.js"', JSON.stringify(abs("../public/ao3/ao3-rules.js")))
     .replace('"./editor.js"', JSON.stringify(asData(editorSrc)))
     .replace('"./inspect.js"', JSON.stringify(abs("../public/ao3/inspect.js")));
-  ({ mountPreview, lintRowHtml, issuesLabel, frameHtml, unmatchedRules, NO_MATCH, NO_MATCH_SITE, KEY_KIND, DEFAULT_KIND, DOWNLOAD_NAMES, PAGES, KEY_PAGE, DEFAULT_PAGE, pageFile, KEY_LINT_H, LINT_MIN, LINT_DEFAULT, KEY_CSS, KEY_EXPANDED, KEY_THEME, DOWNLOAD_NAME } = await import(asData(src)));
-  ({ selectorFor, STYLE_ID, OUTSIDE_CLASS, OUTSIDE_NOTE } = await import(abs("../public/ao3/inspect.js")));
+  ({ mountPreview, lintRowHtml, issuesLabel, frameHtml, crumbsHtml, unmatchedRules, NO_MATCH, NO_MATCH_SITE, KEY_KIND, DEFAULT_KIND, DOWNLOAD_NAMES, PAGES, KEY_PAGE, DEFAULT_PAGE, pageFile, KEY_LINT_H, LINT_MIN, LINT_DEFAULT, KEY_CSS, KEY_EXPANDED, KEY_THEME, DOWNLOAD_NAME } = await import(asData(src)));
+  ({ selectorFor, pathOf, STYLE_ID, OUTSIDE_CLASS, OUTSIDE_NOTE } = await import(abs("../public/ao3/inspect.js")));
   picker = await import(pickerUrl);
 });
 
@@ -641,4 +641,41 @@ test("the CSS drawer has no width cap: it may be dragged to nearly the whole win
   await m.ready;
   m.setLintHeight(100000);
   assert.ok(m.lintHeight >= 1e6 - 240 || m.lintHeight > 5000, "jsdom has no layout: the cap is effectively none");
+});
+
+test("inspecting shows the element hierarchy as breadcrumbs: hover a crumb to outline that ancestor, click it to pick it", async () => {
+  const m = fresh('<div id="outer" class="wrapper"><div id="main" class="region"><div id="workskin"><div class="userstuff"><p class="x">hi</p></div></div></div></div>');
+  await m.ready;
+  const crumbs = document.getElementById("apCrumbs");
+  assert.equal(crumbs.hidden, true, "nothing until inspecting and hovering");
+  document.getElementById("apInspect").click();
+  const fd = m.frameDoc();
+  const ME = fd.defaultView.MouseEvent;
+  const p = fd.querySelector("p.x");
+  // pathOf: outermost first, html/body left out
+  assert.deepEqual(pathOf(p).map((s) => s.text), ["div#outer.wrapper", "div#main.region", "div#workskin", "div.userstuff", "p.x"]);
+  assert.equal(crumbsHtml(pathOf(p)).match(/class="ap-crumb( leaf)?"/g).length, 5);
+  assert.match(crumbsHtml([{ text: "<b>" }]), /&lt;b&gt;/, "escaped");
+  p.dispatchEvent(new ME("mousemove", { bubbles: true, clientX: 5, clientY: 5 }));
+  assert.equal(crumbs.hidden, false);
+  const chips = Array.from(crumbs.querySelectorAll(".ap-crumb"));
+  assert.deepEqual(chips.map((c) => c.textContent), ["div#outer.wrapper", "div#main.region", "div#workskin", "div.userstuff", "p.x"]);
+  assert.ok(chips[4].classList.contains("leaf"), "the hovered element is the leaf");
+  assert.equal(m.crumbs.length, 5);
+  // hovering the .userstuff crumb outlines that ancestor in the page and names it
+  chips[3].dispatchEvent(new window.MouseEvent("mouseover", { bubbles: true }));
+  const us = fd.querySelector(".userstuff");
+  assert.ok(us.classList.contains("ap-insp-hover"), "the ancestor is outlined");
+  assert.ok(!p.classList.contains("ap-insp-hover"), "and the leaf no longer is");
+  assert.equal(fd.querySelector(".ap-insp-label").textContent, "#workskin div.userstuff");
+  // clicking it picks the ancestor, not the leaf
+  chips[3].click();
+  assert.match(m.editor.value, /\n#workskin div\.userstuff \{\n\t\n\}\n$/);
+  assert.ok(!/p\.x \{/.test(m.editor.value));
+  // the pointer leaving the frame keeps the crumbs (that is where it is going); ending the mode clears them
+  fd.dispatchEvent(new ME("mouseleave", { bubbles: true }));
+  assert.equal(crumbs.hidden, false);
+  fd.dispatchEvent(new fd.defaultView.KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+  assert.equal(crumbs.hidden, true);
+  assert.equal(m.crumbs.length, 0);
 });

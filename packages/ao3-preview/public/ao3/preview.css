@@ -227,8 +227,56 @@ select.ap-kind {
 
 /* ---- the work: the AO3 page in its own frame, full width ---- */
 .ap-work {
+	position: relative;
 	min-width: 0;
 	height: calc(100vh - var(--ap-bar-h));
+}
+/* The element hierarchy while inspecting — a strip pinned to the foot of the
+   preview column, in the parent page so no skin can restyle it. */
+.ap-crumbs {
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	z-index: 5;
+	display: flex;
+	align-items: center;
+	gap: 2px;
+	padding: 5px 10px;
+	overflow-x: auto;
+	white-space: nowrap;
+	background: var(--ap-panel);
+	color: var(--ap-ink);
+	border-top: 1px solid var(--ap-line);
+	font: 12px/1.3 Menlo, Consolas, monospace;
+	box-shadow: 0 -6px 18px rgba(0, 0, 0, 0.25);
+}
+.ap-crumbs[hidden] {
+	display: none;
+}
+.ap-crumb {
+	all: unset;
+	cursor: pointer;
+	padding: 2px 6px;
+	border-radius: 4px;
+	color: var(--ap-ink);
+	opacity: 0.8;
+}
+.ap-crumb:hover,
+.ap-crumb:focus-visible {
+	opacity: 1;
+	background: var(--ap-hover);
+	color: var(--ap-accent);
+	outline: none;
+}
+.ap-crumb.leaf {
+	opacity: 1;
+	font-weight: 700;
+	color: var(--ap-accent);
+}
+.ap-crumb-sep {
+	opacity: 0.45;
+	padding: 0 1px;
 }
 .ap-frame {
 	display: block;

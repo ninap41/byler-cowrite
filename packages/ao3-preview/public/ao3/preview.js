@@ -87,6 +87,14 @@ export function unmatchedRules(rules, doc, kind = "work") {
   return out;
 }
 
+// The breadcrumb strip under the preview while inspecting: the hovered
+// element's ancestry, outermost first, one chip per element (Chrome's
+// inspector's bar). Hovering a chip outlines that ancestor, clicking it picks
+// it — so a rule can target any level of the hierarchy, not only the leaf.
+export function crumbsHtml(path) {
+  return path.map((step, i) => `<button type="button" class="ap-crumb${i === path.length - 1 ? " leaf" : ""}" data-i="${i}" title="Click to add a rule for this element">${esc(step.text)}</button>`).join('<span class="ap-crumb-sep">›</span>');
+}
+
 export function lintHtml(problems) {
   if (!problems.length) return "";
   return problems.map(lintRowHtml).join("");
@@ -339,12 +347,34 @@ export function mountPreview(
     inspectBtn.classList.toggle("on", on);
     inspectBtn.setAttribute("aria-pressed", String(on));
   };
+  // the breadcrumb strip: lives in the parent page (never styled by the skin)
+  const crumbs = $("apCrumbs");
+  let path = [];
+  const showCrumbs = (p) => {
+    path = p || [];
+    if (!crumbs) return;
+    crumbs.innerHTML = crumbsHtml(path);
+    crumbs.hidden = !path.length;
+  };
+  crumbs?.addEventListener("mouseover", (e) => {
+    const b = e.target.closest?.(".ap-crumb");
+    if (b) inspector?.highlight(path[Number(b.dataset.i)]?.el);
+  });
+  crumbs?.addEventListener("mouseleave", () => inspector?.highlight(null));
+  crumbs?.addEventListener("click", (e) => {
+    const b = e.target.closest?.(".ap-crumb");
+    if (b) inspector?.pick(path[Number(b.dataset.i)]?.el);
+  });
   function mountInspect(d) {
     const wasOn = !!inspector?.active;
     inspector?.destroy();
     inspector = mountInspector(d, {
       kind,
-      onChange: paintInspect,
+      onChange: (on) => {
+        if (!on) showCrumbs([]);
+        paintInspect();
+      },
+      onHover: (_el, p) => showCrumbs(p),
       onPick: (selector) => {
         if (!drawer.open) drawer.setOpen(true);
         css.appendRule(selector);
@@ -454,6 +484,9 @@ export function mountPreview(
       set(KEY_KIND, cleanKind(k));
       if (kindSel) kindSel.value = cleanKind(k);
       apply();
+    },
+    get crumbs() {
+      return path;
     },
     get inspector() {
       return inspector;
