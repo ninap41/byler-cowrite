@@ -11,7 +11,7 @@ import { storage, getJson } from "./storage.js";
 import { generateSimplePrompt, generateIntermediatePrompt, validateIntermediateData, EXPLICIT_LEVELS, MODES, MAX_KINKS } from "../lib/prompt-gen.js";
 import { readContent, writeContent } from "./content.js";
 import { randomTitle } from "../lib/titles.js";
-import { readDoc, writeDoc, canView, canEdit, canComment, anchorCids, anchorText, stripAnchor, stripAnchors, commentBaseline, applySuggestion } from "./docs.js";
+import { readDoc, writeDoc, canView, canEdit, canComment, anchorCids, anchorText, stripAnchor, stripAnchors, commentBaseline, applySuggestion, chapterById, chapterOfCid, mapChapterHtml } from "./docs.js";
 
 // Curated scenario prompts + the guided-mode component pools (edit
 // content/prompts.json freely — no code changes). See docs/PROMPT_GENERATION.md.
@@ -1959,7 +1959,7 @@ export function createGame(io) {
     // the stored html, byte for byte. Any smuggled edit fails that and is
     // dropped whole. `suggestion` (readers' edits, per comment mode) is the text
     // they propose for the anchored range; the author accepts or rejects it.
-    socket.on("doc-comment", ({ auth, id, cid, html, text, suggestion }) => {
+    socket.on("doc-comment", ({ auth, id, cid, chapterId, html, text, suggestion }) => {
       const u = userByToken(auth);
       const doc = readDoc(id);
       // canComment, not canView: a public document is READ by anyone signed in,
@@ -1970,7 +1970,11 @@ export function createGame(io) {
       const suggest = suggestion == null ? null : stripTags(String(suggestion)).slice(0, 1000);
       if (!body && suggest == null) return; // a comment says something or proposes something
       if (!CID_RE.test(String(cid ?? ""))) return;
-      if (anchorCids(doc.html).includes(cid)) return; // never reuse an anchor id
+      // The comment lands in ONE chapter: the one named, or — for a client
+      // that sends none — the only chapter a single-chapter document has.
+      const ch = chapterId != null ? chapterById(doc, chapterId) : doc.chapters.length === 1 ? doc.chapters[0] : null;
+      if (!ch) return;
+      if (anchorCids(doc.html).includes(cid)) return; // never reuse an anchor id — across every chapter
       const next = sanitizeDoc(String(html ?? ""));
       if (!anchorCids(next).includes(cid)) return; // the anchor has to be there
       // …and, for a BETA READER, the ONLY change may be that one anchor: no
@@ -1984,14 +1988,14 @@ export function createGame(io) {
       // markup). The author is a different case — they may edit their own
       // document, so no such check applies to them.
       if (!canEdit(doc, u.id)) {
-        const want = [...anchorCids(doc.html), cid].sort().join(",");
+        const want = [...anchorCids(ch.html), cid].sort().join(",");
         const got = [...anchorCids(next)].sort().join(",");
         if (want !== got) return; // an anchor was added, moved or removed beyond this one
         // words/markup changed — but a split inline run (from wrapping an anchor
         // inside <i>/<b>/… ) is not a change, so compare the rejoined baseline
-        if (commentBaseline(next) !== commentBaseline(doc.html)) return;
+        if (commentBaseline(next) !== commentBaseline(ch.html)) return;
       }
-      doc.html = next;
+      ch.html = next;
       doc.comments = [...(doc.comments || []), {
         id: randomUUID(), cid,
         quote: anchorText(next, cid).slice(0, 200),
@@ -2004,7 +2008,7 @@ export function createGame(io) {
       // keeps their editor exactly in step with the store and their NEXT
       // comment builds on the same bytes the server holds — no drift to
       // accumulate across several comments.
-      broadcastDocHtml(doc, canEdit(doc, u.id) ? socket : null);
+      broadcastDocHtml(doc, canEdit(doc, u.id) ? socket : null, ch.id);
       broadcastDocComments(doc);
     });
 
@@ -2019,11 +2023,12 @@ export function createGame(io) {
       const c = (doc.comments || []).find((x) => x.id === commentId);
       if (!c || c.resolved) return;
       const taking = !!accept && typeof c.suggestion === "string";
-      doc.html = taking ? applySuggestion(doc.html, c.cid, c.suggestion) : stripAnchor(doc.html, c.cid);
+      const chId = chapterOfCid(doc, c.cid)?.id; // before the anchor goes
+      mapChapterHtml(doc, (h) => (taking ? applySuggestion(h, c.cid, c.suggestion) : stripAnchor(h, c.cid)));
       c.resolved = true;
       c.accepted = taking;
       writeDoc(doc); // recomputes wordCount from the new html
-      broadcastDocHtml(doc, socket); // the decider already applied it locally
+      broadcastDocHtml(doc, socket, chId); // the decider already applied it locally
       broadcastDocComments(doc);
     });
 
@@ -2040,9 +2045,10 @@ export function createGame(io) {
       c.resolved = !!resolved;
       // A resolved comment stops underlining its words; unresolving can't put
       // the anchor back (the words may have moved on), so it reads as orphaned.
-      if (c.resolved && c.cid) doc.html = stripAnchor(doc.html, c.cid);
+      const chId = chapterOfCid(doc, c.cid)?.id;
+      if (c.resolved && c.cid) mapChapterHtml(doc, (h) => stripAnchor(h, c.cid));
       writeDoc(doc);
-      broadcastDocHtml(doc, null);
+      if (c.resolved) broadcastDocHtml(doc, null, chId);
       broadcastDocComments(doc);
     });
 
@@ -2052,10 +2058,11 @@ export function createGame(io) {
       if (!u || !doc || !canView(doc, u.id)) return;
       const c = myComment(doc, commentId, u.id);
       if (!c) return;
-      if (c.cid) doc.html = stripAnchor(doc.html, c.cid); // the underline goes with it
+      const chId = chapterOfCid(doc, c.cid)?.id;
+      if (c.cid) mapChapterHtml(doc, (h) => stripAnchor(h, c.cid)); // the underline goes with it
       doc.comments = (doc.comments || []).filter((x) => x.id !== commentId);
       writeDoc(doc);
-      broadcastDocHtml(doc, null);
+      broadcastDocHtml(doc, null, chId);
       broadcastDocComments(doc);
     });
 
@@ -2065,7 +2072,7 @@ export function createGame(io) {
       const u = userByToken(auth);
       const doc = readDoc(id);
       if (!u || !doc || !canEdit(doc, u.id)) return;
-      socket.to(docRoom(doc.id)).emit("doc-updated", { id: doc.id, html: doc.html, title: doc.title });
+      socket.to(docRoom(doc.id)).emit("doc-updated", { id: doc.id, html: doc.html, title: doc.title, chapters: chapterRows(doc) });
     });
 
     socket.on("disconnect", () => {
@@ -2116,6 +2123,7 @@ export function createGame(io) {
         // No anchor left in the html means the words it pointed at are gone —
         // the client says so rather than silently showing a comment on nothing.
         orphaned: !!c.cid && !anchorCids(doc.html).includes(c.cid),
+        chapterId: chapterOfCid(doc, c.cid)?.id || null, // which chapter holds its words
         author: a?.username || "someone", color: cleanColor(a?.color),
         avatar: a?.avatar || "", avatarFit: a?.avatarFit || "cover",
         isAuthor: c.userId === doc.ownerId, // the author's own notes-to-self read differently
@@ -2127,9 +2135,15 @@ export function createGame(io) {
   // The html changed underneath everyone (an anchor appeared, a suggestion was
   // taken). `except` skips the socket that caused it — it already applied the
   // change locally and re-rendering would jump their caret.
-  const broadcastDocHtml = (doc, except) =>
+  // One chapter's html at a time — the one the anchor lived in. No chapter
+  // (the anchor was already gone) means nothing changed on screen: no push.
+  const broadcastDocHtml = (doc, except, chapterId) => {
+    const ch = chapterById(doc, chapterId);
+    if (!ch) return;
     (except ? except.to(docRoom(doc.id)) : io.to(docRoom(doc.id)))
-      .emit("doc-html", { id: doc.id, html: doc.html, wordCount: doc.wordCount });
+      .emit("doc-html", { id: doc.id, chapterId: ch.id, html: ch.html, chapterWordCount: ch.wordCount, wordCount: doc.wordCount });
+  };
+  const chapterRows = (doc) => doc.chapters.map(({ id, title, html, wordCount }) => ({ id, title, html, wordCount }));
 
   function leaveDoc(socket) {
     const seat = docViewers.get(socket.id);

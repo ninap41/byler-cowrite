@@ -2,7 +2,7 @@
 // a doc/<id> row in Postgres on Replit — see src/storage.js). The doc dir
 // lives UNDER the data dir so the test harness's temp COWRITE_DATA_DIR
 // isolates docs for free.
-import { randomUUID } from "crypto";
+import { randomUUID, randomBytes } from "crypto";
 import { storage, getJson } from "./storage.js";
 import { stripTags } from "./sanitize.js";
 
@@ -17,9 +17,58 @@ export const countWords = (html) => {
   return text ? text.split(/\s+/).filter(Boolean).length : 0;
 };
 
+// ---- chapters ----
+// A document is a list of chapters, each its own html. `doc.html` is DERIVED —
+// the chapters' html joined with no marker between them — and never stored:
+// a one-chapter document's join is byte-identical to the old single blob, so
+// every reader of `doc.html` (word counts, the anchor helpers, the reader
+// comment guard's cid-uniqueness check, the stories listing) keeps working
+// unchanged, and a marker would have leaked into the HTML view, the comment
+// baseline and every export. Comments carry no chapter field: a comment's
+// chapter is the one whose html holds its anchor (`chapterOfCid`).
+export const CH_ID_RE = /^[0-9a-f]{12}$/;
+export const MAX_CHAPTERS = 200;
+export const newChapterId = () => randomBytes(6).toString("hex");
+export const cleanChapterTitle = (t, n) => stripTags(String(t ?? "")).slice(0, 80) || `Chapter ${n}`;
+
+// The migration, lazy: a blob written before chapters existed (html, no
+// chapters) becomes one "Chapter 1" holding that html the first time it's read.
+export function ensureChapters(doc) {
+  if (!doc) return doc;
+  if (!Array.isArray(doc.chapters) || !doc.chapters.length) {
+    doc.chapters = [{ id: newChapterId(), title: "Chapter 1", html: String(doc.html ?? "") }];
+  }
+  doc.chapters = doc.chapters.map((c, i) => ({
+    id: CH_ID_RE.test(String(c?.id ?? "")) ? c.id : newChapterId(),
+    title: cleanChapterTitle(c?.title, i + 1),
+    html: String(c?.html ?? ""),
+    wordCount: 0,
+  }));
+  return syncDocHtml(doc);
+}
+
+export const joinChapters = (doc) => (doc.chapters || []).map((c) => c.html).join("");
+// Recompute everything derived from the chapters: per-chapter and total word
+// counts and the joined html.
+export function syncDocHtml(doc) {
+  for (const c of doc.chapters) c.wordCount = countWords(c.html);
+  doc.html = joinChapters(doc);
+  doc.wordCount = doc.chapters.reduce((n, c) => n + c.wordCount, 0);
+  return doc;
+}
+export const chapterById = (doc, id) => (doc?.chapters || []).find((c) => c.id === id) || null;
+export const chapterOfCid = (doc, cid) =>
+  cid ? (doc?.chapters || []).find((c) => anchorCids(c.html).includes(cid)) || null : null;
+// Apply a string transform to every chapter's html and re-derive. The anchor
+// helpers are no-ops on html without the cid, so callers need no lookup.
+export function mapChapterHtml(doc, fn) {
+  for (const c of doc.chapters) c.html = fn(c.html);
+  return syncDocHtml(doc);
+}
+
 export function readDoc(id) {
   if (!ID_RE.test(String(id || ""))) return null;
-  return getJson("doc", id);
+  return ensureChapters(getJson("doc", id));
 }
 
 export function writeDoc(doc) {
@@ -27,11 +76,13 @@ export function writeDoc(doc) {
   // author's editor is the one thing that can reintroduce one: their undo
   // stack remembers the span, and a dirty editor ignores the server's html
   // push, so a resolve-then-undo-then-save used to smuggle the marker back in.
-  // Every write goes through here, so this is where it's guaranteed.
-  doc.html = pruneAnchors(doc.html, doc.comments);
+  // Every write goes through here, so this is where it's guaranteed — for
+  // every chapter.
+  ensureChapters(doc);
+  mapChapterHtml(doc, (h) => pruneAnchors(h, doc.comments));
   doc.updatedAt = Date.now();
-  doc.wordCount = countWords(doc.html);
-  const json = JSON.stringify(doc, null, 1);
+  // the derived join is never persisted — the chapters are the truth
+  const json = JSON.stringify({ ...doc, html: undefined }, null, 1);
   try {
     storage.put("doc", doc.id, json);
   } catch (e) {
@@ -43,7 +94,8 @@ export function writeDoc(doc) {
 export function createDoc(ownerId, title) {
   const now = Date.now();
   return writeDoc({
-    id: randomUUID(), ownerId, title: cleanTitle(title), html: "",
+    id: randomUUID(), ownerId, title: cleanTitle(title),
+    chapters: [{ id: newChapterId(), title: "Chapter 1", html: "" }],
     betaReaders: [], visibility: "private", comments: [], // private until the author says otherwise
     wordCount: 0, createdAt: now, updatedAt: now,
   });
@@ -91,6 +143,7 @@ export const docSummary = (doc, nameOf) => ({
   owner: nameOf(doc.ownerId),
   readers: (doc.betaReaders || []).map(nameOf).filter(Boolean),
   comments: (doc.comments || []).length,
+  chapters: (doc.chapters || []).length || 1,
 });
 
 // The /writes shelf is YOUR writes plus the ones you were invited to beta

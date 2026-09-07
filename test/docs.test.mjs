@@ -879,3 +879,188 @@ test("a beta reader can comment on part of an italic run (the split <i> tag does
   assert.ok(after.html.includes(`data-cid="${cid}"`), "the underline is saved");
   assert.equal(after.comments[0].orphaned, false);
 });
+
+// ---- chapters ----
+// A document is a list of chapters; doc.html is their html joined with no
+// marker, so a one-chapter document reads exactly as the old single blob did.
+import { writeFileSync } from "node:fs";
+import { join as joinPath } from "node:path";
+import { ensureChapters, joinChapters, chapterOfCid, mapChapterHtml } from "../src/docs.js";
+
+test("chapters: pure helpers — the join, the chapter of a cid, a map over every chapter", () => {
+  const d = ensureChapters({ html: "<p>old</p>" });
+  assert.equal(d.chapters.length, 1);
+  assert.equal(d.chapters[0].title, "Chapter 1");
+  assert.match(d.chapters[0].id, /^[0-9a-f]{12}$/);
+  assert.equal(d.html, "<p>old</p>", "a legacy blob becomes one chapter holding its html");
+  assert.equal(d.wordCount, 1);
+  const two = ensureChapters({ chapters: [{ id: "bad id", title: "", html: "<p>a b</p>" }, { title: "Two", html: anchored("ee0000000000") }] });
+  assert.equal(joinChapters(two), "<p>a b</p>" + anchored("ee0000000000"));
+  assert.equal(two.chapters[0].title, "Chapter 1", "an empty title is numbered");
+  assert.match(two.chapters[0].id, /^[0-9a-f]{12}$/, "a junk id is replaced");
+  assert.equal(two.chapters[0].wordCount, 2);
+  assert.equal(two.wordCount, 2 + 5, "the total is the sum");
+  assert.equal(chapterOfCid(two, "ee0000000000"), two.chapters[1]);
+  assert.equal(chapterOfCid(two, "ffffffffffff"), null);
+  mapChapterHtml(two, (h) => stripAnchor(h, "ee0000000000"));
+  assert.equal(two.chapters[1].html, BODY, "the map reaches the chapter that holds the anchor and leaves the other alone");
+});
+
+test("chapters: a new document has one; a pre-chapter blob on disk migrates on read and its html is never stored", async () => {
+  const doc = await newDoc(alice.token, "Fresh");
+  assert.equal(doc.chapters.length, 1);
+  assert.equal(doc.chapters[0].title, "Chapter 1");
+  assert.equal(doc.chapters[0].html, "");
+  // a document written before chapters existed
+  const id = "11111111-2222-4333-8444-555555555555";
+  writeFileSync(joinPath(ctx.dataDir, "docs", id + ".json"), JSON.stringify({
+    id, ownerId: doc.owner === "aliceauthor" ? (await ctx.api("/api/me", null, alice.token, "GET")).data.user.id : null,
+    title: "Old", html: "<p>one two</p>", betaReaders: [], visibility: "private", comments: [], wordCount: 2, createdAt: 1, updatedAt: 1,
+  }));
+  const old = await docOf(id);
+  assert.equal(old.chapters.length, 1);
+  assert.equal(old.chapters[0].html, "<p>one two</p>");
+  assert.equal(old.html, "<p>one two</p>", "the join is the old html, byte for byte");
+  assert.equal(old.chapters, old.chapters, "listing counts one chapter");
+  const list = await ctx.api("/api/docs", null, alice.token, "GET");
+  assert.equal(list.data.docs.find((d) => d.id === id).chapters, 1);
+  // saving persists the chapters, not the derived join
+  await ctx.api("/api/docs/" + id, { chapters: [{ id: old.chapters[0].id, title: "One", html: "<p>one two</p>" }, { title: "Two", html: "<p>three</p>" }] }, alice.token, "PUT");
+  const raw = JSON.parse((await import("node:fs")).readFileSync(joinPath(ctx.dataDir, "docs", id + ".json"), "utf-8"));
+  assert.ok(!("html" in raw), "doc.html is derived, never written");
+  assert.equal(raw.chapters.length, 2);
+});
+
+test("chapters: PUT keeps ids, mints new ones, sanitizes each, honours order, drops what's left out, refuses bad lists", async () => {
+  const doc = await newDoc(alice.token, "Serial");
+  const first = doc.chapters[0].id;
+  let r = await ctx.api("/api/docs/" + doc.id, { chapters: [
+    { id: first, title: "<b>Opening</b>", html: "<p>a b c</p><script>x</script>" },
+    { title: "", html: "<p>d e</p>" },
+    { id: "not-a-real-one", title: "Third", html: "<p>f</p>" },
+  ] }, alice.token, "PUT");
+  assert.equal(r.status, 200);
+  const ch = r.data.doc.chapters;
+  assert.equal(ch.length, 3);
+  assert.equal(ch[0].id, first, "a known id keeps its chapter");
+  assert.equal(ch[0].title, "Opening", "titles are plain text");
+  assert.equal(ch[0].html, "<p>a b c</p>&lt;script&gt;x&lt;/script&gt;", "each chapter runs the document sanitizer");
+  assert.equal(ch[1].title, "Chapter 2", "an empty title is numbered by position");
+  assert.match(ch[2].id, /^[0-9a-f]{12}$/);
+  assert.notEqual(ch[2].id, "not-a-real-one", "an unknown id is replaced");
+  assert.deepEqual(ch.map((c) => c.wordCount), [6, 2, 1], "the escaped script counts as words, as it always did");
+  assert.equal(r.data.doc.wordCount, 9, "the document's count is the sum");
+  assert.equal(r.data.doc.html, ch.map((c) => c.html).join(""));
+  // reorder and drop the middle one
+  r = await ctx.api("/api/docs/" + doc.id, { chapters: [{ id: ch[2].id, title: "Third", html: "<p>f</p>" }, { id: first, title: "Opening", html: "<p>a b c</p>" }] }, alice.token, "PUT");
+  assert.deepEqual(r.data.doc.chapters.map((c) => c.id), [ch[2].id, first], "the array order is the new order; the omitted chapter is gone");
+  // the legacy body shape only fits a single-chapter document
+  assert.equal((await ctx.api("/api/docs/" + doc.id, { html: "<p>x</p>" }, alice.token, "PUT")).status, 400);
+  assert.equal((await ctx.api("/api/docs/" + doc.id, { chapters: [] }, alice.token, "PUT")).status, 400);
+  assert.equal((await ctx.api("/api/docs/" + doc.id, { chapters: Array.from({ length: 201 }, () => ({ html: "" })) }, alice.token, "PUT")).status, 400);
+  // and the stories listing counts chapters as `lines`
+  await ctx.api("/api/docs/" + doc.id + "/visibility", { visibility: "public" }, alice.token);
+  const st = await ctx.api("/api/stories", null, bob.token, "GET");
+  assert.equal(st.data.stories.find((s) => s.id === doc.id).lines, 2);
+});
+
+test("chapters: solo word credit is the sum over chapters, once", async () => {
+  const before = (await ctx.api("/api/me", null, alice.token, "GET")).data.user.wordCount;
+  const doc = await newDoc(alice.token, "Credit");
+  await ctx.api("/api/docs/" + doc.id, { chapters: [{ id: doc.chapters[0].id, title: "1", html: "<p>one two three</p>" }, { title: "2", html: "<p>four five</p>" }] }, alice.token, "PUT");
+  let me = (await ctx.api("/api/me", null, alice.token, "GET")).data.user;
+  assert.equal(me.wordCount - before, 5);
+  // moving words between chapters is not new words
+  await ctx.api("/api/docs/" + doc.id, { chapters: [{ title: "1", html: "<p>one</p>" }, { title: "2", html: "<p>two three four five</p>" }] }, alice.token, "PUT");
+  me = (await ctx.api("/api/me", null, alice.token, "GET")).data.user;
+  assert.equal(me.wordCount - before, 5, "the high-water mark is the document total");
+});
+
+// A two-chapter document for the comment tests: chapter one is BODY, chapter
+// two is a different paragraph.
+const BODY2 = "<p>second chapter</p><p>the quarry at night</p>";
+async function twoChapterDoc() {
+  const doc = await newDoc(alice.token, "Two chapters");
+  const r = await ctx.api("/api/docs/" + doc.id, { chapters: [{ id: doc.chapters[0].id, title: "One", html: BODY }, { title: "Two", html: BODY2 }] }, alice.token, "PUT");
+  await ctx.api("/api/docs/" + doc.id + "/readers", { username: "bobbeta" }, alice.token);
+  await ctx.api("/api/docs/" + doc.id + "/visibility", { visibility: "readers" }, alice.token);
+  return r.data.doc;
+}
+
+test("chapters: a reader's comment lands in the chapter it names, and the html push carries that chapter", async () => {
+  const doc = await twoChapterDoc();
+  const [c1, c2] = doc.chapters;
+  const B = await ctx.conn();
+  const pushes = [];
+  B.on("doc-html", (p) => pushes.push(p));
+  B.emit("doc-open", { auth: bob.token, id: doc.id });
+  await ctx.wait(150);
+  const inner = "quarry at night";
+  const html2 = BODY2.replace(inner, `<span class="cmt" data-cid="a2a2a2a2a2a2">${inner}</span>`);
+  B.emit("doc-comment", { auth: bob.token, id: doc.id, cid: "a2a2a2a2a2a2", chapterId: c2.id, html: html2, text: "moody" });
+  await ctx.wait(200);
+  const after = await docOf(doc.id);
+  assert.equal(after.comments.length, 1);
+  assert.equal(after.comments[0].chapterId, c2.id, "the comment knows its chapter");
+  assert.equal(after.comments[0].quote, inner);
+  assert.equal(after.chapters[0].html, BODY, "chapter one is untouched");
+  assert.ok(after.chapters[1].html.includes('data-cid="a2a2a2a2a2a2"'));
+  assert.equal(pushes.length, 1);
+  assert.equal(pushes[0].chapterId, c2.id, "doc-html names the chapter");
+  assert.equal(pushes[0].html, after.chapters[1].html);
+  assert.equal(pushes[0].chapterWordCount, 6);
+  assert.equal(pushes[0].wordCount, after.wordCount);
+
+  // a multi-chapter document refuses a comment that names no chapter
+  B.emit("doc-comment", { auth: bob.token, id: doc.id, cid: "b2b2b2b2b2b2", html: anchored("b2b2b2b2b2b2"), text: "which chapter?" });
+  // chapter one's html under chapter two's id — the baseline doesn't match
+  B.emit("doc-comment", { auth: bob.token, id: doc.id, cid: "c2c2c2c2c2c2", chapterId: c2.id, html: anchored("c2c2c2c2c2c2"), text: "wrong chapter" });
+  // a cid already used in chapter two can't be reused in chapter one
+  B.emit("doc-comment", { auth: bob.token, id: doc.id, cid: "a2a2a2a2a2a2", chapterId: c1.id, html: anchored("a2a2a2a2a2a2"), text: "reused" });
+  await ctx.wait(200);
+  assert.equal((await docOf(doc.id)).comments.length, 1, "none of the three landed");
+
+  // a comment in chapter one does, and it names chapter one
+  B.emit("doc-comment", { auth: bob.token, id: doc.id, cid: "d1d1d1d1d1d1", chapterId: c1.id, html: anchored("d1d1d1d1d1d1"), text: "shirt" });
+  await ctx.wait(200);
+  const both = await docOf(doc.id);
+  assert.deepEqual(both.comments.map((c) => c.chapterId).sort(), [c1.id, c2.id].sort());
+});
+
+test("chapters: accepting a suggestion rewrites only its chapter; a dropped chapter orphans its comments; doc-updated carries chapters", async () => {
+  const doc = await twoChapterDoc();
+  const [c1, c2] = doc.chapters;
+  const B = await ctx.conn(), A = await ctx.conn();
+  B.emit("doc-open", { auth: bob.token, id: doc.id });
+  A.emit("doc-open", { auth: alice.token, id: doc.id });
+  await ctx.wait(150);
+  const inner = "quarry at night";
+  const html2 = BODY2.replace(inner, `<span class="cmt" data-cid="e2e2e2e2e2e2">${inner}</span>`);
+  B.emit("doc-comment", { auth: bob.token, id: doc.id, cid: "e2e2e2e2e2e2", chapterId: c2.id, html: html2, text: "", suggestion: "quarry at dawn" });
+  await ctx.wait(200);
+  const commentId = (await docOf(doc.id)).comments[0].id;
+  const pushes = [];
+  B.on("doc-html", (p) => pushes.push(p));
+  A.emit("doc-comment-decide", { auth: alice.token, id: doc.id, commentId, accept: true });
+  await ctx.wait(200);
+  const after = await docOf(doc.id);
+  assert.equal(after.chapters[1].html, "<p>second chapter</p><p>the quarry at dawn</p>");
+  assert.equal(after.chapters[0].html, BODY);
+  assert.equal(pushes[0]?.chapterId, c2.id, "the reader is pushed the chapter that changed");
+
+  // a comment in chapter one, then chapter one is dropped by the author
+  B.emit("doc-comment", { auth: bob.token, id: doc.id, cid: "f1f1f1f1f1f1", chapterId: c1.id, html: anchored("f1f1f1f1f1f1"), text: "shirt" });
+  await ctx.wait(200);
+  const updates = [];
+  B.on("doc-updated", (p) => updates.push(p));
+  await ctx.api("/api/docs/" + doc.id, { chapters: [{ id: c2.id, title: "Two", html: after.chapters[1].html }] }, alice.token, "PUT");
+  A.emit("doc-saved", { auth: alice.token, id: doc.id });
+  await ctx.wait(200);
+  const gone = await docOf(doc.id);
+  const orphan = gone.comments.find((c) => c.cid === "f1f1f1f1f1f1");
+  assert.equal(orphan.orphaned, true, "its words left with the chapter");
+  assert.equal(orphan.chapterId, null);
+  assert.equal(updates.length, 1);
+  assert.deepEqual(updates[0].chapters.map((c) => c.id), [c2.id], "readers receive the chapter list");
+  assert.equal(updates[0].chapters[0].wordCount, 6);
+});

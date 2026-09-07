@@ -14,6 +14,7 @@ import { cleanColor, stripTags, plainText, clip, httpUrl, sanitizeAbout, sanitiz
 import {
   readDoc, writeDoc, createDoc, deleteDoc, listDocsFor, docSummary,
   canView, canEdit, canComment, isReader, cleanTitle, cleanVisibility, publicDocs, docsOwnedBy,
+  cleanChapterTitle, newChapterId, MAX_CHAPTERS,
 } from "./docs.js";
 import { getReference, setReferenceGroup } from "./reference.js";
 import { hashPassword, checkPassword } from "./passwords.js";
@@ -822,7 +823,7 @@ export function registerRoutes(app, game) {
       if (tag) continue; // documents carry no tags
       all.push({
         kind: "write", id: d.id, name: d.title, prompt: "", code: "",
-        lines: 0, phase: "write", tags: [], cover: "", writers: [],
+        lines: (d.chapters || []).length || 1, phase: "write", // for a write, `lines` counts chapters tags: [], cover: "", writers: [],
         hostName: nameOf(d.ownerId),
         createdAt: d.createdAt, savedAt: d.updatedAt,
         wordCount: d.wordCount || 0,
@@ -870,7 +871,8 @@ export function registerRoutes(app, game) {
   // commentRows comes from game.js so HTTP and socket payloads can never drift.
   const docPayload = (doc, u) => ({
     ...docSummary(doc, nameOf),
-    html: doc.html || "",
+    html: doc.html || "", // the chapters joined — kept for readers of the old shape
+    chapters: doc.chapters.map(({ id, title, html, wordCount }) => ({ id, title, html, wordCount })),
     mine: doc.ownerId === u.id,
     readerRows: readerRows(doc),
     comments: commentRows(doc),
@@ -906,7 +908,25 @@ export function registerRoutes(app, game) {
     if (!doc) return res.status(404).json({ error: "No such document." });
     if (!canEdit(doc, u.id)) return res.status(403).json({ error: "Only the author can edit this." });
     if (typeof req.body?.title === "string") doc.title = cleanTitle(req.body.title);
-    if (typeof req.body?.html === "string") doc.html = sanitizeDoc(req.body.html);
+    const chapters = req.body?.chapters;
+    if (chapters !== undefined) {
+      // The whole list, in its new order: an existing id keeps its chapter, a
+      // new (or unknown) one is minted, a chapter left out is deleted — its
+      // comments read as orphaned from then on, nothing else to do.
+      if (!Array.isArray(chapters) || !chapters.length) return res.status(400).json({ error: "A document needs at least one chapter." });
+      if (chapters.length > MAX_CHAPTERS) return res.status(400).json({ error: `At most ${MAX_CHAPTERS} chapters.` });
+      const known = new Set(doc.chapters.map((c) => c.id)), used = new Set();
+      doc.chapters = chapters.map((c, i) => {
+        const keep = known.has(c?.id) && !used.has(c.id);
+        const id = keep ? c.id : newChapterId();
+        used.add(id);
+        return { id, title: cleanChapterTitle(c?.title, i + 1), html: sanitizeDoc(String(c?.html ?? "")) };
+      });
+    } else if (typeof req.body?.html === "string") {
+      // the pre-chapter save shape: the body of a single-chapter document
+      if (doc.chapters.length !== 1) return res.status(400).json({ error: "This document has chapters — send them." });
+      doc.chapters[0].html = sanitizeDoc(req.body.html);
+    }
     writeDoc(doc); // recomputes wordCount
     if (game.creditSoloWords(u, doc)) writeDoc(doc); // the high-water mark moved
     res.json({ doc: docPayload(doc, u), wordCount: u.wordCount });
