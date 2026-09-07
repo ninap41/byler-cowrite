@@ -60,7 +60,11 @@ Change `themeUnlocks` in `content/achievements.json` — keys are theme ids from
 All gimmicks share the table rules: only in **non-friendly** games, only from a
 seat (spectators watch but can't play), and "if one person at the table has
 it, everyone can play it" (`tableHasGimmick()` — admins count as having every
-gimmick). Flipping the game friendly fades every toy off every screen with a
+gimmick). The 🎲 menu says which is which: your own unlocks read "🎲 … · Play",
+a tablemate's read "🔓 … · Play" (live, with a tooltip naming the rank that
+would keep it), and a gimmick nobody seated has is 🔒 and disabled. Because the
+table list rides on every `game-state`, one high-ranked seat — an admin, say —
+lights every gimmick for the whole lobby before the game even starts. Flipping the game friendly fades every toy off every screen with a
 "💛 This is a friendly game now" toast. Positions travel as fractions of each
 player's own screen; heavy effects (water, light shows, paint pixels) are
 simulated locally on every viewer so almost nothing crosses the wire.
