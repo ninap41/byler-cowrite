@@ -1277,7 +1277,7 @@
 			// ---- undo / redo ----
 			// The number in the size box follows the selection, so after an undo it
 			// reports whatever the text is NOW rather than what was last typed.
-			function history(redo) {
+			function undoRedo(redo) {
 				$("docEditor").focus()
 				clearTimeout(typingTimer)
 				undoHistory.record() // fold any in-flight typing in before stepping
@@ -1287,8 +1287,8 @@
 				renderComments() // anchors may have come back or gone away
 				syncFontBox() // the size box reports the text as it is NOW
 			}
-			$("undoBtn").addEventListener("mousedown", (e) => (e.preventDefault(), history(false)))
-			$("redoBtn").addEventListener("mousedown", (e) => (e.preventDefault(), history(true)))
+			$("undoBtn").addEventListener("mousedown", (e) => (e.preventDefault(), undoRedo(false)))
+			$("redoBtn").addEventListener("mousedown", (e) => (e.preventDefault(), undoRedo(true)))
 			// Ctrl/⌘+Z anywhere on the page does what the button does. Bound on
 			// the document, not the editor: after clicking a toolbar control the
 			// focus may be on that control, and the shortcut has to keep working.
@@ -1301,7 +1301,7 @@
 				if (!meta || e.key.toLowerCase() !== "z") return
 				if (nativeUndoField(e.target) || nativeUndoField(document.activeElement)) return
 				e.preventDefault()
-				history(e.shiftKey)
+				undoRedo(e.shiftKey)
 			})
 
 			// ---- line spacing (this reader's preference only) ----
@@ -1846,7 +1846,7 @@
 				const url = new URL(location.href)
 				if (chapters.length > 1) url.searchParams.set("ch", String(openIdx + 1))
 				else url.searchParams.delete("ch")
-				history.replaceState(null, "", url)
+				window.history.replaceState(null, "", url)
 			}
 			// only the counts changed (a comment came or went): repaint the rows
 			const paintChapterCounts = () => {

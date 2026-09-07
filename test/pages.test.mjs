@@ -2,6 +2,7 @@ import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { startServer } from "./helpers.mjs";
 import { existsSync, readFileSync } from "node:fs";
+import * as fsSync from "node:fs";
 
 let ctx;
 before(async () => (ctx = await startServer()));
@@ -282,7 +283,7 @@ test("Ctrl/⌘+Z undoes from anywhere on the page, on both editors", async () =>
     assert.ok(body.includes("nativeUndoField"), where + " leaves real text fields their own undo");
   }
   const write = await page("/write");
-  assert.ok(write.body.includes("history(e.shiftKey)"), "shift+z redoes, through the same path as the button");
+  assert.ok(write.body.includes("undoRedo(e.shiftKey)"), "shift+z redoes, through the same path as the button");
 });
 
 test("the typeface dropdown offers the site's own families and never touches the document", async () => {
@@ -718,4 +719,14 @@ test("the write page has a chapter panel, a chapter chip, a foot nav and an expo
   assert.match(css, /\.doc-main:not\(\.chap-closed\) \{[^}]*grid-template-columns: 220px minmax\(0, 1fr\) var\(--doc-side-w/, "three columns with the panel first");
   const phone = css.slice(css.indexOf("the chapter panel is a dropdown"));
   assert.match(phone, /\.doc-chapters \{[^}]*position: fixed/, "a dropdown on a phone");
+});
+
+// A page-level `function history()` shadows window.history inside the module,
+// so `history.replaceState` throws — which once aborted the write page's load
+// before its socket connected, and every comment went nowhere.
+test("no page declares a `history` of its own (it would shadow window.history)", () => {
+  for (const f of fsSync.readdirSync(new URL("../public/", import.meta.url)).filter((x) => x.endsWith(".html"))) {
+    const src = readFileSync(new URL("../public/" + f, import.meta.url), "utf-8");
+    assert.ok(!/\b(function|const|let|var)\s+history\b/.test(src), f + " shadows window.history");
+  }
 });
