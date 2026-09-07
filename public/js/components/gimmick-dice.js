@@ -18,8 +18,10 @@ const lockTip = (lock) => `Unlocks at ${lock.name}${lock.min ? " · " + lock.min
 
 // The dropdown: one row per gimmick, worded for what this player can do.
 //   friendly game → one disabled line explaining why
-//   earned (or admin) → Play
-//   not earned, a tablemate has it → 🔓, disabled: theirs to launch, you watch
+//   earned (or admin) → 🎲 Play
+//   not earned, a tablemate has it → 🔓 Play: if one person at the table has
+//     the gimmick, everyone at that table can play it (the server gates on the
+//     table too — tableHasGimmick); the open lock says why you have it here
 //   not earned by anyone → 🔒 with the tier, disabled
 export function menuHtml({ catalogue = [], unlocked = [], admin = false, locks = {}, friendly = true, seated = true, table = [] }) {
 	if (!seated) return `<div class="gd-menu-note">Take a seat in a game to play a gimmick.</div>`
@@ -30,12 +32,9 @@ export function menuHtml({ catalogue = [], unlocked = [], admin = false, locks =
 			const can = admin || unlocked.includes(g.id)
 			const lock = locks[g.id]
 			if (can) return `<button type="button" class="gd-menu-item" data-gimmick="${g.id}" data-act="play">🎲 ${esc(g.name)} · Play</button>`
-			// a tablemate holds the rank: the lock is open (you'll see theirs
-			// on your screen) but the row is disabled — the toy is theirs to
-			// launch until you earn it yourself
 			if (table.includes(g.id)) {
-				const tip = "A tablemate has this unlocked" + (lock ? " · " + lockTip(lock) + " to play it yourself" : "")
-				return `<button type="button" class="gd-menu-item locked table" data-gimmick="${g.id}" aria-disabled="true" data-tip="${esc(tip)}">🔓 ${esc(g.name)}</button>`
+				const tip = "A tablemate has this unlocked, so it's yours at this table" + (lock ? " · " + lockTip(lock) + " to keep it" : "")
+				return `<button type="button" class="gd-menu-item table" data-gimmick="${g.id}" data-act="play" data-tip="${esc(tip)}">🔓 ${esc(g.name)} · Play</button>`
 			}
 			const tip = lock ? lockTip(lock) : "Not unlocked"
 			return `<button type="button" class="gd-menu-item locked" data-gimmick="${g.id}" disabled data-tip="${esc(tip)}">🔒 ${esc(g.name)}</button>`
