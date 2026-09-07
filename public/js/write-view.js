@@ -369,6 +369,62 @@ export function wireSoloDeletes(box, onDelete) {
 	)
 }
 
+// ---- chapters ----
+// The chapter list beside the editor. An author's rows carry ↑ ↓ ✎ ✕
+// (buttons, not drag: touch-safe and testable); a reader's are a table of
+// contents. `openId` marks the chapter on screen; `commentCounts` maps a
+// chapter id to how many comments sit in it. A chapter not yet saved has no
+// id — its row is keyed by index instead (`data-i`), and every row carries it.
+export const countWordsHtml = (html) => {
+	const text = String(html || "").replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/&[a-z#0-9]+;/gi, "x").trim()
+	return text ? text.split(/\s+/).filter(Boolean).length : 0
+}
+export function chapterListHtml(chapters, { openIdx = 0, canEdit = false, commentCounts = {} } = {}) {
+	const list = chapters || []
+	const total = list.reduce((n, c) => n + (c.wordCount ?? countWordsHtml(c.html)), 0)
+	const rows = list
+		.map((c, i) => {
+			const words = c.wordCount ?? countWordsHtml(c.html)
+			const notes = c.id && commentCounts[c.id] ? `<span class="chap-notes" title="${commentCounts[c.id]} comment${commentCounts[c.id] === 1 ? "" : "s"}">💬 ${commentCounts[c.id]}</span>` : ""
+			const acts = canEdit
+				? `<span class="chap-acts">` +
+					`<button type="button" class="chap-up" data-i="${i}" title="Move up" aria-label="Move up"${i === 0 ? " disabled" : ""}>↑</button>` +
+					`<button type="button" class="chap-down" data-i="${i}" title="Move down" aria-label="Move down"${i === list.length - 1 ? " disabled" : ""}>↓</button>` +
+					`<button type="button" class="chap-rename" data-i="${i}" title="Rename" aria-label="Rename">✎</button>` +
+					`<button type="button" class="chap-del" data-i="${i}" title="${list.length === 1 ? "A story keeps at least one chapter" : "Delete chapter"}" aria-label="Delete chapter"${list.length === 1 ? " disabled" : ""}>✕</button>` +
+					`</span>`
+				: ""
+			return (
+				`<div class="chap-row${i === openIdx ? " open" : ""}" data-i="${i}"${c.id ? ` data-id="${esc(c.id)}"` : ""}>` +
+				`<button type="button" class="chap-open" data-i="${i}"><span class="chap-n">${i + 1}</span><span class="chap-title">${esc(c.title || `Chapter ${i + 1}`)}</span>` +
+				`<span class="chap-meta">${esc(wordsLabel(words))}${notes}</span></button>` +
+				acts +
+				`</div>`
+			)
+		})
+		.join("")
+	const foot =
+		`<div class="chap-foot"><span class="chap-total">${list.length} chapter${list.length === 1 ? "" : "s"} · ${esc(wordsLabel(total))}</span>` +
+		(canEdit ? `<button type="button" class="ghost chap-add">+ Add chapter</button>` : "") +
+		`</div>`
+	return `<div class="chap-list">${rows}</div>${foot}`
+}
+
+// Prev / Next at the foot of the page, for readers and author alike.
+export function chapNavHtml(chapters, idx) {
+	const n = (chapters || []).length
+	if (n < 2) return ""
+	const prev = idx > 0 ? `<button type="button" class="ghost chap-prev" data-i="${idx - 1}">← ${esc(chapters[idx - 1].title || `Chapter ${idx}`)}</button>` : `<span></span>`
+	const next = idx < n - 1 ? `<button type="button" class="ghost chap-next" data-i="${idx + 1}">${esc(chapters[idx + 1].title || `Chapter ${idx + 2}`)} →</button>` : `<span></span>`
+	return `<nav class="chap-nav" aria-label="Chapters">${prev}<span class="chap-pos">Chapter ${idx + 1} of ${n}</span>${next}</nav>`
+}
+
+// The head-row chip that opens the chapter panel.
+export const chapChipLabel = (chapters, idx) => {
+	const n = (chapters || []).length
+	return n > 1 ? `📑 Chapter ${idx + 1} of ${n}` : "📑 Chapters"
+}
+
 // ---- sprints ----
 // A sprint row: when, how many words, how long, and the project it was written
 // in (linked — the reader may not be allowed in, but the write page says so).

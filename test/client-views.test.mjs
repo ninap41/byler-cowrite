@@ -7,7 +7,7 @@ const { storyHtml, livePreviewHtml, EMPTY_STORY_HTML } = await import("../public
 const { chatMessageHtml } = await import("../public/js/components/chat-view.js");
 const { countdownView } = await import("../public/js/components/countdown.js");
 const { statusDot, refreshStatusDots, updateLiveStatus, presenceHtml } = await import("../public/js/status.js");
-const { buildExports, exportDocument } = await import("../public/js/export.js");
+const { buildExports, exportDocument, exportWork, exportChapterHtml, slugOf } = await import("../public/js/export.js");
 
 // ---- story feed ----
 test("storyHtml: empty story placeholder", () => {
@@ -170,4 +170,17 @@ test("the shelf's layout picker offers a list and three column counts", async ()
   assert.ok(html.includes('data-view="g4"') && html.includes('aria-pressed="true"'), "the current view is announced");
   assert.equal((html.match(/aria-pressed="true"/g) || []).length, 1, "exactly one segment is pressed");
   assert.ok(html.includes('aria-label="4 across"'), "each segment says what it does, glyph or not");
+});
+
+test("solo-write exports: one chapter headed under the title, or the whole work ruled apart; filenames slug the title", () => {
+  const doc = { title: "The <Upside> Down", chapters: [
+    { id: "a", title: "One", html: "<p>first</p>" }, { id: "b", title: "", html: "<p>second</p>" },
+  ] };
+  const one = exportChapterHtml(doc, doc.chapters[1]);
+  assert.equal(one, "<h1>The &lt;Upside&gt; Down</h1>\n<h2 class=\"chapter\">Chapter 2</h2>\n<p>second</p>", "a bare title is numbered by position; the title is escaped");
+  const all = exportWork(doc);
+  assert.equal(all, "<h1>The &lt;Upside&gt; Down</h1>\n<h2 class=\"chapter\">One</h2>\n<p>first</p>\n<hr>\n<h2 class=\"chapter\">Chapter 2</h2>\n<p>second</p>");
+  assert.match(exportDocument(all), /h2\.chapter\{margin-top/, "the standalone page spaces chapters");
+  assert.equal(slugOf("The Upside Down!"), "the-upside-down");
+  assert.equal(slugOf("   "), "story");
 });

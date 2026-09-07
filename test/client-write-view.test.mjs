@@ -7,7 +7,7 @@ import { installDom } from "./dom.mjs";
 import { readFileSync } from "node:fs";
 
 installDom(); // plainBlockHtml parses through a detached div
-import { docCardHtml, docListHtml, docShelfHtml, DOC_GROUPS, presenceHtml, soloRowHtml, soloListHtml, wireSoloDeletes, commentHtml, commentThreadHtml, readerChipsHtml, wordsLabel, formatSource, unformatSource, plainBlockHtml, visChipHtml, visMenuHtml, visLabel, VIS, scrollTargetFor, inviteOptions, inviteRowHtml, inviteListHtml, promptInsertHtml, insertAfterHeading, betaReadingHtml } from "../public/js/write-view.js";
+import { docCardHtml, docListHtml, docShelfHtml, DOC_GROUPS, presenceHtml, soloRowHtml, soloListHtml, wireSoloDeletes, commentHtml, commentThreadHtml, readerChipsHtml, wordsLabel, formatSource, unformatSource, plainBlockHtml, visChipHtml, visMenuHtml, visLabel, VIS, scrollTargetFor, inviteOptions, inviteRowHtml, inviteListHtml, promptInsertHtml, insertAfterHeading, betaReadingHtml, chapterListHtml, chapNavHtml, chapChipLabel, countWordsHtml } from "../public/js/write-view.js";
 
 const DOC = {
   id: "abc", title: "The Upside Down", wordCount: 120, visibility: "private",
@@ -503,4 +503,57 @@ test("sprint rows carry a Delete only when mine; wireSprintDeletes needs two cli
   await new Promise((r) => setTimeout(r, 0));
   assert.equal(got, "1700000000123", "second click posts the timestamp");
   assert.equal(box.querySelector(".sprint-row"), null, "the row is removed");
+});
+
+// ---- chapters ----
+const CHAPS = [
+  { id: "aaaaaaaaaaaa", title: "One <b>bold</b>", html: "<p>one two three</p>", wordCount: 3 },
+  { id: "bbbbbbbbbbbb", title: "Two", html: "<p>four five</p>" },
+  { id: null, title: "", html: "" },
+];
+
+test("countWordsHtml mirrors the server's count: tags are spaces, entities are letters", () => {
+  assert.equal(countWordsHtml("<h2>One</h2><p>Mike knocked twice.</p>"), 4);
+  assert.equal(countWordsHtml("<p>don&#39;t stop</p>"), 2);
+  assert.equal(countWordsHtml("<p>a&nbsp;b</p>"), 2);
+  assert.equal(countWordsHtml(""), 0);
+});
+
+test("chapterListHtml: an author's rows carry ↑ ↓ ✎ ✕ and an Add foot; the open row is marked; a reader gets a table of contents", () => {
+  const out = chapterListHtml(CHAPS, { openIdx: 1, canEdit: true, commentCounts: { bbbbbbbbbbbb: 2 } });
+  const rows = out.match(/<div class="chap-row[^"]*"/g);
+  assert.equal(rows.length, 3);
+  assert.match(out, /class="chap-row open" data-i="1" data-id="bbbbbbbbbbbb"/, "the open chapter is marked and keyed by id");
+  assert.match(out, /class="chap-row" data-i="2">/, "an unsaved chapter has no id yet, only its position");
+  assert.match(out, /One &lt;b&gt;bold&lt;\/b&gt;/, "titles are escaped");
+  assert.match(out, /<span class="chap-title">Chapter 3<\/span>/, "an untitled chapter is numbered");
+  assert.match(out, /<span class="chap-n">1<\/span>/);
+  assert.match(out, /3 words/); assert.match(out, /2 words/, "a chapter with no wordCount is counted from its html");
+  assert.match(out, /💬 2/, "the comment count sits on its chapter");
+  assert.match(out, /class="chap-up" data-i="0"[^>]* disabled/, "the first can't move up");
+  assert.match(out, /class="chap-down" data-i="2"[^>]* disabled/, "the last can't move down");
+  assert.match(out, /class="chap-del" data-i="1"[^>]*>✕/);
+  assert.match(out, /chap-add">\+ Add chapter/);
+  assert.match(out, /3 chapters · 5 words/, "the foot totals");
+  const single = chapterListHtml([CHAPS[0]], { canEdit: true });
+  assert.match(single, /class="chap-del"[^>]*A story keeps at least one chapter[^>]* disabled/, "the last chapter can't be deleted");
+  assert.match(single, /1 chapter · 3 words/);
+  const reader = chapterListHtml(CHAPS, { openIdx: 0 });
+  assert.ok(!/chap-acts|chap-add|chap-del/.test(reader), "a reader gets no controls");
+  assert.match(reader, /class="chap-open" data-i="2"/, "but every chapter opens");
+});
+
+test("chapNavHtml: Prev/Next name their chapters, the ends are blank, one chapter has no nav; chapChipLabel", () => {
+  assert.equal(chapNavHtml([CHAPS[0]], 0), "", "no nav for a single chapter");
+  const first = chapNavHtml(CHAPS, 0);
+  assert.match(first, /^<nav class="chap-nav"/);
+  assert.ok(!/chap-prev/.test(first), "nothing before the first");
+  assert.match(first, /class="ghost chap-next" data-i="1">Two →/);
+  assert.match(first, /Chapter 1 of 3/);
+  const last = chapNavHtml(CHAPS, 2);
+  assert.match(last, /class="ghost chap-prev" data-i="1">← Two/);
+  assert.ok(!/chap-next/.test(last));
+  assert.match(chapNavHtml(CHAPS, 1), /← One &lt;b&gt;bold&lt;\/b&gt;/, "escaped");
+  assert.equal(chapChipLabel(CHAPS, 1), "📑 Chapter 2 of 3");
+  assert.equal(chapChipLabel([CHAPS[0]], 0), "📑 Chapters");
 });
