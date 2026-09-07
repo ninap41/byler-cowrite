@@ -107,7 +107,7 @@ test("the two preferences are stored together, saving one keeps the other", () =
 test("a legacy prefs blob with only a line height still loads", () => {
   const s = mem();
   s.setItem("cowriteEditorPrefs", '{"lineHeight":1.8}');
-  assert.deepEqual(loadPrefs(s), { lineHeight: 1.8, paper: "theme", font: "theme", sideWidth: 300, sideOpen: true });
+  assert.deepEqual(loadPrefs(s), { lineHeight: 1.8, paper: "theme", font: "theme", sideWidth: 300, sideOpen: true, chapOpen: true });
 });
 
 // ---- typeface ----
@@ -155,7 +155,7 @@ test("the typeface menu previews each face in that face", () => {
 test("all three view preferences live together and survive each other", () => {
   const s = mem();
   savePrefs({ lineHeight: 2.0, paper: "dark", font: "newsreader" }, s);
-  assert.deepEqual(loadPrefs(s), { lineHeight: 2.0, paper: "dark", font: "newsreader", sideWidth: 300, sideOpen: true });
+  assert.deepEqual(loadPrefs(s), { lineHeight: 2.0, paper: "dark", font: "newsreader", sideWidth: 300, sideOpen: true, chapOpen: true });
 });
 
 // ---- the comments drawer ----

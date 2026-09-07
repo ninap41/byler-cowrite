@@ -42,6 +42,20 @@
 								     three-option menu. Visibility sits with the document's
 								     identity; the 👥 modal stays about WHO, not what. -->
 								<span class="vis-wrap" id="visWrap"></span>
+								<!-- Chapters: the chip names where you are and opens the
+								     chapter panel (a left column on a desktop, a dropdown
+								     on a phone). Everyone gets it: a reader's panel is the
+								     table of contents. -->
+								<button class="head-chip" id="chapChip" type="button" aria-expanded="true" data-tip="Chapters">📑 Chapters</button>
+								<!-- Export: this chapter, or the whole work, as a styled
+								     standalone .html — for everyone who can open the story. -->
+								<span class="vis-wrap" id="exportWrap">
+									<button class="head-chip" id="exportBtn" type="button" aria-expanded="false" data-tip="Download as a styled .html">⬇ Export</button>
+									<div class="vis-menu" id="exportMenu" role="menu">
+										<button type="button" class="vis-opt" id="exportChapter" role="menuitem"><b>This chapter</b><span class="subtle">The open chapter, headed with the story's title</span></button>
+										<button type="button" class="vis-opt" id="exportWork" role="menuitem"><b>Whole work</b><span class="subtle">Every chapter, headed and ruled apart</span></button>
+									</div>
+								</span>
 								<!-- Who else is in this document, and how you're working in it:
 								     both belong beside the visibility chip, not on the
 								     formatting toolbar. -->
@@ -206,6 +220,14 @@
 				<div class="err" id="docErr"></div>
 
 				<div class="doc-main">
+					<!-- The chapter panel: the story's chapters, one open at a time.
+					     An author adds, renames, reorders and deletes here; a reader
+					     gets the table of contents. It is a plain grid column, not a
+					     second side-drawer — the drawer owns the grid's other
+					     variables, and two bottom sheets on a phone would be
+					     unusable — so under 860px it drops under the head row as a
+					     dropdown instead. -->
+					<aside class="doc-chapters" id="chapPanel" aria-label="Chapters"></aside>
 					<div class="doc-col">
 						<div
 							class="editor doc-editor"
@@ -217,6 +239,8 @@
 						<p class="hint" id="editorHint">
 							Type <b>/</b> for action verbs, dialogue tags and more · Ctrl/⌘+S to save · autosaved locally every 30s
 						</p>
+						<!-- Prev / Next at the foot of the chapter, for readers and author alike. -->
+						<div id="chapNav"></div>
 					</div>
 
 					<!-- The comments rail is a DRAWER: it opens and closes, and its
@@ -381,7 +405,12 @@
 				scrollTargetFor,
 				inviteOptions,
 				inviteListHtml,
+				chapterListHtml,
+				chapNavHtml,
+				chapChipLabel,
+				countWordsHtml,
 			} from "/js/write-view.js"
+			import { exportDocument, exportWork, exportChapterHtml, slugOf } from "/js/export.js"
 			import { esc } from "/js/util.js"
 
 			mountChrome({ page: "write" })
@@ -405,6 +434,12 @@
 			if (!docId) location.href = "/writes"
 
 			let doc = null
+			// The chapters, as the editor holds them: the OPEN one lives in the
+			// DOM (#docEditor / #docSource) and is written back into this array
+			// by stashCurrent() before anything reads the list. A chapter added
+			// since the last save has id null until the server names it.
+			let chapters = []
+			let openIdx = 0
 			let dirty = false
 			let sourceMode = false
 			let comments = []
@@ -436,11 +471,30 @@
 			const srcHtml = () => unformatSource($("docSource").value)
 
 			const currentHtml = () => (sourceMode ? srcHtml() : cleanHtml($("docEditor"), { doc: true }))
+			// The open chapter's words go back into the array — in memory only;
+			// `dirty` is untouched. Everything that persists reads allChapters().
+			const stashCurrent = () => {
+				const ch = chapters[openIdx]
+				if (ch) ch.html = currentHtml()
+				return ch
+			}
+			const allChapters = () => {
+				stashCurrent()
+				return chapters.map(({ id, title, html }) => ({ id: id ?? null, title, html }))
+			}
+			const openChapter = () => chapters[openIdx] || null
 
 			const updateWords = () => {
 				const text = $("docEditor").innerText || ""
 				const n = text.trim() ? text.trim().split(/\s+/).length : 0
-				$("wordCount").textContent = wordsLabel(n)
+				const rest = chapters.reduce((sum, c, i) => (i === openIdx ? sum : sum + (c.wordCount ?? countWordsHtml(c.html))), 0)
+				$("wordCount").textContent = chapters.length > 1 ? `${wordsLabel(n)} · ${(n + rest).toLocaleString()} in all` : wordsLabel(n)
+				// keep the open chapter's row and the panel's total in step while typing
+				if (chapters[openIdx]) chapters[openIdx].wordCount = n
+				const row = $("chapPanel").querySelector(".chap-row.open .chap-meta")
+				if (row?.firstChild) row.firstChild.textContent = wordsLabel(n)
+				const total = $("chapPanel").querySelector(".chap-total")
+				if (total) total.textContent = `${chapters.length} chapter${chapters.length === 1 ? "" : "s"} · ${wordsLabel(n + rest)}`
 			}
 
 			// ---- load ----
@@ -452,7 +506,11 @@
 					return
 				}
 				$("docTitle").value = doc.title
-				$("docEditor").innerHTML = doc.html || ""
+				chapters = (doc.chapters || []).map((c) => ({ ...c }))
+				if (!chapters.length) chapters = [{ id: null, title: "Chapter 1", html: doc.html || "" }]
+				const want = parseInt(new URLSearchParams(location.search).get("ch") || "1", 10)
+				openIdx = Math.min(chapters.length - 1, Math.max(0, (Number.isFinite(want) ? want : 1) - 1))
+				$("docEditor").innerHTML = chapters[openIdx].html || ""
 				renderVis() // the chip is part of the document's identity, so it loads with it
 				comments = doc.comments || []
 				const canEdit = doc.mine
@@ -479,6 +537,7 @@
 				undoHistory.reset() // you can't undo your way back to the last document
 				renderDoc()
 				updateWords()
+				renderChapters()
 				setDirty(false)
 				// A document whose anchors had to be repaired on the way in is
 				// genuinely different from what's stored, so it reads as unsaved
@@ -694,12 +753,20 @@
 				pruneLocalAnchors()
 				const order = anchorsInDoc().map((a) => a.dataset.cid)
 				const anchored = (c) => c.cid && order.includes(c.cid)
+				// The rail shows the OPEN chapter's comments: a comment belongs to
+				// the chapter whose html holds its anchor (chapterId, from the
+				// server), which for the chapter on screen is the same as being
+				// anchored in the DOM. Orphans belong to no chapter and always show;
+				// resolved ones show with their chapter.
+				const here = (c) => !c.chapterId || c.chapterId === openChapter()?.id
 				const live = comments.filter((c) => !c.resolved && anchored(c))
 				// Resolving or deciding a comment deliberately removes its anchor, so
 				// "no anchor" alone doesn't mean orphaned — only an UNRESOLVED comment
-				// whose words are gone has actually lost track of what it was about.
-				const orphans = comments.filter((c) => !c.resolved && !anchored(c))
-				const done = comments.filter((c) => c.resolved)
+				// whose words are gone has actually lost track of what it was about —
+				// and a comment anchored in ANOTHER chapter isn't orphaned either.
+				const orphans = comments.filter((c) => !c.resolved && !anchored(c) && !c.chapterId)
+				const done = comments.filter((c) => c.resolved && here(c))
+				const elsewhere = comments.filter((c) => !c.resolved && c.chapterId && c.chapterId !== openChapter()?.id).length
 				live.sort((a, b) => order.indexOf(a.cid) - order.indexOf(b.cid))
 				const isOwner = canEditDoc()
 				const opts = { isOwner, meName: me?.username || "" }
@@ -708,10 +775,14 @@
 					html += `<div class="dc-group orphan">${commentThreadHtml(orphans, { ...opts, orphaned: true })}</div>`
 				if (done.length)
 					html += `<div class="dc-group done"><p class="dc-orphan-note">Done (${done.length})</p>${commentThreadHtml(done, opts)}</div>`
-				$("commentPane").innerHTML = html || `<p class="subtle">No comments yet.</p>`
-				// The edge tab carries the count, so closing the drawer hides the
-				// notes but never the fact that they exist.
-				$("commentsOpenCount").textContent = live.length + orphans.length || ""
+				$("commentPane").innerHTML = html || `<p class="subtle">No comments${elsewhere ? " in this chapter" : " yet"}.</p>`
+				// The edge tab carries the WHOLE story's count, so closing the drawer
+				// hides the notes but never the fact that they exist; the heading
+				// says how many of them are here.
+				const total = live.length + orphans.length + elsewhere
+				$("commentsOpenCount").textContent = total || ""
+				$("commentsHeading").textContent = chapters.length > 1 && total ? `💬 Comments · ${live.length + orphans.length} here, ${total} in all` : "💬 Comments"
+				paintChapterCounts()
 				if (activeCid) focusComment(activeCid, { scroll: "none" })
 				renderComposer()
 			}
@@ -832,6 +903,8 @@
 				const text = $("newComment").value.trim()
 				const suggestion = $("suggestOn")?.checked ? $("newSuggestion").value.trim() : null
 				if ((!text && suggestion == null) || !pendingRange) return
+				// a chapter the server hasn't seen yet has nowhere to file a comment
+				if (chapters.length > 1 && !openChapter()?.id) return setStatus("Save first, then comment in the new chapter")
 				const cid = newCid()
 				const span = document.createElement("span")
 				span.className = "cmt"
@@ -844,7 +917,7 @@
 					pendingRange.insertNode(span)
 				}
 				const html = cleanHtml($("docEditor"), { doc: true })
-				socket?.emit("doc-comment", { auth: getToken(), id: docId, cid, html, text, suggestion })
+				socket?.emit("doc-comment", { auth: getToken(), id: docId, cid, chapterId: openChapter()?.id ?? null, html, text, suggestion })
 				// The author owns the html, so their copy is now dirty and must be
 				// saved; a reader's copy is only a local echo of what they proposed.
 				if (canEditDoc()) setDirty(true)
@@ -1444,18 +1517,23 @@
 			async function save() {
 				if (!doc?.mine) return true
 				$("docErr").textContent = ""
-				const html = sourceMode ? srcHtml() : cleanHtml($("docEditor"), { doc: true })
+				const list = allChapters()
 				try {
-					const r = await api("/api/docs/" + encodeURIComponent(docId), { title: $("docTitle").value, html }, "PUT")
+					const r = await api("/api/docs/" + encodeURIComponent(docId), { title: $("docTitle").value, chapters: list }, "PUT")
 					doc = r.doc
 					comments = doc.comments || []
+					// the server's copy is the truth now: ids for new chapters, sanitized
+					// html, counts — order is preserved, so the open index still holds
+					chapters = (doc.chapters || []).map((c) => ({ ...c }))
+					openIdx = Math.min(openIdx, chapters.length - 1)
 					// render the server's sanitized copy so what we see is what's stored
-					if (!sourceMode) $("docEditor").innerHTML = doc.html
+					if (!sourceMode) $("docEditor").innerHTML = chapters[openIdx]?.html || ""
 					setDirty(false)
 					clearDraft(docId)
 					socket?.emit("doc-saved", { auth: getToken(), id: docId })
 					renderComments()
 					updateWords()
+					renderChapters()
 					return true
 				} catch (e) {
 					$("docErr").textContent = e.message
@@ -1472,16 +1550,28 @@
 
 			// Local crash-cache — NOT a server write.
 			setInterval(() => {
-				if (dirty && doc?.mine) saveDraft(docId, currentHtml(), $("docTitle").value)
+				if (dirty && doc?.mine) saveDraft(docId, allChapters(), $("docTitle").value)
 			}, 30000)
 
 			$("restoreYes").addEventListener("click", () => {
 				const d = loadDraft(docId)
 				if (d) {
-					$("docEditor").innerHTML = d.html
+					// a draft chapter with no id (never saved, or a pre-chapter draft)
+					// takes the stored chapter's id at the same position, if any
+					chapters = d.chapters.map((c, i) => ({
+						id: c.id ?? doc.chapters?.[i]?.id ?? null,
+						title: c.title || doc.chapters?.[i]?.title || `Chapter ${i + 1}`,
+						html: c.html,
+					}))
+					openIdx = Math.min(openIdx, chapters.length - 1)
+					if (sourceMode) setMode(false)
+					$("docEditor").innerHTML = chapters[openIdx].html
 					if (d.title) $("docTitle").value = d.title
+					undoHistory.reset()
 					setDirty(true)
+					renderComments()
 					updateWords()
+					renderChapters()
 				}
 				$("restoreBar").classList.add("hidden")
 			})
@@ -1554,7 +1644,7 @@
 			// beforeunload covers reloads/closes; the styled modal covers in-app links.
 			window.addEventListener("beforeunload", (e) => {
 				if (!dirty) return
-				saveDraft(docId, currentHtml(), $("docTitle").value)
+				saveDraft(docId, allChapters(), $("docTitle").value)
 				e.preventDefault()
 				e.returnValue = ""
 			})
@@ -1578,7 +1668,7 @@
 				leaveTo = null
 			})
 			$("leaveAnyway").addEventListener("click", () => {
-				saveDraft(docId, currentHtml(), $("docTitle").value)
+				saveDraft(docId, allChapters(), $("docTitle").value)
 				dirty = false
 				location.href = leaveTo
 			})
@@ -1720,6 +1810,203 @@
 				}
 			})
 
+			// ---- chapters ----
+			// One chapter is open at a time. Switching stashes the open one into
+			// the array and swaps the DOM; it never touches the server or `dirty`.
+			// Undo history is per DOM, so it resets on a switch — the same rule as
+			// "you can't undo your way back to the last document".
+			const commentCounts = () => {
+				const n = {}
+				for (const c of comments) if (!c.resolved && c.chapterId) n[c.chapterId] = (n[c.chapterId] || 0) + 1
+				return n
+			}
+			function renderChapters() {
+				const canEdit = canEditDoc()
+				$("chapPanel").innerHTML = chapterListHtml(chapters, { openIdx, canEdit, commentCounts: commentCounts() })
+				$("chapNav").innerHTML = chapNavHtml(chapters, openIdx)
+				$("chapChip").textContent = chapChipLabel(chapters, openIdx)
+				const url = new URL(location.href)
+				if (chapters.length > 1) url.searchParams.set("ch", String(openIdx + 1))
+				else url.searchParams.delete("ch")
+				history.replaceState(null, "", url)
+			}
+			// only the counts changed (a comment came or went): repaint the rows
+			const paintChapterCounts = () => {
+				if ($("chapPanel").firstChild) renderChapters()
+			}
+			function goChapter(idx) {
+				idx = Math.max(0, Math.min(chapters.length - 1, idx))
+				if (idx === openIdx) return closeChapMenu()
+				stashCurrent()
+				openIdx = idx
+				const ch = chapters[openIdx]
+				if (sourceMode) $("docSource").value = formatSource(ch.html || "")
+				$("docEditor").innerHTML = ch.html || ""
+				undoHistory.reset()
+				pendingRange = null
+				clearComposer()
+				activeCid = null
+				renderComments()
+				updateWords()
+				renderChapters()
+				closeChapMenu()
+				window.scrollTo({ top: 0 })
+			}
+			function addChapter() {
+				if (!canEditDoc()) return
+				stashCurrent()
+				chapters.push({ id: null, title: `Chapter ${chapters.length + 1}`, html: "" })
+				setDirty(true)
+				goChapter(chapters.length - 1)
+				if (!sourceMode) $("docEditor").focus()
+			}
+			function moveChapter(i, dir) {
+				const j = i + dir
+				if (!canEditDoc() || j < 0 || j >= chapters.length) return
+				stashCurrent()
+				;[chapters[i], chapters[j]] = [chapters[j], chapters[i]]
+				if (openIdx === i) openIdx = j
+				else if (openIdx === j) openIdx = i
+				setDirty(true)
+				renderChapters()
+			}
+			function deleteChapter(i) {
+				if (!canEditDoc() || chapters.length < 2) return
+				stashCurrent()
+				chapters.splice(i, 1)
+				setDirty(true)
+				if (openIdx === i) {
+					// open the neighbour: the DOM still shows the deleted chapter
+					openIdx = -1
+					goChapter(Math.min(i, chapters.length - 1))
+				} else {
+					if (openIdx > i) openIdx--
+					renderChapters()
+				}
+			}
+			function renameChapter(i) {
+				if (!canEditDoc()) return
+				const row = $("chapPanel").querySelector(`.chap-row[data-i="${i}"] .chap-title`)
+				if (!row) return
+				const input = document.createElement("input")
+				input.className = "chap-rename-input"
+				input.maxLength = 80
+				input.value = chapters[i].title || ""
+				row.replaceWith(input)
+				input.focus()
+				input.select()
+				let done = false
+				const commit = (keep) => {
+					if (done) return
+					done = true
+					const v = input.value.trim()
+					if (keep && v && v !== chapters[i].title) {
+						chapters[i].title = v
+						setDirty(true)
+					}
+					renderChapters()
+				}
+				input.addEventListener("keydown", (e) => {
+					if (e.key === "Enter") commit(true)
+					if (e.key === "Escape") commit(false)
+					e.stopPropagation()
+				})
+				input.addEventListener("blur", () => commit(true))
+			}
+			$("chapPanel").addEventListener("click", (e) => {
+				const b = e.target.closest("button")
+				if (!b) return
+				const i = parseInt(b.dataset.i, 10)
+				if (b.classList.contains("chap-open")) return goChapter(i)
+				if (b.classList.contains("chap-add")) return addChapter()
+				if (b.classList.contains("chap-up")) return moveChapter(i, -1)
+				if (b.classList.contains("chap-down")) return moveChapter(i, 1)
+				if (b.classList.contains("chap-rename")) return renameChapter(i)
+				if (b.classList.contains("chap-del")) {
+					// two clicks: the first arms it, the second deletes
+					if (b.dataset.armed !== "1") {
+						$("chapPanel").querySelectorAll(".chap-del[data-armed]").forEach((x) => {
+							delete x.dataset.armed
+							x.textContent = "✕"
+						})
+						b.dataset.armed = "1"
+						b.textContent = "Delete?"
+						return
+					}
+					deleteChapter(i)
+				}
+			})
+			$("chapPanel").addEventListener("dblclick", (e) => {
+				const t = e.target.closest(".chap-title")
+				if (t) renameChapter(parseInt(t.closest(".chap-row").dataset.i, 10))
+			})
+			$("chapNav").addEventListener("click", (e) => {
+				const b = e.target.closest("button[data-i]")
+				if (b) goChapter(parseInt(b.dataset.i, 10))
+			})
+			// The panel's open state: a grid column on a desktop (remembered as
+			// an editor pref), a dropdown under the head row on a phone (closed
+			// on a pick, Escape or an outside click).
+			const phoneChap = () => window.matchMedia("(max-width: 860px)").matches
+			function applyChap() {
+				const open = phoneChap() ? $("chapPanel").classList.contains("menu-open") : prefs.chapOpen !== false
+				document.querySelector(".doc-main")?.classList.toggle("chap-closed", !open)
+				$("chapChip").setAttribute("aria-expanded", String(open))
+			}
+			function closeChapMenu() {
+				if (!phoneChap()) return
+				$("chapPanel").classList.remove("menu-open")
+				applyChap()
+			}
+			$("chapChip").addEventListener("click", (e) => {
+				e.stopPropagation()
+				if (phoneChap()) $("chapPanel").classList.toggle("menu-open")
+				else prefs = savePrefs({ ...prefs, chapOpen: prefs.chapOpen === false })
+				applyChap()
+			})
+			document.addEventListener("click", (e) => {
+				if (phoneChap() && !e.target.closest("#chapPanel") && !e.target.closest("#chapChip")) closeChapMenu()
+			})
+			document.addEventListener("keydown", (e) => {
+				if (e.key === "Escape") closeChapMenu()
+			})
+			window.matchMedia("(max-width: 860px)").addEventListener("change", applyChap)
+			applyChap()
+
+			// ---- export ----
+			// The open chapter or the whole work as a styled standalone page,
+			// built from the editor's own copy so the author gets unsaved text too.
+			const download = (html, name) => {
+				const blob = new Blob([exportDocument(html)], { type: "text/html" })
+				const a = document.createElement("a")
+				a.href = URL.createObjectURL(blob)
+				a.download = name
+				a.click()
+				URL.revokeObjectURL(a.href)
+			}
+			const setExportOpen = (open) => {
+				$("exportMenu").classList.toggle("open", open)
+				$("exportBtn").setAttribute("aria-expanded", String(open))
+			}
+			$("exportBtn").addEventListener("click", (e) => {
+				e.stopPropagation()
+				setExportOpen(!$("exportMenu").classList.contains("open"))
+			})
+			document.addEventListener("click", (e) => {
+				if (!e.target.closest("#exportWrap")) setExportOpen(false)
+			})
+			$("exportChapter").addEventListener("click", () => {
+				const list = allChapters()
+				const d = { title: $("docTitle").value || doc?.title, chapters: list }
+				download(exportChapterHtml(d, list[openIdx], openIdx + 1), `${slugOf(d.title)}-ch${openIdx + 1}.html`)
+				setExportOpen(false)
+			})
+			$("exportWork").addEventListener("click", () => {
+				const d = { title: $("docTitle").value || doc?.title, chapters: allChapters() }
+				download(exportWork(d), `${slugOf(d.title)}.html`)
+				setExportOpen(false)
+			})
+
 			// ---- live presence + comments ----
 			function connect() {
 				socket = io()
@@ -1740,29 +2027,44 @@
 					for (const cid of pendingCids) if (rows.some((c) => c.cid === cid)) pendingCids.delete(cid)
 					renderComments()
 				})
-				socket.on("doc-updated", ({ id, html, title }) => {
+				socket.on("doc-updated", ({ id, html, title, chapters: rows }) => {
 					if (id !== docId || doc.mine) return
 					doc.html = html
 					doc.title = title
 					$("docTitle").value = title
-					$("docEditor").innerHTML = html || ""
+					// keep the chapter I'm reading, by id; it may have been deleted
+					const wasId = openChapter()?.id
+					chapters = (Array.isArray(rows) && rows.length ? rows : [{ id: null, title: "Chapter 1", html: html || "" }]).map((c) => ({ ...c }))
+					doc.chapters = chapters
+					openIdx = Math.max(0, chapters.findIndex((c) => c.id === wasId))
+					$("docEditor").innerHTML = chapters[openIdx].html || ""
 					renderDoc()
+					updateWords()
+					renderChapters()
 				})
 				// The html itself changed: someone anchored a comment, or a suggestion
 				// was accepted. Re-rendering moves the caret, so an author with
 				// unsaved edits is told rather than interrupted — their next save
 				// carries their own copy of the anchors anyway.
-				socket.on("doc-html", ({ id, html, wordCount }) => {
+				// One CHAPTER's html at a time. A chapter that isn't on screen is
+				// updated in the array alone (stashCurrent only ever writes the OPEN
+				// one back, so the two can't clobber each other).
+				socket.on("doc-html", ({ id, chapterId, html, chapterWordCount }) => {
 					if (id !== docId) return
-					doc.html = html
+					const ch = chapters.find((c) => c.id === chapterId)
+					if (!ch) return
+					ch.html = html
+					if (typeof chapterWordCount === "number") ch.wordCount = chapterWordCount
+					if (ch !== openChapter()) return renderChapters()
 					if (dirty && doc.mine) {
 						$("docErr").textContent = "New comments arrived: save to see them underlined in place."
 						return
 					}
 					$("docEditor").innerHTML = html || ""
 					undoHistory.reset()
-					if (typeof wordCount === "number") $("wordCount").textContent = wordsLabel(wordCount)
 					renderDoc()
+					updateWords()
+					renderChapters()
 				})
 				socket.on("doc-access-lost", ({ id }) => {
 					if (id === docId) location.href = "/writes"

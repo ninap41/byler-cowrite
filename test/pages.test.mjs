@@ -733,3 +733,18 @@ test("the AO3 skin previewer is linked out to ao3-skin-previewer.replit.app from
     for (const block of css.match(/@keyframes (bar-link-glow|nav-glow|dnav-glow|dnav-new)[^}]*\}[^}]*\}[^}]*\}/g) || []) assert.ok(!/#[0-9a-f]{3,6}\b/i.test(block), "the glow is theme tokens, no hard-coded colour");
   }
 });
+
+test("the write page has a chapter panel, a chapter chip, a foot nav and an export menu; the panel is the grid's first column and a phone dropdown", async () => {
+  const { body } = await page("/write");
+  assert.ok(body.includes('id="chapPanel"'), "the chapter panel");
+  assert.ok(body.indexOf('id="chapPanel"') < body.indexOf('class="doc-col"'), "it comes before the prose column");
+  assert.ok(body.includes('id="chapChip"'), "the head-row chip");
+  assert.ok(body.includes('id="chapNav"'), "prev/next under the editor");
+  assert.ok(body.includes('id="exportChapter"') && body.includes('id="exportWork"'), "export this chapter / the whole work");
+  assert.ok(body.includes("chapterId: openChapter()?.id"), "a comment names its chapter");
+  assert.ok(body.includes("chapters: list"), "a save sends the whole chapter list");
+  const css = (await page("/css/base.css")).body;
+  assert.match(css, /\.doc-main:not\(\.chap-closed\) \{[^}]*grid-template-columns: 220px minmax\(0, 1fr\) var\(--doc-side-w/, "three columns with the panel first");
+  const phone = css.slice(css.indexOf("the chapter panel is a dropdown"));
+  assert.match(phone, /\.doc-chapters \{[^}]*position: fixed/, "a dropdown on a phone");
+});

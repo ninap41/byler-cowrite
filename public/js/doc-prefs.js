@@ -86,9 +86,11 @@ export function loadPrefs(storage = localStorage) {
 			font: cleanFont(v?.font),
 			sideWidth: clampSide(v?.sideWidth),
 			sideOpen: v?.sideOpen !== false,
+			// the chapter panel: open by default on a desktop, remembered after
+			chapOpen: v?.chapOpen !== false,
 		}
 	} catch (e) {
-		return { lineHeight: DEFAULT_LINE, paper: DEFAULT_PAPER, font: DEFAULT_FONT, sideWidth: DEFAULT_SIDE, sideOpen: true }
+		return { lineHeight: DEFAULT_LINE, paper: DEFAULT_PAPER, font: DEFAULT_FONT, sideWidth: DEFAULT_SIDE, sideOpen: true, chapOpen: true }
 	}
 }
 
@@ -99,6 +101,7 @@ export function savePrefs(prefs, storage = localStorage) {
 		font: cleanFont(prefs?.font),
 		sideWidth: clampSide(prefs?.sideWidth),
 		sideOpen: prefs?.sideOpen !== false,
+		chapOpen: prefs?.chapOpen !== false,
 	}
 	try {
 		storage.setItem(KEY, JSON.stringify(clean))
