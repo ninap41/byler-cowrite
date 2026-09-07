@@ -100,7 +100,11 @@ test("gradAllEmojis: every emoji gets the gradient except rank/badge and editabl
     <div contenteditable="true">✒️ live 🎲</div>
     <textarea>keep 🎲</textarea>
     <p class="story-line">He smiled 😄 and 🎉</p>
-    <span data-badge="x">🏆</span>`;
+    <span data-badge="x">🏆</span>
+    <div class="chat-dock"><button class="chat-dock-head">💬 Chat</button><div class="chat-log"><div>hi 😄</div></div></div>
+    <aside class="doc-side" id="docSide"><h3>💬 Comments</h3></aside>
+    <button class="doc-side-tab" id="commentsOpen">💬 3</button>
+    <button id="commentToggle" class="head-chip">💬 Comment</button>`;
   gradAllEmojis(document.body);
   const n = (sel) => document.querySelector(sel).querySelectorAll(".emoji-grad").length;
   assert.equal(n("a"), 1);
@@ -110,6 +114,10 @@ test("gradAllEmojis: every emoji gets the gradient except rank/badge and editabl
   assert.equal(n(".ach-strip"), 0);
   assert.equal(n("[data-badge]"), 0);
   assert.equal(n("[contenteditable]"), 0, "editors never mutated");
+  assert.equal(n(".chat-dock"), 0, "the game chat's icons and messages stay plain");
+  assert.equal(n("#docSide"), 0, "so do the comments drawer's (by id — the game's host drawer shares .doc-side and keeps its gradient)");
+  assert.equal(n("#commentsOpen"), 0);
+  assert.equal(n("#commentToggle"), 0);
   assert.ok(document.querySelector("textarea").value.includes("🎲"));
   assert.equal(document.querySelector(".story-line").textContent, "He smiled 😄 and 🎉", "text preserved");
 });
