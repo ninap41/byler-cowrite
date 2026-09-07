@@ -77,6 +77,7 @@ export const welcomeMsg = () =>
 
 // Admin is a property of the EMAIL, never of a request: the list above is the
 // only source, so no payload can promote an account.
+export const isSecretUsageId = (id) => isUsageId(id) && !isOpenUsageId(id);
 export const isAdmin = (u) => !!u && (u.admin === true || ADMIN_EMAILS.has(u.email));
 
 // Called wherever an account proves it's alive (signup, login, /api/me) —
@@ -138,13 +139,18 @@ export const publicUser = (u) => ({
 
 // What OTHER signed-in players may see: everything public-facing, never the
 // email, account id, or game codes (the archive stays private per account).
-export const profileOf = (u, onlineIds) => ({
+// `viewer` is who is looking: a SECRET usage badge's description (the how)
+// travels only when the viewer has earned that badge too (or is the owner, or
+// an admin) — seeing someone else wear it must never give the recipe away.
+export const profileOf = (u, onlineIds, viewer = null) => ({
   username: u.username, color: u.color, wordCount: u.wordCount,
   currentBadge: badgeName(u.currentBadge), badges: u.badges.map(badgeName),
   wordBadges: u.badges.filter((id) => !isUsageId(id)).map(badgeName),
   usageBadges: u.badges.filter((id) => isUsageId(id) && !isOpenUsageId(id)).map(badgeName),
   openBadges: u.badges.filter(isOpenUsageId).map(badgeName),
-  badgeDescs: Object.fromEntries(u.badges.map((id) => [badgeName(id), badgeDesc(id)])),
+  badgeDescs: Object.fromEntries(u.badges
+    .filter((id) => !isSecretUsageId(id) || viewer === u || isAdmin(viewer) || (viewer?.badges || []).includes(id))
+    .map((id) => [badgeName(id), badgeDesc(id)])),
   nextBadge: nextTierFor(u),
   streak: u.streak || 0, bestStreak: u.bestStreak || 0,
   stories: (u.games || []).length,

@@ -64,7 +64,9 @@ export function usageCaseHtml(allUsage, earnedNames, descs = {}, { secret = true
 	return allUsage
 		.map((b) => {
 			const earned = earnedNames.includes(b.name)
-			const tip = earned || !secret ? descs[b.name] || b.desc || "" : "Secret: unlock it to find out how."
+			const tip = !secret ? descs[b.name] || b.desc || ""
+				: !earned ? "Secret: unlock it to find out how."
+				: descs[b.name] || "Secret: they've earned it. Unlock it yourself to find out how."
 			return `<span class="ach ${earned ? "earned" : "next"}" title="${esc(tip)}">${earned ? "" : "🔒 "}${esc(b.name)}</span>`
 		})
 		.join("")

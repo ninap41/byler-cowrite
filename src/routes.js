@@ -512,7 +512,7 @@ export function registerRoutes(app, game) {
     }));
     // Sprints: the newest 20, each naming the project it was written in.
     const sprints = (u.sprints || []).slice(0, 20);
-    res.json({ user: profileOf(u, new Set(onlineSockets.values())), hosted, contributed, writes, sprints, lastLine: u.lastLine || lastLine, friendState });
+    res.json({ user: profileOf(u, new Set(onlineSockets.values()), viewer), hosted, contributed, writes, sprints, lastLine: u.lastLine || lastLine, friendState });
   });
 
   // ---- Inbox ----

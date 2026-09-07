@@ -85,8 +85,20 @@ test("usage badge awards once from a committed line and announces in chat", asyn
     [...each, ...each].sort(),
     "one badge-earned event per unlock, per connected player",
   );
-  assert.ok(toasts.every((t) => t.desc && t.desc.length > 0), "toasts carry descriptions");
+  // the recipe (desc) reaches the EARNER alone — these are secret badges
+  assert.equal(toasts.filter((t) => t.desc).length, 3, "three toasts carry the description: the earner's own");
+  assert.equal(toasts.filter((t) => !t.desc).length, 3, "the other player's three carry none");
   assert.ok(toasts.every((t) => t.name && t.color), "toasts name the earner");
+
+  // and another writer's profile shows the badge, never the how — unless the
+  // viewer has earned it too
+  const otherTok = hostFirst ? (await ctx.api("/api/login", { user: "mikewheeler", password: "1234" })).data.token : host.token;
+  const earnerName = hostFirst ? "willthewise" : "mikewheeler";
+  const seen = (await ctx.api(`/api/users/${earnerName}`, null, otherTok, "GET")).data.user;
+  assert.ok(seen.usageBadges.includes("🐺 Omega Badge"), "the badge is worn in public");
+  assert.equal(seen.badgeDescs["🐺 Omega Badge"], undefined, "its recipe is not sent to a viewer who hasn't earned it");
+  const own = (await ctx.api(`/api/users/${earnerName}`, null, meTok, "GET")).data.user;
+  assert.ok(own.badgeDescs["🐺 Omega Badge"], "the owner sees their own");
 });
 
 test("combo badge: fires only when every word lands in one line; everyone is toasted", async () => {

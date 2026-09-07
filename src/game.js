@@ -6,7 +6,7 @@ import { bumpStreak } from "../lib/streak.js";
 import { badgeName, badgeDesc, usageMatches, awardWordBadges, rewardsForTiers, describeRewards, unlockedThemes, unlockedGimmicks, canUseGimmick } from "../lib/achievements.js";
 import { cleanGimmickId, rollOutcome, describeRoll, galagaOutcome, describeGalaga, GALAGA_MAX_SCORE, ROLL_COOLDOWN_MS, SPIN_MS, DIE_SIDES, PAINT_MAX_STROKES, PAINT_MAX_PTS, CURSE_MS, GIMMICK_IDS } from "../lib/gimmicks.js";
 import { PALETTE, cleanColor, cleanHex, sanitizeRich, stripTags, plainText, clip, httpUrl, sanitizeDoc, CID_RE } from "./sanitize.js";
-import { store, saveStore, userByToken, makeMsg, isAdmin } from "./store.js";
+import { store, saveStore, userByToken, makeMsg, isAdmin, isSecretUsageId } from "./store.js";
 import { storage, getJson } from "./storage.js";
 import { generateSimplePrompt, generateIntermediatePrompt, validateIntermediateData, EXPLICIT_LEVELS, MODES, MAX_KINKS } from "../lib/prompt-gen.js";
 import { readContent, writeContent } from "./content.js";
@@ -407,13 +407,20 @@ export function createGame(io) {
     // is what a rank hands out beyond the badge itself (themes, gimmicks) so
     // the toast can say it; a rank-up also carries `themes`, the full list
     // the writer may now wear, so THEIR menu re-gates without a fetch.
-    const notifyEarned = (id, unlocks = null) =>
-      io.to(s.code).emit("badge-earned", {
+    // A SECRET usage badge's description is its recipe, so it rides only to
+    // the earner's own socket; the room's toast names the badge and nothing more.
+    const notifyEarned = (id, unlocks = null) => {
+      const payload = {
         badge: badgeName(id), desc: badgeDesc(id),
         name: writer.name, color: writer.color,
         unlocks, themes: unlocks ? unlockedThemes(u) : undefined,
         gimmicks: unlocks ? unlockedGimmicks(u) : undefined, // likewise, the gimmicks they may now play
-      });
+      };
+      if (!isSecretUsageId(id)) return io.to(s.code).emit("badge-earned", payload);
+      const sid = [...s.writers].find(([, w]) => w === writer)?.[0];
+      if (sid) io.to(sid).emit("badge-earned", payload);
+      io.to(s.code).except(sid || []).emit("badge-earned", { ...payload, desc: null });
+    };
     // word-usage collectibles: awarded once, the first line that says the word
     for (const id of usageMatches(text)) {
       if (!u.badges.includes(id)) {
@@ -1492,10 +1499,10 @@ export function createGame(io) {
       u.badges.push("resumeitstupid");
       saveStore();
       announce(s, w, `earned the ${badgeName("resumeitstupid")} badge!`);
-      io.to(s.code).emit("badge-earned", {
-        badge: badgeName("resumeitstupid"), desc: badgeDesc("resumeitstupid"),
-        name: w.name, color: w.color,
-      });
+      // the recipe (desc) to the earner alone — it is a secret badge
+      const toast = { badge: badgeName("resumeitstupid"), name: w.name, color: w.color };
+      socket.emit("badge-earned", { ...toast, desc: badgeDesc("resumeitstupid") });
+      socket.to(s.code).emit("badge-earned", { ...toast, desc: null });
     });
 
     // Spectator chat: open to spectators AND writers, visible to the whole

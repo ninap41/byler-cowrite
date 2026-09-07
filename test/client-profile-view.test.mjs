@@ -71,6 +71,9 @@ test("usageCaseHtml: secret badges keep their tooltip until earned; open badges 
   assert.ok(smutty.includes("next") && smutty.includes("🔒"), "unearned badge locked");
   assert.ok(!smutty.includes("moan"), "a locked secret badge never explains itself");
   assert.ok(smutty.includes("Secret: unlock it to find out how."), "locked tooltip is just a teaser");
+  // earned by the profile's owner but not by me: the server sends no desc, the tip stays a teaser
+  const theirs = usageCaseHtml([{ name: "😏 Smutty Buddy" }], ["😏 Smutty Buddy"], {});
+  assert.ok(theirs.includes("earned") && theirs.includes("Unlock it yourself"), "someone else's secret badge never explains itself");
 
   // the open (non-secret) case: descriptions show even before earning
   const open = usageCaseHtml([{ name: "🖋 Opening Line", desc: "Write “once upon a time”." }], [], {}, { secret: false });
