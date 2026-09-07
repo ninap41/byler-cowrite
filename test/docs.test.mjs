@@ -1074,3 +1074,198 @@ test("chapters: accepting a suggestion rewrites only its chapter; a dropped chap
   assert.deepEqual(updates[0].chapters.map((c) => c.id), [c2.id], "readers receive the chapter list");
   assert.equal(updates[0].chapters[0].wordCount, 6);
 });
+
+// ---- comments, chapter by chapter ----
+// Every comment action names, changes and pushes ONE chapter: the one holding
+// its anchor. The other chapters' html must come through byte-identical.
+const B2 = (cid, inner = "quarry at night") => BODY2.replace(inner, `<span class="cmt" data-cid="${cid}">${inner}</span>`);
+const opened = async (token, id) => {
+  const s = await ctx.conn();
+  s.pushes = []; s.boards = []; s.updates = [];
+  s.on("doc-html", (p) => s.pushes.push(p));
+  s.on("doc-comments", (p) => s.boards.push(p.comments));
+  s.on("doc-updated", (p) => s.updates.push(p));
+  s.emit("doc-open", { auth: token, id });
+  await ctx.wait(120);
+  return s;
+};
+const last = (a) => a[a.length - 1];
+
+test("chapters: the author's own note in chapter two, with unsaved edits in that chapter, lands there and only the reader is pushed", async () => {
+  const doc = await twoChapterDoc();
+  const [c1, c2] = doc.chapters;
+  const A = await opened(alice.token, doc.id), B = await opened(bob.token, doc.id);
+  // the author has typed since the last save — no byte match applies to them
+  const dirty = "<p>second chapter, revised</p><p>the quarry at night</p>";
+  A.emit("doc-comment", { auth: alice.token, id: doc.id, cid: "aa0000000002", chapterId: c2.id, html: dirty.replace("quarry", '<span class="cmt" data-cid="aa0000000002">quarry</span>'), text: "tighten this" });
+  await ctx.wait(200);
+  const d = await docOf(doc.id);
+  assert.equal(d.comments.length, 1);
+  assert.equal(d.comments[0].chapterId, c2.id);
+  assert.equal(d.comments[0].isAuthor, true, "the author's note reads as their own");
+  assert.equal(d.comments[0].quote, "quarry");
+  assert.ok(d.chapters[1].html.startsWith("<p>second chapter, revised</p>"), "the author's edit came along with the anchor");
+  assert.equal(d.chapters[0].html, BODY, "chapter one untouched");
+  assert.equal(A.pushes.length, 0, "the author is never pushed their own html (a re-render would move their caret)");
+  assert.equal(B.pushes.length, 1);
+  assert.equal(B.pushes[0].chapterId, c2.id);
+  assert.ok(last(A.boards).some((c) => c.chapterId === c2.id), "the board comes straight back to the author, chapter named");
+  assert.ok(last(B.boards).some((c) => c.chapterId === c2.id));
+});
+
+test("chapters: a reader's rewrite in chapter one is rejected — the underline goes from chapter one alone, chapter two's anchor stands", async () => {
+  const doc = await twoChapterDoc();
+  const [c1, c2] = doc.chapters;
+  const A = await opened(alice.token, doc.id), B = await opened(bob.token, doc.id);
+  B.emit("doc-comment", { auth: bob.token, id: doc.id, cid: "bb0000000002", chapterId: c2.id, html: B2("bb0000000002"), text: "keep" });
+  await ctx.wait(150);
+  B.emit("doc-comment", { auth: bob.token, id: doc.id, cid: "bb0000000001", chapterId: c1.id, html: anchored("bb0000000001"), text: "", suggestion: "plaid shirt" });
+  await ctx.wait(200);
+  let d = await docOf(doc.id);
+  const rewrite = d.comments.find((c) => c.cid === "bb0000000001");
+  assert.equal(rewrite.suggestion, "plaid shirt");
+  assert.equal(rewrite.chapterId, c1.id);
+  assert.equal(d.chapters[0].html, anchored("bb0000000001"));
+  assert.equal(d.chapters[1].html, B2("bb0000000002"));
+  const before = B.pushes.length;
+  A.emit("doc-comment-decide", { auth: alice.token, id: doc.id, commentId: rewrite.id, accept: false });
+  await ctx.wait(200);
+  d = await docOf(doc.id);
+  assert.equal(d.chapters[0].html, BODY, "rejected: the words stand, the underline goes");
+  assert.equal(d.chapters[1].html, B2("bb0000000002"), "chapter two's anchor is untouched");
+  const r = d.comments.find((c) => c.id === rewrite.id);
+  assert.equal(r.resolved, true); assert.equal(r.accepted, false);
+  assert.equal(r.chapterId, null, "with its anchor gone it belongs to no chapter");
+  assert.equal(r.orphaned, true, "on the wire, no anchor = orphaned; the rail only calls an UNRESOLVED one an orphan");
+  assert.equal(B.pushes.length, before + 1);
+  assert.equal(last(B.pushes).chapterId, c1.id, "the push names the chapter that changed");
+  assert.equal(last(B.pushes).html, BODY);
+  assert.equal(last(B.boards).find((c) => c.cid === "bb0000000002").chapterId, c2.id, "the kept comment still knows its chapter");
+  // the reader cannot decide their own rewrite
+  B.emit("doc-comment", { auth: bob.token, id: doc.id, cid: "bb0000000003", chapterId: c1.id, html: anchored("bb0000000003", "hangs"), text: "", suggestion: "hung" });
+  await ctx.wait(150);
+  const own = (await docOf(doc.id)).comments.find((c) => c.cid === "bb0000000003");
+  B.emit("doc-comment-decide", { auth: bob.token, id: doc.id, commentId: own.id, accept: true });
+  await ctx.wait(150);
+  assert.equal((await docOf(doc.id)).chapters[0].html, anchored("bb0000000003", "hangs"), "nothing changed");
+});
+
+test("chapters: resolving strips one chapter's anchor and pushes that chapter; deleting does the same in the other; the rest of the board is untouched", async () => {
+  const doc = await twoChapterDoc();
+  const [c1, c2] = doc.chapters;
+  const A = await opened(alice.token, doc.id), B = await opened(bob.token, doc.id);
+  B.emit("doc-comment", { auth: bob.token, id: doc.id, cid: "cc0000000001", chapterId: c1.id, html: anchored("cc0000000001"), text: "one" });
+  await ctx.wait(150);
+  B.emit("doc-comment", { auth: bob.token, id: doc.id, cid: "cc0000000002", chapterId: c2.id, html: B2("cc0000000002"), text: "two" });
+  await ctx.wait(150);
+  B.emit("doc-comment", { auth: bob.token, id: doc.id, cid: "cc0000000003", chapterId: c2.id, html: B2("cc0000000002").replace("second chapter", '<span class="cmt" data-cid="cc0000000003">second chapter</span>'), text: "three" });
+  await ctx.wait(200);
+  let d = await docOf(doc.id);
+  assert.deepEqual(d.comments.map((c) => c.chapterId), [c1.id, c2.id, c2.id]);
+  const [one, two, three] = d.comments;
+  // the author resolves "two" (chapter two)
+  A.pushes.length = 0; B.pushes.length = 0;
+  A.emit("doc-comment-resolve", { auth: alice.token, id: doc.id, commentId: two.id, resolved: true });
+  await ctx.wait(200);
+  d = await docOf(doc.id);
+  assert.ok(!d.chapters[1].html.includes("cc0000000002"), "its underline is gone");
+  assert.ok(d.chapters[1].html.includes("cc0000000003"), "the other chapter-two anchor stays");
+  assert.equal(d.chapters[0].html, anchored("cc0000000001"), "chapter one untouched");
+  assert.deepEqual([A.pushes.length, B.pushes.length], [1, 1], "a resolve pushes everyone (the decider too — nothing of theirs is unsaved)");
+  assert.equal(A.pushes[0].chapterId, c2.id);
+  assert.equal(A.pushes[0].chapterWordCount, 6);
+  // the reader deletes their own "one" (chapter one)
+  B.emit("doc-comment-delete", { auth: bob.token, id: doc.id, commentId: one.id });
+  await ctx.wait(200);
+  d = await docOf(doc.id);
+  assert.equal(d.chapters[0].html, BODY);
+  assert.deepEqual(d.comments.map((c) => c.cid), ["cc0000000002", "cc0000000003"]);
+  assert.equal(last(B.pushes).chapterId, c1.id);
+  assert.equal(last(B.pushes).html, BODY);
+  // a resolved one can be unresolved; its anchor can't come back, so it reads orphaned
+  A.emit("doc-comment-resolve", { auth: alice.token, id: doc.id, commentId: two.id, resolved: false });
+  await ctx.wait(150);
+  const re = (await docOf(doc.id)).comments.find((c) => c.id === two.id);
+  assert.equal(re.resolved, false); assert.equal(re.orphaned, true); assert.equal(re.chapterId, null);
+  // the stranger can do none of it
+  const C = await ctx.conn();
+  C.emit("doc-comment-delete", { auth: carol.token, id: doc.id, commentId: three.id });
+  C.emit("doc-comment-resolve", { auth: carol.token, id: doc.id, commentId: three.id, resolved: true });
+  await ctx.wait(150);
+  const still = (await docOf(doc.id)).comments.find((c) => c.id === three.id);
+  assert.ok(still && !still.resolved);
+});
+
+test("chapters: comments follow their chapter through a reorder, and a chapter added by the author takes comments as soon as it has an id", async () => {
+  const doc = await twoChapterDoc();
+  const [c1, c2] = doc.chapters;
+  const B = await opened(bob.token, doc.id);
+  B.emit("doc-comment", { auth: bob.token, id: doc.id, cid: "dd0000000001", chapterId: c1.id, html: anchored("dd0000000001"), text: "in one" });
+  await ctx.wait(150);
+  B.emit("doc-comment", { auth: bob.token, id: doc.id, cid: "dd0000000002", chapterId: c2.id, html: B2("dd0000000002"), text: "in two" });
+  await ctx.wait(200);
+  let d = await docOf(doc.id);
+  // the author swaps the chapters and adds a third
+  const r = await ctx.api("/api/docs/" + doc.id, { chapters: [
+    { id: c2.id, title: "Two", html: d.chapters[1].html },
+    { id: c1.id, title: "One", html: d.chapters[0].html },
+    { title: "Three", html: "<p>a third chapter, new</p>" },
+  ] }, alice.token, "PUT");
+  assert.equal(r.status, 200);
+  d = r.data.doc;
+  assert.deepEqual(d.chapters.map((c) => c.title), ["Two", "One", "Three"]);
+  const c3 = d.chapters[2];
+  assert.match(c3.id, /^[0-9a-f]{12}$/);
+  const by = Object.fromEntries(d.comments.map((c) => [c.cid, c.chapterId]));
+  assert.equal(by.dd0000000001, c1.id, "the comment moved with its chapter, not its position");
+  assert.equal(by.dd0000000002, c2.id);
+  assert.ok(d.comments.every((c) => !c.orphaned));
+  assert.equal(d.chapters[0].html, B2("dd0000000002"), "anchors survive the reorder");
+  // the reader can comment in the new chapter now that it has an id
+  B.emit("doc-comment", { auth: bob.token, id: doc.id, cid: "dd0000000003", chapterId: c3.id, html: '<p>a third chapter, <span class="cmt" data-cid="dd0000000003">new</span></p>', text: "in three" });
+  await ctx.wait(200);
+  d = await docOf(doc.id);
+  assert.equal(d.comments.find((c) => c.cid === "dd0000000003").chapterId, c3.id);
+  assert.equal(last(B.pushes).chapterId, c3.id);
+  // but never under an id the document doesn't have
+  B.emit("doc-comment", { auth: bob.token, id: doc.id, cid: "dd0000000004", chapterId: "0123456789ab", html: anchored("dd0000000004"), text: "nowhere" });
+  await ctx.wait(150);
+  assert.equal((await docOf(doc.id)).comments.length, 3);
+});
+
+test("chapters: a document written before chapters existed takes a reader's comment with or without a chapter id, and keeps taking them", async () => {
+  const id = "22222222-3333-4444-8555-666666666666";
+  const me = (await ctx.api("/api/me", null, alice.token, "GET")).data.user.id;
+  const bobId = (await ctx.api("/api/me", null, bob.token, "GET")).data.user.id;
+  writeFileSync(joinPath(ctx.dataDir, "docs", id + ".json"), JSON.stringify({
+    id, ownerId: me, title: "Legacy", html: BODY, betaReaders: [bobId], visibility: "readers", comments: [], wordCount: 5, createdAt: 1, updatedAt: 1,
+  }));
+  // the reader loads it (the read migrates and persists the chapter id)…
+  const seen = await docOf(id, bob.token);
+  assert.equal(seen.chapters.length, 1);
+  const chId = seen.chapters[0].id;
+  const B = await opened(bob.token, id);
+  // …and comments under the id they were shown
+  B.emit("doc-comment", { auth: bob.token, id, cid: "ee0000000001", chapterId: chId, html: anchored("ee0000000001"), text: "old story, new note" });
+  await ctx.wait(200);
+  let d = await docOf(id);
+  assert.equal(d.comments.length, 1, "the id from the read is the id the server holds");
+  assert.equal(d.comments[0].chapterId, chId);
+  // a client that never learned chapters sends none — the single chapter takes it
+  B.emit("doc-comment", { auth: bob.token, id, cid: "ee0000000002", chapterId: null, html: anchored("ee0000000001").replace("hangs", '<span class="cmt" data-cid="ee0000000002">hangs</span>'), text: "still works" });
+  await ctx.wait(200);
+  d = await docOf(id);
+  assert.equal(d.comments.length, 2);
+  assert.ok(d.comments.every((c) => c.chapterId === chId));
+  assert.equal(d.html, d.chapters[0].html, "one chapter: the join is the chapter");
+  // the author's rewrite decision works on it like any other
+  B.emit("doc-comment", { auth: bob.token, id, cid: "ee0000000003", chapterId: chId, html: d.chapters[0].html.replace("first", '<span class="cmt" data-cid="ee0000000003">first</span>'), text: "", suggestion: "First" });
+  await ctx.wait(150);
+  const sug = (await docOf(id)).comments.find((c) => c.cid === "ee0000000003");
+  const A = await opened(alice.token, id);
+  A.emit("doc-comment-decide", { auth: alice.token, id, commentId: sug.id, accept: true });
+  await ctx.wait(200);
+  d = await docOf(id);
+  assert.ok(d.chapters[0].html.startsWith("<p>First</p>"), "accepted rewrite applied");
+  assert.equal(last(B.pushes).chapterId, chId);
+});
