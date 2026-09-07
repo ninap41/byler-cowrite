@@ -1307,7 +1307,9 @@ $("pauseBtn").onclick = () =>
 			}
 
 			// ---- Game over ----
-			// The reveal's scoreboard: only a non-friendly game's roster carries
+			// The reveal's scoreboard: the server's `scoreboard` (every account
+			// with words in the story, continued games and expired seats included)
+			// when it sends one; else only a non-friendly game's roster carries
 			// `words`, so a friendly game renders nothing here.
 			function scoreboardHtml(writers) {
 				const rows = (writers || []).filter((w) => w.words != null)
@@ -1326,13 +1328,13 @@ $("pauseBtn").onclick = () =>
 						.join("")
 				)
 			}
-			socket.on("game-over", ({ prompt, story }) => {
+			socket.on("game-over", ({ prompt, story, scoreboard }) => {
 				clearInterval(tickInterval)
 				vecnaClock.stop()
 				turnAlert(false)
 				lineChime.note(story, myId)
 				onlyShow("over")
-				$("overScore").innerHTML = scoreboardHtml(tableWriters)
+				$("overScore").innerHTML = scoreboardHtml(Array.isArray(scoreboard) ? scoreboard : tableWriters)
 				$("overScore").classList.toggle("hidden", !$("overScore").innerHTML)
 				$("overPrompt").innerHTML = promptHtml(prompt)
 				renderStory($("overStory"), story, false)

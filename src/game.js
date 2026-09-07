@@ -572,6 +572,25 @@ export function createGame(io) {
     }
     return words;
   }
+  // The reveal's scoreboard: every account that has committed words to this
+  // story, seated or not — a continued game's earlier contributors count, and
+  // a writer whose seat expired keeps their score. Names/colours come from the
+  // seat when there is one, else the account. null for a friendly game.
+  function scoreboard(s) {
+    if (s.friendly !== false) return null;
+    const words = gameWords(s);
+    const bySeat = new Map([...s.writers.values()].filter((w) => w.userId).map((w) => [w.userId, w]));
+    for (const w of bySeat.values()) if (!words.has(w.userId)) words.set(w.userId, 0);
+    return [...words.entries()].map(([userId, n]) => {
+      const w = bySeat.get(userId), u = w ? null : store.users.find((x) => x.id === userId);
+      return {
+        userId, words: n, seated: !!w,
+        name: w?.name ?? u?.username ?? "a writer", color: w?.color ?? u?.color ?? null,
+        avatar: w?.avatar ?? u?.avatar ?? "", avatarFit: w?.avatarFit ?? u?.avatarFit ?? "cover",
+      };
+    }).sort((a, b) => b.words - a.words);
+  }
+  const gameOverPayload = (s) => ({ prompt: s.prompt, story: s.story, scoreboard: scoreboard(s) });
   function roster(s) {
     const score = s.friendly === false ? gameWords(s) : null; // friendly games keep no score
     return [...s.writers.entries()].map(([id, w]) => ({
@@ -790,7 +809,7 @@ export function createGame(io) {
     s.phase = "over";
     s.paused = false;
     saveSnapshot(s);
-    io.to(s.code).emit("game-over", { prompt: s.prompt, story: s.story });
+    io.to(s.code).emit("game-over", gameOverPayload(s));
   }
 
   function removeWriter(s, id) {
@@ -874,7 +893,7 @@ export function createGame(io) {
     if (s.phase === "waiting") broadcastRoster(s);
     else if (s.phase === "over") {
       broadcastRoster(s); // everyone learns the (possibly restored) hostId
-      sock.emit("game-over", { prompt: s.prompt, story: s.story });
+      sock.emit("game-over", gameOverPayload(s));
     } else broadcastGame(s);
     if (s.hostId === sock.id) pushPendingRequests(s);
   }
@@ -994,7 +1013,7 @@ export function createGame(io) {
       if (s.phase === "waiting") broadcastRoster(s);
       else if (s.phase === "over") {
         broadcastRoster(s);
-        socket.emit("game-over", { prompt: s.prompt, story: s.story });
+        socket.emit("game-over", gameOverPayload(s));
       } else broadcastGame(s);
       saveSnapshot(s);
     });
@@ -1040,7 +1059,7 @@ export function createGame(io) {
       announce(s, w, "joined the story");
       if (s.phase === "over") {
         broadcastRoster(s);
-        target.emit("game-over", { prompt: s.prompt, story: s.story });
+        target.emit("game-over", gameOverPayload(s));
       } else broadcastGame(s);
       saveSnapshot(s);
       ack?.({ ok: true });
@@ -1235,7 +1254,7 @@ export function createGame(io) {
       line.html = clean;
       line.edited = true;
       saveSnapshot(s);
-      if (s.phase === "over") io.to(s.code).emit("game-over", { prompt: s.prompt, story: s.story });
+      if (s.phase === "over") io.to(s.code).emit("game-over", gameOverPayload(s));
       else broadcastGame(s);
       ack?.({ ok: true });
     });
@@ -1253,7 +1272,7 @@ export function createGame(io) {
         return ack?.({ ok: false, error: "You can only delete your own lines." });
       s.story.splice(i, 1);
       saveSnapshot(s);
-      if (s.phase === "over") io.to(s.code).emit("game-over", { prompt: s.prompt, story: s.story });
+      if (s.phase === "over") io.to(s.code).emit("game-over", gameOverPayload(s));
       else broadcastGame(s);
       ack?.({ ok: true });
     });
@@ -1926,7 +1945,7 @@ export function createGame(io) {
       if (s.balls?.size) socket.emit("gimmick-balls", ballsList(s));
       if (s.paint?.size) socket.emit("gimmick-paints", paintsList(s));
       if (s.guns?.size) socket.emit("gimmick-guns", gunsList(s));
-      if (s.phase === "over") socket.emit("game-over", { prompt: s.prompt, story: s.story });
+      if (s.phase === "over") socket.emit("game-over", gameOverPayload(s));
       else if (s.phase === "waiting") broadcastRoster(s);
       else broadcastGame(s);
     });

@@ -430,3 +430,46 @@ test("cancel-game: a continued (reopened) lobby is PRESERVED — story kept, clo
     "every line is preserved",
   );
 });
+
+test("scoreboard: a non-friendly reveal scores every account with words in the story — across a continue, and a writer whose seat expired keeps their score", async () => {
+  const ctx2 = await startServer({ COWRITE_GHOST_MS: "150" });
+  try {
+    // one round of two writers: the game ends itself after the second line
+    const { A, B, host, mike, state } = await startedGame(ctx2, { turnSeconds: 0, rounds: 1, friendly: false });
+    await ctx2.wait(150);
+    let over = new Promise((r) => A.once("game-over", r));
+    const turnOf = () => (state.current.currentId === A.id ? A : B);
+    await ctx2.emit(turnOf(), "submit-line", { text: "one two three" });
+    await ctx2.wait(120);
+    await ctx2.emit(turnOf(), "submit-line", { text: "four five" });
+    let payload = await over;
+    assert.ok(Array.isArray(payload.scoreboard), "the reveal carries a scoreboard");
+    const byName = (sb) => Object.fromEntries(sb.map((r) => [r.name, r]));
+    let sb = byName(payload.scoreboard);
+    assert.ok(sb[host.user.username] && sb[mike.user.username], "both writers scored");
+    assert.equal(sb[host.user.username].words + sb[mike.user.username].words, 5);
+    // Mike leaves for good, the host continues alone for one round
+    B.disconnect();
+    await ctx2.wait(400); // past the ghost window: Mike's seat is gone
+    over = new Promise((r) => A.once("game-over", r));
+    const c = await ctx2.emit(A, "continue-writing", { turnSeconds: 0, rounds: 1 });
+    assert.equal(c.ok, true);
+    await ctx2.wait(150);
+    await ctx2.emit(A, "submit-line", { text: "six seven eight nine" });
+    payload = await over;
+    sb = byName(payload.scoreboard);
+    assert.ok(sb[mike.user.username], "an unseated contributor is still on the board");
+    assert.equal(sb[mike.user.username].seated, false);
+    assert.equal(sb[host.user.username].seated, true);
+    assert.equal(sb[host.user.username].words + sb[mike.user.username].words, 9, "words from before AND after the continue count");
+    assert.equal(payload.scoreboard[0].words, Math.max(sb[host.user.username].words, sb[mike.user.username].words), "sorted, leader first");
+    // a friendly game keeps no score
+    const f = await startedGame(ctx2, { turnSeconds: 0, rounds: 3 });
+    await ctx2.wait(150);
+    const fo = new Promise((r) => f.A.once("game-over", r));
+    await ctx2.emit(f.A, "end-game", {});
+    assert.equal((await fo).scoreboard, null);
+  } finally {
+    await ctx2.stop();
+  }
+});
