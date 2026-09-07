@@ -341,8 +341,12 @@ test("the invite picker lists everyone, friends first and chipped", () => {
   const html = inviteListHtml(rows);
   assert.ok(html.includes(">friend<"), "a friend says so on the row");
   assert.ok(html.includes("not a friend yet"), "and everyone else says why they're not offerable");
-  assert.ok(/data-user="alice"[^>]*disabled/.test(inviteRowHtml(rows[2])), "the server's friends-only rule is visible, not an error after the click");
-  assert.ok(!/data-user="will"[^>]*disabled/.test(inviteRowHtml(rows[0])));
+  const alice = inviteRowHtml(rows[2]);
+  assert.match(alice, /^<div class="pick-row not-friend" data-user="alice"/, "a non-friend's row is not a pick");
+  assert.match(alice, /<button type="button" class="ghost add-friend" data-add-friend="alice">Add friend<\/button>/, "but carries the way to become one");
+  assert.match(inviteRowHtml({ ...rows[2], requested: true }), /<span class="pick-chip requested">requested<\/span>/, "sent once, it says so");
+  assert.ok(!/add-friend/.test(inviteRowHtml({ ...rows[2], requested: true })));
+  assert.match(inviteRowHtml(rows[0]), /^<button type="button" class="pick-row" data-user="will"/, "a friend's row is the invite");
 });
 
 test("the picker filters by what you type and drops people already reading", () => {

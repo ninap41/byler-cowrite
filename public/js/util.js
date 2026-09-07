@@ -51,7 +51,7 @@ const EMOJI_SKIP =
 	'[contenteditable], .editor, .doc-editor, #docEditor, #docSource, .ProseMirror, textarea, input, script, style, ' +
 	'.emoji-grad, .badge-chip, .ach-strip, [data-badge], .rk-badge, .rk-ladder, .rk-usage, .ladder-acc, .rung, ' +
 	'.rank-bar, .rank-label, .tier-name, .rk-tier, .ts-badges, ' +
-	'.chat-dock, #docSide, #commentsOpen, #commentToggle'
+	'.chat-dock, #docSide, #commentsOpen, #commentToggle, #imgBtn'
 function wrapEmojis(node) {
 	const val = node.nodeValue || ""
 	EMOJI_ALL.lastIndex = 0

@@ -243,13 +243,20 @@ export function inviteOptions({ users = [], friends = [], readers = [], me = "",
 		.sort((a, b) => b.friend - a.friend || a.username.localeCompare(b.username))
 }
 
-export const inviteRowHtml = (u) =>
-	`<button type="button" class="pick-row${u.friend ? "" : " not-friend"}" data-user="${esc(u.username)}"` +
-	`${u.friend ? "" : ' disabled aria-disabled="true"'}>` +
-	miniAvatar({ avatar: u.avatar, avatarFit: u.avatarFit, name: u.username, color: u.color }) +
-	`<span class="pick-name" style="color:${safeColor(u.color)}">${esc(u.username)}</span>` +
-	(u.friend ? `<span class="pick-chip">friend</span>` : `<span class="pick-note">not a friend yet</span>`) +
-	`</button>`
+// A friend's row is a button that invites them. Anyone else's is a plain row
+// (not a disabled button — a button can't hold another) carrying the way to
+// become friends: an Add friend button, or "requested" once it has been sent
+// (`requested` rides on /api/users rows).
+export const inviteRowHtml = (u) => {
+	const who =
+		miniAvatar({ avatar: u.avatar, avatarFit: u.avatarFit, name: u.username, color: u.color }) +
+		`<span class="pick-name" style="color:${safeColor(u.color)}">${esc(u.username)}</span>`
+	if (u.friend) return `<button type="button" class="pick-row" data-user="${esc(u.username)}">${who}<span class="pick-chip">friend</span></button>`
+	const state = u.requested
+		? `<span class="pick-chip requested">requested</span>`
+		: `<button type="button" class="ghost add-friend" data-add-friend="${esc(u.username)}">Add friend</button>`
+	return `<div class="pick-row not-friend" data-user="${esc(u.username)}">${who}<span class="pick-note">not a friend yet</span>${state}</div>`
+}
 
 export const inviteListHtml = (rows) =>
 	!rows || !rows.length

@@ -7897,13 +7897,25 @@ body.resizing-side {
 /* Listed but not offerable: the answer to "why can't I pick them?" belongs on
    the row itself, not in an error after the click. */
 .pick-row.not-friend {
+	cursor: default;
+}
+.pick-row.not-friend > :not(.add-friend):not(.requested) {
 	opacity: 0.55;
-	cursor: not-allowed;
 }
 .pick-note {
 	margin-left: auto;
 	font-size: 0.72rem;
 	color: var(--muted);
+}
+.pick-row .pick-note + .pick-chip,
+.pick-row .pick-note + .add-friend {
+	margin-left: 0;
+}
+.pick-row .add-friend {
+	flex: 0 0 auto;
+	min-width: 0;
+	padding: 4px 10px;
+	font-size: 0.75rem;
 }
 .pick-empty,
 .pick-foot {

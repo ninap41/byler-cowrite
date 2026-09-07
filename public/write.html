@@ -148,7 +148,7 @@
 							</span>
 							<span class="tb-group">
 								<button class="ghost" id="linkBtn" title="Insert link" type="button">🔗</button>
-								<button class="ghost" id="imgBtn" title="Insert image" type="button">🖼</button>
+								<button class="ghost" id="imgBtn" title="Insert image" type="button">🖼️</button>
 								<button class="ghost" id="emDashBtn" title="Insert em dash" type="button">—</button>
 								<button class="ghost" data-cmd="insertHorizontalRule" title="Horizontal rule" type="button">HR</button>
 								<button class="ghost" id="clearFmtBtn" title="Clear formatting" type="button">Tx</button>
@@ -1781,10 +1781,28 @@
 			$("readerName").addEventListener("keydown", (e) => {
 				if (e.key !== "Enter") return
 				e.preventDefault()
-				$("readerList").querySelector(".pick-row:not([disabled])")?.click()
+				$("readerList").querySelector("button.pick-row:not([disabled])")?.click()
 			})
-			$("readerList").addEventListener("click", (e) => {
-				const row = e.target.closest(".pick-row")
+			$("readerList").addEventListener("click", async (e) => {
+				// a non-friend's row carries Add friend instead of being pickable:
+				// send the request from here and the row reads "requested"
+				const add = e.target.closest(".add-friend")
+				if (add) {
+					e.preventDefault()
+					const username = add.dataset.addFriend
+					add.disabled = true
+					try {
+						await api("/api/friends/request", { username })
+						const u = (directory || []).find((x) => x.username === username)
+						if (u) u.requested = true
+						renderPicker()
+					} catch (err) {
+						add.disabled = false
+						add.textContent = err?.message || "Couldn't send"
+					}
+					return
+				}
+				const row = e.target.closest("button.pick-row")
 				if (row && !row.disabled) invite(row.dataset.user)
 			})
 			$("shareGoReaders").addEventListener("click", () => setVisibility("readers"))

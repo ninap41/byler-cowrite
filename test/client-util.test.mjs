@@ -104,7 +104,8 @@ test("gradAllEmojis: every emoji gets the gradient except rank/badge and editabl
     <div class="chat-dock"><button class="chat-dock-head">💬 Chat</button><div class="chat-log"><div>hi 😄</div></div></div>
     <aside class="doc-side" id="docSide"><h3>💬 Comments</h3></aside>
     <button class="doc-side-tab" id="commentsOpen">💬 3</button>
-    <button id="commentToggle" class="head-chip">💬 Comment</button>`;
+    <button id="commentToggle" class="head-chip">💬 Comment</button>
+    <button id="imgBtn">🖼️</button>`;
   gradAllEmojis(document.body);
   const n = (sel) => document.querySelector(sel).querySelectorAll(".emoji-grad").length;
   assert.equal(n("a"), 1);
@@ -118,6 +119,7 @@ test("gradAllEmojis: every emoji gets the gradient except rank/badge and editabl
   assert.equal(n("#docSide"), 0, "so do the comments drawer's (by id — the game's host drawer shares .doc-side and keeps its gradient)");
   assert.equal(n("#commentsOpen"), 0);
   assert.equal(n("#commentToggle"), 0);
+  assert.equal(n("#imgBtn"), 0, "the toolbar's picture stays a picture (a gradient-filled 🖼 is an outline)");
   assert.ok(document.querySelector("textarea").value.includes("🎲"));
   assert.equal(document.querySelector(".story-line").textContent, "He smiled 😄 and 🎉", "text preserved");
 });
