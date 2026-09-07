@@ -66,9 +66,26 @@ export function mapChapterHtml(doc, fn) {
   return syncDocHtml(doc);
 }
 
+// The chapter ids are minted by `ensureChapters`, so a legacy blob read twice
+// would carry two different ids — and a beta reader's comment names the id it
+// was shown. The first read that upgrades a blob therefore writes the chaptered
+// shape straight back (the html moved, nothing else: no `updatedAt` stamp, no
+// anchor pruning — a read must not edit or reorder anything), so the id is the
+// same on every read after.
 export function readDoc(id) {
   if (!ID_RE.test(String(id || ""))) return null;
-  return ensureChapters(getJson("doc", id));
+  const raw = getJson("doc", id);
+  if (!raw) return null;
+  const legacy = !Array.isArray(raw.chapters) || !raw.chapters.length;
+  const doc = ensureChapters(raw);
+  if (legacy) {
+    try {
+      storage.put("doc", doc.id, JSON.stringify({ ...doc, html: undefined }, null, 1));
+    } catch (e) {
+      console.error("readDoc migration failed:", e.message);
+    }
+  }
+  return doc;
 }
 
 export function writeDoc(doc) {

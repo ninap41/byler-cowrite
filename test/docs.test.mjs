@@ -921,6 +921,16 @@ test("chapters: a new document has one; a pre-chapter blob on disk migrates on r
   assert.equal(old.chapters.length, 1);
   assert.equal(old.chapters[0].html, "<p>one two</p>");
   assert.equal(old.html, "<p>one two</p>", "the join is the old html, byte for byte");
+  // the first read persists the chaptered shape, so the minted id is stable —
+  // a reader's comment names the id they were shown, and a second read must
+  // agree with it — without stamping the document as edited
+  const migrated = JSON.parse((await import("node:fs")).readFileSync(joinPath(ctx.dataDir, "docs", id + ".json"), "utf-8"));
+  assert.equal(migrated.chapters?.[0]?.id, old.chapters[0].id, "the upgrade is written back on first read");
+  assert.equal(migrated.chapters[0].html, "<p>one two</p>");
+  assert.ok(!("html" in migrated), "the derived join is not written even by the migration");
+  assert.equal(migrated.updatedAt, 1, "a read-side migration is not an edit");
+  const again = await docOf(id);
+  assert.equal(again.chapters[0].id, old.chapters[0].id, "every later read carries the same chapter id");
   assert.equal(old.chapters, old.chapters, "listing counts one chapter");
   const list = await ctx.api("/api/docs", null, alice.token, "GET");
   assert.equal(list.data.docs.find((d) => d.id === id).chapters, 1);
