@@ -678,35 +678,6 @@ test("archive: tags are read-only chips above the prompt with a ✎ that opens t
   assert.ok(!detail.includes('id="archTags"'), "no tag input on the page outside the modal");
 });
 
-// The AO3 previewer is a chrome-free island: its own stylesheet under
-// /ao3/, no base.css, no chrome.js, no auth — reached from the tour bar.
-const HAS_AO3 = existsSync(new URL("../../ao3-skin-previewer/public/ao3-preview.html", import.meta.url));
-test("/ao3-preview renders as its own page, links only /ao3/, and the tour bar points at it", { skip: !HAS_AO3 && "the ao3-skin-previewer sibling repo is not checked out" }, async () => {
-  const r = await page("/ao3-preview");
-  assert.equal(r.status, 200);
-  assert.ok(!r.body.includes("{{"), "tokens filled");
-  assert.ok(r.body.includes('<meta name="site-name"'), "rendered through renderPage");
-  assert.match(r.body, /href="\.?\/ao3\/preview\.css"/, "its own stylesheet");
-  assert.ok(!r.body.includes("/css/base.css"), "never the app's base.css");
-  assert.ok(!r.body.includes("/js/chrome.js") && !r.body.includes("auth-guard"), "no chrome, no login");
-  assert.ok(r.body.includes('<iframe id="apFrame"'), "the AO3 page renders in its own frame");
-  assert.equal((r.body.match(/href="\.?\/ao3\/preview\.css"/g) || []).length, 1, "the stylesheet is linked once");
-  for (const id of ["apRoot", "apSide", "apGrip", "apTab", "apMin", "apExpand", "apLint", "apInspect", "apKind", "apTabCss", "apTabWork", "apPanelCss", "apPanelWork", "apWorkForm", "apWorkSave", "apSkin", "apSave", "apResetCss", "apDownload", "apTheme", "apCode"]) assert.ok(r.body.includes(`id="${id}"`), id);
-  assert.ok(!r.body.includes("apResetHtml"), "Reset CSS is the only reset");
-  assert.ok(r.body.includes('localStorage.getItem("cowriteAo3Theme") === "light" ? "light" : "dark"'), "theme set before first paint, dark by default");
-  assert.ok(!r.body.includes('id="apCss"') && !r.body.includes('id="apHl"'), "the editor is CodeMirror, not a textarea");
-  assert.equal((await page("/ao3/editor.js")).status, 200);
-  const cm = await fetch(ctx.url + "/vendor/codemirror.js");
-  assert.equal(cm.status, 200, "the vendored CodeMirror bundle is served");
-  assert.match(cm.headers.get("cache-control") || "", /max-age=6048/, "and cacheable like the rest of /vendor");
-  for (const path of ["/ao3/preview.css", "/ao3/preview.js", "/ao3/work-content.js", "/ao3/editor.js", "/ao3/ao3-rules.js", "/ao3/ao3-rules.json", "/ao3/default-skin-webscraped.css", "/ao3/html/work.html", "/ao3/html/home.html", "/ao3/html/bookmarks.html", "/ao3/default-skin.css"]) {
-    assert.equal((await page(path)).status, 200, path + " served");
-  }
-  const work = (await page("/ao3/html/work.html")).body;
-  assert.ok(work.includes('id="workskin"') && work.includes('id="header"') && work.includes('id="footer"'), "the default work is a whole AO3 page body");
-  assert.ok(!/<script|<\/head>|<body/i.test(work), "body-only, no scripts");
-});
-
 // The previewer is its own site now: linked out from the tour bar, the nav
 // drawer and the dashboard rail, each link glowing (theme tokens only).
 test("the AO3 skin previewer is linked out to ao3-skin-previewer.replit.app from the tour bar, the nav drawer and the dashboard rail, and every link glows", async () => {
