@@ -540,6 +540,8 @@ test("chapterListHtml: an author's rows carry ↑ ↓ ✎ ✕ and an Add foot; t
   assert.match(single, /1 chapter · 3 words/);
   const reader = chapterListHtml(CHAPS, { openIdx: 0 });
   assert.ok(!/chap-acts|chap-add|chap-del/.test(reader), "a reader gets no controls");
+  assert.match(out, /^<div class="doc-side-head chap-head"><h3>📑 Chapters<\/h3><button type="button" class="ghost doc-side-close chap-close"/, "the panel opens with a head and its own ✕");
+  assert.match(reader, /chap-close/, "a reader can close it too");
   assert.match(reader, /class="chap-open" data-i="2"/, "but every chapter opens");
 });
 
@@ -556,4 +558,6 @@ test("chapNavHtml: Prev/Next name their chapters, the ends are blank, one chapte
   assert.match(chapNavHtml(CHAPS, 1), /← One &lt;b&gt;bold&lt;\/b&gt;/, "escaped");
   assert.equal(chapChipLabel(CHAPS, 1), "📑 Chapter 2 of 3");
   assert.equal(chapChipLabel([CHAPS[0]], 0), "📑 Chapters");
+  assert.equal(chapChipLabel(CHAPS, 1, false), "📑 View chapters", "closed, the chip says what it opens");
+  assert.equal(chapChipLabel([CHAPS[0]], 0, false), "📑 View chapters");
 });

@@ -1824,7 +1824,7 @@
 				const canEdit = canEditDoc()
 				$("chapPanel").innerHTML = chapterListHtml(chapters, { openIdx, canEdit, commentCounts: commentCounts() })
 				$("chapNav").innerHTML = chapNavHtml(chapters, openIdx)
-				$("chapChip").textContent = chapChipLabel(chapters, openIdx)
+				paintChapChip()
 				const url = new URL(location.href)
 				if (chapters.length > 1) url.searchParams.set("ch", String(openIdx + 1))
 				else url.searchParams.delete("ch")
@@ -1914,6 +1914,7 @@
 				input.addEventListener("blur", () => commit(true))
 			}
 			$("chapPanel").addEventListener("click", (e) => {
+				if (e.target.closest(".chap-close")) return closeChap()
 				const b = e.target.closest("button")
 				if (!b) return
 				const i = parseInt(b.dataset.i, 10)
@@ -1948,14 +1949,26 @@
 			// an editor pref), a dropdown under the head row on a phone (closed
 			// on a pick, Escape or an outside click).
 			const phoneChap = () => window.matchMedia("(max-width: 860px)").matches
+			const chapIsOpen = () => (phoneChap() ? $("chapPanel").classList.contains("menu-open") : prefs.chapOpen !== false)
+			function paintChapChip() {
+				$("chapChip").textContent = chapChipLabel(chapters, openIdx, chapIsOpen())
+			}
 			function applyChap() {
-				const open = phoneChap() ? $("chapPanel").classList.contains("menu-open") : prefs.chapOpen !== false
+				const open = chapIsOpen()
 				document.querySelector(".doc-main")?.classList.toggle("chap-closed", !open)
 				$("chapChip").setAttribute("aria-expanded", String(open))
+				paintChapChip()
 			}
 			function closeChapMenu() {
 				if (!phoneChap()) return
 				$("chapPanel").classList.remove("menu-open")
+				applyChap()
+			}
+			// The panel's own ✕: the dropdown folds on a phone, the column closes
+			// (and the pref remembers) on a desktop — the chip is the way back.
+			function closeChap() {
+				if (phoneChap()) $("chapPanel").classList.remove("menu-open")
+				else prefs = savePrefs({ ...prefs, chapOpen: false })
 				applyChap()
 			}
 			$("chapChip").addEventListener("click", (e) => {

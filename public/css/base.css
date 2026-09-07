@@ -7120,6 +7120,14 @@ body.doc-page .topbar {
 	border-radius: var(--r-md);
 	background: var(--panel);
 }
+.chap-head {
+	padding: 2px 4px 6px;
+	margin-bottom: 4px;
+	border-bottom: 1px solid var(--line);
+}
+.chap-head h3 {
+	font-size: 0.95rem;
+}
 .chap-list {
 	display: flex;
 	flex-direction: column;
@@ -7288,8 +7296,9 @@ body.doc-page .topbar {
 		z-index: 70;
 		max-height: 60vh;
 		box-shadow: var(--panel-glow);
-		backdrop-filter: blur(14px);
-		-webkit-backdrop-filter: blur(14px);
+		/* a dropdown over prose is unreadable on a translucent panel — the
+		   phone's chapter list stands on the solid page ground */
+		background: var(--bg-2);
 	}
 	.doc-main.chap-closed .doc-chapters {
 		display: none;
@@ -7551,6 +7560,9 @@ body.resizing-side {
 		margin: 0;
 		padding: 12px 14px 14px;
 		border-radius: var(--r-lg) var(--r-lg) 0 0;
+		/* the sheet lies over the story: solid, so the prose never shows
+		   through the comments (the desktop rail keeps the glass panel) */
+		background: var(--bg-2);
 	}
 	.doc-side-grip {
 		left: 0;

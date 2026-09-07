@@ -407,7 +407,10 @@ export function chapterListHtml(chapters, { openIdx = 0, canEdit = false, commen
 		`<div class="chap-foot"><span class="chap-total">${list.length} chapter${list.length === 1 ? "" : "s"} · ${esc(wordsLabel(total))}</span>` +
 		(canEdit ? `<button type="button" class="ghost chap-add">+ Add chapter</button>` : "") +
 		`</div>`
-	return `<div class="chap-list">${rows}</div>${foot}`
+	const head =
+		`<div class="doc-side-head chap-head"><h3>📑 Chapters</h3>` +
+		`<button type="button" class="ghost doc-side-close chap-close" aria-label="Close the chapter panel" data-tip="Close">✕</button></div>`
+	return `${head}<div class="chap-list">${rows}</div>${foot}`
 }
 
 // Prev / Next at the foot of the page, for readers and author alike.
@@ -419,8 +422,10 @@ export function chapNavHtml(chapters, idx) {
 	return `<nav class="chap-nav" aria-label="Chapters">${prev}<span class="chap-pos">Chapter ${idx + 1} of ${n}</span>${next}</nav>`
 }
 
-// The head-row chip that opens the chapter panel.
-export const chapChipLabel = (chapters, idx) => {
+// The head-row chip that opens the chapter panel. Closed, it says what
+// pressing it does; open, it names where you are.
+export const chapChipLabel = (chapters, idx, open = true) => {
+	if (!open) return "📑 View chapters"
 	const n = (chapters || []).length
 	return n > 1 ? `📑 Chapter ${idx + 1} of ${n}` : "📑 Chapters"
 }
