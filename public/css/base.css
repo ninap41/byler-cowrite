@@ -3283,7 +3283,24 @@ input[type="checkbox"]:focus-visible {
 	min-width: 230px;
 }
 #inviteSec .share-menu {
-	margin-top: 8px;
+	margin-top: 4px;
+}
+/* the friend picker is a row of the menu: a thin rule above it, the select
+   sized like the buttons around it */
+.share-menu .share-invite {
+	margin: 3px 0 0;
+	padding-top: 6px;
+	border-top: 1px solid var(--line);
+	gap: 6px;
+}
+.share-menu .share-invite select {
+	flex: 1 1 auto;
+	min-width: 0;
+	padding: 7px 30px 7px 10px;
+	font-size: 0.85rem;
+}
+.share-menu .mg-menu-list .share-invite button {
+	width: auto;
 }
 .player-chip {
 	display: flex;

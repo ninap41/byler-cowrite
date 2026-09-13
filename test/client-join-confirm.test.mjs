@@ -48,6 +48,9 @@ test("both Share menus name the Byler Offscreen Discord and offer Copy game link
     assert.ok(m.includes(">Share to Byler Offscreen Discord<"), id + " names the server");
     assert.ok(m.includes('data-share="link"') && m.includes(">Copy game link<"), id + " offers the link");
   }
+  const inv = html.indexOf('id="inviteShareMenu"');
+  assert.ok(inv < html.indexOf('id="inviteFriend"') && html.indexOf('id="inviteBtn"') < html.indexOf('id="inviteNote"'), "the friend picker is a row of the invite menu");
+  assert.ok(html.includes('id="inviteBtn" data-share="invite"'));
   assert.ok(html.includes('const copyGameLink = (note) => async () => {'));
   assert.ok(html.includes('location.origin + "/game?code=" + encodeURIComponent(myCode)'), "the link is the join URL");
 });

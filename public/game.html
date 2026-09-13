@@ -168,19 +168,21 @@
 							     toast if they're online). Friends only, host only — it sits
 							     beside the game, where the people are, not in the settings. -->
 							<div class="side-sec hidden" id="inviteSec">
-								<h4>Invite a friend</h4>
-								<div class="chat-row">
-									<select id="inviteFriend" aria-label="Friend to invite"><option value="">Loading friends…</option></select>
-									<button class="ghost" id="inviteBtn" style="flex: 0 0 auto; min-width: auto">Invite</button>
-								</div>
-								<p class="subtle hidden" id="inviteNote" style="text-align: left; margin: 6px 0 0"></p>
+								<h4>Share &amp; invite</h4>
 								<span class="mg-menu seat-menu share-menu" id="inviteShareMenu">
-							<button type="button" class="ghost mg-more share-more" aria-haspopup="menu" title="Share this game">Share &#9662;</button>
-							<span class="mg-menu-list">
-								<button type="button" class="ghost" id="discordShareBtn" data-share="discord" title="Post the code with Join / Spectate buttons to the Discord writing room">Share to Byler Offscreen Discord</button>
-								<button type="button" class="ghost" data-share="link" title="Copy a join link for this game">Copy game link</button>
-							</span>
-						</span>
+									<button type="button" class="ghost mg-more share-more" aria-haspopup="menu" title="Share this game">Share &#9662;</button>
+									<span class="mg-menu-list">
+										<button type="button" class="ghost" id="discordShareBtn" data-share="discord" title="Post the code with Join / Spectate buttons to the Discord writing room">Share to Byler Offscreen Discord</button>
+										<button type="button" class="ghost" data-share="link" title="Copy a join link for this game">Copy game link</button>
+										<!-- invite a friend: an inbox note with the code (and a live toast
+										     if they're online). Friends only, host only. -->
+										<span class="chat-row share-invite">
+											<select id="inviteFriend" aria-label="Friend to invite"><option value="">Loading friends…</option></select>
+											<button type="button" class="ghost" id="inviteBtn" data-share="invite" style="flex: 0 0 auto; min-width: auto">Invite</button>
+										</span>
+									</span>
+								</span>
+								<p class="subtle hidden" id="inviteNote" style="text-align: left; margin: 6px 0 0"></p>
 							</div>
 							<div id="doomFx" aria-hidden="true">
 								<img class="doom-img" src="/img/demogorgon.gif" alt="" />
@@ -823,6 +825,7 @@
 				const mk = e.target.closest(".seat-make-host")
 				const share = e.target.closest(".share-menu [data-share]")
 				if (share) return share.closest(".seat-menu").classList.remove("open") // the row's own onclick does the work
+				if (e.target.closest(".share-menu .mg-menu-list")) return // picking a friend in the list keeps it open
 				if (!more && !mk) return document.querySelectorAll(".seat-menu.open").forEach((m) => m.classList.remove("open"))
 				e.preventDefault()
 				e.stopPropagation()
@@ -1324,7 +1327,7 @@
 			$("inviteBtn").onclick = async () => {
 				const who = $("inviteFriend").value
 				const note = $("inviteNote")
-				if (!who || !myCode) return
+				if (!who || !myCode) return $("inviteShareMenu").classList.add("open")
 				try {
 					await authApi("/api/games/" + encodeURIComponent(myCode) + "/invite", { username: who })
 					note.textContent = `✉ Invited ${who}: they'll get a note with the code${friendsOnline(who) ? " and a toast right now" : ""}.`
