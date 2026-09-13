@@ -577,6 +577,8 @@ test("host controls are the comments drawer, on the game page", async () => {
   const chip = body.slice(body.indexOf('class="player-chip${'), body.indexOf("seatMenuHtml(w, st.writers)"));
   assert.ok(chip.indexOf("chip-lead") < chip.indexOf("chip-who") && chip.indexOf("chip-who") < chip.indexOf("chip-words") && chip.indexOf("chip-words") < chip.indexOf("chip-tail"), "lead · who · words · tail");
   assert.ok(!chip.includes("w.words != null ?"), "the count is unconditional");
+  const who = chip.slice(chip.indexOf("chip-who"), chip.indexOf("chip-words"));
+  assert.ok(who.includes("whoMarks(w)"), "the (host) mark sits beside the name, not in the tail");
 });
 
 // The app's name comes from the content pack (content/site.json): the server

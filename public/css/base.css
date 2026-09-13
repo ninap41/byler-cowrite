@@ -11240,7 +11240,8 @@ html.vcx-live[data-theme="vecna"] #vc-pend {
 	white-space: nowrap;
 }
 /* the pills in the side column are one table: seat + presence, avatar + name,
-   words, tail — the same four columns on every row, so nothing zigzags */
+   words, tail — the same four columns on every row, so nothing zigzags;
+   the (host) mark stays beside the name */
 .side-sec .player-chip {
 	display: grid;
 	grid-template-columns: minmax(7.6em, auto) minmax(0, 1fr) auto auto;
@@ -11258,13 +11259,16 @@ html.vcx-live[data-theme="vecna"] #vc-pend {
 .side-sec .player-chip .chip-lead .st-label {
 	margin-right: 0;
 }
-.side-sec .player-chip .chip-who > span:last-child {
+.side-sec .player-chip .chip-who > span:nth-child(2) {
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
 .side-sec .player-chip .chip-tail {
 	justify-content: flex-end;
+}
+.side-sec .player-chip .chip-who .host-tag {
+	flex: none;
 }
 .side-sec .player-chip .chip-tail:empty {
 	display: none;
