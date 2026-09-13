@@ -196,45 +196,34 @@
 								<span class="doom-text">Running out of time</span>
 							</div>
 						</aside>
-						<!-- HOST CONTROLS: a drawer, and deliberately the same one the
-						     solo editor's comments use: same classes, same grip, same
-						     edge tab, same bottom sheet under 860px (see
-						     js/components/side-drawer.js). Settings are something you
-						     open when you mean to change them, not a panel parked beside
-						     the story for the whole game. -->
-						<aside class="doc-side hidden" id="hostSide">
-							<div class="card doc-side-card">
-								<div
-									class="doc-side-grip"
-									id="hostSideGrip"
-									role="separator"
-									aria-orientation="vertical"
-									tabindex="0"
-									aria-label="Resize the host controls drawer"
-									data-tip="Drag to resize · double-click to reset"
-								></div>
-								<div class="doc-side-head">
-									<h3>⚙️ Host controls</h3>
-									<button class="ghost doc-side-close" id="hostClose" type="button" aria-label="Close the host controls" data-tip="Close">
-										✕
-									</button>
-								</div>
-								<div id="hostPanel">
-									<div id="hostRules">
-										<div id="liveRules"></div>
-										<div class="row"><button class="ghost" id="applyRulesBtn">Apply</button></div>
-									</div>
-									<label for="coverInput2" style="margin-top: 10px">Header image link</label>
-									<div class="chat-row">
-										<input id="coverInput2" placeholder="https://…" maxlength="500" />
-										<button class="ghost" id="coverBtn2" style="flex: 0 0 auto; min-width: auto">Set</button>
-									</div>
-									<img id="coverPreview2" class="cover-preview hidden" alt="Cover preview" loading="lazy" />
-								</div>
+						<!-- HOST CONTROLS: a modal. Settings are something you open when
+						     you mean to change them, not a panel parked beside the story
+						     for the whole game: the ⚙️ tab on the page's edge opens it,
+						     the ✕ in its corner (Escape, the backdrop) closes it, and on a
+						     phone it takes the whole screen. -->
+						<button class="doc-side-tab hidden" id="hostOpen" type="button" data-tip="Open the host controls" aria-haspopup="dialog" aria-controls="hostModal">⚙️</button>
+					</div>
+					<div class="confirm-modal host-modal hidden" id="hostModal" role="dialog" aria-modal="true" aria-labelledby="hostModalTitle">
+						<div class="confirm-card host-modal-card">
+							<div class="doc-side-head host-modal-head">
+								<h3 id="hostModalTitle">⚙️ Host controls</h3>
+								<button class="ghost doc-side-close" id="hostClose" type="button" aria-label="Close the host controls" data-tip="Close">
+									✕
+								</button>
 							</div>
-						</aside>
-						<!-- the way back in when it is closed -->
-						<button class="doc-side-tab hidden" id="hostOpen" type="button" data-tip="Open the host controls">⚙️</button>
+							<div id="hostPanel">
+								<div id="hostRules">
+									<div id="liveRules"></div>
+									<div class="row"><button class="ghost" id="applyRulesBtn">Apply</button></div>
+								</div>
+								<label for="coverInput2" style="margin-top: 10px">Header image link</label>
+								<div class="chat-row">
+									<input id="coverInput2" placeholder="https://…" maxlength="500" />
+									<button class="ghost" id="coverBtn2" style="flex: 0 0 auto; min-width: auto">Set</button>
+								</div>
+								<img id="coverPreview2" class="cover-preview hidden" alt="Cover preview" loading="lazy" />
+							</div>
+						</div>
 					</div>
 				</div>
 
@@ -300,8 +289,8 @@
 			import { storyHtml, livePreviewHtml } from "/js/components/story-feed.js"
 			import { mountPromptModes, optionChipsHtml } from "/js/components/prompt-modes.js"
 			import { chatMessageHtml } from "/js/components/chat-view.js"
+			import { reactionsHtml, reactionPickerHtml, reactionGridHtml } from "/js/components/reactions.js"
 			import { confirmDialog } from "/js/components/confirm-delete.js"
-			import { mountSideDrawer } from "/js/components/side-drawer.js"
 			import { getSpectatorName } from "/js/spectator-names.js"
 			import { countdownView } from "/js/components/countdown.js"
 			import { mountRulesForm } from "/js/components/rules-form.js"
@@ -461,6 +450,8 @@
 					{ id: "curse", icon: "🕰️", title: "Vecna's Curse", hud: "#vcxHud" },
 				],
 			})
+			// the host's ⚙️ tab stands at the top of that same left-edge stack
+			$("gkTabs").prepend($("hostOpen"))
 			// what this account may START; re-gated live by a rank-up toast below
 			if (me?.gimmicks) gimmicks.setGate({ unlocked: me.gimmicks })
 			authApi("/api/gimmicks", null, "GET")
@@ -1094,8 +1085,8 @@
 				else if (newTurn && !st.paused && (st.writers || []).length > 1) turnAlert(true)
 				// One condition, three places: the drawer, the tab that opens it,
 				// and the two live actions in the session bar.
-				$("hostSide").classList.toggle("hidden", !host)
-				$("hostOpen").classList.toggle("hidden", !host || hostDrawer.open)
+				$("hostOpen").classList.toggle("hidden", !host)
+				if (!host) closeHostModal() // lost the role mid-edit: the settings go away
 				$("hostGame").classList.toggle("hidden", !host)
 				liveRules.set(st)
 				$("pauseBtn").textContent = st.paused ? "▶ Resume" : "⏸ Pause"
@@ -1298,20 +1289,24 @@
 				refreshStatusDots()
 				box.classList.remove("hidden")
 			})
-						// The host's settings drawer: the comments rail's exact behaviour, on
-			// the game page. Starts open the first time a host sees it, and then
-			// remembers whatever they chose.
-			const hostDrawer = mountSideDrawer({
-				grid: document.querySelector(".game-cols"),
-				drawer: $("hostSide"),
-				grip: $("hostSideGrip"),
-				tab: $("hostOpen"),
-				closeBtn: $("hostClose"),
-				key: "cowriteHostPanel",
-				open: true,
-				onChange: ({ open }) => $("hostOpen").classList.toggle("hidden", open || $("hostSide").classList.contains("hidden")),
-			})
-			// ---- Invite a friend (host drawer) ----
+			// The host's settings modal: the ⚙️ edge tab opens it, the ✕ in its
+			// corner, Escape or a click on the backdrop closes it. On a phone the
+			// card is the whole screen (base.css, .host-modal).
+			const hostModal = $("hostModal")
+			function openHostModal() {
+				hostModal.classList.remove("hidden")
+				$("hostClose").focus()
+			}
+			function closeHostModal() {
+				if (hostModal.classList.contains("hidden")) return
+				hostModal.classList.add("hidden")
+				$("hostOpen").focus()
+			}
+			$("hostOpen").onclick = openHostModal
+			$("hostClose").onclick = closeHostModal
+			hostModal.addEventListener("click", (e) => e.target === hostModal && closeHostModal())
+			document.addEventListener("keydown", (e) => e.key === "Escape" && closeHostModal())
+			// ---- Invite a friend (Share ▾ menu) ----
 			async function loadInviteFriends() {
 				const sel = $("inviteFriend")
 				try {
@@ -1654,6 +1649,7 @@ $("pauseBtn").onclick = () =>
 			// ---- Chat: one channel for the whole table ----
 			// Writers speak from their seat, spectators under their own name
 			// (marked 👁); everyone sees every line.
+			const rowReactions = new Map() // mid -> reactions (for the picker's `.on` marks)
 			function addChat(m, silent) {
 				// spectators have no seat id — their own echo matches by socket id
 				// a system line that asks to ring (the dice gimmick's natural 20)
@@ -1663,12 +1659,79 @@ $("pauseBtn").onclick = () =>
 				const p = document.createElement("p")
 				p.className = (m.sys ? "msg sys" : "msg") + (m.spec ? " spec-msg" : "")
 				p.innerHTML = (m.spec ? "👁 " : "") + chatMessageHtml(m)
+				// reactions: only on a person's message (system lines have no mid)
+				if (m.mid) {
+					rowReactions.set(m.mid, m.reactions)
+					p.dataset.mid = m.mid
+					p.insertAdjacentHTML("beforeend", `<span class="reacts">${reactionsHtml(m.reactions, myReactKey())}</span><button type="button" class="react-add" title="Add a reaction" aria-label="Add a reaction"><i class="fa-regular fa-face-smile"></i></button>`)
+				}
 				log.appendChild(p)
 				refreshStatusDots()
 				log.scrollTop = log.scrollHeight
 			}
+			// Reactions — who I am on a chip: writers by account, spectators by socket
+			const myReactKey = () => (spectateCode ? socket.id : me?.id)
+			function paintReactions(mid, reactions) {
+				rowReactions.set(mid, reactions)
+				const row = $("chatLog").querySelector(`[data-mid="${mid}"] .reacts`)
+				if (row) row.innerHTML = reactionsHtml(reactions, myReactKey())
+			}
+			socket.on("chat-react", ({ mid, reactions }) => paintReactions(mid, reactions))
+			function react(mid, emoji) {
+				socket.emit("chat-react", { mid, emoji, name: spectateCode ? getSpectatorName() : undefined }, (r) => {
+					if (r?.ok) paintReactions(mid, r.reactions)
+				})
+			}
+			const picker = document.createElement("div")
+			picker.className = "react-pick hidden"
+			document.body.appendChild(picker)
+			let pickerMid = null
+			function closePicker() {
+				picker.classList.add("hidden")
+				pickerMid = null
+			}
+			function openPicker(btn, mid) {
+				pickerMid = mid
+				picker.innerHTML = reactionPickerHtml(rowReactions.get(mid), myReactKey())
+				picker.classList.remove("hidden")
+				const search = picker.querySelector(".react-search")
+				search.addEventListener("input", () => {
+					picker.querySelector(".react-grid").innerHTML = reactionGridHtml(rowReactions.get(mid), myReactKey(), search.value)
+				})
+				search.addEventListener("keydown", (e) => {
+					// Enter picks the first match
+					if (e.key !== "Enter") return
+					const first = picker.querySelector("[data-react]")
+					if (first) {
+						react(pickerMid, first.dataset.react)
+						closePicker()
+					}
+				})
+				if (!matchMedia("(hover: none)").matches) search.focus()
+				const r = btn.getBoundingClientRect(), pw = picker.offsetWidth || 300
+				picker.style.left = Math.max(8, Math.min(window.innerWidth - pw - 8, r.left)) + "px"
+				picker.style.top = (r.top - picker.offsetHeight - 6 > 8 ? r.top - picker.offsetHeight - 6 : r.bottom + 6) + "px"
+			}
+			$("chatLog").addEventListener("click", (e) => {
+				const chip = e.target.closest?.("[data-react]")
+				const row = e.target.closest?.("[data-mid]")
+				if (chip && row) return react(row.dataset.mid, chip.dataset.react)
+				const add = e.target.closest?.(".react-add")
+				if (add && row) return pickerMid === row.dataset.mid ? closePicker() : openPicker(add, row.dataset.mid)
+			})
+			picker.addEventListener("click", (e) => {
+				const opt = e.target.closest?.("[data-react]")
+				if (!opt || !pickerMid) return
+				react(pickerMid, opt.dataset.react)
+				closePicker()
+			})
+			document.addEventListener("click", (e) => {
+				if (pickerMid && !picker.contains(e.target) && !e.target.closest?.(".react-add")) closePicker()
+			})
+			document.addEventListener("keydown", (e) => e.key === "Escape" && pickerMid && closePicker())
 			socket.on("chat-history", (msgs) => {
 				$("chatLog").innerHTML = ""
+				rowReactions.clear()
 				;(msgs || []).forEach((m) => addChat(m, true)) // history replay is silent
 			})
 			socket.on("chat", (m) => addChat(m))

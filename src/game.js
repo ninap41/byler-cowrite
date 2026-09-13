@@ -11,6 +11,7 @@ import { storage, getJson } from "./storage.js";
 import { generateSimplePrompt, generateIntermediatePrompt, validateIntermediateData, EXPLICIT_LEVELS, MODES, MAX_KINKS } from "../lib/prompt-gen.js";
 import { readContent, writeContent } from "./content.js";
 import { randomTitle } from "../lib/titles.js";
+import { toggleReaction } from "../public/js/components/reactions.js";
 import { readDoc, writeDoc, canView, canEdit, canComment, anchorCids, anchorText, stripAnchor, stripAnchors, commentBaseline, applySuggestion, chapterById, chapterOfCid, mapChapterHtml } from "./docs.js";
 
 // Curated scenario prompts + the guided-mode component pools (edit
@@ -1572,6 +1573,7 @@ export function createGame(io) {
       const msg = w
         ? {
             id: socket.id, // lets clients tell their own echo from others' messages (sounds)
+            mid: randomUUID().slice(0, 8), // what a reaction points at
             name: w.name, color: w.color, badge: w.badge ?? null,
             avatar: w.avatar ?? "", avatarFit: w.avatarFit ?? "cover",
             host: socket.id === s.hostId, text: body, ts: Date.now(),
@@ -1579,11 +1581,31 @@ export function createGame(io) {
         : (() => {
             // a spectator: their own name, stripped, in a colour hashed from it
             const specName = String(name || "").replace(/<[^>]*>/g, "").slice(0, 28).trim() || "Spectator";
-            return { id: socket.id, name: specName, color: specColor(specName), spec: true, text: body, ts: Date.now() };
+            return { id: socket.id, mid: randomUUID().slice(0, 8), name: specName, color: specColor(specName), spec: true, text: body, ts: Date.now() };
           })();
       s.chat.push(msg);
       if (s.chat.length > CHAT_LIMIT) s.chat.shift();
       io.to(s.code).emit("chat", msg);
+    });
+
+    // Emoji reactions (public/js/components/reactions.js): toggle mine on ONE
+    // person message — never a system line (they carry no `mid`). Writers
+    // react as their account, spectators as their socket; the reactions live
+    // on the message itself (so they ride the snapshot and chat-history) and
+    // the room gets `chat-react {mid, reactions}` to repaint that one row.
+    socket.on("chat-react", ({ mid, emoji, name } = {}, ack) => {
+      const code = socket.data.joinedCode || socket.data.spectating;
+      const s = sessions.get(code);
+      if (!s) return ack?.({ ok: false });
+      const msg = s.chat.find((m) => m.mid && m.mid === mid);
+      const w = socket.data.joinedCode ? s.writers.get(socket.id) : null;
+      const key = w ? w.userId : socket.id;
+      // a spectator names themself, stripped like their chat lines
+      const who = w ? w.name : String(name || "").replace(/<[^>]*>/g, "").slice(0, 28).trim() || "Spectator";
+      if (!toggleReaction(msg, key, who, emoji)) return ack?.({ ok: false });
+      touch(s);
+      io.to(s.code).emit("chat-react", { mid, reactions: msg.reactions || {} });
+      ack?.({ ok: true, reactions: msg.reactions || {} });
     });
 
     // Poking the editor / Add line while the game is paused earns a special

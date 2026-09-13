@@ -87,6 +87,15 @@ test("edge tabs don't take the global button hover lift: the host tab keeps its 
   const css = readFileSync(new URL("../public/css/base.css", import.meta.url), "utf-8");
   assert.match(css, /\.doc-side-tab:hover \{[^}]*transform: translateY\(-50%\)/);
   assert.match(css, /\.gk-tab:hover \{[^}]*transform: none/);
+  // both edge tabs take an icon's room, not the global button's min-width
+  assert.match(css, /\.gk-tab \{[^}]*min-width: 0/);
+  assert.match(css, /\.doc-side-tab \{[^}]*min-width: 0/);
+  // and an icon's width of air either side of the icon
+  assert.match(css, /\.gk-tab \{[^}]*padding: 10px 1em/);
+  assert.match(css, /\.doc-side-tab \{[^}]*padding: 10px 1em/);
+  // the host's ⚙️ tab joins the stack: in flow, mirrored to the left edge
+  assert.match(css, /\.gk-tabs \.doc-side-tab \{[^}]*position: static/);
+  assert.match(css, /\.gk-tabs \.doc-side-tab \{[^}]*border-radius: 0 var\(--r-md\) 12px 0/);
 });
 
 test("hudCtlHtml: the −/× corner controls; the HUD's own − folds it to its tab (the toy stays out)", async () => {

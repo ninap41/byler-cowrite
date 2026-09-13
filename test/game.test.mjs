@@ -471,3 +471,42 @@ test("scoreboard: a non-friendly reveal scores every account with words in the s
     await ctx2.stop();
   }
 });
+
+test("reactions: a person message takes an emoji toggle from writers and spectators; system lines and junk refuse", async () => {
+  const { A, B, code } = await startedGame(ctx);
+  const got = new Promise((r) => B.on("chat", (m) => !m.sys && r(m)));
+  A.emit("chat", { text: "react to me" });
+  const m = await got;
+  assert.ok(m.mid, "a person message carries a mid");
+  // B reacts, everyone (A included) gets the repaint
+  const seen = new Promise((r) => A.on("chat-react", r));
+  const ack = await ctx.emit(B, "chat-react", { mid: m.mid, emoji: "🔥" });
+  assert.equal(ack.ok, true);
+  assert.equal(ack.reactions["🔥"].length, 1);
+  const ev = await seen;
+  assert.equal(ev.mid, m.mid);
+  assert.equal(ev.reactions["🔥"][0].name, "mikewheeler"); // the seat's name, not the payload's
+  // toggling again takes it off
+  const off = await ctx.emit(B, "chat-react", { mid: m.mid, emoji: "🔥" });
+  assert.deepEqual(off.reactions, {});
+  // an emoji off the list, or a bad mid, is refused
+  assert.equal((await ctx.emit(B, "chat-react", { mid: m.mid, emoji: "<script>" })).ok, false);
+  assert.equal((await ctx.emit(B, "chat-react", { mid: "nope", emoji: "❤️" })).ok, false);
+  // a spectator reacts too, under their own name, and history carries it all
+  const S = await ctx.conn();
+  await ctx.emit(S, "spectate-session", { code });
+  const sa = await ctx.emit(S, "chat-react", { mid: m.mid, emoji: "👀", name: "Eleven <b>1</b>" });
+  assert.equal(sa.ok, true);
+  assert.equal(sa.reactions["👀"][0].name, "Eleven 1");
+  const S2 = await ctx.conn();
+  const hist = new Promise((r) => S2.on("chat-history", r));
+  await ctx.emit(S2, "spectate-session", { code });
+  const h = await hist;
+  assert.equal(h.find((x) => x.mid === m.mid).reactions["👀"].length, 1, "reactions ride chat-history");
+  // system lines carry no mid, so nothing can point at them
+  const sysLines = h.filter((x) => x.sys);
+  assert.ok(sysLines.length, "the history has system lines (the game started)");
+  assert.ok(sysLines.every((x) => x.mid === undefined), "no mid on a system line");
+  S.disconnect();
+  S2.disconnect();
+});

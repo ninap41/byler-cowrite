@@ -3066,6 +3066,166 @@ input[type="checkbox"]:focus-visible {
 	color: var(--muted);
 	font-style: italic;
 }
+/* ---- emoji reactions on chat messages (components/reactions.js) ----
+   a Discord-style row of counted chips under a person's line; the ☺+ shows
+   on hover and opens a picker; system lines (gimmick calls) carry none */
+.chat-log .msg[data-mid] {
+	position: relative;
+	padding-right: 30px;
+}
+.chat-log .reacts {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: flex-start;
+	gap: 4px;
+	margin-top: 3px;
+}
+.chat-log .reacts:empty {
+	display: none;
+}
+.chat-log .react,
+.react-pick .react-opt {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 1px 7px;
+	flex: none; /* the global button rule stretches (flex: 1, min-width 110px) */
+	width: auto;
+	min-width: 0;
+	min-height: 0;
+	height: 22px;
+	font-size: 0.8rem;
+	line-height: 1;
+	font-family: var(--font-body);
+	color: var(--ink);
+	background: var(--panel);
+	border: 1px solid var(--line);
+	border-radius: 999px;
+	box-shadow: none;
+	cursor: pointer;
+}
+.chat-log .react .react-n {
+	font-family: var(--font-mono);
+	font-size: 0.72rem;
+	color: var(--muted);
+}
+.chat-log .react {
+	border: none; /* a soft pill, no outline */
+}
+.chat-log .react.mine,
+.react-pick .react-opt.on {
+	border-color: var(--accent-2);
+	background: color-mix(in srgb, var(--accent-2) 22%, var(--panel));
+}
+.chat-log .react.mine .react-n {
+	color: var(--accent-2);
+}
+/* a tiny pill with a grey smiley, shown on hover */
+.chat-log .react-add {
+	position: absolute;
+	right: 0;
+	top: 0;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex: none;
+	min-width: 0;
+	min-height: 0;
+	height: 18px;
+	width: 26px;
+	padding: 0;
+	font-size: 0.72rem;
+	line-height: 1;
+	color: var(--muted);
+	background: var(--panel);
+	border: 1px solid var(--line);
+	border-radius: 999px;
+	box-shadow: none;
+	opacity: 0;
+	cursor: pointer;
+	transform: none;
+}
+.chat-log .react-add i {
+	color: var(--muted);
+	background: none;
+	-webkit-text-fill-color: currentColor;
+}
+.chat-log .msg:hover .react-add,
+.chat-log .react-add:focus-visible {
+	opacity: 1;
+}
+.chat-log .react-add:hover {
+	color: var(--ink);
+	transform: none;
+}
+@media (hover: none) {
+	.chat-log .react-add {
+		opacity: 1;
+	}
+}
+/* the picker is a neat grid of SYSTEM emoji — eight across, never gradiented
+   (`.react-pick` is on util.js's EMOJI_SKIP list) */
+.react-pick {
+	position: fixed;
+	z-index: 120;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding: 8px;
+	width: calc(8 * 32px + 7 * 2px + 16px);
+	background: var(--bg-2);
+	border: 1px solid var(--line);
+	border-radius: var(--r-md);
+	box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+}
+.react-pick .react-search {
+	width: 100%;
+	box-sizing: border-box;
+	padding: 6px 10px;
+	font-size: 0.85rem;
+	font-family: var(--font-body);
+	color: var(--ink);
+	background: var(--panel);
+	border: 1px solid var(--line);
+	border-radius: 999px;
+}
+.react-pick .react-grid {
+	display: grid;
+	grid-template-columns: repeat(8, 32px);
+	gap: 2px;
+	max-height: 50vh;
+	overflow-y: auto;
+}
+.react-pick .react-none {
+	grid-column: 1 / -1;
+	padding: 10px 4px;
+	font-size: 0.82rem;
+	color: var(--muted);
+}
+.react-pick .react-opt {
+	height: 32px;
+	width: 32px;
+	padding: 0;
+	justify-content: center;
+	font-size: 1.15rem;
+	font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+	background: transparent;
+	border-color: transparent;
+	border-radius: 6px;
+	transform: none;
+}
+.react-pick .react-opt:hover {
+	background: var(--panel);
+	transform: none;
+}
+.chat-log .react .react-e {
+	font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+	background: none;
+	-webkit-text-fill-color: initial;
+}
+.react-pick.hidden {
+	display: none;
+}
 .chat-row {
 	display: flex;
 	gap: 8px;
@@ -4513,30 +4673,63 @@ button.danger,
 	/* the side column holds the writers AND the chat, so it is a real column,
 	   not a rail: one width, --game-side-w, in every grid rule below */
 	--game-side-w: 340px;
-	grid-template-columns: minmax(0, 1fr) var(--game-side-w) var(--doc-side-w, 300px);
+	grid-template-columns: minmax(0, 1fr) var(--game-side-w);
 	gap: 28px;
 	align-items: start;
 }
-.game-cols.side-closed {
-	grid-template-columns: minmax(0, 1fr) var(--game-side-w);
+/* ---- Host controls: a modal (#hostModal in game.html) ----
+   the .confirm-modal overlay with a taller card; the ✕ sits in the card's
+   corner; on a phone the card IS the screen (full width and height) */
+.host-modal {
+	z-index: 95;
+	align-items: flex-start;
+	padding-top: 6vh;
 }
-.game-cols.side-closed .doc-side {
-	display: none;
+.host-modal-card {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	max-width: 520px;
+	max-height: 88vh;
+	padding: 18px 22px 22px;
 }
-/* the drawer's card is sticky against the top of the window here — the game
-   page has no sticky editor head to clear */
-.game-cols .doc-side-card {
-	top: 18px;
-	max-height: calc(100vh - 36px);
-	overflow: auto;
+.host-modal-head {
+	position: sticky;
+	top: 0;
+	margin: 0 0 12px;
+	padding: 0 0 10px;
+	border-bottom: 1px solid var(--line);
 }
-/* the settings scroll inside the card (like the comments pane) — the head
-   and grip stay put, so a long rules form never gets clipped at the fold */
+.host-modal-head .doc-side-close {
+	position: absolute;
+	top: 10px;
+	right: 10px;
+}
+/* the settings scroll inside the card — the head stays put, so a long rules
+   form never gets clipped at the fold */
 #hostPanel {
 	flex: 1 1 auto;
 	min-height: 0;
 	overflow-y: auto;
 	overscroll-behavior: contain;
+}
+@media (max-width: 860px) {
+	.host-modal {
+		padding: 0;
+	}
+	.host-modal-card {
+		width: 100%;
+		max-width: none;
+		height: 100%;
+		max-height: none;
+		border-radius: 0;
+		border: none;
+		padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+	}
+	.host-modal-head .doc-side-close {
+		top: 8px;
+		right: 8px;
+	}
 }
 .game-main {
 	position: relative;
@@ -4580,21 +4773,13 @@ button.danger,
 	margin-bottom: 10px;
 }
 @media (max-width: 860px) {
-	/* the drawer becomes a bottom sheet (the .doc-side phone rules do that
-	   part); the grid just stops holding a column for it */
-	.game-cols,
-	.game-cols.side-closed {
+	.game-cols {
 		--game-side-w: 280px;
 		grid-template-columns: minmax(0, 1fr) var(--game-side-w);
 	}
-	/* the sheet covers the foot of the page — give the story somewhere to end */
-	.game-cols:not(.side-closed) .game-main {
-		padding-bottom: calc(var(--doc-side-w, 300px) + 20px);
-	}
 }
 @media (max-width: 760px) {
-	.game-cols,
-	.game-cols.side-closed {
+	.game-cols {
 		grid-template-columns: 1fr;
 	}
 }
@@ -7543,7 +7728,8 @@ body.resizing-side {
 	background: var(--panel);
 	color: var(--ink);
 	border-radius: var(--r-md) 0 0 12px;
-	padding: 12px 10px;
+	padding: 10px 1em; /* an icon's width of air on each side of the icon */
+	min-width: 0; /* an icon's room, not the global button's 110px */
 	cursor: pointer;
 	box-shadow: var(--panel-glow);
 	font-size: 0.9rem;
@@ -10103,11 +10289,28 @@ body.game-page .session-bar .sess-name {
 	background: var(--panel);
 	color: var(--ink);
 	border-radius: 0 var(--r-md) 12px 0;
-	padding: 12px 10px;
+	padding: 10px 1em; /* an icon's width of air on each side of the icon */
+	min-width: 0; /* an icon's room, not the global button's 110px */
 	cursor: pointer;
 	box-shadow: var(--panel-glow);
 	font-size: 0.95rem;
 	line-height: 1;
+}
+/* the host's ⚙️ tab (#hostOpen, a .doc-side-tab) is moved INTO the stack by
+   game.html, so it stands with the gimmick tabs on the left edge: flow, not
+   fixed, mirrored to open leftward */
+.gk-tabs .doc-side-tab {
+	position: static;
+	transform: none;
+	pointer-events: auto;
+	border: 1px solid var(--panel-brd);
+	border-left: 0;
+	border-radius: 0 var(--r-md) 12px 0;
+	font-size: 0.95rem;
+	line-height: 1;
+}
+.gk-tabs .doc-side-tab:hover {
+	transform: none;
 }
 .gk-tab:hover {
 	transform: none; /* an edge tab stays put on hover */
@@ -11471,6 +11674,23 @@ html.vcx-live[data-theme="vecna"] #vc-pend {
 .option.mine .votecount {
 	border-color: var(--good);
 	color: var(--good);
+}
+
+/* ---- Gimmick HUD glass: one opacity and one floor on every HUD ----
+   The glasses were 42% panel over the game and read as fog; they are now
+   mostly solid, and every one holds a minimum width so a readout that
+   changes ("rolled 20" → "rolled 3", a score, a countdown) never makes the
+   whole panel breathe. Just before the button rule, which stays last. */
+.gd-hud,
+.gg-hud,
+.ms-hud,
+.db-hud,
+.ar-hud,
+.sk-hud,
+.vcx-hud {
+	min-width: min(300px, calc(100vw - 32px));
+	background: color-mix(in srgb, var(--panel) 92%, transparent);
+	border-color: var(--panel-brd);
 }
 
 /* ---- Gimmick HUD buttons: one small, uniform size on every glass ----

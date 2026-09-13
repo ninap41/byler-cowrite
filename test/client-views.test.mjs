@@ -184,3 +184,56 @@ test("solo-write exports: one chapter headed under the title, or the whole work 
   assert.equal(slugOf("The Upside Down!"), "the-upside-down");
   assert.equal(slugOf("   "), "story");
 });
+
+// ---- chat reactions ----
+test("reactions: toggle per key, refuse system lines and unknown emoji, render counted chips with mine marked", async () => {
+  const { REACTIONS, toggleReaction, reactionsHtml, reactionPickerHtml } = await import("../public/js/components/reactions.js");
+  const m = { mid: "abc", text: "hi" };
+  assert.equal(toggleReaction(m, "u1", "will", "❤️"), true);
+  assert.equal(toggleReaction(m, "u2", "mike", "❤️"), true);
+  assert.equal(m.reactions["❤️"].length, 2);
+  assert.equal(toggleReaction(m, "u1", "will", "❤️"), true, "toggling off");
+  assert.equal(m.reactions["❤️"].length, 1);
+  assert.equal(toggleReaction(m, "u1", "will", "🤖"), false, "off the list");
+  assert.equal(toggleReaction({ sys: true, text: "rolled a 13" }, "u1", "will", "❤️"), false, "system lines refuse");
+  assert.equal(toggleReaction({ text: "no mid" }, "u1", "will", "❤️"), false);
+  const html = reactionsHtml(m.reactions, "u2");
+  assert.ok(html.includes('class="react mine"') && html.includes('data-react="❤️"') && html.includes('<span class="react-n">1</span>'));
+  assert.ok(reactionsHtml(m.reactions, "u9").includes('class="react"'), "not mine without my key");
+  assert.equal(reactionsHtml(undefined, "u1"), "");
+  toggleReaction(m, "u2", "mike", "❤️");
+  assert.equal(m.reactions, undefined, "an emptied map goes away");
+  assert.equal(toggleReaction(m, "u3", "<b>x</b>", "🔥"), true);
+  assert.ok(reactionsHtml(m.reactions, "u3").includes('title="&lt;b&gt;x&lt;/b&gt;"'), "names escaped in the tooltip");
+  const pick = reactionPickerHtml(m.reactions, "u3");
+  assert.equal((pick.match(/react-opt/g) || []).length, REACTIONS.length);
+  assert.ok(pick.includes('class="react-opt on" data-react="🔥"'));
+  assert.ok(pick.includes('class="react-search"'), "a search box over the grid");
+});
+
+test("reactions: the list is a grid of whole rows, every emoji has search words, search matches by word prefix", async () => {
+  const { REACTIONS, EMOJI_WORDS, searchReactions, reactionGridHtml } = await import("../public/js/components/reactions.js");
+  assert.equal(REACTIONS.length % 8, 0, "eight per row");
+  assert.equal(new Set(REACTIONS).size, REACTIONS.length, "no duplicates");
+  for (const e of REACTIONS) assert.ok(EMOJI_WORDS[e]?.trim(), e + " has words");
+  assert.deepEqual(searchReactions(""), REACTIONS, "empty query = everything");
+  assert.deepEqual(searchReactions("  "), REACTIONS);
+  assert.ok(searchReactions("hea").includes("❤️") && searchReactions("hea").includes("🫶"), "prefix match");
+  assert.deepEqual(searchReactions("Red Heart"), ["❤️"], "every word must hit, case-insensitive");
+  assert.deepEqual(searchReactions("zzzzz"), []);
+  assert.deepEqual(searchReactions("waffle"), ["🧇"]);
+  const grid = reactionGridHtml({ "🔥": [{ key: "u1", name: "will" }] }, "u1", "fire");
+  assert.ok(grid.includes('class="react-opt on" data-react="🔥"') && !grid.includes("😂"));
+  const none = reactionGridHtml({}, "u1", "<b>zz</b>");
+  assert.ok(none.includes("react-none") && none.includes("&lt;b&gt;zz&lt;/b&gt;"), "no-match note, query escaped");
+});
+
+test("reactions: chip markup — one chip per emoji in list order, count, tooltip of names, no chip for an empty list", async () => {
+  const { reactionsHtml } = await import("../public/js/components/reactions.js");
+  const html = reactionsHtml({ "👀": [{ key: "a", name: "will" }, { key: "b", name: "mike" }], "😂": [{ key: "a", name: "will" }], "💀": [] }, "zz");
+  const chips = html.match(/<button[^>]*class="react[^"]*"/g) || [];
+  assert.equal(chips.length, 2, "an empty list draws nothing");
+  assert.ok(html.indexOf('data-react="😂"') < html.indexOf('data-react="👀"'), "list order, not insertion order");
+  assert.ok(html.includes('title="will, mike"') && html.includes('<span class="react-n">2</span>'));
+  assert.ok(!html.includes("mine"));
+});

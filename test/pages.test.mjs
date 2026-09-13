@@ -547,29 +547,32 @@ test("pause and end-and-reveal live in the session bar, host-only", async () => 
   assert.ok(!panel.includes('id="pauseBtn"') && !panel.includes('id="endBtn"'), "not left behind in the panel too");
 });
 
-test("host controls are the comments drawer, on the game page", async () => {
+test("host controls are a modal on the game page: the ⚙️ tab opens it, the ✕ in its corner closes it, full-screen on a phone", async () => {
   const { body } = await page("/game");
-  // the same classes as the solo editor's rail — one set of CSS, one behaviour
-  const write = (await page("/write")).body;
-  for (const cls of ["doc-side", "doc-side-card", "doc-side-grip", "doc-side-head", "doc-side-close", "doc-side-tab"])
-    assert.ok(body.includes(cls) && write.includes(cls), cls + " is shared with the write page");
-  assert.ok(body.includes('id="hostSide"') && body.includes('id="hostOpen"'), "drawer and the tab that reopens it");
-  assert.ok(body.includes("mountSideDrawer"), "wired by the shared component");
-  // the settings moved INTO it, and the prompt moved into the main column so
-  // the side runs beside it
-  const drawer = body.slice(body.indexOf('id="hostSide"'), body.indexOf('id="hostOpen"'));
-  assert.ok(drawer.includes('id="hostRules"') && drawer.includes('id="coverInput2"'), "rules and cover live in the drawer");
-  const main = body.slice(body.indexOf('class="game-main"'), body.indexOf("</aside>"));
+  assert.ok(body.includes('id="hostModal"') && body.includes('role="dialog"'), "a dialog");
+  assert.ok(body.includes('id="hostOpen"') && body.includes('aria-controls="hostModal"'), "the tab that opens it");
+  assert.ok(!body.includes('id="hostSide"') && !body.includes("mountSideDrawer"), "no drawer any more");
+  const modal = body.slice(body.indexOf('id="hostModal"'), body.indexOf('id="hostPanel"'));
+  assert.ok(modal.includes('id="hostClose"') && modal.includes("doc-side-close"), "the ✕ is in the modal's head");
+  const panel = body.slice(body.indexOf('id="hostPanel"'), body.indexOf("</div>\n\t\t\t\t\t</div>", body.indexOf('id="hostPanel"')));
+  assert.ok(panel.includes('id="hostRules"') && panel.includes('id="coverInput2"'), "rules and cover live in the modal");
+  assert.match(body, /\$\("hostOpen"\)\.onclick = openHostModal/);
+  assert.match(body, /\$\("gkTabs"\)\.prepend\(\$\("hostOpen"\)\)/, "the ⚙️ tab stacks with the gimmick tabs on the left edge");
+  assert.match(body, /\$\("hostClose"\)\.onclick = closeHostModal/);
+  assert.match(body, /e\.key === "Escape" && closeHostModal\(\)/, "Escape closes");
+  const main = body.slice(body.indexOf('class="game-main"'), body.indexOf('id="storyBox"'));
   assert.ok(main.includes('id="gamePrompt"'), "the prompt banner is inside the main column");
-  // and the drawer is a real column that can close
   const css = (await page("/css/base.css")).body;
-  assert.match(css, /\.game-cols \{[^}]*var\(--doc-side-w/, "the drawer's width is the rail's own variable");
-  assert.match(css, /\.game-cols\.side-closed \{/, "closing it gives the width back");
+  assert.ok(!/\.game-cols[^{]*\{[^}]*--doc-side-w/.test(css), "the grid holds no drawer column");
+  // the modal's card fills a phone screen and the ✕ stands in its corner
+  const phone = css.slice(css.indexOf(".host-modal-card {"), css.indexOf("/* ---------- Low-time alarm"));
+  assert.match(phone, /@media \(max-width: 860px\) \{[^@]*\.host-modal-card \{[^}]*width: 100%;[^}]*height: 100%;/, "full width and height on a phone");
+  assert.match(css, /\.host-modal-head \.doc-side-close \{[^}]*position: absolute;[^}]*right: 10px/, "✕ in the corner");
   // the side column (writers + chat) is one width everywhere: every grid rule
   // reads --game-side-w, no bare pixel column survives
   assert.match(css, /\.game-cols \{[^}]*--game-side-w: 340px/, "the column names its width once");
   const gridRules = [...css.matchAll(/\.game-cols(?:\.side-closed)? \{[^}]*grid-template-columns: ([^;]+);/g)].map((m) => m[1]);
-  assert.ok(gridRules.length >= 4, "desktop + closed + the two breakpoints");
+  assert.ok(gridRules.length >= 3, "desktop + the two breakpoints");
   for (const cols of gridRules) assert.ok(cols === "1fr" || cols.includes("var(--game-side-w)"), "no hard-coded side width: " + cols);
   assert.match(css, /#game \.chat-sec \.chat-row \{[^}]*flex-wrap: nowrap/, "the composer stays on one line");
   // the player pills are one four-column table, words in the middle

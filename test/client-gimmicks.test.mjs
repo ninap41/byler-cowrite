@@ -233,6 +233,17 @@ test("chat is a section of the game's side column, under Writers & spectators; n
   assert.ok(side.includes('id="chatLog"') && side.includes('id="chatInput"'), "log and composer live in the section");
 });
 
+test("every gimmick HUD is one mostly-solid glass with a width floor, so a changing readout never resizes it", () => {
+  const css = readFileSync(new URL("../public/css/base.css", import.meta.url), "utf8");
+  const at = css.lastIndexOf("Gimmick HUD glass");
+  assert.ok(at > 0, "the shared glass rule exists");
+  const block = css.slice(at, css.indexOf("}", at) + 1);
+  for (const sel of [".gd-hud", ".gg-hud", ".ms-hud", ".db-hud", ".ar-hud", ".sk-hud", ".vcx-hud"]) assert.ok(new RegExp(sel.replace(".", "\\.") + "[,\\s{]").test(block), sel + " is covered");
+  assert.match(block, /min-width: min\(300px/, "a width floor");
+  assert.match(block, /var\(--panel\) 92%, transparent/, "mostly solid");
+  assert.ok(at < css.lastIndexOf("Gimmick HUD buttons"), "before the button rule, which stays last");
+});
+
 test("every gimmick HUD's action buttons share one compact size rule (last in base.css, so it outranks the per-HUD rules)", () => {
   const css = readFileSync(new URL("../public/css/base.css", import.meta.url), "utf8");
   const at = css.lastIndexOf("Gimmick HUD buttons");
