@@ -47,7 +47,8 @@ export async function startServer(extraEnv = {}) {
     });
     try {
       await new Promise((resolve, reject) => {
-        const t = setTimeout(() => reject(new Error("server did not start")), 8000);
+        // generous: a dozen files boot servers at once under `npm test`
+        const t = setTimeout(() => reject(new Error("server did not start")), 20000);
         child.stdout.on("data", (d) => {
           if (String(d).includes("running")) {
             clearTimeout(t);

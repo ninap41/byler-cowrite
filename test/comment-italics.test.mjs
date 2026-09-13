@@ -76,7 +76,12 @@ test("beta reader comments on a word every two paragraphs across the whole itali
   B.emit("doc-open", { auth: bob.token, id });
   // keep the canonical html the server pushes back (the client does the same)
   let base = put.data.doc.html;
-  B.on("doc-html", ({ html }) => { base = html; });
+  let onSync = null;
+  B.on("doc-html", ({ html }) => { base = html; onSync?.(); onSync = null; });
+  // the next comment must be built from the html the server pushed back after
+  // the last one — a fixed sleep is a race under a loaded suite, so wait for
+  // the push itself (bounded, so a refused comment can't hang the test)
+  const synced = () => new Promise((r) => { onSync = r; setTimeout(r, 2000); });
   await ctx.wait(150);
 
   let attempted = 0, skipped = 0;
@@ -84,8 +89,9 @@ test("beta reader comments on a word every two paragraphs across the whole itali
     const w = wrapWordInParagraph(base, pIndex, randCid());
     if (!w) { skipped++; continue; } // a blank/short paragraph, nothing to wrap
     attempted++;
+    const sync = synced();
     B.emit("doc-comment", { auth: bob.token, id, cid: w.cid, html: w.html, text: `note on para ${pIndex}` });
-    await ctx.wait(45); // let the round trip (and doc-html resync) land
+    await sync; // the round trip and the doc-html resync have landed
   }
   await ctx.wait(300);
 

@@ -14,14 +14,12 @@ test("signed-out sockets cannot host; signed-in create works and announces start
 
   const u = await signup(ctx, "hostuser1", "h1@x.com");
   const A = await ctx.conn();
-  const chats = [];
-  A.on("chat", (m) => chats.push(m));
+  const firstSys = new Promise((r) => A.on("chat", (m) => m.sys && r(m)));
   const c = await ctx.emit(A, "create-session", { auth: u.token });
   assert.equal(c.ok, true);
   assert.match(c.code, /^[A-Z0-9]{4}$/);
   await ctx.emit(A, "start-game", { turnSeconds: 60, rounds: 1 });
-  await ctx.wait(150);
-  const sys = chats.find((m) => m.sys);
+  const sys = await firstSys;
   assert.equal(sys.name, "hostuser1");
   assert.equal(sys.text, "started the game");
 });
