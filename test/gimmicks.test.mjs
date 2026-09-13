@@ -467,12 +467,14 @@ test("galaga steals STACK: the best run holds the turn, a lower run past the tar
     assert.equal(over.stole, true, "the higher score steals the stolen turn");
     await local.wait(150);
     assert.equal(game.currentId, C.id);
-    // a NATURAL turn change wipes the ledger: Will submits, the next turn
-    // can be stolen by any run past the target again
+    // a NATURAL turn change wipes the ledger: Will submits, and the circle
+    // carries on after the VICTIM (the admin) — Mike's turn, not the admin's
+    // again — where the next turn can be stolen by any run past the target
     await local.emit(C, "submit-line", { text: "a line from the thief" });
     await local.wait(150);
+    assert.equal(game.currentId, B.id, "after the stolen turn the order resumes after the victim");
     await local.wait(80);
-    const fresh = await local.emit(B, "gimmick-galaga", { score: 8050 });
+    const fresh = await local.emit(C, "gimmick-galaga", { score: 8050 });
     assert.equal(fresh.stole, true, "a new turn starts the contest over");
   } finally {
     await local.stop();
@@ -915,4 +917,50 @@ test("a non-friendly game keeps score: roster/game-state writers carry `words` f
   await ctx.emit(f.A, "submit-line", { text: "four five" });
   await ctx.wait(150);
   assert.ok(fst.writers.every((w) => w.words === undefined), "a friendly game is not a race");
+});
+
+test("a stolen turn costs only its victim: when the thief's turn ends, the circle resumes with whoever was after the VICTIM", async () => {
+  const local = await startServer({ COWRITE_DICE_FIXED: "20,20", COWRITE_ROLL_COOLDOWN_MS: "0" });
+  try {
+    const admin = await signup(local, "orderadmin", ADMIN_EMAIL);
+    const mike = await signup(local, "ordermike", "ordermike@x.com", "#e63946");
+    const will = await signup(local, "orderwill", "orderwill@x.com", "#3ddc84");
+    const A = await local.conn(), B = await local.conn(), C = await local.conn();
+    let game = null;
+    A.on("game-state", (st) => (game = st));
+    const c = await local.emit(A, "create-session", { auth: admin.token });
+    await local.emit(B, "join-session", { code: c.code, auth: mike.token });
+    await local.emit(C, "join-session", { code: c.code, auth: will.token });
+    await local.emit(A, "start-game", { turnSeconds: 60, rounds: 3, friendly: false });
+    await local.wait(150);
+    await finishVote(local, A, [B, C], game.options[0]);
+    assert.deepEqual(game.turnOrder, [A.id, B.id, C.id]);
+    assert.equal(game.currentId, A.id, "the admin's turn");
+    const before = game.deadline;
+    await local.wait(30);
+    // Will (third in line) rolls a 20 and steals the admin's turn
+    const r = await local.emit(C, "gimmick-roll", { id: "d20" });
+    assert.equal(r.stole, true);
+    await local.wait(150);
+    assert.equal(game.currentId, C.id, "Will holds the turn");
+    assert.ok(game.deadline > before, "with a fresh clock");
+    assert.equal(game.nextId, B.id, "and next up is still Mike — the one after the victim");
+    assert.deepEqual(game.turnOrder, [A.id, B.id, C.id], "the order itself is untouched");
+    // Will writes; the turn passes to Mike, NOT back to the admin and NOT to whoever follows Will
+    await local.emit(C, "submit-line", { text: "Will's stolen line" });
+    await local.wait(150);
+    assert.equal(game.currentId, B.id, "Mike writes after the stolen turn");
+    assert.equal(game.story.at(-1).name, "orderwill");
+    // now Mike's own turn is stolen by the admin: the circle still resumes after Mike
+    const r2 = await local.emit(A, "gimmick-roll", { id: "d20" });
+    assert.equal(r2.stole, true);
+    await local.wait(150);
+    assert.equal(game.currentId, A.id, "the admin holds Mike's turn");
+    assert.equal(game.nextId, C.id, "next up is Will — after Mike, the victim");
+    await local.emit(A, "submit-line", { text: "admin's stolen line" });
+    await local.wait(150);
+    assert.equal(game.currentId, C.id, "Will writes after Mike's stolen turn");
+  } finally {
+    await local.stop();
+  }
 });

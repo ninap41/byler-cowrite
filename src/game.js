@@ -554,7 +554,12 @@ export function createGame(io) {
     return s.options;
   }
 
-  const currentId = (s) => s.turnOrder[s.currentIdx] ?? null;
+  // Who writes right now. A stolen turn (d20 natural 20, a Galaga high
+  // score) is held by s.thiefId ON TOP of the order: currentIdx stays on the
+  // victim's seat, so when the thief's turn ends the circle carries on with
+  // whoever was after the VICTIM — a steal costs its victim one turn and
+  // nobody else their place in line.
+  const currentId = (s) => (s.thiefId && s.writers.has(s.thiefId) ? s.thiefId : (s.turnOrder[s.currentIdx] ?? null));
   const names = (s) =>
     s.turnOrder.length
       ? s.turnOrder.map((id) => s.writers.get(id)?.name)
@@ -768,10 +773,13 @@ export function createGame(io) {
     s.stealScore = 0; // a fresh turn wipes the stacked-steal ledger
     s.stealBy = "";
     if (s.turnOrder.length === 0) return endGame(s);
+    // a thief who left hands the turn back to the seat it was taken from
+    if (s.thiefId && !s.writers.get(s.thiefId)?.connected) s.thiefId = null;
     // Skip ghost seats; if nobody is connected, auto-pause (and snapshot) so the
     // game waits instead of burning empty turns.
     let hops = 0;
     while (hops < s.turnOrder.length && !s.writers.get(currentId(s))?.connected) {
+      s.thiefId = null;
       s.currentIdx = (s.currentIdx + 1) % s.turnOrder.length;
       hops++;
     }
@@ -815,6 +823,7 @@ export function createGame(io) {
     s.turnCount++;
     saveSnapshot(s); // every committed line hits disk — the code stays revivable
     if (s.maxTurns && s.turnCount >= s.maxTurns) return endGame(s);
+    s.thiefId = null; // the stolen turn is spent; the circle resumes after the victim
     s.currentIdx = (s.currentIdx + 1) % s.turnOrder.length;
     startTurn(s);
   }
@@ -823,6 +832,7 @@ export function createGame(io) {
     s.prompt = prompt;
     s.phase = "writing";
     s.currentIdx = 0;
+    s.thiefId = null;
     s.turnCount = 0;
     s.story = [];
     s.votes.clear();
@@ -886,7 +896,8 @@ export function createGame(io) {
     if (s.phase === "writing") {
       const pos = s.turnOrder.indexOf(id);
       if (pos !== -1) {
-        const wasCurrent = pos === s.currentIdx;
+        const wasCurrent = currentId(s) === id;
+        if (s.thiefId === id) s.thiefId = null; // the thief left: back to the seat it was taken from
         s.turnOrder.splice(pos, 1);
         if (s.turnOrder.length === 0) return endGame(s);
         if (pos < s.currentIdx) s.currentIdx--;
@@ -916,6 +927,7 @@ export function createGame(io) {
       s.writers.set(sock.id, w);
       const pos = s.turnOrder.indexOf(oldId);
       if (pos !== -1) s.turnOrder[pos] = sock.id;
+      if (s.thiefId === oldId) s.thiefId = sock.id;
       if (s.votes.has(oldId)) { s.votes.set(sock.id, s.votes.get(oldId)); s.votes.delete(oldId); }
       if (s.ready?.has(oldId)) { s.ready.delete(oldId); s.ready.add(sock.id); }
       if (s.hostId === oldId) s.hostId = sock.id;
@@ -1124,6 +1136,8 @@ export function createGame(io) {
       s.phase = "choosing";
       s.turnOrder = [...s.writers.keys()];
       s.currentIdx = 0;
+      s.thiefId = null;
+    s.thiefId = null;
       s.turnCount = 0;
       if (!writeMore) s.story = [];
       s.votes.clear();
@@ -1482,6 +1496,8 @@ export function createGame(io) {
       s.turnCount = 0;
       s.maxTurns = r > 0 ? r * s.turnOrder.length : null;
       s.currentIdx = 0;
+      s.thiefId = null;
+    s.thiefId = null;
       s.votes.clear();
       s.phase = "writing";
       ack?.({ ok: true });
@@ -1651,10 +1667,9 @@ export function createGame(io) {
       let stole = false, from = "";
       const declined = outcome.steal && steal === false;
       if (outcome.steal && !declined && s.phase === "writing" && !s.paused && currentId(s) !== socket.id) {
-        const idx = s.turnOrder.indexOf(socket.id);
-        if (idx !== -1) {
+        if (s.turnOrder.includes(socket.id)) {
           from = s.writers.get(currentId(s))?.name ?? "";
-          s.currentIdx = idx;
+          s.thiefId = socket.id; // held over the order — currentIdx stays on the victim
           stole = true;
         }
       }
@@ -1973,10 +1988,9 @@ export function createGame(io) {
         if (outcome.score <= (s.stealScore ?? 0)) {
           beaten = true;
         } else {
-          const idx = s.turnOrder.indexOf(socket.id);
-          if (idx !== -1) {
+          if (s.turnOrder.includes(socket.id)) {
             from = s.writers.get(currentId(s))?.name ?? "";
-            s.currentIdx = idx;
+            s.thiefId = socket.id; // held over the order — currentIdx stays on the victim
             stole = true;
           }
         }
@@ -2334,7 +2348,7 @@ export function createGame(io) {
       if (s.phase === "over") continue;
       const mine = inGame({ writers: [...s.writers.values()], story: s.story, hostUserId: s.hostUserId }, u);
       if (!mine) continue;
-      const cur = s.phase === "writing" ? s.writers.get(s.turnOrder[s.currentIdx]) : null;
+      const cur = s.phase === "writing" ? s.writers.get(currentId(s)) : null;
       out.set(s.code, {
         code: s.code, name: s.name || "", cover: s.cover || "", phase: s.phase, paused: !!s.paused,
         hosted: s.hostUserId === u.id, // the ORIGINAL host: the one who may delete it from here
@@ -2396,6 +2410,7 @@ export function createGame(io) {
     s.paused = false;
     s.turnOrder = [];
     s.currentIdx = 0;
+    s.thiefId = null;
     s.turnCount = 0;
     s.votes.clear();
     if (by) announce(s, { name: by.username, color: cleanColor(by.color) }, "reopened this story — gathering writers to write more.");
