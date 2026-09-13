@@ -4510,12 +4510,15 @@ button.danger,
    down, which give it its sticky card, its grip and its phone sheet. */
 .game-cols {
 	display: grid;
-	grid-template-columns: minmax(0, 1fr) 250px var(--doc-side-w, 300px);
+	/* the side column holds the writers AND the chat, so it is a real column,
+	   not a rail: one width, --game-side-w, in every grid rule below */
+	--game-side-w: 340px;
+	grid-template-columns: minmax(0, 1fr) var(--game-side-w) var(--doc-side-w, 300px);
 	gap: 28px;
 	align-items: start;
 }
 .game-cols.side-closed {
-	grid-template-columns: minmax(0, 1fr) 250px;
+	grid-template-columns: minmax(0, 1fr) var(--game-side-w);
 }
 .game-cols.side-closed .doc-side {
 	display: none;
@@ -4581,7 +4584,8 @@ button.danger,
 	   part); the grid just stops holding a column for it */
 	.game-cols,
 	.game-cols.side-closed {
-		grid-template-columns: minmax(0, 1fr) 250px;
+		--game-side-w: 280px;
+		grid-template-columns: minmax(0, 1fr) var(--game-side-w);
 	}
 	/* the sheet covers the foot of the page — give the story somewhere to end */
 	.game-cols:not(.side-closed) .game-main {
@@ -9840,6 +9844,18 @@ body.game-page .session-bar .sess-name {
 	border: 0;
 	box-shadow: none;
 	padding: 0 0 4px;
+}
+/* the chat fills the column edge to edge like the writers' chips above it,
+   its composer on one line */
+#game .chat-sec .chat-log {
+	margin-bottom: 10px;
+}
+#game .chat-sec .chat-row {
+	flex-wrap: nowrap;
+}
+#game .chat-sec .chat-row input {
+	flex: 1 1 auto;
+	min-width: 0;
 }
 
 /* ---- the open menu is navigation, not a stack of CTAs ---- */
