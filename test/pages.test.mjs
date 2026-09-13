@@ -572,6 +572,11 @@ test("host controls are the comments drawer, on the game page", async () => {
   assert.ok(gridRules.length >= 4, "desktop + closed + the two breakpoints");
   for (const cols of gridRules) assert.ok(cols === "1fr" || cols.includes("var(--game-side-w)"), "no hard-coded side width: " + cols);
   assert.match(css, /#game \.chat-sec \.chat-row \{[^}]*flex-wrap: nowrap/, "the composer stays on one line");
+  // the player pills are one four-column table, words in the middle
+  assert.match(css, /\.side-sec \.player-chip \{[^}]*grid-template-columns: minmax\(7\.6em, auto\) minmax\(0, 1fr\) auto auto/);
+  const chip = body.slice(body.indexOf('class="player-chip${'), body.indexOf("seatMenuHtml(w, st.writers)"));
+  assert.ok(chip.indexOf("chip-lead") < chip.indexOf("chip-who") && chip.indexOf("chip-who") < chip.indexOf("chip-words") && chip.indexOf("chip-words") < chip.indexOf("chip-tail"), "lead · who · words · tail");
+  assert.ok(!chip.includes("w.words != null ?"), "the count is unconditional");
 });
 
 // The app's name comes from the content pack (content/site.json): the server

@@ -599,13 +599,15 @@ export function createGame(io) {
   }
   const gameOverPayload = (s) => ({ prompt: s.prompt, story: s.story, scoreboard: scoreboard(s) });
   function roster(s) {
-    const score = s.friendly === false ? gameWords(s) : null; // friendly games keep no score
+    // every seat carries its words in THIS story (a count on the chip, not a
+    // score); only the reveal's scoreboard is gated on friendly === false
+    const score = gameWords(s);
     return [...s.writers.entries()].map(([id, w]) => ({
       id, name: w.name, color: w.color, badge: w.badge ?? null,
       avatar: w.avatar ?? "", avatarFit: w.avatarFit ?? "cover",
       isHost: id === s.hostId, connected: w.connected !== false,
       userId: w.userId ?? null, // gimmick relays already speak userId (the curse targets by it)
-      ...(score ? { words: score.get(w.userId) || 0 } : {}),
+      words: score.get(w.userId) || 0,
     }));
   }
   const broadcastRoster = (s) =>

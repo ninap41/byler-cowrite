@@ -1115,15 +1115,23 @@
 						const on = w.connected !== false
 						const next = w.id === st.nextId && w.id !== st.currentId
 						return (
+							// four fixed columns, so every pill lines up: seat + presence ·
+							// avatar + name · words · the tail (next, host, ⋯)
 							`<span class="player-chip${w.id === st.currentId ? " now" : ""}${next ? " next" : ""}" data-user="${esc(w.name)}">` +
+							`<span class="chip-lead">` +
 							(numbered ? `<b class="turn-no">${i + 1}</b>` : "") +
 							presenceHtml(on) +
+							`</span>` +
+							`<span class="chip-who">` +
 							miniAvatar(w) +
 							`<span style="color:${col}">${esc(w.name)}</span>` +
-							(w.words != null ? `<span class="chip-words" title="Words in this story">${w.words.toLocaleString()}w</span>` : "") +
+							`</span>` +
+							`<span class="chip-words" title="Words in this story">${(w.words || 0).toLocaleString()}w</span>` +
+							`<span class="chip-tail">` +
 							(next ? `<em class="up-next">next</em>` : "") +
 							whoMarks(w) +
 							seatMenuHtml(w, st.writers) +
+							`</span>` +
 							`</span>`
 						)
 					})

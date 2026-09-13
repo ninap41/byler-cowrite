@@ -11228,8 +11228,8 @@ html.vcx-live[data-theme="vecna"] #vc-pend {
 	}
 }
 
-/* ---- the scoreboard of a non-friendly game: a words chip on each player
-   and a ranked list on the reveal ---- */
+/* ---- a words count in the middle of every player pill (a count, not a
+   score — the reveal's scoreboard is the non-friendly part) ---- */
 .player-chip .chip-words {
 	font-family: var(--font-mono);
 	font-size: 0.7rem;
@@ -11237,6 +11237,37 @@ html.vcx-live[data-theme="vecna"] #vc-pend {
 	background: var(--chip);
 	padding: 1px 6px;
 	border-radius: 999px;
+	white-space: nowrap;
+}
+/* the pills in the side column are one table: seat + presence, avatar + name,
+   words, tail — the same four columns on every row, so nothing zigzags */
+.side-sec .player-chip {
+	display: grid;
+	grid-template-columns: minmax(7.6em, auto) minmax(0, 1fr) auto auto;
+	column-gap: 10px;
+	align-items: center;
+}
+.side-sec .player-chip .chip-lead,
+.side-sec .player-chip .chip-who,
+.side-sec .player-chip .chip-tail {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	min-width: 0;
+}
+.side-sec .player-chip .chip-lead .st-label {
+	margin-right: 0;
+}
+.side-sec .player-chip .chip-who > span:last-child {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.side-sec .player-chip .chip-tail {
+	justify-content: flex-end;
+}
+.side-sec .player-chip .chip-tail:empty {
+	display: none;
 }
 .scoreboard {
 	display: flex;

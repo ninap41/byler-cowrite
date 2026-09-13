@@ -901,7 +901,7 @@ test("every registry gimmick is linked in game.html: a launcher in the 🎲 menu
     "the friendly switch sweeps every mounted gimmick off");
 });
 
-test("a non-friendly game keeps score: roster/game-state writers carry `words` for THIS story; a friendly game carries none", async () => {
+test("every roster/game-state writer carries `words` for THIS story — a friendly game too (a count, not a score)", async () => {
   const g = await startedGame(ctx, { turnSeconds: 60, rounds: 4, friendly: false });
   let st = null;
   g.A.on("game-state", (s) => (st = s));
@@ -916,7 +916,9 @@ test("a non-friendly game keeps score: roster/game-state writers carry `words` f
   f.A.on("game-state", (s) => (fst = s));
   await ctx.emit(f.A, "submit-line", { text: "four five" });
   await ctx.wait(150);
-  assert.ok(fst.writers.every((w) => w.words === undefined), "a friendly game is not a race");
+  const fhost = fst.writers.find((w) => w.id === f.A.id);
+  assert.equal(fhost.words, 2, "the friendly host's two words are counted on the chip");
+  assert.ok(fst.writers.every((w) => typeof w.words === "number"), "every seat carries a number");
 });
 
 test("a stolen turn costs only its victim: when the thief's turn ends, the circle resumes with whoever was after the VICTIM", async () => {
