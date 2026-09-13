@@ -119,8 +119,20 @@ export async function startedGame(ctx, { turnSeconds = 60, rounds = 2, friendly 
   const j = await ctx.emit(B, "join-session", { code: c.code, auth: mike.token });
   await ctx.emit(A, "start-game", { turnSeconds, rounds, friendly });
   await ctx.wait(150);
-  A.emit("vote", { prompt: state.current.options[0] });
-  B.emit("vote", { prompt: state.current.options[0] });
-  await ctx.wait(200);
+  await finishVote(ctx, A, [B], state.current.options[0]);
   return { host, mike, A, B, code: c.code, hostSeatToken: c.token, mikeSeatToken: j.token, state };
+}
+
+// Voting is approval voting and nothing finalizes on its own: every other
+// seat votes and marks itself ready, then the host starts the game.
+export async function finishVote(ctx, host, others, prompt) {
+  for (const sock of others) {
+    if (prompt != null) await ctx.emit(sock, "vote", { prompt, on: true });
+    await ctx.emit(sock, "ready", { ready: true });
+  }
+  if (prompt != null) await ctx.emit(host, "vote", { prompt, on: true });
+  const r = await ctx.emit(host, "finalize-vote");
+  if (!r?.ok) throw new Error("finalize-vote refused: " + JSON.stringify(r));
+  await ctx.wait(200);
+  return r;
 }

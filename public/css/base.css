@@ -11343,3 +11343,53 @@ html.vcx-live[data-theme="vecna"] #vc-pend {
 .arch-tagrow .tag-edit:hover { all: unset; display: inline-block; cursor: pointer; font-size: 15px; line-height: 1; padding: 2px 4px; color: var(--accent-2); opacity: 0.8; transform: none; }
 .arch-tagrow .tag-edit:hover { opacity: 1; }
 #tagModal .tag-label { display: none; }
+
+/* ---- The vote card's ready row: approval voting means nothing finalizes on
+   its own, so each writer says when they're done and the host starts once
+   everyone has (the host's own Start click speaks for the host) ---- */
+.ready-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 10px 16px;
+	margin: 10px 0 4px;
+}
+#readyBtn.is-ready {
+	border-color: var(--good);
+	color: var(--good);
+}
+.ready-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px 10px;
+}
+.ready-list li {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 3px 10px 3px 4px;
+	border: 1px solid var(--line);
+	border-radius: var(--r-lg);
+	background: var(--panel-2);
+	font-size: 0.85rem;
+	color: var(--muted);
+}
+.ready-list li.is-ready {
+	border-color: var(--good);
+	color: var(--ink);
+}
+.ready-list .rl-name {
+	color: var(--c, var(--ink));
+	font-weight: 600;
+}
+.ready-list .rl-state {
+	font-family: var(--font-mono);
+	font-size: 0.75rem;
+}
+.option.mine .votecount {
+	border-color: var(--good);
+	color: var(--good);
+}

@@ -484,8 +484,6 @@ export function createGame(io) {
     w.ghostTimer = setTimeout(() => {
       if (s.writers.get(id) === w && !w.connected) removeWriter(s, id);
     }, GHOST_MS);
-    if (s.phase === "choosing" && s.votes.size >= connectedCount(s) && connectedCount(s) > 0)
-      return finalizeVote(s);
     if (s.phase === "waiting" || s.phase === "over") broadcastRoster(s);
     else broadcastGame(s);
   }
@@ -507,7 +505,10 @@ export function createGame(io) {
   // component ids in s.optionMeta so the vote card can show chips.
   // The other mode's ballot, kept while this one is on screen.
   function stashOptions(s) {
-    (s.optionSets ||= {})[s.promptMode] = { options: [...s.options], optionMeta: [...(s.optionMeta || [])], votes: new Map(s.votes) };
+    (s.optionSets ||= {})[s.promptMode] = {
+      options: [...s.options], optionMeta: [...(s.optionMeta || [])],
+      votes: new Map([...s.votes].map(([id, set]) => [id, new Set(set)])),
+    };
   }
   function restoreOptions(s) {
     const set = s.optionSets?.[s.promptMode];
@@ -515,7 +516,8 @@ export function createGame(io) {
     s.options = [...set.options];
     s.optionMeta = [...set.optionMeta];
     // only votes from seats still at the table come back
-    s.votes = new Map([...set.votes].filter(([id]) => s.writers.has(id)));
+    s.votes = new Map([...set.votes].filter(([id]) => s.writers.has(id)).map(([id, v]) => [id, new Set(v)]));
+    clearReady(s); // a different ballot is a different question
     return true;
   }
   function fillOptions(s, n = 4) {
@@ -604,13 +606,45 @@ export function createGame(io) {
   const broadcastRoster = (s) =>
     io.to(s.code).emit("roster", { writers: roster(s), code: s.code, name: s.name || "", cover: s.cover || "", hostUserId: s.hostUserId ?? null, continued: (s.story || []).length > 0 });
 
+  // Voting is APPROVAL voting: s.votes is socket id -> Set of the options
+  // that writer is happy with, so one seat can back several scenarios and
+  // the tally counts every one of them. Nothing finalizes on its own any
+  // more — each writer marks READY (s.ready, socket ids) when they're done
+  // voting, and only once every connected seat is ready may the host start.
   function tally(s) {
     const counts = s.options.map(() => 0);
-    for (const p of s.votes.values()) {
-      const i = s.options.indexOf(p);
-      if (i !== -1) counts[i]++;
-    }
+    for (const set of s.votes.values())
+      for (const p of set) {
+        const i = s.options.indexOf(p);
+        if (i !== -1) counts[i]++;
+      }
     return counts;
+  }
+  // ballots on the wire: socket id -> option indices (the tally is public,
+  // so who backed what is too — it's a party game, not a secret ballot)
+  function ballots(s) {
+    const out = {};
+    for (const [id, set] of s.votes) {
+      const idx = [...set].map((p) => s.options.indexOf(p)).filter((i) => i !== -1);
+      if (idx.length) out[id] = idx;
+    }
+    return out;
+  }
+  const votedCount = (s) => [...s.votes.values()].filter((set) => set.size > 0).length;
+  const readyIds = (s) => [...(s.ready ?? [])].filter((id) => s.writers.get(id)?.connected !== false);
+  // every connected seat has said it's done voting (the host's own click
+  // speaks for the host, so their seat needn't be marked)
+  function allReady(s, except) {
+    for (const [id, w] of s.writers)
+      if (w.connected !== false && id !== except && !s.ready?.has(id)) return false;
+    return connectedCount(s) > 0;
+  }
+  function clearReady(s) {
+    s.ready = new Set();
+  }
+  // drop every vote on a scenario that left the ballot
+  function forgetOption(s, prompt) {
+    for (const set of s.votes.values()) set.delete(prompt);
   }
 
   // Sockets in the session room that hold no seat — read-only watchers.
@@ -643,7 +677,10 @@ export function createGame(io) {
       promptMode: s.promptMode || "simple",
       promptControls: s.promptControls || cleanPromptControls(),
       tally: s.phase === "choosing" ? tally(s) : [],
-      voted: s.votes.size,
+      voted: s.phase === "choosing" ? votedCount(s) : 0,
+      ballots: s.phase === "choosing" ? ballots(s) : {},
+      ready: s.phase === "choosing" ? readyIds(s) : [],
+      allReady: s.phase === "choosing" ? allReady(s, s.hostId) : false,
       total: connectedCount(s),
       prompt: s.prompt,
       story: s.story,
@@ -789,6 +826,7 @@ export function createGame(io) {
     s.turnCount = 0;
     s.story = [];
     s.votes.clear();
+    clearReady(s);
     startTurn(s);
   }
 
@@ -825,6 +863,7 @@ export function createGame(io) {
     dropCurse(s, s.writers.get(id)?.userId);
     s.writers.delete(id);
     s.votes.delete(id);
+    s.ready?.delete(id);
 
     if (s.writers.size === 0) {
       clearTimeout(s.timer);
@@ -861,7 +900,6 @@ export function createGame(io) {
         s.turnOrder.splice(pos, 1);
         if (pos < s.currentIdx) s.currentIdx--;
       }
-      if (s.votes.size >= connectedCount(s) && connectedCount(s) > 0) return finalizeVote(s);
       broadcastGame(s);
     } else {
       broadcastRoster(s);
@@ -879,6 +917,7 @@ export function createGame(io) {
       const pos = s.turnOrder.indexOf(oldId);
       if (pos !== -1) s.turnOrder[pos] = sock.id;
       if (s.votes.has(oldId)) { s.votes.set(sock.id, s.votes.get(oldId)); s.votes.delete(oldId); }
+      if (s.ready?.has(oldId)) { s.ready.delete(oldId); s.ready.add(sock.id); }
       if (s.hostId === oldId) s.hostId = sock.id;
     }
     clearTimeout(w.ghostTimer);
@@ -1088,6 +1127,7 @@ export function createGame(io) {
       s.turnCount = 0;
       if (!writeMore) s.story = [];
       s.votes.clear();
+      clearReady(s);
       if (friendly != null) s.friendly = !!friendly;
       s.turnSeconds = cleanSeconds(turnSeconds, 60);
       const r = Number(rounds);
@@ -1111,14 +1151,32 @@ export function createGame(io) {
       saveSnapshot(s);
     });
 
-    socket.on("vote", ({ prompt }, ack) => {
+    // Approval voting: each call TOGGLES one scenario on the caller's ballot
+    // (`on` forces a direction). Nothing finalizes here — see `ready`.
+    socket.on("vote", ({ prompt, on } = {}, ack) => {
       const s = mySession();
       if (!s || s.phase !== "choosing" || !s.options.includes(prompt)) return ack?.({ ok: false });
       touch(s);
-      s.votes.set(socket.id, prompt);
-      if (s.votes.size >= connectedCount(s)) return finalizeVote(s);
+      let set = s.votes.get(socket.id);
+      if (!set) s.votes.set(socket.id, (set = new Set()));
+      const want = on == null ? !set.has(prompt) : !!on;
+      if (want) set.add(prompt);
+      else set.delete(prompt);
       broadcastGame(s);
-      ack?.({ ok: true });
+      ack?.({ ok: true, on: want, votes: [...set] });
+    });
+
+    // "I'm done voting." Once every connected seat says so the host may
+    // start; un-readying is allowed until then.
+    socket.on("ready", ({ ready = true } = {}, ack) => {
+      const s = mySession();
+      if (!s || s.phase !== "choosing") return ack?.({ ok: false });
+      touch(s);
+      s.ready ??= new Set();
+      if (ready) s.ready.add(socket.id);
+      else s.ready.delete(socket.id);
+      broadcastGame(s);
+      ack?.({ ok: true, ready: !!ready });
     });
 
     socket.on("shuffle-options", (_, ack) => {
@@ -1126,6 +1184,7 @@ export function createGame(io) {
       if (!s || s.hostId !== socket.id || s.phase !== "choosing") return ack?.({ ok: false });
       fillOptions(s);
       s.votes.clear();
+      clearReady(s);
       broadcastGame(s);
       ack?.({ ok: true });
     });
@@ -1152,7 +1211,7 @@ export function createGame(io) {
       if (next == null || s.options.includes(next)) return ack?.({ ok: false, error: "Nothing new to deal." });
       s.options[i] = next;
       (s.optionMeta ||= [])[i] = meta;
-      for (const [sid, v] of s.votes) if (v === old) s.votes.delete(sid);
+      forgetOption(s, old);
       broadcastGame(s);
       ack?.({ ok: true });
     });
@@ -1176,11 +1235,12 @@ export function createGame(io) {
         stashOptions(s);
         s.promptMode = nextMode;
         s.promptControls = nextControls;
-        if (!restoreOptions(s)) { fillOptions(s); s.votes.clear(); }
+        if (!restoreOptions(s)) { fillOptions(s); s.votes.clear(); clearReady(s); }
       } else if (knobsChanged) {
         s.promptControls = nextControls;
         fillOptions(s);
         s.votes.clear();
+        clearReady(s);
       }
       broadcastGame(s);
       ack?.({ ok: true, mode: s.promptMode, controls: s.promptControls });
@@ -1216,7 +1276,7 @@ export function createGame(io) {
       const old = s.options[i];
       s.options.splice(i, 1);
       s.optionMeta.splice(i, 1);
-      for (const [sid, v] of s.votes) if (v === old) s.votes.delete(sid);
+      forgetOption(s, old);
       broadcastGame(s);
       ack?.({ ok: true });
     });
@@ -1232,9 +1292,11 @@ export function createGame(io) {
       socket.to(s.code).emit("live-typing", { html: s.lastTyping });
     });
 
+    // Host-only, and only once everyone else at the table is ready.
     socket.on("finalize-vote", (_, ack) => {
       const s = mySession();
       if (!s || s.hostId !== socket.id || s.phase !== "choosing") return ack?.({ ok: false });
+      if (!allReady(s, socket.id)) return ack?.({ ok: false, error: "Not everyone is ready yet." });
       finalizeVote(s);
       ack?.({ ok: true });
     });

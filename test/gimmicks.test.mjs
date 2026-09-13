@@ -5,7 +5,7 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { startServer, signup, startedGame } from "./helpers.mjs";
+import { startServer, signup, startedGame, finishVote } from "./helpers.mjs";
 import {
   GIMMICKS, GIMMICK_IDS, cleanGimmickId, rollOutcome, describeRoll, DIE_SIDES,
   GALAGA_TARGET, GALAGA_MAX_SCORE, galagaOutcome, describeGalaga,
@@ -168,9 +168,7 @@ test("a table with one ranked seat lets everyone roll; a natural 20 steals the t
   await ctx.emit(B, "join-session", { code: c.code, auth: mike.token });
   await ctx.emit(A, "start-game", { turnSeconds: 60, rounds: 2, friendly: false });
   await ctx.wait(150);
-  A.emit("vote", { prompt: game.options[0] });
-  B.emit("vote", { prompt: game.options[0] });
-  await ctx.wait(200);
+  await finishVote(ctx, A, [B], game.options[0]);
   assert.equal(game.phase, "writing");
   assert.equal(game.currentId, A.id, "the admin writes first");
   assert.ok(Array.isArray(game.tableGimmicks) && game.tableGimmicks.includes("d20"), "game-state says the table (the admin) has the d20");
@@ -231,8 +229,7 @@ test("a natural 20 does NOT steal when it's already your turn or the game is pau
     await local.emit(A, "create-session", { auth: admin.token });
     await local.emit(A, "start-game", { turnSeconds: 60, rounds: 2, friendly: false });
     await local.wait(150);
-    A.emit("vote", { prompt: game.options[0] });
-    await local.wait(200);
+    await finishVote(local, A, [], game.options[0]);
     // solo: it's always my turn — a 20 is just a 20
     const r = await local.emit(A, "gimmick-roll", { id: "d20" });
     assert.equal(r.value, 20);
@@ -297,8 +294,7 @@ test("gimmick-die: a die on the table is shown to everyone, follows its owner, a
   const spec = [];
   F.on("gimmick-die", (d) => spec.push(d));
   await ctx.emit(F, "spectate-session", { code: c.code });
-  A.emit("vote", { prompt: game.options[0] }); // B is gone: the solo vote finalizes, the game is writing
-  await ctx.wait(200);
+  await finishVote(ctx, A, [], game.options[0]); // B is gone: nobody else to wait for, the host starts alone
   assert.equal(game.phase, "writing");
   assert.equal((await ctx.emit(A, "update-rules", { friendly: true })).ok, true);
   A.emit("gimmick-die", { on: true, x: 0.2, y: 0.2 });
@@ -323,9 +319,7 @@ test("gimmick-galaga: friendly/unranked refused; a run over 8000 steals the turn
     await local.emit(B, "join-session", { code: c.code, auth: mike.token });
     await local.emit(A, "start-game", { turnSeconds: 60, rounds: 2, friendly: true });
     await local.wait(150);
-    A.emit("vote", { prompt: game.options[0] });
-    B.emit("vote", { prompt: game.options[0] });
-    await local.wait(200);
+    await finishVote(local, A, [B], game.options[0]);
     assert.equal(game.phase, "writing");
     assert.equal(game.currentId, A.id);
     // friendly game: refused
@@ -410,9 +404,7 @@ test("gimmick-ship: a battle is relayed to everyone (clamped), late joiners get 
     assert.equal(ships.length, 1);
     assert.equal(ships[0].userId, mike.user.id);
     // friendly again: the arcade closes for everyone
-    A.emit("vote", { prompt: game.options[0] });
-    B.emit("vote", { prompt: game.options[0] });
-    await local.wait(200);
+    await finishVote(local, A, [B], game.options[0]);
     assert.equal(game.phase, "writing");
     const gone = new Promise((r) => A.on("gimmick-ship", (x) => x.on === false && r(x)));
     await local.emit(A, "update-rules", { friendly: true });
@@ -452,10 +444,7 @@ test("galaga steals STACK: the best run holds the turn, a lower run past the tar
     await local.emit(C, "join-session", { code: c.code, auth: will.token });
     await local.emit(A, "start-game", { turnSeconds: 60, rounds: 3, friendly: false });
     await local.wait(150);
-    A.emit("vote", { prompt: game.options[0] });
-    B.emit("vote", { prompt: game.options[0] });
-    C.emit("vote", { prompt: game.options[0] });
-    await local.wait(200);
+    await finishVote(local, A, [B, C], game.options[0]);
     assert.equal(game.currentId, A.id);
     // Mike steals with 8,200
     const first = await local.emit(B, "gimmick-galaga", { score: 8200 });

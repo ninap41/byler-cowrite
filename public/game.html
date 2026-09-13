@@ -95,9 +95,13 @@
 						<button class="ghost" id="addPromptBtn" style="flex: 0 0 auto; min-width: auto">Add</button>
 					</div>
 					<p class="subtle" id="voteProgress" style="margin-top: 14px"></p>
+					<div class="ready-row">
+						<button class="ghost" id="readyBtn" type="button">✓ I'm ready</button>
+						<ul class="ready-list" id="readyList" aria-label="Who is ready"></ul>
+					</div>
 					<div class="row hidden" id="hostVoteBtns">
 						<button class="ghost" id="reshuffleBtn">🎲 New options</button>
-						<button class="ghost" id="finalizeBtn">Start with current votes →</button>
+						<button id="finalizeBtn" disabled title="Everyone needs to mark themselves ready first">Start the game →</button>
 						<button class="ghost danger" id="cancelBtn2">Cancel game</button>
 					</div>
 				</div>
@@ -315,7 +319,7 @@
 				hostId = null,
 				hostUserId = null,
 				tickInterval = null,
-				myVote = null,
+				myVotes = new Set(), // approval voting: every scenario I've backed
 				lastOptsKey = ""
 			const $ = (id) => document.getElementById(id)
 			const show = (id) => $(id).classList.remove("hidden")
@@ -882,18 +886,25 @@
 				const key = st.options.join("||")
 				if (key !== lastOptsKey) {
 					lastOptsKey = key
-					myVote = null
+					myVotes = new Set()
 				}
+				// the server's word on my ballot wins (a refresh or a removed
+				// option would otherwise leave a stale tick on screen)
+				if (st.ballots && myId) myVotes = new Set((st.ballots[myId] || []).map((i) => st.options[i]))
 				const box = $("optionsBox")
 				box.innerHTML = ""
 				st.options.forEach((p, i) => {
 					const b = document.createElement("button")
-					b.className = "option" + (myVote === p ? " mine" : "")
+					b.className = "option" + (myVotes.has(p) ? " mine" : "")
+					b.setAttribute("aria-pressed", myVotes.has(p) ? "true" : "false")
 					b.innerHTML = `${promptHtml(p)}${optionChipsHtml(st.optionMeta?.[i])}<span class="votecount">${
 						st.tally?.[i] || 0
 					} ▲</span>`
 					b.onclick = () => {
-						myVote = p
+						// a click toggles this scenario on my ballot — vote for as many as you like
+						if (myVotes.has(p)) myVotes.delete(p)
+						else myVotes.add(p)
+						b.classList.toggle("mine", myVotes.has(p))
 						socket.emit("vote", { prompt: p })
 					}
 					const meta = st.optionMeta?.[i]
@@ -908,7 +919,7 @@
 							rm.textContent = "✕ Remove"
 							rm.onclick = (e) => {
 								e.stopPropagation()
-								if (myVote === p) myVote = null
+								myVotes.delete(p)
 								socket.emit("remove-prompt", { index: i })
 							}
 							b.appendChild(rm)
@@ -923,7 +934,7 @@
 						rr.textContent = "↻ Reroll"
 						rr.onclick = (e) => {
 							e.stopPropagation()
-							if (myVote === p) myVote = null
+							myVotes.delete(p)
 							socket.emit("reroll-option", { index: i })
 						}
 						b.appendChild(rr)
@@ -931,9 +942,43 @@
 					}
 					box.appendChild(b)
 				})
-				$("voteProgress").textContent = `${st.voted} of ${st.total} voted, most votes wins`
+				renderReady(st)
 				$("hostVoteBtns").classList.toggle("hidden", myId !== hostId)
 				renderPromptControls(st)
+			}
+
+			// Who has said they're done voting. The host may start once every
+			// other connected seat is ready (the server refuses otherwise).
+			function renderReady(st) {
+				const ready = new Set(st.ready || [])
+				const seated = (st.writers || []).filter((w) => w.connected !== false)
+				const others = seated.filter((w) => w.id !== hostId)
+				const readyOthers = others.filter((w) => ready.has(w.id)).length
+				$("voteProgress").textContent =
+					`${st.voted} of ${st.total} voted (pick as many as you like) · ${readyOthers} of ${others.length} ready` +
+					(others.length === 0 ? " — you're the only one here" : "")
+				$("readyList").innerHTML = seated
+					.map(
+						(w) =>
+							`<li class="${ready.has(w.id) ? "is-ready" : ""}${w.id === hostId ? " is-host" : ""}" style="--c:${esc(w.color || "")}">` +
+							`${miniAvatar(w)}<span class="rl-name">${esc(w.name)}</span>` +
+							`<span class="rl-state">${w.id === hostId ? "👑 host" : ready.has(w.id) ? "✓ ready" : "voting…"}</span></li>`,
+					)
+					.join("")
+				const meReady = ready.has(myId)
+				const rb = $("readyBtn")
+				rb.textContent = meReady ? "✓ Ready — change my mind" : "✓ I'm ready"
+				rb.classList.toggle("is-ready", meReady)
+				rb.setAttribute("aria-pressed", meReady ? "true" : "false")
+				// the host's own click on Start speaks for the host
+				rb.classList.toggle("hidden", myId === hostId)
+				const fb = $("finalizeBtn")
+				fb.disabled = !st.allReady
+				fb.title = st.allReady ? "" : "Everyone needs to mark themselves ready first"
+			}
+			$("readyBtn").onclick = () => {
+				const on = !$("readyBtn").classList.contains("is-ready")
+				socket.emit("ready", { ready: on })
 			}
 
 			// ---- Prompt generation modes ----
@@ -944,12 +989,12 @@
 			const votePrompt = mountPromptModes($("votePrompt"), {
 				prefix: "votePm",
 				onChange: ({ mode, controls }) => {
-					myVote = null
+					myVotes = new Set()
 					socket.emit("set-prompt-mode", { mode, controls })
 				},
 				// 🎲 deal four new options from the settings as they stand
 				onReroll: () => {
-					myVote = null
+					myVotes = new Set()
 					socket.emit("shuffle-options")
 				},
 			})
@@ -971,10 +1016,13 @@
 			}
 
 			$("reshuffleBtn").onclick = () => {
-				myVote = null
+				myVotes = new Set()
 				socket.emit("shuffle-options")
 			}
-			$("finalizeBtn").onclick = () => socket.emit("finalize-vote")
+			$("finalizeBtn").onclick = () =>
+				socket.emit("finalize-vote", null, (res) => {
+					if (res && !res.ok && res.error) $("voteProgress").textContent = res.error
+				})
 			function addPrompt() {
 				const v = $("customPrompt").value.trim()
 				if (!v) return

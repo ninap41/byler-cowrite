@@ -3,7 +3,7 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { startServer, signup } from "./helpers.mjs";
+import { startServer, signup, finishVote } from "./helpers.mjs";
 
 let ctx;
 before(async () => (ctx = await startServer()));
@@ -119,9 +119,7 @@ test("a hand-written scenario joins a guided ballot with no components, and voti
   assert.deepEqual({ ...state.current.optionMeta[4], by: "x" }, { custom: true, by: "x" }, "tagged as hand-written, no components");
 
   const generated = state.current.options[0];
-  A.emit("vote", { prompt: generated });
-  B.emit("vote", { prompt: generated });
-  await ctx.wait(200);
+  await finishVote(ctx, A, [B], generated);
   assert.equal(state.current.phase, "writing");
   assert.equal(state.current.prompt, generated);
 });
