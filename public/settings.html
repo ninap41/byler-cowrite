@@ -47,7 +47,6 @@
 								<span>Custom</span>
 							</label>
 							<input id="colorHex" class="color-hex" maxlength="7" spellcheck="false" placeholder="#rrggbb" aria-label="Hex colour" />
-							<button class="ghost" id="colorSave" type="button">Save colour</button>
 							<span class="subtle" id="colorPreview"></span>
 						</div>
 					</div>
@@ -307,7 +306,8 @@
 					})
 					.catch((e) => say(false, e.message))
 			}
-			// the picker paints live; Save (or Enter in the hex box) commits
+			// the picker paints live and saves on change; the hex box saves on
+			// Enter or on leaving the field
 			$("colorPick").oninput = () => {
 				const c = $("colorPick").value
 				$("colorHex").value = c
@@ -324,18 +324,20 @@
 					paintPreview(v)
 				}
 			}
-			$("colorHex").onkeydown = (e) => {
-				if (e.key === "Enter") {
-					e.preventDefault()
-					$("colorSave").click()
-				}
-			}
-			$("colorSave").onclick = () => {
+			function commitHex() {
 				let v = $("colorHex").value.trim()
 				if (v && v[0] !== "#") v = "#" + v
 				if (!isHex(v)) return say(false, "A colour is six hex digits, like #ff8800.")
+				if (v.toLowerCase() === safeColor(me?.color)) return
 				saveColor(v.toLowerCase())
 			}
+			$("colorHex").onkeydown = (e) => {
+				if (e.key === "Enter") {
+					e.preventDefault()
+					commitHex()
+				}
+			}
+			$("colorHex").onchange = commitHex
 
 			const sw = $("swatches")
 			PALETTE.forEach((c) => {
