@@ -565,6 +565,13 @@ test("host controls are the comments drawer, on the game page", async () => {
   const css = (await page("/css/base.css")).body;
   assert.match(css, /\.game-cols \{[^}]*var\(--doc-side-w/, "the drawer's width is the rail's own variable");
   assert.match(css, /\.game-cols\.side-closed \{/, "closing it gives the width back");
+  // the side column (writers + chat) is one width everywhere: every grid rule
+  // reads --game-side-w, no bare pixel column survives
+  assert.match(css, /\.game-cols \{[^}]*--game-side-w: 340px/, "the column names its width once");
+  const gridRules = [...css.matchAll(/\.game-cols(?:\.side-closed)? \{[^}]*grid-template-columns: ([^;]+);/g)].map((m) => m[1]);
+  assert.ok(gridRules.length >= 4, "desktop + closed + the two breakpoints");
+  for (const cols of gridRules) assert.ok(cols === "1fr" || cols.includes("var(--game-side-w)"), "no hard-coded side width: " + cols);
+  assert.match(css, /#game \.chat-sec \.chat-row \{[^}]*flex-wrap: nowrap/, "the composer stays on one line");
 });
 
 // The app's name comes from the content pack (content/site.json): the server
