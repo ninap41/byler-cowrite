@@ -1938,83 +1938,19 @@ a.solo-title:hover {
 .msg.spec-msg {
 	opacity: 0.9;
 }
-.chat-dock {
-	position: fixed;
-	right: 18px;
-	bottom: var(--footbar-h);
-	/* above every gimmick layer (z 60): no spill, die or cup ever covers the chat */
-	z-index: 62;
-	width: min(340px, calc(100vw - 36px));
-	display: flex;
-	flex-direction: column;
-	background: var(--panel);
-	border: 1px solid var(--panel-brd);
-	border-bottom: 0;
-	border-radius: var(--r-lg) var(--r-lg) 0 0;
-	box-shadow: var(--panel-glow);
-	backdrop-filter: blur(16px);
-	-webkit-backdrop-filter: blur(16px);
-	transition:
-		background var(--tsn),
-		border-color var(--tsn);
+/* chat is a section of the game's side column (see #chatCard in game.html);
+   carried into the lobby / vote / reveal card it reads as a plain block */
+.chat-sec .chat-log {
+	height: 280px;
 }
-.chat-dock.hidden {
-	display: none;
+#chatCard.chat-inline {
+	margin-top: 18px;
+	padding: 16px 18px 18px;
+	border-top: 1px solid var(--line);
+	border-radius: 0;
 }
-.chat-dock-head {
-	flex: none;
-	min-width: 0;
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	width: 100%;
-	background: transparent;
-	border: 0;
-	color: var(--ink);
-	padding: 12px 16px;
-	font-weight: 700;
-	font-family: var(--font-body);
-	font-size: 0.9rem;
-	cursor: pointer;
-}
-.chat-dock-head:hover {
-	transform: none;
-}
-.chat-dock-head .chev {
-	margin-left: auto;
-	font-style: normal;
-	color: var(--muted);
-	transition: transform 0.3s;
-}
-.chat-dock.collapsed .chat-dock-head .chev {
-	transform: rotate(180deg);
-}
-.chat-unread {
-	background: var(--accent);
-	color: var(--btn-ink);
-	border-radius: var(--r-lg);
-	font-size: 0.7rem;
-	font-family: var(--font-mono);
-	padding: 2px 8px;
-	font-weight: 700;
-}
-.chat-unread:empty {
-	display: none;
-}
-.chat-dock-body {
-	padding: 0 12px 12px;
-	overflow: hidden;
-}
-.chat-dock.collapsed .chat-dock-body {
-	display: none;
-}
-@media (max-width: 760px) {
-	.chat-dock {
-		right: 10px;
-	}
-	.chat-log {
-		height: 200px !important;
-	}
+#chatCard.chat-inline .chat-log {
+	height: 220px;
 }
 
 /* Reveal page: breathing room between the finished story and the
@@ -3282,8 +3218,15 @@ input[type="checkbox"]:focus-visible {
 	right: auto;
 	min-width: 230px;
 }
-#inviteSec .share-menu {
-	margin-top: 4px;
+/* in the session bar's actions the list hangs off the right edge, like the
+   button it belongs to */
+.sess-acts .share-menu .mg-menu-list {
+	left: auto;
+	right: 0;
+}
+.sess-acts .share-menu .mg-more {
+	padding: 8px 12px;
+	font-size: 0.85rem;
 }
 /* the friend picker is a row of the menu: a thin rule above it, the select
    sized like the buttons around it */
@@ -3293,7 +3236,7 @@ input[type="checkbox"]:focus-visible {
 	border-top: 1px solid var(--line);
 	gap: 6px;
 }
-.share-menu .share-invite select {
+.share-menu #inviteFriend {
 	flex: 1 1 auto;
 	min-width: 0;
 	padding: 7px 30px 7px 10px;
@@ -8580,7 +8523,7 @@ body.resizing-side {
           lives here: it wants one column but keeps the sticky, single-row
           toolbar, because it has the vertical room and doesn't have the
           keyboard bug below.
-     760  the site's PHONE breakpoint (already where .topbar, .chat-dock and
+     760  the site's PHONE breakpoint (already where .topbar and
           .game-cols reflow). Everything in this block lives here.
      600  a very narrow squeeze (already hides .user-chip).
 

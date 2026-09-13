@@ -221,9 +221,9 @@ test("black and white swatches paint as themselves (no palette fallback), and th
   assert.equal(document.getElementById("arPick").value, "#f5f0e8");
 });
 
-test("the brush never paints over the chat dock: a press on it starts nothing, and a stroke dragged into it lifts", () => {
-  document.body.innerHTML = '<div class="chat-dock"></div>';
-  const dock = document.querySelector(".chat-dock");
+test("the brush never paints over the chat section: a press on it starts nothing, and a stroke dragged into it lifts", () => {
+  document.body.innerHTML = '<div id="chatCard"></div>';
+  const dock = document.querySelector("#chatCard");
   dock.getBoundingClientRect = () => ({ left: 700, right: 1000, top: 500, bottom: 760, width: 300, height: 260 });
   const socket = fakeSocket();
   const m = mountArtRoom({ socket, getMyUserId: () => "u1", getMyColor: () => "#6c8cff", document });

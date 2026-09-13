@@ -174,8 +174,9 @@ test("game.html mounts the picker in both the lobby and the vote card", () => {
   assert.match(html, /mountPromptModes\(\$\("votePrompt"\)/);
   // the lobby's choice rides along with the rules on Begin
   assert.match(html, /start-game", \{ \.\.\.lobbyRules\.values\(\), \.\.\.lobbyPrompt\.values\(\) \}/);
-  // and the chat dock starts minimized
-  assert.match(html, /id="chatCard" class="chat-dock hidden collapsed"/);
+  // and chat is a section of the side column, not a dock
+  assert.match(html, /id="chatCard" class="side-sec chat-sec hidden"/);
+  assert.ok(!/chat-dock/.test(html), "no docked chat markup remains");
 });
 
 test("levelsFor narrows the explicit levels to what a season admits", async () => {

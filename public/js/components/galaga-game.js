@@ -238,7 +238,7 @@ export function mountGalaga(opts) {
 
 	// ---- controls: the layer takes no pointer, so my ship steers from the
 	// document — and never while the writer is typing somewhere.
-	const typing = (t) => !!t?.closest?.("input, textarea, select, [contenteditable], .chat-dock")
+	const typing = (t) => !!t?.closest?.("input, textarea, select, [contenteditable], #chatCard")
 	function onKey(e, down) {
 		if (!running || typing(e.target)) return
 		if (e.key === "ArrowLeft" || e.key === "a") keys.l = down

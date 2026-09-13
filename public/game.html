@@ -131,8 +131,24 @@
 						<span class="sess-acts hidden" id="hostGame">
 							<button class="ghost" id="pauseBtn">⏸ Pause</button>
 							<button class="primary" id="endBtn">End game &amp; reveal</button>
+							<!-- Share ▾: Discord, a join link, and the friend picker — the
+							     host's other mid-game reach, so it stands with the two above -->
+							<span class="mg-menu seat-menu share-menu" id="inviteShareMenu">
+								<button type="button" class="ghost mg-more share-more" aria-haspopup="menu" title="Share this game">Share &#9662;</button>
+								<span class="mg-menu-list">
+									<button type="button" class="ghost" id="discordShareBtn" data-share="discord" title="Post the code with Join / Spectate buttons to the Discord writing room">Share to Byler Offscreen Discord</button>
+									<button type="button" class="ghost" data-share="link" title="Copy a join link for this game">Copy game link</button>
+									<!-- invite a friend: an inbox note with the code (and a live toast
+									     if they're online). Friends only, host only. -->
+									<span class="chat-row share-invite">
+										<select id="inviteFriend" aria-label="Friend to invite"><option value="">Loading friends…</option></select>
+										<button type="button" class="ghost" id="inviteBtn" data-share="invite" style="flex: 0 0 auto; min-width: auto">Invite</button>
+									</span>
+								</span>
+							</span>
 						</span>
 					</div>
+					<p class="subtle hidden" id="inviteNote" style="text-align: right; margin: -6px 0 8px"></p>
 					<div class="game-cols">
 						<div class="game-main">
 							<!-- the prompt lives INSIDE the main column, so who is here
@@ -164,25 +180,16 @@
 								<div class="players-row" id="playersRow"></div>
 								<p class="subtle" id="specCount" style="margin: 8px 0 0"></p>
 							</div>
-							<!-- invite a friend: an inbox note with the code (and a live
-							     toast if they're online). Friends only, host only — it sits
-							     beside the game, where the people are, not in the settings. -->
-							<div class="side-sec hidden" id="inviteSec">
-								<h4>Share &amp; invite</h4>
-								<span class="mg-menu seat-menu share-menu" id="inviteShareMenu">
-									<button type="button" class="ghost mg-more share-more" aria-haspopup="menu" title="Share this game">Share &#9662;</button>
-									<span class="mg-menu-list">
-										<button type="button" class="ghost" id="discordShareBtn" data-share="discord" title="Post the code with Join / Spectate buttons to the Discord writing room">Share to Byler Offscreen Discord</button>
-										<button type="button" class="ghost" data-share="link" title="Copy a join link for this game">Copy game link</button>
-										<!-- invite a friend: an inbox note with the code (and a live toast
-										     if they're online). Friends only, host only. -->
-										<span class="chat-row share-invite">
-											<select id="inviteFriend" aria-label="Friend to invite"><option value="">Loading friends…</option></select>
-											<button type="button" class="ghost" id="inviteBtn" data-share="invite" style="flex: 0 0 auto; min-width: auto">Invite</button>
-										</span>
-									</span>
-								</span>
-								<p class="subtle hidden" id="inviteNote" style="text-align: left; margin: 6px 0 0"></p>
+							<!-- CHAT: a section of the side column, not a dock — in other
+							     phases placeChat() carries this one element into the card
+							     on screen (see onlyShow) -->
+							<div id="chatCard" class="side-sec chat-sec hidden">
+								<h4>💬 Chat</h4>
+								<div class="chat-log" id="chatLog"></div>
+								<div class="chat-row">
+									<input id="chatInput" placeholder="Say something…" maxlength="500" />
+									<button class="ghost" id="chatSend">Send</button>
+								</div>
 							</div>
 							<div id="doomFx" aria-hidden="true">
 								<img class="doom-img" src="/img/demogorgon.gif" alt="" />
@@ -271,21 +278,6 @@
 			<button type="button" id="turnToastClose" class="turn-toast-close" title="Dismiss">✕</button>
 		</div>
 
-		<!-- CHAT (docked panel, bottom right) -->
-		<!-- starts collapsed: the story is the page, chat is the drawer you open -->
-		<div id="chatCard" class="chat-dock hidden collapsed">
-			<button type="button" class="chat-dock-head" id="chatDockToggle">
-				💬 Chat <span class="chat-unread" id="chatUnread"></span><i class="chev">&#9662;</i>
-			</button>
-			<div class="chat-dock-body">
-				<div class="chat-log" id="chatLog"></div>
-				<div class="chat-row">
-					<input id="chatInput" placeholder="Say something…" maxlength="500" />
-					<button class="ghost" id="chatSend">Send</button>
-				</div>
-			</div>
-		</div>
-
 		<script src="/socket.io/socket.io.js"></script>
 		<script type="module">
 			import { PALETTE, esc, safeColor, whoMarks, miniAvatar, promptHtml } from "/js/util.js"
@@ -346,22 +338,25 @@
 			const setPageTitle = () => {
 				document.title = "{{SITE_NAME}}: " + (sessName || PAGE_TITLES[shownCard] || "Game")
 			}
+			// Chat is ONE element: a section of the game's side column while the
+			// story is being written, and the foot of whichever card is on screen
+			// otherwise (lobby, vote, reveal), so the table talks in every phase.
+			const chatHome = $("chatCard").parentElement
+			const placeChat = (id) => {
+				const chat = $("chatCard")
+				if (id === "game") {
+					if (chat.parentElement !== chatHome) chatHome.appendChild(chat)
+					chat.classList.remove("chat-inline")
+				} else if ($(id)) {
+					$(id).appendChild(chat)
+					chat.classList.add("chat-inline")
+				}
+			}
 			const onlyShow = (id) => {
 				;["waiting", "choosing", "game", "over"].forEach((x) => (x === id ? show(x) : hide(x)))
 				shownCard = id
+				placeChat(id)
 				setPageTitle()
-			}
-
-			// ---- Docked chat panel (collapse/expand + unread badge) ----
-			let chatUnread = 0
-			$("chatDockToggle").onclick = () => {
-				const dock = $("chatCard")
-				dock.classList.toggle("collapsed")
-				if (!dock.classList.contains("collapsed")) {
-					chatUnread = 0
-					$("chatUnread").textContent = ""
-					$("chatLog").scrollTop = $("chatLog").scrollHeight
-				}
 			}
 
 			// ---- Persistent "your turn" alert: an in-page toast that stays until
@@ -1100,7 +1095,6 @@
 				// One condition, three places: the drawer, the tab that opens it,
 				// and the two live actions in the session bar.
 				$("hostSide").classList.toggle("hidden", !host)
-				$("inviteSec").classList.toggle("hidden", !host)
 				$("hostOpen").classList.toggle("hidden", !host || hostDrawer.open)
 				$("hostGame").classList.toggle("hidden", !host)
 				liveRules.set(st)
@@ -1664,10 +1658,6 @@ $("pauseBtn").onclick = () =>
 				log.appendChild(p)
 				refreshStatusDots()
 				log.scrollTop = log.scrollHeight
-				if (!silent && $("chatCard").classList.contains("collapsed")) {
-					chatUnread++
-					$("chatUnread").textContent = chatUnread > 99 ? "99+" : chatUnread
-				}
 			}
 			socket.on("chat-history", (msgs) => {
 				$("chatLog").innerHTML = ""

@@ -49,7 +49,11 @@ test("both Share menus name the Byler Offscreen Discord and offer Copy game link
     assert.ok(m.includes('data-share="link"') && m.includes(">Copy game link<"), id + " offers the link");
   }
   const inv = html.indexOf('id="inviteShareMenu"');
-  assert.ok(inv < html.indexOf('id="inviteFriend"') && html.indexOf('id="inviteBtn"') < html.indexOf('id="inviteNote"'), "the friend picker is a row of the invite menu");
+  assert.ok(inv < html.indexOf('id="inviteFriend"') && html.indexOf('id="inviteBtn"') < html.indexOf('id="inviteNote"'), "the friend picker is a row of the share menu");
+  // the menu stands in the session bar's actions, to the right of End game & reveal; no invite section remains
+  const acts = html.slice(html.indexOf('id="hostGame"'), html.indexOf('id="inviteNote"'));
+  assert.ok(acts.indexOf('id="endBtn"') < acts.indexOf('id="inviteShareMenu"'), "Share ▾ follows End game & reveal");
+  assert.ok(!html.includes('id="inviteSec"'), "the invite section is gone");
   assert.ok(html.includes('id="inviteBtn" data-share="invite"'));
   assert.ok(html.includes('const copyGameLink = (note) => async () => {'));
   assert.ok(html.includes('location.origin + "/game?code=" + encodeURIComponent(myCode)'), "the link is the join URL");

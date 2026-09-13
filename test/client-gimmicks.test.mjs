@@ -222,13 +222,15 @@ test("gimmicksOff: a friendly switch sweeps every die away and reports whether a
   assert.ok(document.getElementById("gimmickLayer").classList.contains("hidden"));
 });
 
-test("the chat dock sits above every gimmick layer so no spill covers it", async () => {
+test("chat is a section of the game's side column, under Writers & spectators; no dock rule remains", async () => {
   const { readFileSync } = await import("node:fs");
   const css = readFileSync(new URL("../public/css/base.css", import.meta.url), "utf-8");
   assert.ok(!/\.gd-menu-item\.locked\.table/.test(css), "no greyed tablemate row rule survives — those rows play");
-  const dockZ = Number(css.match(/\.chat-dock \{[^}]*z-index: (\d+)/)[1]);
-  const layerZ = [...css.matchAll(/\n\.(?:ms|sk|ar|vcx|gg|db)-layer \{[^}]*z-index: (\d+)/g)].map((m) => Number(m[1]));
-  assert.ok(layerZ.length >= 3 && layerZ.every((z) => z < dockZ), `chat dock ${dockZ} above layers ${layerZ}`);
+  assert.ok(!/\.chat-dock/.test(css), "the fixed chat dock is gone from the stylesheet");
+  const html = readFileSync(new URL("../public/game.html", import.meta.url), "utf-8");
+  const side = html.slice(html.indexOf('<aside class="game-side">'), html.indexOf('id="doomFx"'));
+  assert.ok(side.indexOf('id="playersRow"') < side.indexOf('id="chatCard"'), "chat sits below the writers");
+  assert.ok(side.includes('id="chatLog"') && side.includes('id="chatInput"'), "log and composer live in the section");
 });
 
 test("every gimmick HUD's action buttons share one compact size rule (last in base.css, so it outranks the per-HUD rules)", () => {

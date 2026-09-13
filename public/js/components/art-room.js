@@ -266,11 +266,11 @@ export function mountArtRoom(opts) {
 	}
 
 	// painting: the catcher takes the pointer only while MY brush is out.
-	// The chat dock is off-limits: it sits above the canvas (so a press there
-	// never reaches us), and a captured stroke dragged across it lifts the
-	// brush rather than painting under the chat.
+	// The chat section is off-limits: a press there starts nothing, and a
+	// captured stroke dragged across it lifts the brush rather than painting
+	// over the conversation.
 	const overChat = (x, y) => {
-		const dock = doc.querySelector(".chat-dock:not(.hidden)")
+		const dock = doc.querySelector("#chatCard:not(.hidden)")
 		if (!dock) return false
 		const r = dock.getBoundingClientRect()
 		return r.width > 0 && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom

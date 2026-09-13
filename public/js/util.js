@@ -48,13 +48,13 @@ const EMOJI_ONE = /\p{Extended_Pictographic}(?:\u200d\p{Extended_Pictographic}|[
 const EMOJI_ALL = new RegExp(EMOJI_ONE.source, "gu")
 // Subtrees we must not touch: editors/inputs (content integrity), the
 // rank/badge economy (kept in full colour), and the two conversation surfaces —
-// the game's chat dock and the write page's comments drawer, its edge tab and
+// the game's chat section and the write page's comments drawer, its edge tab and
 // the Comment chip — whose icons and messages stay plain.
 const EMOJI_SKIP =
 	'[contenteditable], .editor, .doc-editor, #docEditor, #docSource, .ProseMirror, textarea, input, script, style, ' +
 	'.emoji-grad, .badge-chip, .ach-strip, [data-badge], .rk-badge, .rk-ladder, .rk-usage, .ladder-acc, .rung, ' +
 	'.rank-bar, .rank-label, .tier-name, .rk-tier, .ts-badges, ' +
-	'.chat-dock, #docSide, #commentsOpen, #commentToggle, #imgBtn'
+	'#chatCard, #docSide, #commentsOpen, #commentToggle, #imgBtn'
 function wrapEmojis(node) {
 	const val = node.nodeValue || ""
 	EMOJI_ALL.lastIndex = 0

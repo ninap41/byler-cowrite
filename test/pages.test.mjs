@@ -451,7 +451,6 @@ test("the theme peek and the tip jar live in one thin foot bar, not two floating
   assert.match(css.body, /--footbar-h: 32px/, "one number the rest of the page clears itself by");
   assert.match(css.body, /\.foot-bar \{[^}]*height: var\(--footbar-h\)/s);
   assert.match(css.body, /body \{[^}]*padding: 20px 0 var\(--footbar-h\)/s, "page content ends above it");
-  assert.match(css.body, /\.chat-dock \{[^}]*bottom: var\(--footbar-h\)/s, "so does the game's chat dock");
   assert.match(css.body, /\.doc-side \{[^}]*bottom: var\(--footbar-h\)/s, "and the comments sheet");
 });
 
@@ -540,6 +539,7 @@ test("pause and end-and-reveal live in the session bar, host-only", async () => 
   assert.ok(bar.includes('id="hostGame"'), "the two game-level actions sit in the writing card's session bar");
   assert.ok(bar.includes('id="pauseBtn"') && bar.includes('id="endBtn"'), "pause and reveal, both of them");
   assert.ok(bar.includes('class="sess-acts hidden"'), "hidden until you are the host");
+  assert.ok(bar.indexOf('id="endBtn"') < bar.indexOf('id="inviteShareMenu"'), "Share ▾ stands to the right of End game & reveal");
   // one condition drives both places, so they can never disagree
   assert.match(body, /\$\("hostGame"\)\.classList\.toggle\("hidden", !host\)/);
   // and the host panel keeps only the settings — the rules form and the cover
