@@ -40,6 +40,16 @@
 					<div class="settings-section">
 						<label>Your username color</label>
 						<div class="swatches" id="swatches"></div>
+						<div class="color-custom">
+							<label class="color-pick" for="colorPick" title="Pick any colour">
+								<input type="color" id="colorPick" />
+								<span class="color-pick-ring" id="colorPickRing"></span>
+								<span>Custom</span>
+							</label>
+							<input id="colorHex" class="color-hex" maxlength="7" spellcheck="false" placeholder="#rrggbb" aria-label="Hex colour" />
+							<button class="ghost" id="colorSave" type="button">Save colour</button>
+							<span class="subtle" id="colorPreview"></span>
+						</div>
 					</div>
 
 					<!-- membership: the signup checkbox, changeable here; saves on toggle -->
@@ -161,7 +171,7 @@
 			import { api } from "/js/api.js"
 			import { mountChrome, setUserChip } from "/js/chrome.js"
 			import { requireAuth } from "/js/auth-guard.js"
-			import { PALETTE, safeColor } from "/js/util.js"
+			import { PALETTE, safeColor, isHex } from "/js/util.js"
 
 			mountChrome({ page: "settings" })
 			const $ = (id) => document.getElementById(id)
@@ -274,7 +284,57 @@
 				$("setMember").checked = me.isAMemberOfBylerOffscreen === true
 				links = (me.links || []).map((l) => ({ label: l.label || "", url: l.url || "" }))
 				renderLinks()
-				document.querySelectorAll(".swatch").forEach((x) => x.classList.toggle("sel", x.dataset.color === safeColor(me.color)))
+				const mine = safeColor(me.color)
+				document.querySelectorAll(".swatch").forEach((x) => x.classList.toggle("sel", x.dataset.color === mine))
+				// a colour off the palette lights the Custom well instead of a swatch
+				$("colorPick").value = mine
+				$("colorHex").value = mine
+				$("colorPickRing").style.background = mine
+				$("colorPick").parentElement.classList.toggle("sel", !PALETTE.includes(mine))
+				paintPreview(mine)
+			}
+			function paintPreview(c) {
+				const p = $("colorPreview")
+				p.textContent = me?.username || ""
+				p.style.color = c
+			}
+			function saveColor(c) {
+				return api("/api/account/color", { color: c })
+					.then((r) => {
+						me = { ...me, ...r.user }
+						fill()
+						say(true, "Color saved.")
+					})
+					.catch((e) => say(false, e.message))
+			}
+			// the picker paints live; Save (or Enter in the hex box) commits
+			$("colorPick").oninput = () => {
+				const c = $("colorPick").value
+				$("colorHex").value = c
+				$("colorPickRing").style.background = c
+				paintPreview(c)
+			}
+			$("colorPick").onchange = () => saveColor($("colorPick").value)
+			$("colorHex").oninput = () => {
+				let v = $("colorHex").value.trim()
+				if (v && v[0] !== "#") v = "#" + v
+				if (isHex(v)) {
+					$("colorPick").value = v.toLowerCase()
+					$("colorPickRing").style.background = v
+					paintPreview(v)
+				}
+			}
+			$("colorHex").onkeydown = (e) => {
+				if (e.key === "Enter") {
+					e.preventDefault()
+					$("colorSave").click()
+				}
+			}
+			$("colorSave").onclick = () => {
+				let v = $("colorHex").value.trim()
+				if (v && v[0] !== "#") v = "#" + v
+				if (!isHex(v)) return say(false, "A colour is six hex digits, like #ff8800.")
+				saveColor(v.toLowerCase())
 			}
 
 			const sw = $("swatches")
@@ -283,14 +343,7 @@
 				d.className = "swatch"
 				d.style.background = c
 				d.dataset.color = c
-				d.onclick = () =>
-					api("/api/account/color", { color: c })
-						.then((r) => {
-							me = { ...me, ...r.user }
-							fill()
-							say(true, "Color saved.")
-						})
-						.catch((e) => say(false, e.message))
+				d.onclick = () => saveColor(c)
 				sw.appendChild(d)
 			})
 

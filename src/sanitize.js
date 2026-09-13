@@ -4,7 +4,12 @@ import { randomBytes } from "node:crypto";
 
 // Name-color palette. Colors are validated against this list (prevents style injection).
 export const PALETTE = ["#e63946", "#6c8cff", "#3ddc84", "#f4a261", "#e879c9", "#38bdf8", "#facc15", "#c084fc"];
-export const cleanColor = (c) => (PALETTE.includes(c) ? c : PALETTE[Math.floor(Math.random() * PALETTE.length)]);
+// A writer's colour is any #rrggbb (the settings page has a picker); the
+// palette is the starter set. The strict hex shape is what makes it safe to
+// inject into style= — anything else falls back to a random palette entry.
+export const HEX_RE = /^#[0-9a-f]{6}$/;
+export const isHex = (c) => typeof c === "string" && HEX_RE.test(c.toLowerCase());
+export const cleanColor = (c) => (isHex(c) ? c.toLowerCase() : PALETTE[Math.floor(Math.random() * PALETTE.length)]);
 
 // Free-choice colors (the art room's picker) are a closed FORMAT instead of a
 // closed list: exactly #rrggbb or nothing. The value is only ever used as a

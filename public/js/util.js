@@ -5,7 +5,10 @@ export const PALETTE = ["#e63946", "#6c8cff", "#3ddc84", "#f4a261", "#e879c9", "
 export const esc = (s) =>
 	String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c])
 
-export const safeColor = (c) => (PALETTE.includes(c) ? c : PALETTE[0])
+// Any #rrggbb is a writer colour (custom ones come from the settings picker);
+// the strict shape is what keeps it safe in a style= attribute.
+export const isHex = (c) => typeof c === "string" && /^#[0-9a-f]{6}$/i.test(c)
+export const safeColor = (c) => (isHex(c) ? c.toLowerCase() : PALETTE[0])
 
 // The app's name, from the <meta name="site-name"> the server renders into
 // every page out of content/site.json (a jsdom test page has none → fallback).

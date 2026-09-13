@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { installDom } from "./dom.mjs";
 installDom();
-import { PALETTE, esc, safeColor, whoMarks, miniAvatar, oneLinePrompt, gradEmoji, gradEmojisIn, gradAllEmojis } from "../public/js/util.js";
+import { PALETTE, esc, safeColor, isHex, whoMarks, miniAvatar, oneLinePrompt, gradEmoji, gradEmojisIn, gradAllEmojis } from "../public/js/util.js";
 
 test("miniAvatar: img with fit class when set, empty otherwise, url escaped", () => {
   const cover = miniAvatar({ avatar: "https://img.com/a.png" });
@@ -28,10 +28,16 @@ test("esc escapes every HTML-significant character", () => {
   assert.equal(esc('<img src=x onerror="a()">'), "&lt;img src=x onerror=&quot;a()&quot;&gt;");
 });
 
-test("safeColor only passes palette colors through", () => {
+test("safeColor passes any #rrggbb through (lowercased) and nothing else", () => {
   for (const c of PALETTE) assert.equal(safeColor(c), c);
+  assert.equal(safeColor("#123ABC"), "#123abc", "a custom colour from the settings picker");
+  assert.equal(isHex("#123abc"), true);
+  assert.equal(isHex("#abc"), false, "short hex is not a colour here");
+  assert.equal(safeColor("#abc"), PALETTE[0]);
   assert.equal(safeColor("red"), PALETTE[0]);
+  assert.equal(safeColor("#12345g"), PALETTE[0]);
   assert.equal(safeColor('"><script>'), PALETTE[0]);
+  assert.equal(safeColor("#123456;background:url(x)"), PALETTE[0], "nothing that could reach a style= attribute");
   assert.equal(safeColor(undefined), PALETTE[0]);
 });
 

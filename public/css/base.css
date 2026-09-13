@@ -2384,6 +2384,53 @@ label:has(> input:disabled) {
 	border-color: var(--ink);
 	box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
 }
+/* any colour at all: a native picker behind a swatch-shaped well, a hex box
+   for the exact value, and the username previewed in it before Save */
+.color-custom {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 10px;
+	margin-top: 12px;
+}
+.color-pick {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	margin: 0;
+	cursor: pointer;
+	font-size: 0.9rem;
+	color: var(--muted);
+}
+.color-pick input[type="color"] {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	opacity: 0;
+	pointer-events: none;
+}
+.color-pick-ring {
+	width: 32px;
+	height: 32px;
+	border-radius: 50%;
+	border: 3px solid transparent;
+	background: conic-gradient(#e63946, #f4a261, #facc15, #3ddc84, #38bdf8, #6c8cff, #c084fc, #e879c9, #e63946);
+	transition: transform 0.1s;
+}
+.color-pick:hover .color-pick-ring {
+	transform: scale(1.12);
+}
+.color-pick.sel .color-pick-ring {
+	border-color: var(--ink);
+	box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+}
+.color-hex {
+	width: 7.5em;
+	font-family: var(--font-mono);
+}
+#colorPreview {
+	font-weight: 700;
+}
 ul.roster {
 	list-style: none;
 	padding: 0;

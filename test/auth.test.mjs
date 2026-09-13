@@ -1,5 +1,6 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
+import { PALETTE } from "../src/sanitize.js";
 import { readFileSync } from "node:fs";
 import { createServer } from "node:net";
 import { join } from "node:path";
@@ -180,10 +181,16 @@ test("username change: validation, frees old name, archive label freshness", asy
   assert.equal((await ctx.api("/api/login", { user: "janehopper", password: "1234" })).status, 200);
 });
 
-test("account color: palette-validated, auth required", async () => {
+test("account color: any #rrggbb (the picker), junk falls back to the palette, auth required", async () => {
   const u = await signup(ctx, "dustinh", "d@h.com");
   let r = await ctx.api("/api/account/color", { color: "#facc15" }, u.token);
   assert.equal(r.data.user.color, "#facc15");
+  r = await ctx.api("/api/account/color", { color: "#1A2B3C" }, u.token);
+  assert.equal(r.data.user.color, "#1a2b3c", "a custom colour is kept, lowercased");
+  r = await ctx.api("/api/account/color", { color: "#1a2b3c;x" }, u.token);
+  assert.ok(PALETTE.includes(r.data.user.color), "anything but six hex digits falls back to the palette");
+  r = await ctx.api("/api/account/color", { color: "#abc" }, u.token);
+  assert.ok(PALETTE.includes(r.data.user.color));
   r = await ctx.api("/api/account/color", { color: "javascript:evil" }, u.token);
   assert.match(r.data.user.color, /^#[0-9a-f]{6}$/, "invalid color falls back to palette");
   r = await ctx.api("/api/account/color", { color: "#facc15" });

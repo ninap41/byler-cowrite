@@ -90,6 +90,9 @@ test("clean URLs serve each page", async () => {
   assert.ok(set.body.includes('id="savePass"'));
   // color picker leads; username/email/password are collapsed behind toggles
   assert.ok(set.body.indexOf('id="swatches"') < set.body.indexOf('data-toggle="secUsername"'), "color first");
+  // any colour at all: a native picker, a hex box and a Save beside the swatches
+  assert.ok(set.body.includes('<input type="color" id="colorPick"'), "colour picker");
+  assert.ok(set.body.includes('id="colorHex"') && set.body.includes('id="colorSave"'), "hex box + save");
   for (const sec of ["secUsername", "secEmail", "secPass"]) {
     assert.ok(set.body.includes(`data-toggle="${sec}"`), sec + " toggle");
     assert.ok(new RegExp(`id="${sec}" class="sec-body hidden"`).test(set.body), sec + " starts collapsed");
