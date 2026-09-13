@@ -77,7 +77,7 @@ export const layerHtml = () => `<div class="db-layer hidden" id="dbLayer" aria-l
 		<span class="db-hint" id="dbHint">Drag to hang it · click to spin the lights</span>
 		<div class="db-row">
 			<button type="button" data-act="db-spin">Spin</button>
-			<button type="button" class="ghost" data-act="db-exit">↩ Put the ball away</button>
+			<button type="button" class="ghost" data-act="db-exit">↩ Put away</button>
 		</div>
 	</div>
 </div>`

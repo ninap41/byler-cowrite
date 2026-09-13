@@ -136,7 +136,7 @@ test("mountGimmickDice: menu → my die is out (reported to the room), a click r
   assert.ok(!document.body.classList.contains("ui-peek"), "no peek: the game UI stays, that's the point");
   assert.match(document.getElementById("gdTitle").textContent, /Hellfire d20/);
   assert.equal(document.querySelectorAll("#gdDie .d20-face").length, 20, "a die is built into the layer");
-  assert.match(btn.textContent, /Put the die away/);
+  assert.match(btn.textContent, /^↩ Put away$/);
   const shown = socket.sent.find(([ev]) => ev === "gimmick-die");
   assert.ok(shown, "the room is told my die is out");
   assert.equal(shown[1].on, true);

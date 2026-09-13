@@ -68,7 +68,7 @@ export const layerHtml = () => `<div class="ar-layer hidden" id="arLayer" aria-l
 		<div class="ar-row" id="arSizes"></div>
 		<div class="ar-row">
 			<button type="button" data-act="ar-wipe">Wipe my paint</button>
-			<button type="button" class="ghost" data-act="ar-exit">↩ Put the brush away</button>
+			<button type="button" class="ghost" data-act="ar-exit">↩ Put away</button>
 		</div>
 	</div>
 </div>`

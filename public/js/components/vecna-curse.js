@@ -26,7 +26,7 @@ export const layerHtml = () => `<div class="vcx-layer hidden" id="vcxLayer" aria
 		<span class="vcx-hint" id="vcxHint">Choose who the clock strikes for</span>
 		<div class="vcx-row" id="vcxTargets"></div>
 		<div class="vcx-row">
-			<button type="button" class="ghost" data-act="vcx-exit">↩ Leave the clock alone</button>
+			<button type="button" class="ghost" data-act="vcx-exit">↩ Put away</button>
 		</div>
 	</div>
 </div>`

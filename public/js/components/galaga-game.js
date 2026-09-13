@@ -50,7 +50,7 @@ export const galagaHtml = () => `<div class="gg-layer hidden" id="ggLayer" aria-
 		<label class="gg-steal checkline"><input type="checkbox" id="ggSteal" checked /> Steal the turn if I beat ${GALAGA_TARGET}</label>
 		<div class="gg-row">
 			<button type="button" class="gg-fire" data-act="gg-fire">🔫 Fire (Space)</button>
-			<button type="button" class="ghost" data-act="gg-exit">↩ Walk away</button>
+			<button type="button" class="ghost" data-act="gg-exit">↩ Put away</button>
 		</div>
 	</div>
 </div>`

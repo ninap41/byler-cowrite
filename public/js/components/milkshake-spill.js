@@ -76,7 +76,7 @@ export const layerHtml = () => `<div class="ms-layer hidden" id="msLayer" aria-l
 		<div class="ms-row">
 			<button type="button" data-act="ms-refill">Refill</button>
 			<button type="button" class="ghost" data-act="ms-wipe">Wipe up</button>
-			<button type="button" class="ghost" data-act="ms-exit">↩ Put the cup away</button>
+			<button type="button" class="ghost" data-act="ms-exit">↩ Put away</button>
 		</div>
 	</div>
 </div>`

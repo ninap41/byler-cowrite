@@ -48,7 +48,7 @@ export const layerHtml = () => `<div class="sk-layer hidden" id="skLayer" aria-l
 		<div class="sk-row">
 			<button type="button" data-act="sk-fire">Fire 💦</button>
 			<button type="button" class="ghost" data-act="sk-wipe">Wipe up</button>
-			<button type="button" class="ghost" data-act="sk-exit">↩ Put the gun away</button>
+			<button type="button" class="ghost" data-act="sk-exit">↩ Put away</button>
 		</div>
 	</div>
 </div>`

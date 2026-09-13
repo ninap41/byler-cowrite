@@ -63,7 +63,7 @@ export const LAYER_HTML = `<div class="gd-layer hidden" id="gimmickLayer" aria-l
 	<div class="gd-hud glass hidden" id="gdHud">${hudCtlHtml()}
 		<b id="gdTitle">🎲 Gimmick</b><span id="gdRead"></span>
 		<label class="gd-steal checkline"><input type="checkbox" id="gdSteal" checked /> Steal the turn on a natural 20</label>
-		<button type="button" class="ghost gd-away" data-act="exit">↩ Put the die away</button>
+		<button type="button" class="ghost gd-away" data-act="exit">↩ Put away</button>
 	</div>
 	<div class="gd-note hidden" id="gdNote" role="status"></div>
 </div>
@@ -213,7 +213,7 @@ export function mountGimmickDice(opts) {
 		dieEl.classList.remove("hidden")
 		hud.classList.remove("hidden")
 		syncLayer()
-		if (btn) btn.textContent = "↩ Put the die away"
+		if (btn) btn.textContent = "↩ Put away"
 		if (!die) die = createDie(dieEl, { color: getMyColor(), size: dieSize() })
 		else {
 			die.setColor(getMyColor())
