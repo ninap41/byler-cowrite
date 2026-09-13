@@ -11440,3 +11440,29 @@ html.vcx-live[data-theme="vecna"] #vc-pend {
 	border-color: var(--good);
 	color: var(--good);
 }
+
+/* ---- Gimmick HUD buttons: one small, uniform size on every glass ----
+   The site's button is a 13px/16px slab sized for forms; on a HUD floating
+   over the live game the actions (Fire, Refill, Spin, Wipe, Put it away…)
+   read as furniture, so they all share this one compact shape. The art
+   room's swatches/brush sizes and the curse's target list are pickers, not
+   actions, and keep their own. Last in the file so it wins on source order
+   over every per-HUD rule above. */
+.gd-hud .gd-away,
+.gg-row > button,
+.ms-row > button,
+.db-row > button,
+.ar-row > button:not(.ar-swatch):not(.ar-size),
+.sk-row > button,
+.vcx-row > button:not(.vcx-target) {
+	flex: 0 0 auto;
+	min-width: 0;
+	width: auto;
+	height: 30px;
+	padding: 0 11px;
+	border-radius: var(--r-sm, 8px);
+	font-size: 0.78rem;
+	font-weight: 600;
+	line-height: 30px;
+	white-space: nowrap;
+}

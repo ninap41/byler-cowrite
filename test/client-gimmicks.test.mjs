@@ -1,6 +1,7 @@
 // The gimmick die layer's pure builders + the d20 die's geometry, on jsdom.
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { installDom } from "./dom.mjs";
 
 installDom();
@@ -228,4 +229,18 @@ test("the chat dock sits above every gimmick layer so no spill covers it", async
   const dockZ = Number(css.match(/\.chat-dock \{[^}]*z-index: (\d+)/)[1]);
   const layerZ = [...css.matchAll(/\n\.(?:ms|sk|ar|vcx|gg|db)-layer \{[^}]*z-index: (\d+)/g)].map((m) => Number(m[1]));
   assert.ok(layerZ.length >= 3 && layerZ.every((z) => z < dockZ), `chat dock ${dockZ} above layers ${layerZ}`);
+});
+
+test("every gimmick HUD's action buttons share one compact size rule (last in base.css, so it outranks the per-HUD rules)", () => {
+  const css = readFileSync(new URL("../public/css/base.css", import.meta.url), "utf8");
+  const at = css.lastIndexOf("Gimmick HUD buttons");
+  assert.ok(at > 0, "the shared rule exists");
+  const block = css.slice(at);
+  for (const sel of [".gd-hud .gd-away", ".gg-row > button", ".ms-row > button", ".db-row > button", ".ar-row > button", ".sk-row > button", ".vcx-row > button"])
+    assert.ok(block.includes(sel), sel + " is covered");
+  assert.match(block, /height: 30px/);
+  assert.match(block, /font-size: 0\.78rem/);
+  // nothing sets a button size after it
+  const after = block.slice(block.indexOf("}") + 1);
+  assert.ok(!/button[^{]*\{[^}]*(padding|font-size|height):/.test(after), "no later button sizing");
 });
