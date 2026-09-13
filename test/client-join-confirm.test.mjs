@@ -38,3 +38,16 @@ test("the lobby carries its own host-only Share to Discord under the code; the d
   assert.ok(html.includes('$("lobbyShare").classList.toggle("hidden", !host)'), "shown to the host only");
   assert.ok(html.indexOf('id="codeDisplay"') < html.indexOf('id="discordLobbyBtn"') && html.indexOf('id="discordLobbyBtn"') < html.indexOf('id="rosterList"'), "under the code, above the roster");
 });
+
+test("both Share menus name the Byler Offscreen Discord and offer Copy game link", () => {
+  const html = readFileSync(new URL("../public/game.html", import.meta.url), "utf-8");
+  for (const id of ["lobbyShareMenu", "inviteShareMenu"]) {
+    const at = html.indexOf(`class="mg-menu seat-menu share-menu" id="${id}"`);
+    assert.ok(at > -1, id + " is a share menu");
+    const m = html.slice(at, html.indexOf("</span>\n", html.indexOf("</span>\n", at) + 1));
+    assert.ok(m.includes(">Share to Byler Offscreen Discord<"), id + " names the server");
+    assert.ok(m.includes('data-share="link"') && m.includes(">Copy game link<"), id + " offers the link");
+  }
+  assert.ok(html.includes('const copyGameLink = (note) => async () => {'));
+  assert.ok(html.includes('location.origin + "/game?code=" + encodeURIComponent(myCode)'), "the link is the join URL");
+});

@@ -56,7 +56,13 @@
 					<p class="subtle">Game code: click it to copy, share it with your writers</p>
 					<div class="codechip" id="codeDisplay">----</div>
 					<p class="subtle hidden" id="lobbyShare" style="margin: 0 0 10px">
-						<button class="ghost" id="discordLobbyBtn" style="min-width: auto; padding: 8px 14px" title="Post the code with a Join button to the Discord writing room">Share to Discord</button>
+						<span class="mg-menu seat-menu share-menu" id="lobbyShareMenu">
+							<button type="button" class="ghost mg-more share-more" aria-haspopup="menu" title="Share this game">Share &#9662;</button>
+							<span class="mg-menu-list">
+								<button type="button" class="ghost" id="discordLobbyBtn" data-share="discord" title="Post the code with Join / Spectate buttons to the Discord writing room">Share to Byler Offscreen Discord</button>
+								<button type="button" class="ghost" data-share="link" title="Copy a join link for this game">Copy game link</button>
+							</span>
+						</span>
 						<span id="lobbyShareNote"></span>
 					</p>
 					<ul class="roster" id="rosterList"></ul>
@@ -168,7 +174,13 @@
 									<button class="ghost" id="inviteBtn" style="flex: 0 0 auto; min-width: auto">Invite</button>
 								</div>
 								<p class="subtle hidden" id="inviteNote" style="text-align: left; margin: 6px 0 0"></p>
-								<button class="ghost" id="discordShareBtn" style="margin-top: 8px" title="Post the code with Join / Spectate buttons to the Discord writing room">Share to Discord</button>
+								<span class="mg-menu seat-menu share-menu" id="inviteShareMenu">
+							<button type="button" class="ghost mg-more share-more" aria-haspopup="menu" title="Share this game">Share &#9662;</button>
+							<span class="mg-menu-list">
+								<button type="button" class="ghost" id="discordShareBtn" data-share="discord" title="Post the code with Join / Spectate buttons to the Discord writing room">Share to Byler Offscreen Discord</button>
+								<button type="button" class="ghost" data-share="link" title="Copy a join link for this game">Copy game link</button>
+							</span>
+						</span>
 							</div>
 							<div id="doomFx" aria-hidden="true">
 								<img class="doom-img" src="/img/demogorgon.gif" alt="" />
@@ -508,21 +520,26 @@
 				})
 				document.querySelectorAll("[data-sess-edit]").forEach((el) => el.classList.toggle("hidden", myId !== hostId))
 			}
-			async function copyCode(feedbackEl, resetText) {
+			async function copyText(text) {
 				try {
-					await navigator.clipboard.writeText(myCode)
+					await navigator.clipboard.writeText(text)
+					return true
 				} catch (e) {
 					try {
 						const ta = document.createElement("textarea")
-						ta.value = myCode
+						ta.value = text
 						document.body.appendChild(ta)
 						ta.select()
 						document.execCommand("copy")
 						ta.remove()
+						return true
 					} catch (e2) {
-						return
+						return false
 					}
 				}
+			}
+			async function copyCode(feedbackEl, resetText) {
+				if (!(await copyText(myCode))) return
 				if (feedbackEl) {
 					feedbackEl.dataset.copied = "1"
 					feedbackEl.textContent = "Copied ✓"
@@ -804,6 +821,8 @@
 			document.addEventListener("click", (e) => {
 				const more = e.target.closest(".seat-menu .mg-more")
 				const mk = e.target.closest(".seat-make-host")
+				const share = e.target.closest(".share-menu [data-share]")
+				if (share) return share.closest(".seat-menu").classList.remove("open") // the row's own onclick does the work
 				if (!more && !mk) return document.querySelectorAll(".seat-menu.open").forEach((m) => m.classList.remove("open"))
 				e.preventDefault()
 				e.stopPropagation()
@@ -1328,8 +1347,19 @@
 				note.classList.remove("hidden")
 				setTimeout(() => { note.classList.add("hidden"); note.textContent = "" }, 5000)
 			}
+			// Copy game link: the join URL for this code, next to the Discord share
+			// in the same Share ▾ menu (lobby and host side column alike).
+			const copyGameLink = (note) => async () => {
+				if (!myCode) return
+				const url = location.origin + "/game?code=" + encodeURIComponent(myCode)
+				note.textContent = (await copyText(url)) ? "🔗 Link copied." : "✗ Couldn't copy — the link is " + url
+				note.classList.remove("hidden")
+				setTimeout(() => { note.classList.add("hidden"); note.textContent = "" }, 5000)
+			}
 			$("discordShareBtn").onclick = shareToDiscord($("inviteNote"))
 			$("discordLobbyBtn").onclick = shareToDiscord($("lobbyShareNote"))
+			$("inviteShareMenu").querySelector('[data-share="link"]').onclick = copyGameLink($("inviteNote"))
+			$("lobbyShareMenu").querySelector('[data-share="link"]').onclick = copyGameLink($("lobbyShareNote"))
 			const friendsOnline = (name) => /· online$/.test($("inviteFriend").selectedOptions[0]?.textContent || "")
 
 $("pauseBtn").onclick = () =>

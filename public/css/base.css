@@ -3264,6 +3264,27 @@ input[type="checkbox"]:focus-visible {
 	font-size: 0.85rem;
 	white-space: nowrap;
 }
+/* the host's Share ▾ (lobby, under the code; the invite section beside the
+   game): the seat menu's shape as a small labelled button, opening leftwards
+   under itself, with room for the long Discord label */
+.share-menu {
+	margin-left: 0;
+	vertical-align: middle;
+}
+.share-menu .mg-more {
+	opacity: 1;
+	font-size: 0.78rem;
+	padding: 4px 10px;
+	line-height: 1.4;
+}
+.share-menu .mg-menu-list {
+	left: 0;
+	right: auto;
+	min-width: 230px;
+}
+#inviteSec .share-menu {
+	margin-top: 8px;
+}
 .player-chip {
 	display: flex;
 	align-items: center;
