@@ -10349,6 +10349,27 @@ body.game-page .session-bar .sess-name {
 .gk-tabs .doc-side-tab:hover {
 	transform: none;
 }
+/* the host tab reads "[gear] Host settings" set SIDEWAYS: the icon on top,
+   the words running down the tab (writing-mode), so the label fits an edge
+   tab without widening the stack */
+#hostOpen {
+	display: inline-flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 8px;
+	padding: 12px 9px;
+	font-family: var(--font-mono);
+	font-size: 0.68rem;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+}
+#hostOpen .fa-gear {
+	font-size: 0.95rem;
+}
+#hostOpen .tab-word {
+	writing-mode: vertical-rl;
+	white-space: nowrap;
+}
 .gk-tab:hover {
 	transform: none; /* an edge tab stays put on hover */
 }

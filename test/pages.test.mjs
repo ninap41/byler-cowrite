@@ -558,12 +558,14 @@ test("host controls are a modal on the game page: the ⚙️ tab opens it, the �
   assert.ok(panel.includes('id="hostRules"') && panel.includes('id="coverInput2"'), "rules and cover live in the modal");
   assert.match(body, /\$\("hostOpen"\)\.onclick = openHostModal/);
   assert.match(body, /\$\("gkTabs"\)\.prepend\(\$\("hostOpen"\)\)/, "the ⚙️ tab stacks with the gimmick tabs on the left edge");
+  assert.match(body, /id="hostOpen"[^>]*><i class="fa-solid fa-gear"[^>]*><\/i><span class="tab-word">Host settings<\/span>/, "the tab reads [gear] Host settings");
   assert.match(body, /\$\("hostClose"\)\.onclick = closeHostModal/);
   assert.match(body, /e\.key === "Escape" && closeHostModal\(\)/, "Escape closes");
   const main = body.slice(body.indexOf('class="game-main"'), body.indexOf('id="storyBox"'));
   assert.ok(main.includes('id="gamePrompt"'), "the prompt banner is inside the main column");
   const css = (await page("/css/base.css")).body;
   assert.ok(!/\.game-cols[^{]*\{[^}]*--doc-side-w/.test(css), "the grid holds no drawer column");
+  assert.match(css, /#hostOpen \.tab-word \{[^}]*writing-mode: vertical-rl/, "the words run sideways down the tab");
   // the modal's card fills a phone screen and the ✕ stands in its corner
   const phone = css.slice(css.indexOf(".host-modal-card {"), css.indexOf("/* ---------- Low-time alarm"));
   assert.match(phone, /@media \(max-width: 860px\) \{[^@]*\.host-modal-card \{[^}]*width: 100%;[^}]*height: 100%;/, "full width and height on a phone");
