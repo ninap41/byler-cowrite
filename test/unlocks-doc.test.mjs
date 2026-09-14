@@ -1,8 +1,8 @@
-// UNLOCKS.md is documentation-as-data, like fonts.json: the real unlock
+// docs/UNLOCKS.md is documentation-as-data, like fonts.json: the real unlock
 // order lives in achievements.json (wordTiers + themeUnlocks) and
 // lib/gimmicks.js (a gimmick rides its theme). This test re-derives the
 // doc's two tables from the data and fails if the two drift — change the
-// data and update UNLOCKS.md in the same commit.
+// data and update docs/UNLOCKS.md in the same commit.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -10,7 +10,7 @@ import { GIMMICKS } from "../lib/gimmicks.js";
 import { WORD_TIERS, THEME_UNLOCKS } from "../lib/achievements.js";
 import { THEMES } from "../public/js/theme.js";
 
-const DOC = readFileSync(new URL("../UNLOCKS.md", import.meta.url), "utf-8");
+const DOC = readFileSync(new URL("../docs/UNLOCKS.md", import.meta.url), "utf-8");
 
 // every `| a | b | c |` row of the section that starts at `heading`
 function tableRows(heading) {

@@ -1,4 +1,4 @@
-// Vecna's Curse gimmick (see lib/gimmicks.js and UNLOCKS.md): the first toy
+// Vecna's Curse gimmick (see lib/gimmicks.js and docs/UNLOCKS.md): the first toy
 // aimed at a PERSON. The HUD lists your tablemates; click one and — on their
 // screen — the clock chimes, the page greys out under a red mist vignette,
 // and debris drifts upward like the Creel house ceiling. They're being

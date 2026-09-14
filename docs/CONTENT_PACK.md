@@ -1,9 +1,10 @@
 # The content pack — how to re-fandom the app
 
-This directory IS the fandom. Everything hand-editable that says *which* fandom
-the game is about lives here, and the server reads it via `src/content.js`
-(`contentPath()`) and `src/site.js`. Nothing in `public/` or `src/` needs to be
-touched to run the app for another fandom — only this directory.
+The `content/` directory (repo root) IS the fandom. Everything hand-editable
+that says *which* fandom the game is about lives there, and the server reads it
+via `src/content.js` (`contentPath()`) and `src/site.js`. Nothing in `public/`
+or `src/` needs to be touched to run the app for another fandom — only that
+directory.
 
 ## The four files
 
@@ -12,7 +13,7 @@ touched to run the app for another fandom — only this directory.
 | `site.json` | The app's identity: `fandom` (the hero's first word — "Byler"), `name` (the full app name in every page title, the header, exports, emails, the welcome inbox note — "Byler Cowrite"), `tagline` (under the homepage heading), `blurb` (the first line of the features modal). Each is a plain string, ≤200 chars. Missing keys fall back to a generic "Cowrite". |
 | `titles.json` | `patterns` of `{slot}` templates plus a word list per slot — the random ≤40-char title a story gets when the host doesn't name it. Optional: without it every unnamed story is "Untitled". |
 | `prompts.json` | `prompts` — the curated scenario pool (one string each, dealt untouched in Simple mode); `intermediate` — the guided-mode axes (seasons, canon, places, situations, relationships, tones), the grouped `tropes` bank (`tropeGroups` names the groups) and the `explicit` layer (levels, setups, dynamics, acts, weighted kinks, registers — adult seasons only). See `docs/PROMPT_GENERATION.md` for the schema and compatibility rules. |
-| `achievements.json` | `wordTiers` — the rank ladder (id, name, min words, emoji); `usageOpen` — word badges whose descriptions are always visible; `usage` — the SECRET word badges (trigger words and descriptions hidden until earned); `themeUnlocks` — which rank earns which theme (and, through the theme, which gimmick). See `UNLOCKS.md`. |
+| `achievements.json` | `wordTiers` — the rank ladder (id, name, min words, emoji); `usageOpen` — word badges whose descriptions are always visible; `usage` — the SECRET word badges (trigger words and descriptions hidden until earned); `themeUnlocks` — which rank earns which theme (and, through the theme, which gimmick). See `docs/UNLOCKS.md`. |
 | `quotes.json` | Taglines for the homepage hero and the dashboard (an array of strings, re-read on every request, so edits show without a restart). |
 
 ## Step by step: making a pack for another fandom

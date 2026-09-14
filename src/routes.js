@@ -365,7 +365,7 @@ export function registerRoutes(app, game) {
     const recipe = (b) => (admin ? { desc: b.desc, triggers: b.triggers || [], combos: b.combos || [] } : {});
     res.json({
       // ids ride along so the ranks page can join tiers to themeUnlocks /
-      // gimmick locks (they're not secret — UNLOCKS.md prints them)
+      // gimmick locks (they're not secret — docs/UNLOCKS.md prints them)
       wordTiers: WORD_TIERS.map((t) => ({ id: t.id, name: t.name, min: t.min, desc: t.desc })),
       usage: USAGE.map((b) => ({ name: b.name, ...recipe(b) })),
       usageOpen: USAGE_OPEN.map((b) => ({ name: b.name, desc: b.desc, ...recipe(b) })),
