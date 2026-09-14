@@ -3110,7 +3110,39 @@ input[type="checkbox"]:focus-visible {
 	color: var(--muted);
 }
 .chat-log .react {
+	position: relative; /* the tooltip hangs off the chip */
 	border: none; /* a soft pill, no outline */
+}
+/* who reacted: one name per row in their own colour, shown the instant the
+   chip is hovered or focused (no native-title delay), above the chip */
+.chat-log .react-tip {
+	position: absolute;
+	left: 0;
+	bottom: calc(100% + 6px);
+	z-index: 5;
+	display: none;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 2px;
+	padding: 6px 10px;
+	white-space: nowrap;
+	text-align: left;
+	font-size: 0.78rem;
+	line-height: 1.25;
+	font-family: var(--font-body);
+	background: var(--bg-2);
+	border: 1px solid var(--line);
+	border-radius: 8px;
+	box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+	pointer-events: none;
+}
+.chat-log .react:hover .react-tip,
+.chat-log .react:focus-visible .react-tip {
+	display: flex;
+}
+.chat-log .react-who {
+	color: var(--ink);
+	font-weight: 600;
 }
 .chat-log .react.mine,
 .react-pick .react-opt.on {

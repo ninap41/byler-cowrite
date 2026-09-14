@@ -39,9 +39,15 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "
 
 export const cleanReaction = (e) => (REACTIONS.includes(e) ? e : null)
 
+const HEX = /^#[0-9a-f]{6}$/i
+// a reactor's colour is only ever a validated hex (it lands in a style=)
+const cleanTipColor = (c) => (HEX.test(String(c ?? "")) ? String(c).toLowerCase() : null)
+
 // Toggle `key`'s reaction `emoji` on the message. Returns true when the
 // message changed (a refused emoji, or a system line, changes nothing).
-export function toggleReaction(msg, key, name, emoji) {
+// `color` (a #rrggbb) is kept on the reactor so the tooltip can name them
+// in their own colour; anything else is dropped rather than stored.
+export function toggleReaction(msg, key, name, emoji, color) {
 	if (!msg || msg.sys || !msg.mid || !key) return false
 	const e = cleanReaction(emoji)
 	if (!e) return false
@@ -49,15 +55,29 @@ export function toggleReaction(msg, key, name, emoji) {
 	const list = msg.reactions[e] || []
 	const i = list.findIndex((r) => r.key === key)
 	if (i >= 0) list.splice(i, 1)
-	else list.push({ key, name: String(name ?? "") })
+	else {
+		const c = cleanTipColor(color)
+		list.push(c ? { key, name: String(name ?? ""), color: c } : { key, name: String(name ?? "") })
+	}
 	if (list.length) msg.reactions[e] = list
 	else delete msg.reactions[e]
 	if (!Object.keys(msg.reactions).length) delete msg.reactions
 	return true
 }
 
+// The tooltip under a chip: one row per reactor, in their own colour. Not a
+// native `title` — that shows after a second and can't be styled; this one is
+// CSS (`.react:hover .react-tip`) and appears at once.
+export function reactionTipHtml(list) {
+	const rows = (list || [])
+		.filter((r) => r.name)
+		.map((r) => `<span class="react-who"${r.color ? ` style="color:${cleanTipColor(r.color)}"` : ""}>${esc(r.name)}</span>`)
+	return rows.length ? `<span class="react-tip" role="tooltip">${rows.join("")}</span>` : ""
+}
+
 // The chip row: one `.react` per emoji with its count, `.mine` when `myKey`
-// is among the reactors, a title naming who reacted. Empty string when none.
+// is among the reactors, a tooltip naming who reacted (one per row, in their
+// colour; the same names as an aria-label). Empty string when none.
 export function reactionsHtml(reactions, myKey) {
 	const out = []
 	for (const e of REACTIONS) {
@@ -66,8 +86,8 @@ export function reactionsHtml(reactions, myKey) {
 		const mine = list.some((r) => r.key === myKey)
 		const who = list.map((r) => r.name).filter(Boolean).join(", ")
 		out.push(
-			`<button type="button" class="react${mine ? " mine" : ""}" data-react="${e}" title="${esc(who)}" aria-pressed="${mine}">` +
-				`<span class="react-e">${e}</span><span class="react-n">${list.length}</span></button>`,
+			`<button type="button" class="react${mine ? " mine" : ""}" data-react="${e}" aria-label="${esc(who)}" aria-pressed="${mine}">` +
+				`<span class="react-e">${e}</span><span class="react-n">${list.length}</span>${reactionTipHtml(list)}</button>`,
 		)
 	}
 	return out.join("")

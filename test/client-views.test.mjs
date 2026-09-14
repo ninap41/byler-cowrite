@@ -204,7 +204,7 @@ test("reactions: toggle per key, refuse system lines and unknown emoji, render c
   toggleReaction(m, "u2", "mike", "❤️");
   assert.equal(m.reactions, undefined, "an emptied map goes away");
   assert.equal(toggleReaction(m, "u3", "<b>x</b>", "🔥"), true);
-  assert.ok(reactionsHtml(m.reactions, "u3").includes('title="&lt;b&gt;x&lt;/b&gt;"'), "names escaped in the tooltip");
+  assert.ok(reactionsHtml(m.reactions, "u3").includes('<span class="react-who">&lt;b&gt;x&lt;/b&gt;</span>'), "names escaped in the tooltip");
   const pick = reactionPickerHtml(m.reactions, "u3");
   assert.equal((pick.match(/react-opt/g) || []).length, REACTIONS.length);
   assert.ok(pick.includes('class="react-opt on" data-react="🔥"'));
@@ -234,6 +234,26 @@ test("reactions: chip markup — one chip per emoji in list order, count, toolti
   const chips = html.match(/<button[^>]*class="react[^"]*"/g) || [];
   assert.equal(chips.length, 2, "an empty list draws nothing");
   assert.ok(html.indexOf('data-react="😂"') < html.indexOf('data-react="👀"'), "list order, not insertion order");
-  assert.ok(html.includes('title="will, mike"') && html.includes('<span class="react-n">2</span>'));
+  assert.ok(html.includes('aria-label="will, mike"') && html.includes('<span class="react-n">2</span>'));
   assert.ok(!html.includes("mine"));
+});
+
+test("reactions: the tooltip is one row per reactor in their own colour, shown by CSS at once, never a native title", async () => {
+  const { toggleReaction, reactionsHtml, reactionTipHtml } = await import("../public/js/components/reactions.js");
+  const m = { mid: "t1" };
+  toggleReaction(m, "u1", "will", "🔥", "#6C8CFF");
+  toggleReaction(m, "u2", "mike", "🔥", "red; background:url(x)"); // not a hex: dropped
+  toggleReaction(m, "u3", "spec", "🔥");
+  assert.deepEqual(m.reactions["🔥"].map((r) => r.color), ["#6c8cff", undefined, undefined], "only a validated hex is stored, lowercased");
+  const html = reactionsHtml(m.reactions, "zz");
+  assert.ok(html.includes('<span class="react-tip" role="tooltip">'), "a styled tooltip inside the chip");
+  assert.ok(html.includes('<span class="react-who" style="color:#6c8cff">will</span>'), "a row in the reactor's colour");
+  assert.ok(html.includes('<span class="react-who">mike</span>') && html.includes('<span class="react-who">spec</span>'), "no colour → theme ink");
+  assert.ok(!html.includes(" title="), "no native title (its delay is the point)");
+  assert.ok(html.includes('aria-label="will, mike, spec"'), "the names still reach a screen reader");
+  assert.equal(reactionTipHtml([{ key: "a", name: "" }]), "", "no names, no tooltip");
+  // the CSS shows it on hover/focus with no transition delay
+  const css = (await import("node:fs")).readFileSync(new URL("../public/css/base.css", import.meta.url), "utf-8");
+  assert.match(css, /\.chat-log \.react:hover \.react-tip,\s*\.chat-log \.react:focus-visible \.react-tip \{\s*display: flex;/);
+  assert.match(css, /\.chat-log \.react-tip \{[^}]*flex-direction: column;/, "one name per row");
 });

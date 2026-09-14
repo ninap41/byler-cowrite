@@ -326,3 +326,59 @@ test("make-host hands the game — and the original-host rights — to another w
   assert.equal(old.data.find((g) => g.code === code).hosted, false);
   S.disconnect();
 });
+
+// The bug behind "I got kicked after a while, a refresh fixed it": a
+// TRANSPORT drop (ping timeout, sleep, a proxy closing the socket) makes the
+// client auto-reconnect with a NEW socket id. The server moves the seat to
+// that id — so a client still comparing against its old id is never "its
+// turn" and never the host again. This pins the contract: after a reconnect
+// the seat, the turn order and the host role all speak the NEW id, and the
+// rejoin ack is what tells the client so.
+test("a transport drop + auto-reconnect moves the seat to the new socket id", async () => {
+  const { A, B, code, mikeSeatToken } = await startedGame(ctx);
+  const oldId = B.id;
+  const reconnected = new Promise((r) => B.once("connect", r));
+  B.io.engine.close(); // the transport dies; socket.io-client reconnects on its own
+  await reconnected;
+  assert.notEqual(B.id, oldId, "a reconnect is a new socket id");
+  const stateP = new Promise((r) => A.once("game-state", r));
+  const r = await ctx.emit(B, "rejoin-session", { code, token: mikeSeatToken });
+  assert.equal(r.ok, true, r.error);
+  assert.equal(r.pending, undefined);
+  const st = await stateP;
+  const ids = st.writers.map((w) => w.id);
+  assert.ok(ids.includes(B.id), "the seat now wears the new id");
+  assert.ok(!ids.includes(oldId), "and the old id is gone");
+  assert.ok(st.turnOrder.includes(B.id) && !st.turnOrder.includes(oldId), "turn order follows");
+  assert.equal(st.writers.find((w) => w.id === B.id).connected, true, "In game again");
+  // the host's drop hands the role back to the host's NEW id, not the old one
+  const hostOld = A.id;
+  const hostBack = new Promise((r) => A.once("connect", r));
+  A.io.engine.close();
+  await hostBack;
+  const stateP2 = new Promise((r) => B.once("game-state", r));
+  const rh = await ctx.emit(A, "rejoin-session", { code, auth: (await signup(ctx)).token });
+  assert.equal(rh.ok, true, rh.error);
+  assert.equal(rh.hostId, A.id, "the ack names the host by the new id");
+  const st2 = await stateP2;
+  assert.equal(st2.hostId, A.id);
+  assert.notEqual(st2.hostId, hostOld);
+});
+
+test("a reconnect after the ghost window is told the seat expired (nothing silent)", async () => {
+  const ctx2 = await startServer({ COWRITE_GHOST_MS: "150" });
+  try {
+    const { A, B, code, mikeSeatToken } = await startedGame(ctx2);
+    const reconnected = new Promise((r) => B.once("connect", r));
+    B.io.engine.close();
+    await reconnected;
+    await ctx2.wait(600); // longer than the ghost window: the seat is gone
+    const r = await ctx2.emit(B, "rejoin-session", { code, token: mikeSeatToken });
+    assert.equal(r.ok, false);
+    assert.match(r.error, /Seat expired/);
+    A.disconnect();
+    B.disconnect();
+  } finally {
+    await ctx2.stop?.();
+  }
+});

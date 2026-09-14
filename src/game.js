@@ -455,6 +455,7 @@ export function createGame(io) {
     const w = s.writers.get(id);
     if (!w) return;
     w.connected = false;
+    console.log(`[game ${s.code}] ${w.name} disconnected (${id}); seat ghosts for ${Math.round(GHOST_MS / 1000)}s`);
     dropDie(s, w.userId); // a die with nobody behind it leaves the table
     dropShip(s, w.userId); // and so does a Galaga battle
     dropCup(s, w.userId); //  ...and a milkshake
@@ -483,7 +484,10 @@ export function createGame(io) {
     }
     clearTimeout(w.ghostTimer);
     w.ghostTimer = setTimeout(() => {
-      if (s.writers.get(id) === w && !w.connected) removeWriter(s, id);
+      if (s.writers.get(id) === w && !w.connected) {
+        console.log(`[game ${s.code}] ${w.name}'s seat expired (${id})`);
+        removeWriter(s, id);
+      }
     }, GHOST_MS);
     if (s.phase === "waiting" || s.phase === "over") broadcastRoster(s);
     else broadcastGame(s);
@@ -925,6 +929,7 @@ export function createGame(io) {
   // Used by token rejoin, account reclaim, and host-approved re-entries.
   function seatSocket(sock, s, oldId, w, ack) {
     if (oldId !== sock.id) {
+      console.log(`[game ${s.code}] ${w.name} reclaimed their seat (${oldId} → ${sock.id})`);
       io.sockets.sockets.get(oldId)?.disconnect(true); // stale duplicate tab
       s.writers.delete(oldId);
       s.writers.set(sock.id, w);
@@ -975,6 +980,7 @@ export function createGame(io) {
       const key = w.userId;
       const coolMsg = checkDenied(s, key);
       if (coolMsg) return ack?.({ ok: false, error: coolMsg });
+      console.log(`[game ${s.code}] ${w.name} is back but gated: waiting for the host (${sock.id})`);
       s.pending.set(sock.id, { name: w.name, color: w.color, seatOldId: oldId, key });
       sock.data.pendingCode = s.code;
       io.sockets.sockets.get(s.hostId)?.emit("join-request", { id: sock.id, name: w.name, returning: true });
@@ -1602,7 +1608,8 @@ export function createGame(io) {
       const key = w ? w.userId : socket.id;
       // a spectator names themself, stripped like their chat lines
       const who = w ? w.name : String(name || "").replace(/<[^>]*>/g, "").slice(0, 28).trim() || "Spectator";
-      if (!toggleReaction(msg, key, who, emoji)) return ack?.({ ok: false });
+      const color = w ? w.color : specColor(who); // the tooltip names reactors in their colour
+      if (!toggleReaction(msg, key, who, emoji, color)) return ack?.({ ok: false });
       touch(s);
       io.to(s.code).emit("chat-react", { mid, reactions: msg.reactions || {} });
       ack?.({ ok: true, reactions: msg.reactions || {} });

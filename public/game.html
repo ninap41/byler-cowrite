@@ -298,6 +298,7 @@
 			import { mountTagEditor } from "/js/components/tag-chips.js"
 			import { showInviteToast } from "/js/turn-alert.js"
 			import { needsJoinConfirm, joinConfirmHtml } from "/js/join-confirm.js"
+			import { reconnectOutcome, adoptSeatId } from "/js/components/seat-identity.js"
 			mountChrome({ page: "game" })
 			// Spectators need no account: ?spectate=CODE watches a story read-only.
 			const spectateCode = (new URLSearchParams(location.search).get("spectate") || "").trim().toUpperCase()
@@ -648,6 +649,35 @@
 				enterSession(res)
 			}
 			let entered = false
+			// A dropped transport (sleep, a tab in the background, a proxy
+			// closing an idle socket) is otherwise invisible: say so until
+			// the seat is reclaimed, so a stall never reads as being kicked.
+			socket.on("disconnect", () => {
+				if (entered && !spectateCode) gameMsg("Reconnecting…")
+			})
+			// After a reconnect the socket has a NEW id and the server has moved
+			// the seat onto it — every "is this me" check compares against
+			// myId, so it must be re-read here or the page thinks it was kicked
+			// (no "Your turn", no host controls) until a hard refresh.
+			function reconnectAck(res) {
+				const out = reconnectOutcome(res, socket.id, hostId)
+				if (out.kind === "gone") {
+					clearRejoin() // seat expired or the game is gone
+					return location.replace("/dashboard")
+				}
+				if (out.kind === "pending") return gameMsg("Reconnected, waiting for the host to let you back in…")
+				myId = out.myId
+				hostId = out.hostId
+				gameMsg("")
+			}
+			// Belt and braces for any path that reseats this socket without an
+			// ack reaching us (a host approving a returning seat): if no writer
+			// wears my id but one wears my account, that seat is mine.
+			function adoptSeat(writers) {
+				if (!entered || spectateCode || !me) return
+				const id = adoptSeatId(writers, myId, me.id)
+				if (id) myId = id
+			}
 			socket.on("connect", () => {
 				if (spectateCode) {
 					// read-only: join the broadcast room, no seat, no auth needed
@@ -666,8 +696,9 @@
 				socket.emit("identify", { auth: getToken() }) // dashboard presence
 				const rejoinInfo = loadRejoin()
 				if (entered) {
-					// transient reconnect: silently reclaim the seat
-					if (rejoinInfo) socket.emit("rejoin-session", { ...rejoinInfo, auth: getToken() }, () => {})
+					// transient reconnect: reclaim the seat and take the new id
+					if (rejoinInfo) socket.emit("rejoin-session", { ...rejoinInfo, auth: getToken() }, reconnectAck)
+					else location.replace("/dashboard")
 					return
 				}
 				entered = true
@@ -851,6 +882,7 @@
 						seatMenuHtml(w, writers)
 					list.appendChild(li)
 				}
+				adoptSeat(writers)
 				hostId = writers.find((w) => w.isHost)?.id ?? hostId
 				updateHostView()
 				updateSessionBar()
@@ -864,6 +896,7 @@
 				lastPaused = !!st.paused
 				if (Array.isArray(st.tableGimmicks)) gimmicks.setGate({ table: st.tableGimmicks })
 				updateLiveStatus(st.writers)
+				adoptSeat(st.writers)
 				if (Array.isArray(st.writers)) {
 					tableColors = st.writers.map((w) => safeColor(w.color))
 					tableWriters = st.writers

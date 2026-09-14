@@ -15,7 +15,9 @@ export async function requireAuth(redirectTo = "/", nav = go) {
 	try {
 		return (await api("/api/me", null, "GET")).user
 	} catch (e) {
-		setToken(null) // stale/revoked token
+		// only a refused token is a dead token — a network blip or a 5xx
+		// must not log someone out (that read as "kicked" too)
+		if (e.status === 401 || e.status === 403) setToken(null)
 		nav(redirectTo)
 		return null
 	}

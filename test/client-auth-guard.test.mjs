@@ -28,10 +28,22 @@ test("requireAuth: valid token -> resolves the account, no redirect", async () =
 test("requireAuth: stale token -> cleared + redirect", async () => {
   setToken("stale");
   navved = null;
-  globalThis.fetch = async () => ({ ok: false, json: async () => ({ error: "Not signed in." }) });
+  globalThis.fetch = async () => ({ ok: false, status: 401, json: async () => ({ error: "Not signed in." }) });
   assert.equal(await requireAuth("/index.html", nav), null);
   assert.equal(navved, "/index.html");
   assert.equal(getToken(), null, "stale token cleared");
+});
+
+test("requireAuth: a network blip or a 5xx redirects but keeps the token", async () => {
+  setToken("fine");
+  navved = null;
+  globalThis.fetch = async () => { throw new TypeError("Failed to fetch"); };
+  assert.equal(await requireAuth("/", nav), null);
+  assert.equal(navved, "/");
+  assert.equal(getToken(), "fine", "not logged out by a blip");
+  globalThis.fetch = async () => ({ ok: false, status: 502, json: async () => ({}) });
+  assert.equal(await requireAuth("/", nav), null);
+  assert.equal(getToken(), "fine", "nor by a bad gateway");
 });
 
 test("redirectIfSignedIn only bounces when a token exists", () => {
