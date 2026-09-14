@@ -240,6 +240,12 @@
 						</button>
 					</div>
 					<h3 style="color: var(--accent-2)">The finished story</h3>
+					<!-- the reveal keeps the game's two columns: the story and its
+					     controls, then the chat as a sidebar (placeChat carries
+					     #chatCard into #overSide) so the table keeps talking over
+					     the finished story instead of under it -->
+					<div class="game-cols">
+					<div class="game-main">
 					<!-- a non-friendly game keeps score: words per writer, most first -->
 					<div id="overScore" class="scoreboard hidden"></div>
 					<div class="prompt-banner" id="overPrompt"></div>
@@ -255,6 +261,9 @@
 						<button class="ghost" id="dashBtn">← Back to dashboard</button>
 						<button class="ghost" id="copyBtn">Copy (formatted)</button>
 						<button class="ghost" id="downloadBtn">Download .html</button>
+					</div>
+					</div>
+					<aside class="game-side" id="overSide"></aside>
 					</div>
 				</div>
 			</div>
@@ -328,14 +337,15 @@
 			const setPageTitle = () => {
 				document.title = "{{SITE_NAME}}: " + (sessName || PAGE_TITLES[shownCard] || "Game")
 			}
-			// Chat is ONE element: a section of the game's side column while the
-			// story is being written, and the foot of whichever card is on screen
-			// otherwise (lobby, vote, reveal), so the table talks in every phase.
+			// Chat is ONE element: a section of the side column while the story
+			// is being written AND on the reveal (#overSide), and the foot of the
+			// lobby / vote card otherwise, so the table talks in every phase.
 			const chatHome = $("chatCard").parentElement
 			const placeChat = (id) => {
 				const chat = $("chatCard")
-				if (id === "game") {
-					if (chat.parentElement !== chatHome) chatHome.appendChild(chat)
+				if (id === "game" || id === "over") {
+					const home = id === "game" ? chatHome : $("overSide")
+					if (chat.parentElement !== home) home.appendChild(chat)
 					chat.classList.remove("chat-inline")
 				} else if ($(id)) {
 					$(id).appendChild(chat)

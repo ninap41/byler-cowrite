@@ -574,7 +574,16 @@ test("host controls are a modal on the game page: the ⚙️ tab opens it, the �
   const gridRules = [...css.matchAll(/\.game-cols(?:\.side-closed)? \{[^}]*grid-template-columns: ([^;]+);/g)].map((m) => m[1]);
   assert.ok(gridRules.length >= 3, "desktop + the two breakpoints");
   for (const cols of gridRules) assert.ok(cols === "1fr" || cols.includes("var(--game-side-w)"), "no hard-coded side width: " + cols);
-  assert.match(css, /#game \.chat-sec \.chat-row \{[^}]*flex-wrap: nowrap/, "the composer stays on one line");
+  assert.match(css, /#game \.chat-sec \.chat-row,\n#over \.chat-sec \.chat-row \{[^}]*flex-wrap: nowrap/, "the composer stays on one line, on the reveal too");
+  // the reveal keeps the two columns: story + controls on the left, the chat
+  // as a sidebar (#overSide) on the right, styled like the game's own rail
+  const over = body.slice(body.indexOf('id="over"'), body.indexOf("<!-- /main -->"));
+  assert.ok(over.includes('class="game-cols"') && over.includes('class="game-main"'), "the reveal is a game-cols grid");
+  assert.ok(over.indexOf('id="overStory"') < over.indexOf('id="overSide"'), "the story column comes first");
+  assert.match(over, /<aside class="game-side" id="overSide">/);
+  assert.match(body, /id === "game" \|\| id === "over"/, "placeChat keeps the chat a sidebar on the reveal");
+  assert.match(body, /id === "game" \? chatHome : \$\("overSide"\)/);
+  assert.match(css, /#game \.game-side,\n#over \.game-side \{/, "the reveal's rail wears the game's rail rule");
   // the player pills are one four-column table, words in the middle
   assert.match(css, /\.side-sec \.player-chip \{[^}]*grid-template-columns: minmax\(7\.6em, auto\) minmax\(0, 1fr\) auto auto/);
   const chip = body.slice(body.indexOf('class="player-chip${'), body.indexOf("seatMenuHtml(w, st.writers)"));

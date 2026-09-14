@@ -10052,12 +10052,14 @@ body.game-page .session-bar .sess-name {
 	border-radius: var(--r-md);
 }
 /* the right column is a rail, not a card zone: one hairline is the boundary */
-#game .game-side {
+#game .game-side,
+#over .game-side {
 	margin-top: 0;
 	border-left: 1px solid var(--line);
 	padding-left: 22px;
 }
-#game .side-sec {
+#game .side-sec,
+#over .side-sec {
 	background: none;
 	border: 0;
 	box-shadow: none;
@@ -10065,13 +10067,16 @@ body.game-page .session-bar .sess-name {
 }
 /* the chat fills the column edge to edge like the writers' chips above it,
    its composer on one line */
-#game .chat-sec .chat-log {
+#game .chat-sec .chat-log,
+#over .chat-sec .chat-log {
 	margin-bottom: 10px;
 }
-#game .chat-sec .chat-row {
+#game .chat-sec .chat-row,
+#over .chat-sec .chat-row {
 	flex-wrap: nowrap;
 }
-#game .chat-sec .chat-row input {
+#game .chat-sec .chat-row input,
+#over .chat-sec .chat-row input {
 	flex: 1 1 auto;
 	min-width: 0;
 }
