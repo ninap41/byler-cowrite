@@ -583,6 +583,7 @@ test("host controls are a modal on the game page: the ⚙️ tab opens it, the �
   assert.match(over, /<aside class="game-side" id="overSide">/);
   assert.match(body, /id === "game" \|\| id === "over"/, "placeChat keeps the chat a sidebar on the reveal");
   assert.match(body, /id === "game" \? chatHome : \$\("overSide"\)/);
+  assert.match(body, /home\.insertBefore\(chat, id === "game" \? \$\("doomFx"\) : null\)/, "the chat returns above the demogorgon, never under it");
   assert.match(css, /#game \.game-side,\n#over \.game-side \{/, "the reveal's rail wears the game's rail rule");
   // the player pills are one four-column table, words in the middle
   assert.match(css, /\.side-sec \.player-chip \{[^}]*grid-template-columns: minmax\(7\.6em, auto\) minmax\(0, 1fr\) auto auto/);

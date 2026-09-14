@@ -345,7 +345,9 @@
 				const chat = $("chatCard")
 				if (id === "game" || id === "over") {
 					const home = id === "game" ? chatHome : $("overSide")
-					if (chat.parentElement !== home) home.appendChild(chat)
+					// back in the side column the chat goes ABOVE the demogorgon
+					// (#doomFx hugs the column's foot); appendChild would land it under
+					if (chat.parentElement !== home) home.insertBefore(chat, id === "game" ? $("doomFx") : null)
 					chat.classList.remove("chat-inline")
 				} else if ($(id)) {
 					$(id).appendChild(chat)
