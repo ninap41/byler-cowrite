@@ -658,11 +658,21 @@ test("touch devices get 16px fields, so iOS never zooms the page on focus", asyn
   }
 });
 
-test("every page loads the Font Awesome kit", async () => {
+test("every page loads the self-hosted Font Awesome stylesheet, never the kit", async () => {
   for (const p of ["/", "/dashboard", "/game", "/archive", "/inbox", "/profile", "/settings", "/write", "/writes", "/stories", "/games", "/ranks", "/announcements", "/admin", "/reset"]) {
     const html = (await page(p)).body;
-    assert.ok(html.includes('<script src="https://kit.fontawesome.com/60a456108b.js" crossorigin="anonymous"></script>'), p + " carries the kit");
+    assert.ok(html.includes('<link rel="stylesheet" href="/vendor/fontawesome/css/fa.min.css" />'), p + " carries the local stylesheet");
+    assert.ok(!html.includes("kit.fontawesome.com"), p + " fetches nothing from the kit CDN");
   }
+  // the sheet and its two fonts are served, cacheable, and the sheet names only fonts we ship
+  const css = await page("/vendor/fontawesome/css/fa.min.css");
+  assert.equal(css.status, 200);
+  assert.match(css.headers.get("cache-control") || "", /max-age=604800/, "vendor files cache for a week");
+  const fonts = [...css.body.matchAll(/url\(\.\.\/webfonts\/([^)]+)\)/g)].map((m) => m[1]);
+  assert.deepEqual([...new Set(fonts)].sort(), ["fa-regular-400.woff2", "fa-solid-900.woff2"]);
+  for (const f of fonts) assert.equal((await page("/vendor/fontawesome/webfonts/" + f)).status, 200, f + " is shipped");
+  // and every icon the pages use is a free one in a style we ship
+  for (const style of ["fa-solid", "fa-regular"]) assert.ok(css.body.includes(`.${style}`), style + " is in the sheet");
 });
 
 test("the caret is visible inside a gradient-text heading in every editor", async () => {
