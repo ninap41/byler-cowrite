@@ -18,7 +18,7 @@ No framework. The app's frontend already does, by hand and well, the two things 
 | Inline page script | ~6,000 lines; `write.html` (1,762), `game.html` (1,567) and `dashboard.html` (726) hold 67% |
 | `public/js` modules | 61 files, 11,214 lines; 31 of them are pure string builders with no DOM access |
 | CSS | 14,126 lines across `base.css`, `dashboard.css`, `home.css`; 64 `[data-theme]` blocks for 19 themes |
-| Client libraries | GSAP (self-hosted, 9 pages), Socket.IO client (4 pages), the Font Awesome kit script (all 15 pages), Google Fonts (all 15) |
+| Client libraries | GSAP (self-hosted, 9 pages), Socket.IO client (4 pages), Font Awesome Free (self-hosted under `public/vendor/fontawesome` since 2026-09-14; it was the kit script on all 15 pages when this was measured), Google Fonts (all 15) |
 | Build tooling | None. No bundler, no transpiler, no minifier |
 | Tests | 73 files. 38 `client-*.test.mjs` suites import the builders under jsdom; `test/pages.test.mjs` makes 320 assertions over raw page source |
 | Server ↔ client coupling | `src/game.js` imports `public/js/components/reactions.js`; `lib/achievements.js` imports `public/js/theme.js`; `renderPage()` in `src/site.js` fills `{{SITE_NAME}}`-style tokens into every page |
@@ -34,7 +34,7 @@ flowchart LR
     HTML["15 static pages<br/>public/*.html<br/>inline module scripts"]
     JS["public/js ES modules<br/>kernel · view builders · components"]
     CSS["base.css + dashboard.css + home.css<br/>19 themes on html[data-theme]"]
-    LIBS["GSAP · Socket.IO client<br/>Font Awesome kit · Google Fonts"]
+    LIBS["GSAP · Socket.IO client<br/>Font Awesome (self-hosted) · Google Fonts"]
     HTML --> JS
     HTML --> CSS
     HTML --> LIBS
@@ -72,10 +72,10 @@ Measured from the repo on 2026-09-14 (raw bytes on disk; gzip is what the wire c
 | `game.html` direct module imports (30 files) | 208 kB | ~70 kB |
 | `write.html` inline script + 14 imports | 191 kB | ~65 kB |
 | `dashboard.html` inline script + 10 imports | 118 kB | ~40 kB |
-| Font Awesome kit loader (every page) | 17 kB | ~6 kB, then it fetches its stylesheet and webfonts (typically a few hundred kB more) |
+| Font Awesome kit loader (every page, before self-hosting) | 17 kB | ~6 kB, then it fetched its stylesheet and webfonts (a few hundred kB more). Now: one local 58 kB sheet + 184 kB of woff2, cached for a week |
 | All of `public/js` | 629 kB | 218 kB |
 
-Two things stand out. First, nothing is minified: comments and whitespace are roughly a third of every module. Second, the single largest third-party cost on every page is the Font Awesome kit, which loads a script that loads a stylesheet that loads fonts, three round trips before an icon appears, for a handful of icons that could be inline SVG.
+Two things stand out. First, nothing is minified: comments and whitespace are roughly a third of every module. Second, the single largest third-party cost on every page WAS the Font Awesome kit, which loaded a script that loaded a stylesheet that loaded fonts, three round trips before an icon appeared. That is now self-hosted and cached (done on master before the migration began); the remaining step, inlining the three icons the pages actually use as SVG, would drop the 184 kB of fonts too.
 
 Neither of those is a framework problem, and no framework fixes them. A build step does.
 
@@ -107,7 +107,7 @@ Reading the table:
 1. **A `shared/` folder of contracts** that the server and client both import: the socket payloads (`game-state`, `roster`, `chat`, `live-typing`, `game-over`, the gimmick events), the REST response shapes, `promptControls`, the achievements catalogue. Today that contract is enforced by tests and by prose in CLAUDE.md. This is the app's actual weakness, and it is exactly what TypeScript is for. The two client modules the server already imports (`reactions.js`, `theme.js`) move here, which also removes the odd server-imports-from-public edge.
 2. **`public/js` becomes TypeScript source** compiled by esbuild to plain ES modules, file for file, no bundling. The module graph, the pages, the ids the tests look for, the Replit Run button: all unchanged. `allowJs` + `checkJs` in `tsconfig` means files convert one at a time and the suite stays green throughout.
 3. **Inline page scripts are extracted** to `public/js/pages/<page>.ts` and loaded by `<script type="module" src>`. This is what makes them typable and importable in tests. The HTML keeps every id and class.
-4. **Minification and gzip-friendly output** fall out of the same esbuild call. **The Font Awesome kit is replaced** by the specific icons the pages use, inlined as SVG (a small `icons.ts` module), which removes three round trips from every page.
+4. **Minification and gzip-friendly output** fall out of the same esbuild call. **The self-hosted Font Awesome fonts are replaced** by the three icons the pages use, inlined as SVG (a small `icons.ts` module), which removes the font download entirely.
 5. **CSS is untouched.**
 
 ### After
@@ -125,7 +125,7 @@ flowchart LR
     HTML["15 static pages<br/>script type=module src=…"]
     JS["public/js ES modules (emitted)"]
     CSS["same CSS, same 19 themes"]
-    LIBS["GSAP · Socket.IO client · Google Fonts<br/>(Font Awesome kit gone: inline SVG)"]
+    LIBS["GSAP · Socket.IO client · Google Fonts<br/>(Font Awesome gone: inline SVG)"]
     HTML --> JS
     HTML --> CSS
     HTML --> LIBS
@@ -158,7 +158,7 @@ Every box under the server is the same as in the "Today" diagram. Only the front
 |---|---|---|
 | Framework runtime downloaded | 0 | 0 |
 | JS on the game page (gz) | ~90 kB inline + imports, unminified | roughly a third smaller from minification alone; exact figure once esbuild runs |
-| Font Awesome | kit script → stylesheet → webfonts, every page | none; inline SVG in the page's own JS |
+| Font Awesome | self-hosted sheet + two woff2, cached a week | none; inline SVG in the page's own JS |
 | Time to interactive | governed by the module waterfall and the kit | same waterfall, smaller files, one fewer third-party chain |
 | Socket re-render latency | ~10 direct DOM writes per broadcast | identical code, types erased |
 | Live typing, countdown, GSAP scenery | untouched | untouched |
@@ -176,7 +176,7 @@ npx lighthouse http://localhost:3000/ --preset=perf --form-factor=mobile --outpu
 ### What it costs
 
 - **Hosting: nothing.** Replit's VM deployment bills per instance, not per byte. The build runs once per deploy in seconds. `npm start` becomes "build, then start" so the Run button and the deployment command are unchanged.
-- **Third parties: one fewer.** The Font Awesome kit and its pricing tier go away. Google Fonts and GSAP stay.
+- **Third parties: one fewer.** The Font Awesome kit and its pricing tier are already gone (self-hosted on master); inlining the icons removes the font files too. Google Fonts and GSAP stay.
 - **Developer time: the conversion.** Types on 61 modules and ~6,000 lines of page script, done in the order below with the suite green at each step. Two new dev dependencies, `typescript` and `esbuild`, both stable and boring to upgrade.
 - **Risk to players: near zero.** The emitted JS is the same modules with types removed. Behaviour changes only where a type error reveals a real bug, which is the point.
 
