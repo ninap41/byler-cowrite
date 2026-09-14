@@ -49,6 +49,15 @@ test("livePreviewHtml carries a caret and escapes the name", () => {
   assert.ok(out.includes('class="caret"'));
 });
 
+test("livePreviewHtml: the caret sits inside the last block, never on a line of its own", () => {
+  const caret = '<span class="caret"></span>';
+  assert.ok(livePreviewHtml("<p>HELLO</p><p>JHJ</p>", "w", "#6c8cff").endsWith(`<p>JHJ${caret}</p>`));
+  assert.ok(livePreviewHtml("<h2>title</h2>", "w", "#6c8cff").endsWith(`<h2>title${caret}</h2>`));
+  assert.ok(livePreviewHtml("<ul><li>a</li><li>b</li></ul>", "w", "#6c8cff").endsWith(`<li>b${caret}</li></ul>`));
+  assert.ok(livePreviewHtml("plain", "w", "#6c8cff").endsWith(`plain${caret}`));
+  assert.ok(livePreviewHtml("", "w", "#6c8cff").endsWith(caret));
+});
+
 // ---- chat ----
 test("chatMessageHtml: profile pic beside the name; system messages have none", () => {
   const m = { name: "will", color: "#6c8cff", text: "hi", avatar: "https://img.com/w.png", avatarFit: "cover" };

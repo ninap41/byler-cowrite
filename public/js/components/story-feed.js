@@ -42,6 +42,14 @@ export function storyHtml(story, { freshFrom = Infinity, mineId = null } = {}) {
 }
 
 // Another writer's live, in-progress line (html already re-sanitized server-side).
+// The caret sits INSIDE the last block: appended after a closing `</p>`
+// (or heading / list item / blockquote) it would open a line of its own
+// under the words being typed.
+const CARET = '<span class="caret"></span>'
+const TRAILING_BLOCK = /(<\/(?:p|h[1-3]|li|blockquote)>(?:\s*<\/(?:ul|ol|blockquote)>)*\s*)$/i
 export function livePreviewHtml(html, name, color) {
-	return `${statusDot(name)}<span class="who" style="color:${color}">${esc(name)}</span>${html}<span class="caret"></span>`
+	const text = html || ""
+	const m = TRAILING_BLOCK.exec(text)
+	const body = m ? text.slice(0, m.index) + CARET + m[1] : text + CARET
+	return `${statusDot(name)}<span class="who" style="color:${color}">${esc(name)}</span>${body}`
 }
