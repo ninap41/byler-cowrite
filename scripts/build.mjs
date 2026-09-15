@@ -3,8 +3,11 @@
 // native ES-module graph, the ids the tests look for and the Replit Run button
 // are untouched. Type checking is `npm run typecheck` (tsc --noEmit); this
 // script only strips the types (esbuild). The emitted .js is committed so a
-// checkout runs without tooling; edit the .ts, never the .js.
-import { build } from "esbuild"
+// checkout runs without tooling; edit the .ts, never the .js — and because it
+// is committed, a deploy that installed without devDependencies (no esbuild)
+// simply keeps the committed emit: `npm start`'s prestart says so and exits 0
+// instead of failing the boot. test/build.test.mjs is what proves the
+// committed emit is current.
 import { readdirSync, statSync } from "node:fs"
 import { join, relative } from "node:path"
 import { fileURLToPath } from "node:url"
@@ -42,7 +45,21 @@ export const esbuildOptions = ({ minify = false, outdir = OUT } = {}) => ({
   logLevel: "warning",
 })
 
+// esbuild is loaded lazily so importing this module (the test does, for the
+// options) never needs it, and a missing install is a skip, not a crash.
+async function loadEsbuild() {
+  try {
+    return (await import("esbuild")).build
+  } catch (e) {
+    if (e?.code === "ERR_MODULE_NOT_FOUND") return null
+    throw e
+  }
+}
+
+// Returns the entry points it emitted, or null when esbuild isn't installed.
 export async function buildClient({ minify = false } = {}) {
+  const build = await loadEsbuild()
+  if (!build) return null
   const entryPoints = sourceFiles()
   if (!entryPoints.length) return []
   await build({ entryPoints, ...esbuildOptions({ minify }) })
@@ -51,5 +68,6 @@ export async function buildClient({ minify = false } = {}) {
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const files = await buildClient({ minify: process.argv.includes("--minify") })
-  console.log(`built ${files.length} client module(s) → public/js`)
+  if (files === null) console.log("esbuild is not installed — keeping the committed public/js (a production install without devDependencies)")
+  else console.log(`built ${files.length} client module(s) → public/js`)
 }
