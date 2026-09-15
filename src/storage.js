@@ -112,6 +112,7 @@ async function postgresBackend(dirs, pool) {
   for (const r of rows) cache.get(r.kind)?.set(r.name, r.doc);
 
   const chains = new Map(); // per-key promise chain: writes to one row land in order
+  /** @type {string | null} */
   let lastError = null;
   const enqueue = (kind, name, job) => {
     const key = kind + "/" + name;
@@ -137,17 +138,17 @@ async function postgresBackend(dirs, pool) {
   let seeded = 0;
   const seedDir = (kind, dir) => {
     for (const { name, doc } of readDir(dir)) {
-      if (cache.get(kind).has(name)) continue;
-      cache.get(kind).set(name, doc);
+      if (cache.get(kind)?.has(name)) continue;
+      cache.get(kind)?.set(name, doc);
       upsert(kind, name, doc);
       seeded++;
     }
   };
   for (const kind of SINGLE) {
-    if (cache.get(kind).has(kind)) continue;
+    if (cache.get(kind)?.has(kind)) continue;
     try {
       const doc = readFileSync(pathFor(dirs, kind, kind), "utf-8");
-      cache.get(kind).set(kind, doc);
+      cache.get(kind)?.set(kind, doc);
       upsert(kind, kind, doc);
       seeded++;
     } catch { /* no local file */ }
@@ -172,7 +173,7 @@ async function postgresBackend(dirs, pool) {
       cache.get(kind)?.delete(name);
       return enqueue(kind, name, () => pool.query("DELETE FROM cowrite_blobs WHERE kind = $1 AND name = $2", [kind, name]));
     },
-    counts: () => Object.fromEntries(KINDS.map((k) => [k, cache.get(k).size])),
+    counts: () => Object.fromEntries(KINDS.map((k) => [k, cache.get(k)?.size ?? 0])),
     get lastError() { return lastError; },
     flush: () => Promise.all(chains.values()),
     close: () => pool.end(),
@@ -181,7 +182,9 @@ async function postgresBackend(dirs, pool) {
 
 // ---- the singleton -------------------------------------------------------
 
-let backend = null;
+/** @type {any} */
+let backend = null; // the file or postgres backend, once chosen
+/** @type {ReturnType<typeof defaultDirs> | null} */
 let dirs = null;
 
 // A module that reads before init() (tests import store.js directly) gets the

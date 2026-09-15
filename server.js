@@ -29,6 +29,7 @@ const app = express();
 // the first proxy so req.protocol and generated password-reset links stay HTTPS.
 app.set("trust proxy", 1);
 const httpServer = createServer(app);
+/** @type {import("socket.io").Server<import("./client/shared/wire.ts").ClientToServer, import("./client/shared/wire.ts").ServerToClient>} */
 const io = new Server(httpServer);
 // Pages, ES modules, and CSS must never be served stale: a cached old module
 // mixed with a new one breaks the whole import graph (buttons render but no

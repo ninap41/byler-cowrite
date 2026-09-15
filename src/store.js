@@ -6,6 +6,66 @@ import { badgeName, badgeDesc, isUsageId, isOpenUsageId, nextTierFor, migrateBad
 import { storage, getJson } from "./storage.js";
 import { SITE } from "./site.js";
 
+/**
+ * One account as the store holds it (data/users.json). Optional fields are
+ * the ones added after launch — older accounts gain them lazily.
+ * @typedef {Object} User
+ * @property {string} id
+ * @property {string} email
+ * @property {string} username
+ * @property {string} passHash
+ * @property {string} color
+ * @property {string[]} games
+ * @property {number} wordCount
+ * @property {string | null} currentBadge
+ * @property {string[]} badges
+ * @property {boolean} [admin]
+ * @property {string} [avatar]
+ * @property {string} [avatarFit]
+ * @property {string} [about]
+ * @property {{label: string, url: string}[]} [links]
+ * @property {string[]} [images]
+ * @property {string[]} [friends]
+ * @property {InboxMsg[]} [inbox]
+ * @property {boolean | {chat?: boolean, story?: boolean, clock?: boolean, gimmick?: boolean}} [sounds]
+ * @property {{text: string, code: string, name: string, at?: number, savedAt?: number}} [lastLine]
+ * @property {number} [createdAt]
+ * @property {number} [lastSeen]
+ * @property {number} [lastHelpAt]
+ * @property {number} [streak]
+ * @property {number} [bestStreak]
+ * @property {string} [lastWroteDay]
+ * @property {number} [sprintWords]
+ * @property {Sprint[]} [sprints]
+ * @property {boolean} [isAMemberOfBylerOffscreen]
+ * @property {string} [protocol]
+ */
+/**
+ * @typedef {Object} InboxMsg
+ * @property {string} id
+ * @property {string} type
+ * @property {string} text
+ * @property {boolean} read
+ * @property {number} ts
+ * @property {string | null} [fromId]
+ * @property {string | null} [toId]
+ * @property {string | null} [code]
+ * @property {string} [threadId]
+ * @property {boolean} [mine]
+ * @property {unknown} [unlocks]
+ * @property {string} [docId]
+ */
+/** @typedef {{docId: string, title: string, words: number, seconds: number, at: number}} Sprint */
+/** @typedef {{email: string, accessGranted: boolean, signupLink: string | null, addedAt: number}} WaitlistRow */
+/**
+ * @typedef {Object} Store
+ * @property {User[]} users
+ * @property {Record<string, string>} sessions  token -> user id
+ * @property {Record<string, {userId: string, exp: number}>} resets
+ * @property {WaitlistRow[]} waitlist
+ */
+
+/** @type {Store} */
 export let store = { users: [], sessions: {}, resets: {}, waitlist: [] };
 store = { ...store, ...(getJson("users", "users") || {}) }; // first run: nothing yet
 
@@ -142,6 +202,7 @@ export const publicUser = (u) => ({
 // `viewer` is who is looking: a SECRET usage badge's description (the how)
 // travels only when the viewer has earned that badge too (or is the owner, or
 // an admin) — seeing someone else wear it must never give the recipe away.
+/** @param {User} u @param {Set<string>} onlineIds @param {User | null} [viewer] */
 export const profileOf = (u, onlineIds, viewer = null) => ({
   username: u.username, color: u.color, wordCount: u.wordCount,
   currentBadge: badgeName(u.currentBadge), badges: u.badges.map(badgeName),

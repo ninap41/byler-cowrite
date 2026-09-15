@@ -65,7 +65,7 @@ export interface SystemChat extends ChatBase {
 	name: string
 	color: HexColor | string
 	sys: true
-	chime?: true
+	chime?: boolean
 }
 export type ChatMessage = WriterChat | SpectatorChat | SystemChat
 
@@ -96,11 +96,13 @@ export type Ack<T = Record<never, never>> = ({ ok: true } & T) | { ok: false; er
 
 /** The seat ack (create/join/rejoin) — also the body of `join-approved`. */
 export interface SeatAck {
+	ok?: true
 	code: GameCode | string
 	hostId: string
 	name: string
-	color: HexColor | string
-	phase: Phase
+	color?: HexColor | string
+	/** absent on create-session (a fresh lobby) — the page reads it as waiting */
+	phase?: Phase
 	token: string
 }
 export type PendingAck = { pending: true }
@@ -350,31 +352,31 @@ export interface ClientToServer {
 	"create-session": (p: { auth: string | null }, ack: (res: SeatResult) => void) => void
 	"join-session": (p: { code: string; auth: string | null }, ack: (res: SeatResult) => void) => void
 	"rejoin-session": (p: { code: string; token: string; auth: string | null }, ack: (res: SeatResult) => void) => void
-	"spectate-session": (p: { code: string }, ack: AckFn<{ phase?: Phase }>) => void
+	"spectate-session": (p: { code: string }, ack: AckFn<{ code: string; phase: Phase; name: string }>) => void
 	"start-game": (p: Partial<{ turnSeconds: number | string; rounds: number | string; friendly: boolean; promptMode: PromptMode; promptControls: PromptControls }>, ack: AckFn) => void
-	"cancel-game": (p: Record<never, never>, ack: AckFn<{ deleted?: boolean }>) => void
+	"cancel-game": (p: Record<never, never>, ack: AckFn<{ deleted?: boolean; preserved?: boolean }>) => void
 	vote: (p: { prompt: string; on?: boolean }, ack?: AckFn<{ on: boolean; votes: string[] }>) => void
-	ready: (p: { ready: boolean }) => void
+	ready: (p: { ready: boolean }, ack?: AckFn<{ ready: boolean }>) => void
 	"add-prompt": (p: { prompt: string }, ack: AckFn) => void
-	"remove-prompt": (p: { index: number }) => void
-	"reroll-option": (p: { index: number }) => void
-	"shuffle-options": () => void
-	"set-prompt-mode": (p: { mode: PromptMode; controls: PromptControls }) => void
+	"remove-prompt": (p: { index: number }, ack?: AckFn) => void
+	"reroll-option": (p: { index: number }, ack?: AckFn) => void
+	"shuffle-options": (p?: null, ack?: AckFn) => void
+	"set-prompt-mode": (p: { mode: PromptMode; controls: PromptControls }, ack?: AckFn<{ mode: PromptMode; controls: PromptControls }>) => void
 	"finalize-vote": (p: null, ack: AckFn) => void
 	"submit-line": (p: { text: string }, ack: AckFn) => void
 	typing: (p: { text: string }) => void
 	"edit-line": (p: { index: number; text: string }, ack: AckFn) => void
 	"delete-line": (p: { index: number }, ack: AckFn) => void
-	"pause-game": () => void
-	"resume-game": () => void
+	"pause-game": (p?: null, ack?: AckFn) => void
+	"resume-game": (p?: null, ack?: AckFn) => void
 	"paused-poke": () => void
-	"end-game": () => void
+	"end-game": (p?: null, ack?: AckFn) => void
 	"update-rules": (p: { turnSeconds: number | string; addRounds: number | string; endless?: boolean; friendly: boolean }, ack: AckFn) => void
 	"continue-writing": (p: { turnSeconds: number | string; rounds: number | string; friendly: boolean }, ack: AckFn) => void
 	"rename-session": (p: { name: string }, ack: AckFn<{ name: string }>) => void
-	"set-cover": (p: { url: string }, ack: AckFn) => void
-	"make-host": (p: { id: string }, ack: AckFn) => void
-	"approve-join": (p: { id: string; allow: boolean }, ack: () => void) => void
+	"set-cover": (p: { url: string }, ack: AckFn<{ cover: string }>) => void
+	"make-host": (p: { id: string }, ack: AckFn<{ hostId: string }>) => void
+	"approve-join": (p: { id: string; allow: boolean }, ack?: AckFn) => void
 	chat: (p: { text: string; name?: string }) => void
 	"chat-react": (p: { mid: string; emoji: string; name?: string }, ack: AckFn<{ reactions: Reactions }>) => void
 	"gimmick-die": (p: { on: true; x: number; y: number } | { on: false }) => void
@@ -389,7 +391,7 @@ export interface ClientToServer {
 	"gimmick-squirt": (p: Record<never, never>, ack: AckFn) => void
 	"gimmick-stroke": (p: Omit<StrokeEvent, "userId" | "name" | "color">) => void
 	"gimmick-paint": (p: Record<never, never>, ack: AckFn) => void
-	"gimmick-curse": (p: { targetUserId: string }, ack: AckFn) => void
+	"gimmick-curse": (p: { targetUserId: string }, ack: AckFn<{ duration: number }>) => void
 	"gimmick-uncurse": (p: Record<never, never>, ack: AckFn) => void
 	// the solo editor
 	"doc-open": (p: { auth: string | null; id: string }) => void

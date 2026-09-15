@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "checkJs": true,
+    "noImplicitAny": false,
+    "useUnknownInCatchVariables": false,
+    "lib": ["es2022"],
+    "types": ["node"]
+  },
+  "include": ["server.js", "src/**/*.js", "lib/**/*.js", "client/shared/*.ts", "client/globals.d.ts"]
+}

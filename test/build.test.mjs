@@ -3,6 +3,10 @@
 // emit into a temp dir is byte-identical), every generated file in public/js
 // still has a source, and the sources type-check. `npm test` runs the build
 // first (pretest), so a stale twin here means the build itself drifted.
+// The server is checked too (tsconfig.server.json: checkJs over server.js,
+// src/, lib/ against client/shared/wire.ts) so the two halves of the socket
+// contract can't disagree — a handler, an emit or an ack that wire.ts
+// doesn't describe fails here.
 import test from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync, readdirSync, statSync, mkdtempSync, rmSync } from "node:fs";
@@ -51,4 +55,8 @@ test("no generated file in public/js has lost its source", () => {
 
 test("the client sources type-check (tsc --noEmit)", () => {
   execFileSync("npx", ["tsc", "--noEmit"], { cwd: root, stdio: "pipe" });
+});
+
+test("the server type-checks against the wire contract (tsc -p tsconfig.server.json)", () => {
+  execFileSync("npx", ["tsc", "-p", "tsconfig.server.json"], { cwd: root, stdio: "pipe" });
 });

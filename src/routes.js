@@ -457,7 +457,7 @@ export function registerRoutes(app, game) {
         friend: x.id !== me.id && areFriends(me, x),
         requested: x.id !== me.id && !!pendingReqFrom(x, me.id),
       }))
-      .sort((a, b) => (b.online - a.online) || a.username.localeCompare(b.username));
+      .sort((a, b) => (Number(b.online) - Number(a.online)) || a.username.localeCompare(b.username));
     res.json({ users });
   });
 
@@ -481,6 +481,7 @@ export function registerRoutes(app, game) {
     // when the session is currently running.
     const hosted = [];
     const contributed = [];
+    /** @type {{text: string, code: string, name: string, savedAt: number} | null} */
     let lastLine = null; // the newest story line this user committed, as plain text
     for (const d of allSnapshots()) {
       {
@@ -509,7 +510,7 @@ export function registerRoutes(app, game) {
     // Solo writes, private ones included: the profile LISTS everything this
     // writer has written; `viewable` says whether the viewer may open it.
     const writes = docsOwnedBy(u.id).map((d) => ({
-      ...docSummary(d, nameOf), mine: d.ownerId === viewer.id, viewable: canView(d, viewer.id),
+      ...docSummary(d, nameOf), mine: d.ownerId === viewer.id, viewable: canView(d, viewer?.id ?? null),
     }));
     // Sprints: the newest 20, each naming the project it was written in.
     const sprints = (u.sprints || []).slice(0, 20);
@@ -625,7 +626,7 @@ export function registerRoutes(app, game) {
     to.inbox = to.inbox || [];
     to.inbox.unshift(makeMsg("note", u.id, text, { threadId, toId: to.id }));
     u.inbox = u.inbox || [];
-    u.inbox.unshift(makeMsg("note", u.id, text, { threadId, mine: true, read: true, toId: to.id }));
+    (u.inbox ??= []).unshift(makeMsg("note", u.id, text, { threadId, mine: true, read: true, toId: to.id }));
     saveStore();
     res.json({ ok: true });
   });
@@ -648,7 +649,7 @@ export function registerRoutes(app, game) {
     m.threadId = threadId;
     to.inbox = to.inbox || [];
     to.inbox.unshift(makeMsg("note", u.id, text, { threadId, toId: to.id }));
-    u.inbox.unshift(makeMsg("note", u.id, text, { threadId, mine: true, read: true, toId: to.id }));
+    (u.inbox ??= []).unshift(makeMsg("note", u.id, text, { threadId, mine: true, read: true, toId: to.id }));
     m.read = true;
     saveStore();
     res.json({ ok: true, threadId });
@@ -663,15 +664,14 @@ export function registerRoutes(app, game) {
     if (!u) return res.status(401).json({ error: "Sign in first." });
     const ids = new Set(onlineSockets.values());
     const friends = (u.friends || [])
-      .map((id) => store.users.find((x) => x.id === id))
-      .filter(Boolean)
+      .flatMap((id) => { const x = store.users.find((y) => y.id === id); return x ? [x] : []; })
       .map((x) => ({
         username: x.username, color: x.color, badge: badgeName(x.currentBadge),
         avatar: x.avatar || "", avatarFit: x.avatarFit || "cover", online: ids.has(x.id),
         // the row's hover tooltip: the same public counts a profile shows
         wordCount: x.wordCount || 0, badges: (x.badges || []).length, games: (x.games || []).length,
       }))
-      .sort((a, b) => (b.online - a.online) || a.username.localeCompare(b.username));
+      .sort((a, b) => (Number(b.online) - Number(a.online)) || a.username.localeCompare(b.username));
     res.json({ friends });
   });
 
@@ -699,7 +699,7 @@ export function registerRoutes(app, game) {
     if (!u) return res.status(401).json({ error: "Sign in first." });
     const m = (u.inbox || []).find((x) => x.id === String(req.body?.id) && x.type === "friend-request");
     if (!m) return res.status(404).json({ error: "No such friend request." });
-    u.inbox = u.inbox.filter((x) => x.id !== m.id);
+    u.inbox = (u.inbox || []).filter((x) => x.id !== m.id);
     const sender = store.users.find((x) => x.id === m.fromId);
     if (req.body?.accept && sender) {
       if (!areFriends(u, sender)) {
@@ -827,7 +827,7 @@ export function registerRoutes(app, game) {
         hostName: nameOf(d.ownerId),
         createdAt: d.createdAt, savedAt: d.updatedAt,
         wordCount: d.wordCount || 0,
-        visibility: d.visibility, viewable: canView(d, viewer.id),
+        visibility: d.visibility, viewable: canView(d, viewer?.id ?? null),
       });
     }
     all.sort((a, b) => dir * (sort === "words" ? a.wordCount - b.wordCount : a.createdAt - b.createdAt));
@@ -862,8 +862,7 @@ export function registerRoutes(app, game) {
   // Reader rows carry what the presence/avatar UI needs.
   const readerRows = (doc) =>
     (doc.betaReaders || [])
-      .map((id) => store.users.find((x) => x.id === id))
-      .filter(Boolean)
+      .flatMap((id) => { const x = store.users.find((y) => y.id === id); return x ? [x] : []; })
       .map((x) => ({
         username: x.username, color: x.color,
         avatar: x.avatar || "", avatarFit: x.avatarFit || "cover",
@@ -1159,7 +1158,7 @@ export function registerRoutes(app, game) {
     // post, so nobody has to check /announcements to learn there is one
     for (const u of store.users) {
       u.inbox = u.inbox || [];
-      u.inbox.unshift(makeMsg("system", null, `📣 New announcement: “${r.post.title}” — read it on /announcements.`));
+      u.inbox.unshift(makeMsg("system", null, `📣 New announcement: “${r.post?.title ?? ""}” — read it on /announcements.`));
     }
     saveStore();
     res.json({ ok: true, post: r.post });
