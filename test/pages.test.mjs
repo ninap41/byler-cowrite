@@ -390,7 +390,7 @@ test("the inbox has a page of its own, linked from the dashboard and the nav", a
   const inbox = await page("/inbox");
   assert.equal(inbox.status, 200);
   assert.ok(inbox.body.includes('id="inboxList"'), "the messages land here");
-  assert.ok(inbox.body.includes("mountInbox"), "the whole panel: rows, chains and composer");
+  assert.ok((await page("/js/pages/inbox.js")).body.includes("mountInbox"), "the whole panel: rows, chains and composer (the script is emitted from client/pages/inbox.ts)");
 
   // The dashboard doesn't preview messages: it carries the fact that some are
   // waiting, and the link to go and read them.

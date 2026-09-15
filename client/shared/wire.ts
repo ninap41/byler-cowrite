@@ -272,6 +272,8 @@ export interface ServerToClient {
 	"game-slept": (p: { code: string; name: string; by: string | null }) => void
 	"game-deleted": () => void
 	"game-invite": (p: { code: string; name: string; host: string | null }) => void
+	/** the inbox page's live nudge: reload */
+	inbox: () => void
 	chat: (m: ChatMessage) => void
 	"chat-history": (ms: ChatMessage[]) => void
 	"chat-react": (p: { mid: string; reactions: Reactions }) => void

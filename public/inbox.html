@@ -41,34 +41,6 @@
 		</div>
 
 		<script src="/socket.io/socket.io.js"></script>
-		<script type="module">
-			import { getToken } from "/js/api.js"
-			import { mountChrome, setUserChip } from "/js/chrome.js"
-			import { requireAuth } from "/js/auth-guard.js"
-			import { mountInboxPage } from "/js/inbox-page.js"
-
-			mountChrome({ page: "inbox" })
-			const $ = (id) => document.getElementById(id)
-			// setUserChip is what puts the account in the topbar and reveals the
-			// admin entrance in the nav — without it this page looks signed out.
-			setUserChip(await requireAuth("/"))
-
-			// The whole inbox as two panes: conversations, and the one you opened.
-			const panel = mountInboxPage({
-				list: $("inboxList"),
-				filters: $("inboxFilters"),
-				pane: $("inboxPane"),
-				bulk: $("inboxBulk"),
-				unreadChip: $("inboxUnread"),
-				readAllBtn: $("inboxReadAll"),
-			})
-			panel.reload()
-
-			// Presence + live nudges: a new message should land without a refresh.
-			const socket = io()
-			socket.on("connect", () => socket.emit("identify", { auth: getToken() }))
-			socket.on("inbox", () => panel.reload())
-			setInterval(() => panel.reload(), 20000)
-		</script>
+		<script type="module" src="/js/pages/inbox.js"></script>
 	</body>
 </html>

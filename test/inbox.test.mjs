@@ -97,7 +97,7 @@ test("a help question and its answer are one conversation for the asker", async 
 
 test("the dashboard holds no messages at all; /inbox holds the conversation", async () => {
   const dash = await fetch(ctx.url + "/dashboard").then((r) => r.text());
-  const inbox = await fetch(ctx.url + "/inbox").then((r) => r.text());
+  const inbox = await fetch(ctx.url + "/js/pages/inbox.js").then((r) => r.text()); // the page's script, emitted from client/pages/inbox.ts
   // a message is a conversation and conversations happen on one page; what the
   // dashboard carries is the fact that one is waiting, on the link that goes there
   assert.ok(!/id="inboxList"/.test(dash) && !/inbox-panel\.js/.test(dash), "no message list on the dashboard");

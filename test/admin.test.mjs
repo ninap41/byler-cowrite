@@ -306,7 +306,7 @@ test("the inbox reply composer is inline markup on the page, not a browser promp
   assert.ok(body.includes("/api/inbox/reply"), "wired to the reply route");
   assert.ok(body.includes('e.key === "Escape"'), "Escape clears it");
   assert.ok(body.includes("metaKey || e.ctrlKey"), "and Ctrl/Cmd+Enter sends");
-  assert.ok((await fetch(ctx.url + "/inbox").then((r) => r.text())).includes("inbox-page.js"), "/inbox uses it");
+  assert.ok((await fetch(ctx.url + "/js/pages/inbox.js").then((r) => r.text())).includes("inbox-page.js"), "/inbox uses it (its script is /js/pages/inbox.js)");
   const dash = await fetch(ctx.url + "/dashboard").then((r) => r.text());
   assert.ok(!dash.includes("inbox-panel.js"), "the dashboard does not render messages at all");
 });
