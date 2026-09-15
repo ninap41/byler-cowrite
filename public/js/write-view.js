@@ -47,9 +47,9 @@ function scrollTargetFor({ rectTop, rectH = 0, scrollY, viewportH, headH = 0, ma
   return Math.max(0, Math.min(Math.round(want), Math.max(0, Math.round(maxScroll))));
 }
 const VIS = {
-  private: { icon: "\u{1F512}", label: "Private", blurb: "Only you." },
-  readers: { icon: "\u{1F465}", label: "Beta readers", blurb: "The friends you invite can read and comment." },
-  public: { icon: "\u{1F30D}", label: "Public", blurb: "Anyone with an account can read it. Only your beta readers can comment." }
+  private: { icon: "🔒", label: "Private", blurb: "Only you." },
+  readers: { icon: "👥", label: "Beta readers", blurb: "The friends you invite can read and comment." },
+  public: { icon: "🌍", label: "Public", blurb: "Anyone with an account can read it. Only your beta readers can comment." }
 };
 const visOf = (v) => VIS[v] || VIS.private;
 const visLabel = (v) => `${visOf(v).icon} ${visOf(v).label}`;
@@ -59,12 +59,12 @@ const visMenuHtml = (current) => `<div class="vis-menu" id="visMenu" role="menu"
 ).join("") + `</div>`;
 function docCardHtml(d) {
   const v = d.visibility || "private";
-  return `<article class="doc-card" data-id="${esc(d.id)}"><span class="doc-date">${esc(fmtWhen(d.updatedAt))}</span><h3 class="doc-card-title">${esc(d.title)}</h3><p class="doc-card-meta">${esc(wordsLabel(d.wordCount))}` + (d.mine ? "" : ` \xB7 by ${esc(d.owner)}`) + `</p><p class="doc-card-tags">` + (d.mine ? `<span class="doc-pill ${v === "private" ? "" : "on"}">${visLabel(v)}</span>` : `<span class="doc-pill on">${v === "public" ? "\u{1F4D6} Public read" : "\u{1F4D6} Beta reading"}</span>`) + (d.comments ? `<span class="doc-pill">\u{1F4AC} ${d.comments}</span>` : "") + (d.readers?.length ? `<span class="doc-pill">\u270D ${esc(d.readers.join(", "))}</span>` : "") + `</p><div class="doc-card-actions"><a class="ghost doc-open" href="/write?id=${encodeURIComponent(d.id)}">Open</a>` + (d.mine ? `<button class="ghost danger doc-del" type="button">Delete</button>` : "") + `</div></article>`;
+  return `<article class="doc-card" data-id="${esc(d.id)}"><span class="doc-date">${esc(fmtWhen(d.updatedAt))}</span><h3 class="doc-card-title">${esc(d.title)}</h3><p class="doc-card-meta">${esc(wordsLabel(d.wordCount))}` + (d.mine ? "" : ` · by ${esc(d.owner)}`) + `</p><p class="doc-card-tags">` + (d.mine ? `<span class="doc-pill ${v === "private" ? "" : "on"}">${visLabel(v)}</span>` : `<span class="doc-pill on">${v === "public" ? "📖 Public read" : "📖 Beta reading"}</span>`) + (d.comments ? `<span class="doc-pill">💬 ${d.comments}</span>` : "") + (d.readers?.length ? `<span class="doc-pill">✍ ${esc(d.readers.join(", "))}</span>` : "") + `</p><div class="doc-card-actions"><a class="ghost doc-open" href="/write?id=${encodeURIComponent(d.id)}">Open</a>` + (d.mine ? `<button class="ghost danger doc-del" type="button">Delete</button>` : "") + `</div></article>`;
 }
 const docListHtml = (docs) => !docs || !docs.length ? `<p class="empty">Nothing written yet. Start something: no timer, no turns, just the page.</p>` : docs.map(docCardHtml).join("");
 const DOC_GROUPS = [
-  { key: "mine", title: "\u2712\uFE0F My solo writes", blurb: "" },
-  { key: "reading", title: "\u{1F4D6} Beta reading", blurb: "Invited by someone else, you can comment, not edit." }
+  { key: "mine", title: "✒️ My solo writes", blurb: "" },
+  { key: "reading", title: "📖 Beta reading", blurb: "Invited by someone else, you can comment, not edit." }
 ];
 function docShelfHtml(docs) {
   const all = docs || [];
@@ -86,7 +86,7 @@ function commentHtml(c, { isOwner = false, meName = "" } = {}) {
   const canManage = isOwner || !!meName && c.author === meName;
   const cls = ["doc-comment", c.resolved && "resolved", c.orphaned && "orphaned", c.suggestion != null && "suggested"];
   const decided = c.resolved && c.suggestion != null;
-  return `<li class="${cls.filter(Boolean).join(" ")}" data-id="${esc(c.id)}" data-cid="${esc(c.cid || "")}"><span class="dc-who">${miniAvatar({ avatar: c.avatar, avatarFit: c.avatarFit, name: c.author, color: c.color })}<b style="color:${safeColor(c.color)}">${esc(c.author)}</b>` + (c.isAuthor ? `<span class="dc-tag">author</span>` : "") + `<span class="dc-when">${esc(fmtWhen(c.ts))}</span></span>` + (c.suggestion != null ? `<p class="dc-suggest"><s>${esc(c.quote || "")}</s> <span class="dc-arrow">\u2192</span> <ins>${esc(c.suggestion)}</ins></p>` : c.quote ? `<p class="dc-quote">${esc(c.quote)}</p>` : "") + (c.text ? `<p class="dc-text">${esc(c.text)}</p>` : "") + (decided ? `<p class="dc-verdict">${c.accepted ? "\u2713 Accepted" : "Not taken"}</p>` : "") + `<span class="dc-actions">` + (c.suggestion != null && !c.resolved && isOwner ? `<button class="linky dc-accept" type="button">Accept</button><button class="linky dc-reject" type="button">Reject</button>` : canManage ? `<button class="linky dc-resolve" type="button">${c.resolved ? "Unresolve" : "Resolve"}</button>` : "") + (canManage ? `<button class="linky dc-del" type="button">Delete</button>` : "") + `</span></li>`;
+  return `<li class="${cls.filter(Boolean).join(" ")}" data-id="${esc(c.id)}" data-cid="${esc(c.cid || "")}"><span class="dc-who">${miniAvatar({ avatar: c.avatar, avatarFit: c.avatarFit, name: c.author, color: c.color })}<b style="color:${safeColor(c.color)}">${esc(c.author)}</b>` + (c.isAuthor ? `<span class="dc-tag">author</span>` : "") + `<span class="dc-when">${esc(fmtWhen(c.ts))}</span></span>` + (c.suggestion != null ? `<p class="dc-suggest"><s>${esc(c.quote || "")}</s> <span class="dc-arrow">→</span> <ins>${esc(c.suggestion)}</ins></p>` : c.quote ? `<p class="dc-quote">${esc(c.quote)}</p>` : "") + (c.text ? `<p class="dc-text">${esc(c.text)}</p>` : "") + (decided ? `<p class="dc-verdict">${c.accepted ? "✓ Accepted" : "Not taken"}</p>` : "") + `<span class="dc-actions">` + (c.suggestion != null && !c.resolved && isOwner ? `<button class="linky dc-accept" type="button">Accept</button><button class="linky dc-reject" type="button">Reject</button>` : canManage ? `<button class="linky dc-resolve" type="button">${c.resolved ? "Unresolve" : "Resolve"}</button>` : "") + (canManage ? `<button class="linky dc-del" type="button">Delete</button>` : "") + `</span></li>`;
 }
 function commentThreadHtml(comments, { orphaned = false, isOwner = false, meName = "" } = {}) {
   if (!comments.length) return "";
@@ -106,19 +106,19 @@ const inviteRowHtml = (u) => {
 };
 const inviteListHtml = (rows) => !rows || !rows.length ? `<p class="subtle pick-empty">Nobody here by that name.</p>` : rows.map(inviteRowHtml).join("");
 const readerChipsHtml = (readers, canManage) => !readers || !readers.length ? `<p class="subtle">No beta readers yet. Invite a friend to read along and comment.</p>` : readers.map(
-  (r) => `<span class="reader-chip" data-user="${esc(r.username)}">` + miniAvatar({ avatar: r.avatar, avatarFit: r.avatarFit, name: r.username, color: r.color }) + `<span>${esc(r.username)}</span>` + (canManage ? `<button class="reader-x" type="button" title="Remove">\xD7</button>` : "") + `</span>`
+  (r) => `<span class="reader-chip" data-user="${esc(r.username)}">` + miniAvatar({ avatar: r.avatar, avatarFit: r.avatarFit, name: r.username, color: r.color }) + `<span>${esc(r.username)}</span>` + (canManage ? `<button class="reader-x" type="button" title="Remove">×</button>` : "") + `</span>`
 ).join("");
 function soloRowHtml(d) {
   const v = d.visibility || "private";
   const title = esc(d.title || "Untitled");
-  const meta = `${esc(wordsLabel(d.wordCount))}` + (d.sprintWords ? ` \xB7 \u23F1 ${esc(String(d.sprintWords))} sprinted` : "");
+  const meta = `${esc(wordsLabel(d.wordCount))}` + (d.sprintWords ? ` · ⏱ ${esc(String(d.sprintWords))} sprinted` : "");
   const pill = `<span class="doc-pill ${v === "private" ? "" : "on"}">${visLabel(v)}</span>`;
   const open = `/write?id=${encodeURIComponent(d.id)}`;
   let acts;
   if (d.mine)
     acts = `<a class="ghost solo-open" href="${open}">Continue</a><button type="button" class="ghost danger solo-del" data-id="${esc(d.id)}" data-title="${title}">Delete</button>`;
   else if (d.viewable) acts = `<a class="ghost solo-open" href="${open}">Read</a>`;
-  else acts = `<span class="solo-lock" title="Private, only its author can open it">\u{1F512} Private</span>`;
+  else acts = `<span class="solo-lock" title="Private, only its author can open it">🔒 Private</span>`;
   const head = d.mine || d.viewable ? `<a class="solo-title" href="${open}">${title}</a>` : `<span class="solo-title locked">${title}</span>`;
   return `<div class="solo-row${d.mine || d.viewable ? "" : " locked"}" data-id="${esc(d.id)}"><span class="solo-date">${esc(fmtWhen(d.updatedAt))}</span><span class="solo-info">${head}<span class="solo-meta">${meta} ${pill}</span></span><span class="solo-acts">${acts}</span></div>`;
 }
@@ -132,7 +132,7 @@ function betaReadingHtml(docs, { limit = 20 } = {}) {
     byOwner.get(owner).push(d);
   }
   return [...byOwner.entries()].map(
-    ([owner, list]) => `<section class="beta-group" data-owner="${esc(owner)}"><h4 class="dash-h dash-sub-h" style="margin:14px 0 6px">\u{1F4D6} Beta reading for ${esc(owner)}<span class="doc-group-count">${list.length}</span></h4>` + list.map(soloRowHtml).join("") + `</section>`
+    ([owner, list]) => `<section class="beta-group" data-owner="${esc(owner)}"><h4 class="dash-h dash-sub-h" style="margin:14px 0 6px">📖 Beta reading for ${esc(owner)}<span class="doc-group-count">${list.length}</span></h4>` + list.map(soloRowHtml).join("") + `</section>`
   ).join("");
 }
 const soloListHtml = (docs, { empty = "No solo writes yet.", limit = 5 } = {}) => !docs || !docs.length ? `<p class="subtle" style="text-align:left;margin:0">${esc(empty)}</p>` : docs.slice(0, limit).map(soloRowHtml).join("");
@@ -146,7 +146,7 @@ function wireSoloDeletes(box, onDelete) {
         x.textContent = "Delete";
       });
       b.dataset.armed = "1";
-      b.textContent = "Delete? \u2713";
+      b.textContent = "Delete? ✓";
       return;
     }
     b.disabled = true;
@@ -179,26 +179,26 @@ function chapterListHtml(chapters, { openIdx = 0, canEdit = false, commentCounts
   const total = list.reduce((n, c) => n + (c.wordCount ?? countWordsHtml(c.html)), 0);
   const rows = list.map((c, i) => {
     const words = c.wordCount ?? countWordsHtml(c.html);
-    const notes = c.id && commentCounts[c.id] ? `<span class="chap-notes" title="${commentCounts[c.id]} comment${commentCounts[c.id] === 1 ? "" : "s"}">\u{1F4AC} ${commentCounts[c.id]}</span>` : "";
-    const acts = canEdit ? `<span class="chap-acts"><button type="button" class="chap-up" data-i="${i}" title="Move up" aria-label="Move up"${i === 0 ? " disabled" : ""}>\u2191</button><button type="button" class="chap-down" data-i="${i}" title="Move down" aria-label="Move down"${i === list.length - 1 ? " disabled" : ""}>\u2193</button><button type="button" class="chap-rename" data-i="${i}" title="Rename" aria-label="Rename">\u270E</button><button type="button" class="chap-del" data-i="${i}" title="${list.length === 1 ? "A story keeps at least one chapter" : "Delete chapter"}" aria-label="Delete chapter"${list.length === 1 ? " disabled" : ""}>\u2715</button></span>` : "";
+    const notes = c.id && commentCounts[c.id] ? `<span class="chap-notes" title="${commentCounts[c.id]} comment${commentCounts[c.id] === 1 ? "" : "s"}">💬 ${commentCounts[c.id]}</span>` : "";
+    const acts = canEdit ? `<span class="chap-acts"><button type="button" class="chap-up" data-i="${i}" title="Move up" aria-label="Move up"${i === 0 ? " disabled" : ""}>↑</button><button type="button" class="chap-down" data-i="${i}" title="Move down" aria-label="Move down"${i === list.length - 1 ? " disabled" : ""}>↓</button><button type="button" class="chap-rename" data-i="${i}" title="Rename" aria-label="Rename">✎</button><button type="button" class="chap-del" data-i="${i}" title="${list.length === 1 ? "A story keeps at least one chapter" : "Delete chapter"}" aria-label="Delete chapter"${list.length === 1 ? " disabled" : ""}>✕</button></span>` : "";
     return `<div class="chap-row${i === openIdx ? " open" : ""}" data-i="${i}"${c.id ? ` data-id="${esc(c.id)}"` : ""}><button type="button" class="chap-open" data-i="${i}"><span class="chap-n">${i + 1}</span><span class="chap-title">${esc(c.title || `Chapter ${i + 1}`)}</span><span class="chap-meta">${esc(wordsLabel(words))}${notes}</span></button>` + acts + `</div>`;
   }).join("");
-  const foot = `<div class="chap-foot"><span class="chap-total">${list.length} chapter${list.length === 1 ? "" : "s"} \xB7 ${esc(wordsLabel(total))}</span>` + (canEdit ? `<button type="button" class="ghost chap-add">+ Add chapter</button>` : "") + `</div>`;
-  const head = `<div class="doc-side-head chap-head"><h3>\u{1F4D1} Chapters</h3><button type="button" class="ghost doc-side-close chap-close" aria-label="Close the chapter panel" data-tip="Close">\u2715</button></div>`;
+  const foot = `<div class="chap-foot"><span class="chap-total">${list.length} chapter${list.length === 1 ? "" : "s"} · ${esc(wordsLabel(total))}</span>` + (canEdit ? `<button type="button" class="ghost chap-add">+ Add chapter</button>` : "") + `</div>`;
+  const head = `<div class="doc-side-head chap-head"><h3>📑 Chapters</h3><button type="button" class="ghost doc-side-close chap-close" aria-label="Close the chapter panel" data-tip="Close">✕</button></div>`;
   return `${head}<div class="chap-list">${rows}</div>${foot}`;
 }
 function chapNavHtml(chapters, idx) {
   const list = chapters || [];
   const n = list.length;
   if (n < 2) return "";
-  const prev = idx > 0 ? `<button type="button" class="ghost chap-prev" data-i="${idx - 1}">\u2190 ${esc(list[idx - 1].title || `Chapter ${idx}`)}</button>` : `<span></span>`;
-  const next = idx < n - 1 ? `<button type="button" class="ghost chap-next" data-i="${idx + 1}">${esc(list[idx + 1].title || `Chapter ${idx + 2}`)} \u2192</button>` : `<span></span>`;
+  const prev = idx > 0 ? `<button type="button" class="ghost chap-prev" data-i="${idx - 1}">← ${esc(list[idx - 1].title || `Chapter ${idx}`)}</button>` : `<span></span>`;
+  const next = idx < n - 1 ? `<button type="button" class="ghost chap-next" data-i="${idx + 1}">${esc(list[idx + 1].title || `Chapter ${idx + 2}`)} →</button>` : `<span></span>`;
   return `<nav class="chap-nav" aria-label="Chapters">${prev}<span class="chap-pos">Chapter ${idx + 1} of ${n}</span>${next}</nav>`;
 }
 const chapChipLabel = (chapters, idx, open = true) => {
-  if (!open) return "\u{1F4D1} View chapters";
+  if (!open) return "📑 View chapters";
   const n = (chapters || []).length;
-  return n > 1 ? `\u{1F4D1} Chapter ${idx + 1} of ${n}` : "\u{1F4D1} Chapters";
+  return n > 1 ? `📑 Chapter ${idx + 1} of ${n}` : "📑 Chapters";
 };
 const fmtDur = (sec) => {
   const s = Math.max(0, Math.floor(sec || 0));
@@ -209,9 +209,9 @@ function sprintRowHtml(sp, { mine = false } = {}) {
   const title = esc(sp.title || "Untitled");
   const open = `/write?id=${encodeURIComponent(sp.docId || "")}`;
   const del = mine ? `<span class="solo-acts"><button type="button" class="ghost danger sprint-del" data-at="${esc(String(sp.at || ""))}">Delete</button></span>` : "";
-  return `<div class="solo-row sprint-row" data-doc="${esc(sp.docId || "")}" data-at="${esc(String(sp.at || ""))}"><span class="solo-date">${esc(fmtWhen(sp.at))}</span><span class="solo-info"><a class="solo-title" href="${open}">${title}</a><span class="solo-meta">\u23F1 ${esc(String(sp.words || 0))} word${sp.words === 1 ? "" : "s"} in ${esc(fmtDur(sp.seconds))}</span></span>` + del + `</div>`;
+  return `<div class="solo-row sprint-row" data-doc="${esc(sp.docId || "")}" data-at="${esc(String(sp.at || ""))}"><span class="solo-date">${esc(fmtWhen(sp.at))}</span><span class="solo-info"><a class="solo-title" href="${open}">${title}</a><span class="solo-meta">⏱ ${esc(String(sp.words || 0))} word${sp.words === 1 ? "" : "s"} in ${esc(fmtDur(sp.seconds))}</span></span>` + del + `</div>`;
 }
-const sprintListHtml = (sprints, { total = 0, count = 0, mine = false, empty = "No sprints yet: start one from the \u23F1 button in a solo write." } = {}) => !sprints || !sprints.length ? `<p class="subtle" style="text-align:left;margin:0">${esc(empty)}</p>` : `<p class="subtle" style="text-align:left;margin:0 0 8px">${esc(String(total))} word${total === 1 ? "" : "s"} across ${count} sprint${count === 1 ? "" : "s"}</p>` + sprints.map((sp) => sprintRowHtml(sp, { mine })).join("");
+const sprintListHtml = (sprints, { total = 0, count = 0, mine = false, empty = "No sprints yet: start one from the ⏱ button in a solo write." } = {}) => !sprints || !sprints.length ? `<p class="subtle" style="text-align:left;margin:0">${esc(empty)}</p>` : `<p class="subtle" style="text-align:left;margin:0 0 8px">${esc(String(total))} word${total === 1 ? "" : "s"} across ${count} sprint${count === 1 ? "" : "s"}</p>` + sprints.map((sp) => sprintRowHtml(sp, { mine })).join("");
 function wireSprintDeletes(box, onDelete) {
   box.addEventListener("click", async (e) => {
     const b = e.target?.closest(".sprint-del");
@@ -222,7 +222,7 @@ function wireSprintDeletes(box, onDelete) {
         x.textContent = "Delete";
       });
       b.dataset.armed = "1";
-      b.textContent = "Delete? \u2713";
+      b.textContent = "Delete? ✓";
       return;
     }
     b.disabled = true;

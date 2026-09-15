@@ -16,7 +16,7 @@ function ladderAccordionHtml(tiers, u) {
 }
 function aboutHtml(p) {
   const about = p.about ? `<div class="about-text">${p.about}</div>` : `<p class="subtle" style="text-align:left;margin:8px 0 0">Nothing here yet.</p>`;
-  const links = (p.links || []).map((l) => `<a class="about-link" href="${esc(l.url)}" target="_blank" rel="noopener noreferrer nofollow">\u{1F517} ${esc(l.label)}</a>`).join("");
+  const links = (p.links || []).map((l) => `<a class="about-link" href="${esc(l.url)}" target="_blank" rel="noopener noreferrer nofollow">🔗 ${esc(l.label)}</a>`).join("");
   return about + (links ? `<div class="about-links">${links}</div>` : "");
 }
 function avatarHtml(p) {
@@ -26,7 +26,7 @@ function usageCaseHtml(allUsage, earnedNames, descs = {}, { secret = true } = {}
   return allUsage.map((b) => {
     const earned = earnedNames.includes(b.name);
     const tip = !secret ? descs[b.name] || b.desc || "" : !earned ? "Secret: unlock it to find out how." : descs[b.name] || "Secret: they've earned it. Unlock it yourself to find out how.";
-    return `<span class="ach ${earned ? "earned" : "next"}" title="${esc(tip)}">${earned ? "" : "\u{1F512} "}${esc(b.name)}</span>`;
+    return `<span class="ach ${earned ? "earned" : "next"}" title="${esc(tip)}">${earned ? "" : "🔒 "}${esc(b.name)}</span>`;
   }).join("");
 }
 export {

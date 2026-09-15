@@ -2,7 +2,6 @@
 import { towerSvg } from "./components/cleradin-tower.js";
 import { clockSvg } from "./components/vecna-clock.js";
 import { treesBackHtml, treesFrontHtml } from "./components/castle-trees.js";
-const AO3_PREVIEWER_URL = "https://ao3-skin-previewer.replit.app";
 import { initTheme, THEMES, THEME_LABELS } from "./theme.js";
 import { logoHtml, quillHtml } from "./logo.js";
 import { initNav } from "./nav.js";
@@ -11,6 +10,7 @@ import { initTooltips } from "./tooltip.js";
 import { safeColor, miniAvatar, siteName, watchEmojis } from "./util.js";
 import { mountTurnAlert } from "./turn-alert.js";
 import { api, getToken, setToken } from "./api.js";
+const AO3_PREVIEWER_URL = "https://ao3-skin-previewer.replit.app";
 const BG = `
 	<div class="bg-layers" aria-hidden="true">
 		<div class="bg-wash"></div>
@@ -105,23 +105,23 @@ const NAV = (page) => `
 	</button>
 	<div class="nav-scrim" id="navScrim"></div>
 	<nav class="nav-drawer" id="navDrawer" aria-label="Main menu">
-		<button type="button" class="nav-logout" id="navLogout">\u{1F6AA} Log out</button>
+		<button type="button" class="nav-logout" id="navLogout">🚪 Log out</button>
 		<p class="nav-title">Menu</p>
-		<a href="/dashboard" ${page === "dashboard" ? 'aria-current="page"' : ""}>\u{1F3E0} Dashboard</a>
-		<a href="/inbox" ${page === "inbox" ? 'aria-current="page"' : ""}>\u{1F4EC} Inbox</a>
-		<a href="/announcements" ${page === "announcements" ? 'aria-current="page"' : ""}>\u{1F4E3} Announcements</a>
-		<a href="/game" ${page === "game" ? 'aria-current="page"' : ""}>\u270D\uFE0F Current game</a>
-		<a href="/games" ${page === "games" ? 'aria-current="page"' : ""}>\u{1F579}\uFE0F Games</a>
+		<a href="/dashboard" ${page === "dashboard" ? 'aria-current="page"' : ""}>🏠 Dashboard</a>
+		<a href="/inbox" ${page === "inbox" ? 'aria-current="page"' : ""}>📬 Inbox</a>
+		<a href="/announcements" ${page === "announcements" ? 'aria-current="page"' : ""}>📣 Announcements</a>
+		<a href="/game" ${page === "game" ? 'aria-current="page"' : ""}>✍️ Current game</a>
+		<a href="/games" ${page === "games" ? 'aria-current="page"' : ""}>🕹️ Games</a>
 		<hr class="nav-sep" />
-		<a href="/writes" ${page === "writes" || page === "write" ? 'aria-current="page"' : ""}>\u2712\uFE0F Solo writes</a>
-		<a href="/archive" ${page === "archive" ? 'aria-current="page"' : ""}>\u{1F4DA} Previous games</a>
-		<a href="/stories" ${page === "stories" ? 'aria-current="page"' : ""}>\u{1F4D6} All stories</a>
+		<a href="/writes" ${page === "writes" || page === "write" ? 'aria-current="page"' : ""}>✒️ Solo writes</a>
+		<a href="/archive" ${page === "archive" ? 'aria-current="page"' : ""}>📚 Previous games</a>
+		<a href="/stories" ${page === "stories" ? 'aria-current="page"' : ""}>📖 All stories</a>
 		<hr class="nav-sep" />
-		<a href="/profile" ${page === "profile" ? 'aria-current="page"' : ""}>\u{1F3C6} Profile</a>
-		<a href="/ranks" ${page === "ranks" ? 'aria-current="page"' : ""}>\u{1F3C5} Ranks &amp; unlocks</a>
-		<a href="/settings" ${page === "settings" ? 'aria-current="page"' : ""}>\u2699\uFE0F Settings</a>
-		<a href="${AO3_PREVIEWER_URL}" class="nav-glow" target="_blank" rel="noopener">\u{1F3A8} AO3 skin previewer</a>
-		<a href="/admin" class="hidden" id="navAdmin" ${page === "admin" ? 'aria-current="page"' : ""}>\u{1F6E1}\uFE0F Admin</a>
+		<a href="/profile" ${page === "profile" ? 'aria-current="page"' : ""}>🏆 Profile</a>
+		<a href="/ranks" ${page === "ranks" ? 'aria-current="page"' : ""}>🏅 Ranks &amp; unlocks</a>
+		<a href="/settings" ${page === "settings" ? 'aria-current="page"' : ""}>⚙️ Settings</a>
+		<a href="${AO3_PREVIEWER_URL}" class="nav-glow" target="_blank" rel="noopener">🎨 AO3 skin previewer</a>
+		<a href="/admin" class="hidden" id="navAdmin" ${page === "admin" ? 'aria-current="page"' : ""}>🛡️ Admin</a>
 	</nav>`;
 const TOPBAR = `
 	<div class="topbar">
@@ -154,11 +154,11 @@ const TOPBAR = `
 		</div>
 	</div>`;
 const FOOT_BAR = `<div class="foot-bar" id="footBar">
-		<button type="button" class="foot-btn" id="peekBtn" aria-pressed="false" title="Hide the UI to view the theme">\u{1F441} <span id="peekLabel">View theme</span></button>
-		<span class="foot-dot hidden" id="gimmickDot" aria-hidden="true">\xB7</span>
-		<button type="button" class="foot-btn hidden" id="gimmickBtn" aria-haspopup="menu" aria-expanded="false" title="Play a gimmick with the table">\u{1F3B2} Play gimmick</button>
-		<span class="foot-dot" aria-hidden="true">\xB7</span>
-		<button type="button" class="foot-btn" id="kofiBtn" title="Support ${siteName()} on Ko-fi">\u2615 Support</button>
+		<button type="button" class="foot-btn" id="peekBtn" aria-pressed="false" title="Hide the UI to view the theme">👁 <span id="peekLabel">View theme</span></button>
+		<span class="foot-dot hidden" id="gimmickDot" aria-hidden="true">·</span>
+		<button type="button" class="foot-btn hidden" id="gimmickBtn" aria-haspopup="menu" aria-expanded="false" title="Play a gimmick with the table">🎲 Play gimmick</button>
+		<span class="foot-dot" aria-hidden="true">·</span>
+		<button type="button" class="foot-btn" id="kofiBtn" title="Support ${siteName()} on Ko-fi">☕ Support</button>
 	</div>`;
 const KOFI_ACCOUNT = "justthegatekeeper";
 const KOFI_PAGE = `https://ko-fi.com/${KOFI_ACCOUNT}`;
@@ -166,11 +166,11 @@ const KOFI_EMBED = `${KOFI_PAGE}/?hidefeed=true&widget=true&embed=true&preview=t
 const KOFI_MODAL = `<div class="confirm-modal hidden" id="kofiModal">
 		<div class="confirm-card kofi-card">
 			<div class="kofi-head">
-				<h3>\u2615 Support ${siteName()}</h3>
-				<button type="button" class="ghost kofi-x" id="kofiClose" aria-label="Close">\u2715</button>
+				<h3>☕ Support ${siteName()}</h3>
+				<button type="button" class="ghost kofi-x" id="kofiClose" aria-label="Close">✕</button>
 			</div>
 			<iframe id="kofiFrame" title="Ko-fi" loading="lazy"></iframe>
-			<a class="linky kofi-out" href="${KOFI_PAGE}" target="_blank" rel="noopener noreferrer">Open Ko-fi in a new tab instead \u2192</a>
+			<a class="linky kofi-out" href="${KOFI_PAGE}" target="_blank" rel="noopener noreferrer">Open Ko-fi in a new tab instead →</a>
 		</div>
 	</div>`;
 function mountKofi(doc = document) {

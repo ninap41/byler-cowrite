@@ -117,7 +117,7 @@ function promptModeHtml(prefix, { reroll = false } = {}) {
 <div class="guided-controls hidden" id="${p}Controls">
 	${fields}
 	<label for="${p}Explicit">Explicit<select id="${p}Explicit">${menuHtml(EXPLICIT_LEVELS, "none", { random: false })}</select></label>
-	${reroll ? `<button type="button" class="ghost pm-reroll" id="${p}Reroll" title="Deal four new options from these settings">\u{1F3B2} Reroll all</button>` : ""}
+	${reroll ? `<button type="button" class="ghost pm-reroll" id="${p}Reroll" title="Deal four new options from these settings">🎲 Reroll all</button>` : ""}
 </div>`;
 }
 function mountPromptModes(root, { prefix = "pm", onChange, onReroll } = {}) {

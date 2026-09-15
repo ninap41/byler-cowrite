@@ -2,7 +2,7 @@
 import { esc } from "./util.js";
 const when = (ts) => ts ? new Date(ts).toLocaleDateString([], { dateStyle: "long" }) : "";
 function postHtml(post, { admin = false } = {}) {
-  return `<article class="ann-post" data-post-id="${esc(post.id)}"><header class="ann-head"><span class="gc-meta">${esc(when(post.at))}${post.byName ? ` \xB7 ${esc(post.byName)}` : ""}</span>` + (post.editedAt ? `<span class="gc-meta ann-edited" title="${esc(when(post.editedAt))}">edited</span>` : "") + (admin ? `<span class="ann-acts"><button type="button" class="ghost ann-discord" data-ann-discord="${esc(post.id)}" title="Post this announcement's markdown to the admin Discord channel">Post to Discord</button><button type="button" class="ghost ann-edit" data-ann-edit="${esc(post.id)}">Edit</button><button type="button" class="ghost danger ann-del" data-ann-delete="${esc(post.id)}">Delete</button></span>` : "") + `</header><div class="ann-body story-line">${post.html || ""}</div>` + imagesHtml(post.images) + (admin ? editorHtml(post) : "") + `</article>`;
+  return `<article class="ann-post" data-post-id="${esc(post.id)}"><header class="ann-head"><span class="gc-meta">${esc(when(post.at))}${post.byName ? ` · ${esc(post.byName)}` : ""}</span>` + (post.editedAt ? `<span class="gc-meta ann-edited" title="${esc(when(post.editedAt))}">edited</span>` : "") + (admin ? `<span class="ann-acts"><button type="button" class="ghost ann-discord" data-ann-discord="${esc(post.id)}" title="Post this announcement's markdown to the admin Discord channel">Post to Discord</button><button type="button" class="ghost ann-edit" data-ann-edit="${esc(post.id)}">Edit</button><button type="button" class="ghost danger ann-del" data-ann-delete="${esc(post.id)}">Delete</button></span>` : "") + `</header><div class="ann-body story-line">${post.html || ""}</div>` + imagesHtml(post.images) + (admin ? editorHtml(post) : "") + `</article>`;
 }
 function imagesHtml(images) {
   const list = Array.isArray(images) ? images : [];
@@ -14,7 +14,7 @@ function imageListHtml(key, images = []) {
   return `<div class="ann-imgs" data-ann-imgs="${esc(key)}"><div class="ann-imgs-head"><span class="subtle">Images (embeds)</span><button type="button" class="ghost h-plus" data-ann-add="${esc(key)}" title="Add an image url">+</button></div><div class="ann-imgs-rows">${rows}</div></div>`;
 }
 function imageRowHtml(url = "") {
-  return `<div class="ann-img-row"><input type="url" class="ann-img-url" placeholder="https://\u2026/image.png" value="${esc(url)}"><button type="button" class="ghost ann-img-rm" title="Remove">\u2715</button></div>`;
+  return `<div class="ann-img-row"><input type="url" class="ann-img-url" placeholder="https://…/image.png" value="${esc(url)}"><button type="button" class="ghost ann-img-rm" title="Remove">✕</button></div>`;
 }
 function readImages(root) {
   return [...root.querySelectorAll(".ann-img-url")].map((i) => i.value.trim()).filter(Boolean);
@@ -29,7 +29,7 @@ function postListHtml(posts, { admin = false } = {}) {
 function composerHtml() {
   return `<div id="annComposer" class="ann-composer"><textarea class="ann-editor" id="annEditor" rows="10" placeholder="# Start with a heading, it becomes the title.
 
-Markdown: **bold**, *italic*, - lists, > quotes."></textarea>` + imageListHtml("new") + `<p class="subtle ann-hint" style="text-align:left;margin:6px 0 0">Markdown only \u2014 it renders here and posts to Discord as written; images post as embeds.</p><div class="row" style="justify-content:flex-end;gap:8px;margin-top:10px"><button type="button" class="primary" id="annPost">Post announcement</button></div></div>`;
+Markdown: **bold**, *italic*, - lists, > quotes."></textarea>` + imageListHtml("new") + `<p class="subtle ann-hint" style="text-align:left;margin:6px 0 0">Markdown only — it renders here and posts to Discord as written; images post as embeds.</p><div class="row" style="justify-content:flex-end;gap:8px;margin-top:10px"><button type="button" class="primary" id="annPost">Post announcement</button></div></div>`;
 }
 export {
   composerHtml,

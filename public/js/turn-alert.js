@@ -8,7 +8,7 @@ function showInviteToast({ code, name, host }) {
   el.className = "turn-toast";
   el.dataset.invite = code;
   el.setAttribute("role", "alert");
-  el.innerHTML = `<span>\u{1F4D6} \u201C${esc(name || code)}\u201D is being continued${host ? ` by ${esc(host)}` : ""}: you're invited back!</span><a class="turn-toast-go" href="/game?code=${encodeURIComponent(code)}">Rejoin \u2192</a><button type="button" class="turn-toast-close" title="Dismiss">\u2715</button>`;
+  el.innerHTML = `<span>📖 “${esc(name || code)}” is being continued${host ? ` by ${esc(host)}` : ""}: you're invited back!</span><a class="turn-toast-go" href="/game?code=${encodeURIComponent(code)}">Rejoin →</a><button type="button" class="turn-toast-close" title="Dismiss">✕</button>`;
   el.querySelector(".turn-toast-close").onclick = () => el.remove();
   document.body.appendChild(el);
 }
@@ -27,7 +27,7 @@ function mountTurnAlert() {
     el.className = "turn-toast";
     el.dataset.code = g.code;
     el.setAttribute("role", "alert");
-    el.innerHTML = `<span>\u2712 Your turn in \u201C${esc(g.name || g.code)}\u201D!</span><a class="turn-toast-go" href="/game?code=${encodeURIComponent(g.code)}">Go write \u2192</a><button type="button" class="turn-toast-close" title="Dismiss">\u2715</button>`;
+    el.innerHTML = `<span>✒ Your turn in “${esc(g.name || g.code)}”!</span><a class="turn-toast-go" href="/game?code=${encodeURIComponent(g.code)}">Go write →</a><button type="button" class="turn-toast-close" title="Dismiss">✕</button>`;
     el.querySelector(".turn-toast-close").onclick = () => {
       snoozed.add(g.code);
       hideToast();

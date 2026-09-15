@@ -74,14 +74,14 @@ function opensPalette(node, offset) {
   if (offset <= 0) return true;
   return /\s| /.test((node.nodeValue ?? "").charAt(offset - 1));
 }
-const breadcrumb = (st) => st.level === "groups" ? "Reference" : st.level === "categories" ? st.group.label : `${st.group.label} \u203A ${st.category.label}`;
+const breadcrumb = (st) => st.level === "groups" ? "Reference" : st.level === "categories" ? st.group.label : `${st.group.label} › ${st.category.label}`;
 const THESAURUS_URL = "https://www.powerthesaurus.org";
 function paletteHtml(st) {
   const items = visibleItems(st);
   const rows = items.length ? items.map(
     (it, i) => `<li class="sp-row${i === st.index ? " sel" : ""}" data-i="${i}" role="option" aria-selected="${i === st.index}"><span class="sp-label">${esc(it.label)}</span>` + (it.hint ? `<span class="sp-hint">${esc(it.hint)}</span>` : "") + `</li>`
   ).join("") : `<li class="sp-empty">No matches</li>`;
-  return `<div class="sp-head"><span class="sp-crumb">${esc(breadcrumb(st))}</span><span class="sp-keys">\u2191\u2193 move \xB7 ${st.level === "groups" ? "\u2192 open" : "\u2190 back"} \xB7 \u23CE pick \xB7 esc</span></div><ul class="sp-list" role="listbox">${rows}</ul><div class="sp-foot"><a class="sp-thes" href="${THESAURUS_URL}" target="_blank" rel="noopener noreferrer">\u{1F4D6} Power Thesaurus <span class="sp-hint">new tab</span></a></div>`;
+  return `<div class="sp-head"><span class="sp-crumb">${esc(breadcrumb(st))}</span><span class="sp-keys">↑↓ move · ${st.level === "groups" ? "→ open" : "← back"} · ⏎ pick · esc</span></div><ul class="sp-list" role="listbox">${rows}</ul><div class="sp-foot"><a class="sp-thes" href="${THESAURUS_URL}" target="_blank" rel="noopener noreferrer">📖 Power Thesaurus <span class="sp-hint">new tab</span></a></div>`;
 }
 function mountSlashPalette(editor, { bundle = null, onInsert = () => {
 }, isEnabled = () => true } = {}) {

@@ -10,7 +10,7 @@ import { join, relative } from "node:path";
 import { tmpdir } from "node:os";
 import { execFileSync } from "node:child_process";
 import { build } from "esbuild";
-import { sourceFiles, emittedPath, BANNER } from "../scripts/build.mjs";
+import { sourceFiles, emittedPath, BANNER, esbuildOptions } from "../scripts/build.mjs";
 
 const root = new URL("..", import.meta.url).pathname;
 
@@ -29,7 +29,7 @@ test("every TypeScript source has a current emitted twin under public/js", async
   assert.ok(sources.length >= 2, "the pipeline has sources");
   const tmp = mkdtempSync(join(tmpdir(), "cowrite-build-"));
   try {
-    await build({ entryPoints: sources, outdir: tmp, outbase: join(root, "client"), format: "esm", target: "es2022", bundle: false, banner: { js: BANNER }, logLevel: "silent" });
+    await build({ entryPoints: sources, ...esbuildOptions({ outdir: tmp }), logLevel: "silent" });
     for (const src of sources) {
       const out = emittedPath(src);
       assert.ok(existsSync(out), relative(root, out) + " is emitted");

@@ -47,7 +47,7 @@ function mountInboxPage({ list, filters, pane, bulk, unreadChip, readAllBtn, onL
     const rows = visible();
     list.innerHTML = "";
     if (!rows.length) {
-      list.innerHTML = `<p class="subtle ib-empty">${threads.length ? "Nothing under this filter." : "Nothing here: inbox zero. \u2728"}</p>`;
+      list.innerHTML = `<p class="subtle ib-empty">${threads.length ? "Nothing under this filter." : "Nothing here: inbox zero. ✨"}</p>`;
       renderBulk();
       return;
     }
@@ -134,11 +134,11 @@ function mountInboxPage({ list, filters, pane, bulk, unreadChip, readAllBtn, onL
     const t = openId ? threadOf(openId) : null;
     if (!t) {
       openId = null;
-      pane.innerHTML = `<div class="ib-pane-empty"><span class="ib-pane-glyph">\u{1F4EC}</span><p class="subtle">Select a conversation to read it here.</p></div>`;
+      pane.innerHTML = `<div class="ib-pane-empty"><span class="ib-pane-glyph">📬</span><p class="subtle">Select a conversation to read it here.</p></div>`;
       return;
     }
     const focused = document.activeElement === pane.querySelector(".ib-reply-text");
-    pane.innerHTML = `<button type="button" class="ghost ib-back" aria-label="Back to all messages">\u2190 All messages</button><div class="ib-pane-head">${inboxPaneHeadHtml(t)}</div><div class="ib-pane-body">${inboxPaneBodyHtml(t)}</div>` + inboxPaneComposerHtml(t);
+    pane.innerHTML = `<button type="button" class="ghost ib-back" aria-label="Back to all messages">← All messages</button><div class="ib-pane-head">${inboxPaneHeadHtml(t)}</div><div class="ib-pane-body">${inboxPaneBodyHtml(t)}</div>` + inboxPaneComposerHtml(t);
     pane.querySelector(".ib-back").onclick = closeThread;
     const on = (name, fn) => {
       const b = pane.querySelector(`[data-act="${name}"]`);

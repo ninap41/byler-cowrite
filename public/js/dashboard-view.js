@@ -10,11 +10,11 @@ function liveGameInfoHtml(g) {
   const on = g.players.filter((pl) => pl.connected).length;
   return (
     // the lit rail, its running bulb, the aura and the sheen (all CSS)
-    `<span class="lg-rail" aria-hidden="true"><i class="lg-bulb"></i></span><span class="lg-aura" aria-hidden="true"></span><span class="lg-sheen" aria-hidden="true"></span><span class="lg-info"><b>${esc(g.name || g.code)}</b><span class="lg-sub">${esc(g.code)} \xB7 ${PHASES[g.phase] || g.phase}${g.hostName ? " \xB7 " + esc(g.hostName) + " (host)" : ""} \xB7 <i class="lg-pip" aria-hidden="true"></i>${on}/${g.players.length} online \xB7 ${esc(g.players.map((pl) => pl.name).join(", "))}</span></span>`
+    `<span class="lg-rail" aria-hidden="true"><i class="lg-bulb"></i></span><span class="lg-aura" aria-hidden="true"></span><span class="lg-sheen" aria-hidden="true"></span><span class="lg-info"><b>${esc(g.name || g.code)}</b><span class="lg-sub">${esc(g.code)} · ${PHASES[g.phase] || g.phase}${g.hostName ? " · " + esc(g.hostName) + " (host)" : ""} · <i class="lg-pip" aria-hidden="true"></i>${on}/${g.players.length} online · ${esc(g.players.map((pl) => pl.name).join(", "))}</span></span>`
   );
 }
 function statsText(u) {
-  return `${u.wordCount} words written \xB7 ${u.badges.length} badge${u.badges.length === 1 ? "" : "s"}` + (u.nextBadge ? ` \xB7 ${u.nextBadge.min - u.wordCount} word${u.nextBadge.min - u.wordCount === 1 ? "" : "s"} to ${u.nextBadge.name}` : "");
+  return `${u.wordCount} words written · ${u.badges.length} badge${u.badges.length === 1 ? "" : "s"}` + (u.nextBadge ? ` · ${u.nextBadge.min - u.wordCount} word${u.nextBadge.min - u.wordCount === 1 ? "" : "s"} to ${u.nextBadge.name}` : "");
 }
 function badgeProgress(u) {
   if (!u.nextBadge) return { pct: 100, label: "top of the ladder" };
@@ -39,7 +39,7 @@ function friendStatsTip(u) {
   if (typeof u.wordCount === "number") parts.push(`${u.wordCount.toLocaleString()} words`);
   if (typeof u.badges === "number") parts.push(`${u.badges} badge${u.badges === 1 ? "" : "s"}`);
   if (typeof u.games === "number") parts.push(`${u.games} game${u.games === 1 ? "" : "s"}`);
-  return parts.join(" \xB7 ");
+  return parts.join(" · ");
 }
 function friendRowHtml(u) {
   return `<span class="st-dot ${u.online ? "on" : "off"}" title="${u.online ? "Online" : "Offline"}"></span>` + miniAvatar(u) + `<span class="rg-info"><b style="color:${safeColor(u.color)}">${esc(u.username)}</b></span><button type="button" class="rg-msg" data-msg="${esc(u.username)}" title="Message ${esc(u.username)}" aria-label="Message ${esc(u.username)}"><i class="fa-solid fa-envelope" aria-hidden="true"></i></button>`;
@@ -50,7 +50,7 @@ function whoHtml(m) {
   const sender = m.mine ? `<b>You</b>` : miniAvatar(m.from) + name(m.from);
   if (!m.to) return sender;
   const recipient = m.mine ? name(m.to) : `<b>You</b>`;
-  return `<span class="ib-who">${sender}<span class="ib-arrow" aria-label="to">\u2192</span>${recipient}</span>`;
+  return `<span class="ib-who">${sender}<span class="ib-arrow" aria-label="to">→</span>${recipient}</span>`;
 }
 function inboxMsgHtml(m, { reply = true, chain = [], replyTo = m, fold = false } = {}) {
   const from = whoHtml(m);
@@ -58,7 +58,7 @@ function inboxMsgHtml(m, { reply = true, chain = [], replyTo = m, fold = false }
   return `<span class="ib-dot${m.read ? "" : " unread"}" title="${m.read ? "Read" : "Unread"}"></span><span class="ib-info"><span class="ib-from">${from}${m.type === "friend-request" ? '<span class="badge-chip">friend request</span>' : ""}${m.type === "game-invite" ? '<span class="badge-chip">game invite</span>' : ""}${m.type === "help" ? '<span class="badge-chip">help question</span>' : ""}<span class="ib-when">${esc(when)}</span></span><span class="ib-text">${esc(m.text)}</span>` + (fold && chain.length ? foldBtnHtml(chain.length) : "") + (chain.length ? `<span class="ib-chain">${chain.map(chainMsgHtml).join("")}</span>` : "") + (reply && replyTo?.from && m.type !== "friend-request" ? replyBoxHtml(replyTo) : "") + `</span>`;
 }
 function foldBtnHtml(n) {
-  return `<button type="button" class="ib-fold" aria-expanded="true"><span class="ib-fold-label">Hide ${n} ${n === 1 ? "reply" : "replies"}</span><span class="ib-fold-caret" aria-hidden="true">\u25BE</span></button>`;
+  return `<button type="button" class="ib-fold" aria-expanded="true"><span class="ib-fold-label">Hide ${n} ${n === 1 ? "reply" : "replies"}</span><span class="ib-fold-caret" aria-hidden="true">▾</span></button>`;
 }
 function chainMsgHtml(m) {
   const who = whoHtml(m);
@@ -85,7 +85,7 @@ function threadInbox(messages = []) {
   })).sort((a, b) => b.ts - a.ts);
 }
 function replyBoxHtml(m) {
-  return `<span class="ib-reply hidden"><textarea class="ib-reply-text" rows="2" maxlength="1000" placeholder="Reply to ${esc(m.from.username)}\u2026"></textarea><span class="ib-reply-row"><span class="ib-reply-msg"></span><button type="button" class="primary ib-reply-send">Send</button></span></span>`;
+  return `<span class="ib-reply hidden"><textarea class="ib-reply-text" rows="2" maxlength="1000" placeholder="Reply to ${esc(m.from.username)}…"></textarea><span class="ib-reply-row"><span class="ib-reply-msg"></span><button type="button" class="primary ib-reply-send">Send</button></span></span>`;
 }
 function coverGrad(code) {
   let h = 7;
@@ -99,44 +99,44 @@ const coverStyle = (g) => g.cover ? `background:url('${esc(g.cover)}') center/co
 function myGameStatus(g) {
   if (g.phase === "waiting") return { text: "Gathering writers", cls: "" };
   if (g.phase === "choosing") return { text: "Voting on a scenario", cls: "" };
-  if (g.myTurn) return { text: "\u25CF Your turn: write!", cls: "is-turn" };
-  if (g.paused) return { text: "\u23F8 Paused", cls: "is-paused" };
+  if (g.myTurn) return { text: "● Your turn: write!", cls: "is-turn" };
+  if (g.paused) return { text: "⏸ Paused", cls: "is-paused" };
   return { text: g.currentName ? `Waiting for ${g.currentName}` : "In progress", cls: "" };
 }
 const fmtWhen = (ts) => ts ? new Date(ts).toLocaleDateString([], { dateStyle: "medium" }) : "";
 function myGameCardHtml(g) {
   const st = myGameStatus(g);
-  const glyph = (g.name || "").trim().charAt(0).toUpperCase() || "\u2712";
-  return `<div class="mg-cover" style="${coverStyle(g)}">${g.cover ? "" : `<span class="mg-glyph">${esc(glyph)}</span>`}<span class="mg-date">${fmtWhen(g.savedAt)}</span></div><div class="mg-body"><div class="mg-head"><b class="mg-name">${esc(g.name || "Untitled story")}</b><span class="mg-code">${esc(g.code)}</span></div><p class="mg-status ${st.cls}">${esc(st.text)}</p><div class="mg-players">` + g.players.map((p) => `<span class="mg-dot${p.connected ? "" : " off"}" title="${esc(p.name)}" style="background:${safeColor(p.color)}"></span>`).join("") + `<span class="mg-count">${g.players.length} writer${g.players.length === 1 ? "" : "s"} \xB7 ${fmtWords(g.words)}</span></div></div>`;
+  const glyph = (g.name || "").trim().charAt(0).toUpperCase() || "✒";
+  return `<div class="mg-cover" style="${coverStyle(g)}">${g.cover ? "" : `<span class="mg-glyph">${esc(glyph)}</span>`}<span class="mg-date">${fmtWhen(g.savedAt)}</span></div><div class="mg-body"><div class="mg-head"><b class="mg-name">${esc(g.name || "Untitled story")}</b><span class="mg-code">${esc(g.code)}</span></div><p class="mg-status ${st.cls}">${esc(st.text)}</p><div class="mg-players">` + g.players.map((p) => `<span class="mg-dot${p.connected ? "" : " off"}" title="${esc(p.name)}" style="background:${safeColor(p.color)}"></span>`).join("") + `<span class="mg-count">${g.players.length} writer${g.players.length === 1 ? "" : "s"} · ${fmtWords(g.words)}</span></div></div>`;
 }
 const fmtWords = (n) => `${Number(n || 0).toLocaleString()} word${n === 1 ? "" : "s"}`;
 function recentRowHtml(g) {
-  return `<span class="rg-cover" style="${coverStyle(g)}"></span><span class="rg-info"><b>${esc(g.name || oneLinePrompt(g.prompt) || g.code)}</b><span class="rg-sub">${esc(g.code)} \xB7 ${g.writers.length} writer${g.writers.length === 1 ? "" : "s"} \xB7 ${fmtWords(g.words)}</span></span><button type="button" class="ghost rg-more" data-act="write-more">\u2712\uFE0F Write more</button>`;
+  return `<span class="rg-cover" style="${coverStyle(g)}"></span><span class="rg-info"><b>${esc(g.name || oneLinePrompt(g.prompt) || g.code)}</b><span class="rg-sub">${esc(g.code)} · ${g.writers.length} writer${g.writers.length === 1 ? "" : "s"} · ${fmtWords(g.words)}</span></span><button type="button" class="ghost rg-more" data-act="write-more">✒️ Write more</button>`;
 }
 function achievementsHtml(u) {
   const earned = u.badges.map((b) => `<span class="ach earned" title="${esc(u.badgeDescs?.[b] || "No description")}">${esc(b)}</span>`).join("");
-  const next = u.nextBadge ? `<span class="ach next" title="Next up">? ${esc(u.nextBadge.name)} \xB7 ${u.nextBadge.min} words</span>` : "";
+  const next = u.nextBadge ? `<span class="ach next" title="Next up">? ${esc(u.nextBadge.name)} · ${u.nextBadge.min} words</span>` : "";
   return earned + next || '<span class="subtle">Write your first line to start earning badges.</span>';
 }
 function streakRingHtml(streak, best) {
   const R = 26;
   const C = 2 * Math.PI * R;
   const pct = best > 0 ? Math.min(1, streak / best) : 0;
-  return `<svg viewBox="0 0 64 64" class="streak-ring" role="img" aria-label="${streak}-day streak"><circle cx="32" cy="32" r="${R}" class="ring-bg"></circle><circle cx="32" cy="32" r="${R}" class="ring-fg" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${(C * (1 - pct)).toFixed(1)}"></circle><text x="32" y="29" class="ring-emoji">\u{1F525}</text><text x="32" y="45" class="ring-num">${streak}d</text></svg>`;
+  return `<svg viewBox="0 0 64 64" class="streak-ring" role="img" aria-label="${streak}-day streak"><circle cx="32" cy="32" r="${R}" class="ring-bg"></circle><circle cx="32" cy="32" r="${R}" class="ring-fg" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${(C * (1 - pct)).toFixed(1)}"></circle><text x="32" y="29" class="ring-emoji">🔥</text><text x="32" y="45" class="ring-num">${streak}d</text></svg>`;
 }
 const PREVIEW_CHARS = 160;
 const ENTITIES = { amp: "&", lt: "<", gt: ">", quot: '"', "#39": "'", "#x27": "'" };
 function previewText(html, max = PREVIEW_CHARS) {
   const text = String(html || "").replace(/<\/(p|h[1-6]|li|blockquote|div)>|<br\s*\/?>/gi, " ").replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").replace(/&(amp|lt|gt|quot|#39|#x27);/g, (_, e) => ENTITIES[e] ?? "").replace(/\s+/g, " ").trim();
   if (text.length <= max) return text;
-  return text.slice(0, max).replace(/\s+\S*$/, "") + "\u2026";
+  return text.slice(0, max).replace(/\s+\S*$/, "") + "…";
 }
 function latestAnnouncementHtml(post) {
   if (!post) return "";
   const when = post.at ? new Date(post.at).toLocaleDateString([], { dateStyle: "medium" }) : "";
   const headed = /<h[1-3]\b/i.test(post.html || "");
-  return `<div class="ann-glimpse"><span class="ann-glimpse-tag"><span class="ann-horn" aria-hidden="true">\u{1F4E3}</span> Announcement${when ? ` \xB7 ${esc(when)}` : ""}</span>` + (headed ? `<b class="ann-glimpse-title">${esc(post.title || "")}</b>` : "") + // Read more rides at the end of the preview's last line, not on its own
-  `<p class="ann-glimpse-text">${esc(previewText(post.html))} <a class="ann-glimpse-more" href="/announcements">Read more \u2192</a></p></div>`;
+  return `<div class="ann-glimpse"><span class="ann-glimpse-tag"><span class="ann-horn" aria-hidden="true">📣</span> Announcement${when ? ` · ${esc(when)}` : ""}</span>` + (headed ? `<b class="ann-glimpse-title">${esc(post.title || "")}</b>` : "") + // Read more rides at the end of the preview's last line, not on its own
+  `<p class="ann-glimpse-text">${esc(previewText(post.html))} <a class="ann-glimpse-more" href="/announcements">Read more →</a></p></div>`;
 }
 function announcementRowHtml(post) {
   const when = post.at ? new Date(post.at).toLocaleDateString([], { dateStyle: "medium" }) : "";
@@ -190,14 +190,14 @@ function inboxListRowHtml(t, { selected = false, checked = false } = {}) {
   const tag = msgTag(m);
   const snippet = (last.mine ? "You: " : "") + last.text;
   const color = m.from ? safeColor(m.from.color) : "var(--good)";
-  return `<label class="ib-pick" title="Select"><input type="checkbox" class="ib-check"${checked ? " checked" : ""} aria-label="Select conversation"></label><span class="ib-av">${inboxAvatarHtml(m)}</span><span class="ib-main"><span class="ib-line"><b class="ib-name" style="color:${color}">${esc(inboxSenderName(m))}</b>` + (tag ? `<span class="ib-tag ib-tag-${esc(msgFilter(m))}">${esc(tag)}</span>` : "") + `</span><span class="ib-snip">${esc(snippet)}</span></span><span class="ib-side"><span class="ib-when">${esc(shortWhen(last.ts))}</span>` + (unreadN ? `<span class="ib-unread-n" title="${unreadN} unread">${unreadN}</span>` : replies ? `<span class="ib-replies" title="${replies} ${replies === 1 ? "reply" : "replies"}">\u21A9 ${replies}</span>` : "") + `</span>`;
+  return `<label class="ib-pick" title="Select"><input type="checkbox" class="ib-check"${checked ? " checked" : ""} aria-label="Select conversation"></label><span class="ib-av">${inboxAvatarHtml(m)}</span><span class="ib-main"><span class="ib-line"><b class="ib-name" style="color:${color}">${esc(inboxSenderName(m))}</b>` + (tag ? `<span class="ib-tag ib-tag-${esc(msgFilter(m))}">${esc(tag)}</span>` : "") + `</span><span class="ib-snip">${esc(snippet)}</span></span><span class="ib-side"><span class="ib-when">${esc(shortWhen(last.ts))}</span>` + (unreadN ? `<span class="ib-unread-n" title="${unreadN} unread">${unreadN}</span>` : replies ? `<span class="ib-replies" title="${replies} ${replies === 1 ? "reply" : "replies"}">↩ ${replies}</span>` : "") + `</span>`;
 }
 function paneWhoHtml(m) {
   if (!m.from) return esc(siteName());
   const name = (u) => `<span style="color:${safeColor(u.color)}">${esc(u.username)}</span>`;
   const sender = m.mine ? "You" : name(m.from);
   if (!m.to) return sender;
-  return `${sender}<span class="ib-arrow" aria-label="to">\u2192</span>${m.mine ? name(m.to) : "You"}`;
+  return `${sender}<span class="ib-arrow" aria-label="to">→</span>${m.mine ? name(m.to) : "You"}`;
 }
 function inboxPaneHeadHtml(t) {
   const m = t.head;
@@ -205,19 +205,19 @@ function inboxPaneHeadHtml(t) {
   const acts = [];
   if (m.type === "friend-request") acts.push(`<button type="button" class="primary" data-act="accept">Accept</button>`, `<button type="button" class="ghost" data-act="decline">Decline</button>`);
   if (m.type === "game-invite" && m.code) acts.push(`<button type="button" class="primary" data-act="rejoin">Rejoin</button>`);
-  acts.push(`<button type="button" class="ghost ib-pane-del" data-act="delete" title="${t.messages.length > 1 ? "Delete conversation" : "Delete"}">\u{1F5D1} Delete</button>`);
+  acts.push(`<button type="button" class="ghost ib-pane-del" data-act="delete" title="${t.messages.length > 1 ? "Delete conversation" : "Delete"}">🗑 Delete</button>`);
   return `<div class="ib-pane-who">${inboxAvatarHtml(m)}<span class="ib-pane-names"><b>${paneWhoHtml(m)}</b><span class="ib-pane-meta">${tag ? `<span class="ib-tag ib-tag-${esc(msgFilter(m))}">${esc(tag)}</span>` : ""}<span class="ib-when">${esc(shortWhen(m.ts))}</span></span></span></div><div class="ib-pane-acts">${acts.join("")}</div>`;
 }
 function inboxPaneBodyHtml(t) {
   return t.messages.map((m) => {
-    const unl = m.unlocks ? [...m.unlocks.themes || [], ...m.unlocks.gimmicks || []].map((x) => esc(x.name || x)).join(" \xB7 ") : "";
-    return `<div class="ib-bubble${m.mine ? " mine" : ""}${m.read ? "" : " unread"}" data-id="${esc(m.id)}"><span class="ib-bubble-who">${m.mine ? "You" : esc(inboxSenderName(m))}<span class="ib-when">${esc(shortWhen(m.ts))}</span></span><span class="ib-bubble-text">${esc(m.text)}</span>` + (unl ? `<span class="ib-bubble-unlocks">\u{1F513} ${unl}</span>` : "") + `</div>`;
+    const unl = m.unlocks ? [...m.unlocks.themes || [], ...m.unlocks.gimmicks || []].map((x) => esc(x.name || x)).join(" · ") : "";
+    return `<div class="ib-bubble${m.mine ? " mine" : ""}${m.read ? "" : " unread"}" data-id="${esc(m.id)}"><span class="ib-bubble-who">${m.mine ? "You" : esc(inboxSenderName(m))}<span class="ib-when">${esc(shortWhen(m.ts))}</span></span><span class="ib-bubble-text">${esc(m.text)}</span>` + (unl ? `<span class="ib-bubble-unlocks">🔓 ${unl}</span>` : "") + `</div>`;
   }).join("");
 }
 const paneCanReply = (t) => !!t.replyTo && t.head.type !== "friend-request";
 function inboxPaneComposerHtml(t) {
   if (!paneCanReply(t)) return "";
-  return `<div class="ib-compose"><textarea class="ib-reply-text" rows="2" maxlength="1000" placeholder="Reply to ${esc(t.replyTo.from.username)}\u2026"></textarea><span class="ib-reply-row"><span class="ib-reply-msg"></span><span class="ib-reply-hint">Ctrl/\u2318 + Enter to send</span><button type="button" class="primary ib-reply-send">Send</button></span></div>`;
+  return `<div class="ib-compose"><textarea class="ib-reply-text" rows="2" maxlength="1000" placeholder="Reply to ${esc(t.replyTo.from.username)}…"></textarea><span class="ib-reply-row"><span class="ib-reply-msg"></span><span class="ib-reply-hint">Ctrl/⌘ + Enter to send</span><button type="button" class="primary ib-reply-send">Send</button></span></div>`;
 }
 export {
   INBOX_FILTERS,

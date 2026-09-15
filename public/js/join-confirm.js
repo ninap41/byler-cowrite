@@ -5,7 +5,7 @@ const needsJoinConfirm = (from) => CONFIRM_SOURCES.includes(String(from || "").t
 function joinConfirmHtml(g) {
   const lobby = g.phase === "waiting";
   const n = g.players ?? 0;
-  return `<div class="join-confirm"><h3 style="margin:0 0 6px">${lobby ? "Join" : "Ask to join"} \u201C${esc(g.name || g.code)}\u201D?</h3><p class="subtle" style="margin:0 0 12px;text-align:left">${g.hostName ? `Hosted by ${esc(g.hostName)} \xB7 ` : ""}${n} writer${n === 1 ? "" : "s"} \xB7 code <b>${esc(g.code)}</b>${lobby ? " \xB7 gathering writers, you'll take a seat in the lobby." : " \xB7 underway, the host will be asked to let you in."}</p><button type="button" class="primary" id="joinConfirmBtn">${lobby ? "Join the lobby" : "Ask to join"}</button></div>`;
+  return `<div class="join-confirm"><h3 style="margin:0 0 6px">${lobby ? "Join" : "Ask to join"} “${esc(g.name || g.code)}”?</h3><p class="subtle" style="margin:0 0 12px;text-align:left">${g.hostName ? `Hosted by ${esc(g.hostName)} · ` : ""}${n} writer${n === 1 ? "" : "s"} · code <b>${esc(g.code)}</b>${lobby ? " · gathering writers, you'll take a seat in the lobby." : " · underway, the host will be asked to let you in."}</p><button type="button" class="primary" id="joinConfirmBtn">${lobby ? "Join the lobby" : "Ask to join"}</button></div>`;
 }
 export {
   CONFIRM_SOURCES,

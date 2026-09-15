@@ -63,7 +63,7 @@ function mountInbox({ list, unreadChip, readAllBtn, moreLink, limit = 0, replies
     if (readAllBtn) readAllBtn.classList.toggle("hidden", !inbox.unread);
     const all = threadInbox(inbox.messages || []);
     const shown = limit ? all.slice(0, limit) : all;
-    if (moreLink) moreLink.textContent = all.length > shown.length ? `See all ${all.length} messages \u2192` : "Open your inbox \u2192";
+    if (moreLink) moreLink.textContent = all.length > shown.length ? `See all ${all.length} messages →` : "Open your inbox →";
     const drafts = /* @__PURE__ */ new Map();
     for (const row of list.querySelectorAll(".ib-row[data-thread]")) {
       const { box, text: ta } = replyParts(row);
@@ -75,7 +75,7 @@ function mountInbox({ list, unreadChip, readAllBtn, moreLink, limit = 0, replies
     }
     list.innerHTML = "";
     if (!all.length) {
-      list.innerHTML = '<p class="subtle" style="text-align:left;margin:8px 0 0">Nothing here: inbox zero. \u2728</p>';
+      list.innerHTML = '<p class="subtle" style="text-align:left;margin:8px 0 0">Nothing here: inbox zero. ✨</p>';
       return;
     }
     shown.forEach((t) => {
@@ -167,7 +167,7 @@ function mountInbox({ list, unreadChip, readAllBtn, moreLink, limit = 0, replies
         const del = document.createElement("button");
         del.className = "ghost ib-del";
         del.title = replies && t.messages.length > 1 ? "Delete conversation" : "Delete";
-        del.textContent = "\u2715";
+        del.textContent = "✕";
         del.onclick = async (e) => {
           e.stopPropagation();
           const ids = t.messages.map((x) => x.id);

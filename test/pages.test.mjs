@@ -734,7 +734,8 @@ test("the AO3 skin previewer is linked out to ao3-skin-previewer.replit.app from
   const homeCss = (await page("/css/home.css")).body;
   assert.match(homeCss, /\.tour-bar \.bar-link-glow \{[^}]*animation: bar-link-glow/s);
   const chrome = (await page("/js/chrome.js")).body;
-  assert.ok(chrome.includes(`export const AO3_PREVIEWER_URL = "${SITE}"`));
+  // esbuild may hoist the export into a trailing `export { … }` list; either spelling names the site once
+  assert.match(chrome, new RegExp(`^(?:export )?const AO3_PREVIEWER_URL = "${SITE.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`, "m"));
   assert.match(chrome, /<a href="\$\{AO3_PREVIEWER_URL\}" class="nav-glow" target="_blank" rel="noopener">🎨 AO3 skin previewer<\/a>/, "the nav drawer lists it");
   const base = (await page("/css/base.css")).body;
   assert.match(base, /\.nav-drawer a\.nav-glow \{[^}]*animation: nav-glow/s);

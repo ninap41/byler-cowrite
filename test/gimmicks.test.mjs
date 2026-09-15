@@ -15,7 +15,7 @@ import {
 test("Vecna's curse holds for a full minute", () => {
   assert.equal(CURSE_MS, 60000);
   const client = readFileSync(new URL("../public/js/components/vecna-curse.js", import.meta.url), "utf-8");
-  assert.match(client, /\|\| 60000\)/, "the client fallback matches CURSE_MS");
+  assert.match(client, /\|\| (?:60000|6e4)\)/, "the client fallback matches CURSE_MS (esbuild prints 60000 as 6e4)");
 });
 import {
   WORD_TIERS, GIMMICK_UNLOCKS, THEME_UNLOCKS, tierForGimmick, canUseGimmick, unlockedGimmicks, gimmickLocks,

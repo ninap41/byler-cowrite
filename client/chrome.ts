@@ -5,8 +5,6 @@ import { towerSvg } from "./components/cleradin-tower.js"
 import { clockSvg } from "./components/vecna-clock.js"
 import { treesBackHtml, treesFrontHtml } from "./components/castle-trees.js"
 
-// The AO3 skin previewer is its own site (its own repo, ao3-skin-previewer)
-export const AO3_PREVIEWER_URL = "https://ao3-skin-previewer.replit.app"
 import { initTheme, THEMES, THEME_LABELS, type ThemeController, type ThemeGate, type ThemeLock } from "./theme.js"
 import { logoHtml, quillHtml } from "./logo.js"
 import { initNav } from "./nav.js"
@@ -15,6 +13,9 @@ import { initTooltips } from "./tooltip.js"
 import { safeColor, miniAvatar, siteName, watchEmojis } from "./util.js"
 import { mountTurnAlert } from "./turn-alert.js"
 import { api, getToken, setToken } from "./api.js"
+
+// The AO3 skin previewer is its own site (its own repo, ao3-skin-previewer)
+export const AO3_PREVIEWER_URL = "https://ao3-skin-previewer.replit.app"
 
 const BG = `
 	<div class="bg-layers" aria-hidden="true">

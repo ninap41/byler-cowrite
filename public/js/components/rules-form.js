@@ -7,20 +7,20 @@ function mountRulesForm(container, opts) {
 			<div class="rules-mode-pick">
 				<label for="${ids.mode}">Story mode</label>
 				<select id="${ids.mode}">
-					<option value="1" selected>\u{1F49B} Friendly</option>
-					<option value="0">\u{1F336} Non-friendly</option>
+					<option value="1" selected>💛 Friendly</option>
+					<option value="0">🌶 Non-friendly</option>
 				</select>
 			</div>
 			<p class="rules-mode-desc">${MODE_DESC}</p>
 		</div>
 		<div class="rules-inline-row">
-			<label class="checkline"><input type="checkbox" id="${ids.endless}" /> \u267E Infinite</label>
+			<label class="checkline"><input type="checkbox" id="${ids.endless}" /> ♾ Infinite</label>
 			<div class="rules-num">
 				<label for="${ids.rounds}">${roundsLabel}</label>
 				<input id="${ids.rounds}" type="number" min="${roundsMin}" max="${roundsMax}"
 					${roundsPlaceholder ? `placeholder="${roundsPlaceholder}"` : `value="${rounds}"`} />
 			</div>
-			<label class="checkline"><input type="checkbox" id="${ids.noTimer}" /> \u23F1 No timer</label>
+			<label class="checkline"><input type="checkbox" id="${ids.noTimer}" /> ⏱ No timer</label>
 			<div class="rules-num">
 				<label for="${ids.secs}">Seconds</label>
 				<input id="${ids.secs}" type="number" min="10" max="600" value="${seconds}" />

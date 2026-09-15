@@ -4,16 +4,16 @@ import { coverStyle } from "./dashboard-view.js";
 const fmtWhen = (ts) => ts ? new Date(ts).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : "unknown date";
 const canContinue = (g, username) => !!g && !!username && !!g.hostName && g.hostName === username;
 function gameCardHtml(g) {
-  return `<span class="gc-date">${fmtWhen(g.savedAt)}</span><span class="gc-cover" style="${coverStyle(g)}"></span><p class="gc-prompt"${g.name ? ' style="font-weight:700"' : ""}>${esc(g.name) || esc(oneLinePrompt(g.prompt)) || "<em>No prompt yet</em>"}</p><span class="gc-meta"><span>${esc(g.code)}</span>` + (g.hostName ? `<span>${esc(g.hostName)} <span class="host-tag">(host)</span></span>` : "") + `<span>${g.writers.length} writer${g.writers.length === 1 ? "" : "s"} \xB7 ${Number(g.words || 0).toLocaleString()} words</span><span>${g.phase === "over" ? "finished" : g.phase === "waiting" ? "gathering writers" : "paused"}</span><span>${esc(g.writers.map((w) => w.name + (w.isHost ? " (host)" : "")).join(", "))}</span></span>`;
+  return `<span class="gc-date">${fmtWhen(g.savedAt)}</span><span class="gc-cover" style="${coverStyle(g)}"></span><p class="gc-prompt"${g.name ? ' style="font-weight:700"' : ""}>${esc(g.name) || esc(oneLinePrompt(g.prompt)) || "<em>No prompt yet</em>"}</p><span class="gc-meta"><span>${esc(g.code)}</span>` + (g.hostName ? `<span>${esc(g.hostName)} <span class="host-tag">(host)</span></span>` : "") + `<span>${g.writers.length} writer${g.writers.length === 1 ? "" : "s"} · ${Number(g.words || 0).toLocaleString()} words</span><span>${g.phase === "over" ? "finished" : g.phase === "waiting" ? "gathering writers" : "paused"}</span><span>${esc(g.writers.map((w) => w.name + (w.isHost ? " (host)" : "")).join(", "))}</span></span>`;
 }
 function writeCardHtml(d) {
-  return `<span class="gc-date">${fmtWhen(d.savedAt)}</span><span class="gc-cover" style="${coverStyle({ code: d.id || "", cover: "" })}"></span><p class="gc-prompt" style="font-weight:700">${esc(d.name) || "<em>Untitled</em>"}</p><span class="gc-meta"><span>\u2712\uFE0F solo write</span>` + (d.viewable === false ? `<span>\u{1F512} private</span>` : d.visibility && d.visibility !== "public" ? `<span>\u{1F465} readers</span>` : "") + (d.hostName ? `<span>by ${esc(d.hostName)}</span>` : "") + `</span>`;
+  return `<span class="gc-date">${fmtWhen(d.savedAt)}</span><span class="gc-cover" style="${coverStyle({ code: d.id || "", cover: "" })}"></span><p class="gc-prompt" style="font-weight:700">${esc(d.name) || "<em>Untitled</em>"}</p><span class="gc-meta"><span>✒️ solo write</span>` + (d.viewable === false ? `<span>🔒 private</span>` : d.visibility && d.visibility !== "public" ? `<span>👥 readers</span>` : "") + (d.hostName ? `<span>by ${esc(d.hostName)}</span>` : "") + `</span>`;
 }
 const STORY_VIEWS = [
-  { key: "list", label: "List", glyph: "\u2630", cols: 1 },
-  { key: "g3", label: "3 across", glyph: "\u25A4", cols: 3 },
-  { key: "g4", label: "4 across", glyph: "\u25A6", cols: 4 },
-  { key: "g6", label: "6 across", glyph: "\u28FF", cols: 6 }
+  { key: "list", label: "List", glyph: "☰", cols: 1 },
+  { key: "g3", label: "3 across", glyph: "▤", cols: 3 },
+  { key: "g4", label: "4 across", glyph: "▦", cols: 4 },
+  { key: "g6", label: "6 across", glyph: "⣿", cols: 6 }
 ];
 const DEFAULT_STORY_VIEW = "list";
 const storyView = (key) => STORY_VIEWS.find((v) => v.key === key) || STORY_VIEWS[0];
@@ -21,7 +21,7 @@ const cleanStoryView = (key) => storyView(key).key;
 const viewToggleHtml = (current) => `<div class="st-views" id="stViews" role="group" aria-label="Layout">` + STORY_VIEWS.map(
   (v) => `<button type="button" class="st-view${v.key === cleanStoryView(current) ? " on" : ""}" data-view="${v.key}" aria-pressed="${v.key === cleanStoryView(current)}" data-tip="${v.label}" aria-label="${v.label}">${v.glyph}${v.cols > 1 ? `<span class="st-view-n">${v.cols}</span>` : ""}</button>`
 ).join("") + `</div>`;
-const archiveMetaText = (g) => `${g.code} \xB7 ${g.phase === "over" ? "finished" : "paused"} \xB7 ${fmtWhen(g.savedAt)}`;
+const archiveMetaText = (g) => `${g.code} · ${g.phase === "over" ? "finished" : "paused"} · ${fmtWhen(g.savedAt)}`;
 function archiveStoryHtml(story) {
   if (!story.length) return '<p class="empty">Nothing written yet.</p>';
   return story.map((l) => `<div class="story-line"><span class="line-by"><span class="who" style="color:${safeColor(l.color)}">${esc(l.name)}</span>${whoMarks(l)}</span>${l.html || ""}</div>`).join("");

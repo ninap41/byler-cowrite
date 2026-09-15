@@ -15,11 +15,11 @@ function themeThumbHtml(theme, { unlocked = false } = {}) {
   return `<figure class="rk-theme${unlocked ? " unlocked" : ""}" data-theme-id="${esc(theme.id)}">
 		<img src="${themeShotSrc(theme.id)}" alt="${esc(theme.label)} theme" loading="lazy"
 			onerror="this.closest('.rk-theme').classList.add('noshot'); this.remove()" />
-		<figcaption>${unlocked ? "\u2713 " : "\u{1F512} "}${esc(theme.label)}</figcaption>
+		<figcaption>${unlocked ? "✓ " : "🔒 "}${esc(theme.label)}</figcaption>
 	</figure>`;
 }
 function gimmickChipHtml(g, { unlocked = false } = {}) {
-  return `<span class="rk-gimmick-chip${unlocked ? " unlocked" : ""}" title="${esc(g.desc || "")}">${esc(g.icon || "\u{1F381}")} ${esc(g.name)}</span>`;
+  return `<span class="rk-gimmick-chip${unlocked ? " unlocked" : ""}" title="${esc(g.desc || "")}">${esc(g.icon || "🎁")} ${esc(g.name)}</span>`;
 }
 function tierCardHtml(tier, { me = null, unlockedThemes = [], current = false } = {}) {
   const earned = me ? Number(me.wordCount || 0) >= tier.min : false;
@@ -29,7 +29,7 @@ function tierCardHtml(tier, { me = null, unlockedThemes = [], current = false } 
 		<header class="rk-tier-head">
 			<b class="rk-badge">${esc(tier.name)}</b>
 			<span class="rk-words">${tier.min === 0 ? "Sign up" : fmtWords(tier.min) + " words"}</span>
-			${earned ? '<span class="rk-earned">\u2713 earned</span>' : ""}
+			${earned ? '<span class="rk-earned">✓ earned</span>' : ""}
 		</header>
 		<p class="rk-desc">${esc(tier.desc || "")}</p>
 		${themes ? `<div class="rk-themes">${themes}</div>` : ""}
@@ -48,22 +48,22 @@ function progressHtml(rows, me) {
   if (!me) return `<p class="rk-signin subtle">Sign in to track your own climb, every word you write in a game counts.</p>`;
   const words = Number(me.wordCount || 0);
   const next = rows.find((r) => r.min > words);
-  if (!next) return `<p class="rk-progress-line">\u{1F300} ${fmtWords(words)} words: the ladder is yours. There's nothing left to unlock.</p>`;
+  if (!next) return `<p class="rk-progress-line">🌀 ${fmtWords(words)} words: the ladder is yours. There's nothing left to unlock.</p>`;
   const prevMin = [...rows].reverse().find((r) => r.min <= words)?.min ?? 0;
   const pct = Math.max(0, Math.min(100, Math.round((words - prevMin) / Math.max(1, next.min - prevMin) * 100)));
   return `<div class="rk-progress">
-		<p class="rk-progress-line">${fmtWords(words)} words \xB7 ${fmtWords(next.min - words)} to go for <b>${esc(next.name)}</b></p>
+		<p class="rk-progress-line">${fmtWords(words)} words · ${fmtWords(next.min - words)} to go for <b>${esc(next.name)}</b></p>
 		<div class="rank-bar rk-bar"><i style="width:${pct}%"></i></div>
 	</div>`;
 }
-const recipeText = ({ triggers = [], combos = [] } = {}) => [...triggers, ...combos.map((c) => Array.isArray(c) ? c.join(" + ") : String(c))].join(" \xB7 ");
+const recipeText = ({ triggers = [], combos = [] } = {}) => [...triggers, ...combos.map((c) => Array.isArray(c) ? c.join(" + ") : String(c))].join(" · ");
 function usageBadgeHtml({ name, desc = "", secret = false, earned = false, recipe = null }) {
   const text = earned || !secret || recipe ? desc : "Secret: the right words in a story line unlock it.";
-  const how = recipe && recipeText(recipe) ? `<p class="rk-recipe">\u{1F6E1}\uFE0F Unlocks with: ${esc(recipeText(recipe))}</p>` : "";
+  const how = recipe && recipeText(recipe) ? `<p class="rk-recipe">🛡️ Unlocks with: ${esc(recipeText(recipe))}</p>` : "";
   return `<article class="rk-usage${earned ? " earned" : ""}${secret && !earned && !recipe ? " mystery" : ""}">
 		<b>${esc(name)}</b>
 		<p>${esc(text)}</p>${how}
-		${earned ? '<span class="rk-earned">\u2713 earned</span>' : ""}
+		${earned ? '<span class="rk-earned">✓ earned</span>' : ""}
 	</article>`;
 }
 function usageListHtml({ usage = [], usageOpen = [] }, me = null) {
@@ -77,9 +77,9 @@ function usageListHtml({ usage = [], usageOpen = [] }, me = null) {
   return cards.map(usageBadgeHtml).join("");
 }
 function gimmickCardHtml(g, { tierName = "", tierMin = null, unlocked = false, themeLabel = "" } = {}) {
-  const gate = tierName ? `${unlocked ? "\u2713 yours" : "\u{1F512} unlocks"} with the ${esc(themeLabel || g.theme)} theme at <b>${esc(tierName)}</b>${tierMin ? ` (${fmtWords(tierMin)} words)` : ""}` : "free for every account";
+  const gate = tierName ? `${unlocked ? "✓ yours" : "🔒 unlocks"} with the ${esc(themeLabel || g.theme)} theme at <b>${esc(tierName)}</b>${tierMin ? ` (${fmtWords(tierMin)} words)` : ""}` : "free for every account";
   return `<article class="rk-gimmick${unlocked ? " earned" : ""}" data-gimmick="${esc(g.id)}">
-		<header><span class="rk-gicon">${esc(g.icon || "\u{1F381}")}</span><b>${esc(g.name)}</b></header>
+		<header><span class="rk-gicon">${esc(g.icon || "🎁")}</span><b>${esc(g.name)}</b></header>
 		<p class="rk-desc">${esc(g.desc || "")}</p>
 		<p class="rk-gate">${gate}</p>
 	</article>`;

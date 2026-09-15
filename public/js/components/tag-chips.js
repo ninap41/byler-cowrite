@@ -12,9 +12,9 @@ function mountTagEditor(root, { tags = [], onSave }) {
   row.className = "tag-chips";
   const add = document.createElement("label");
   add.className = "tag-add";
-  add.innerHTML = `<span class="tag-plus" aria-hidden="true">\uFF0B</span>`;
+  add.innerHTML = `<span class="tag-plus" aria-hidden="true">＋</span>`;
   const input = document.createElement("input");
-  input.placeholder = "Add tag\u2026";
+  input.placeholder = "Add tag…";
   input.maxLength = 31;
   input.setAttribute("aria-label", "Add tag");
   add.appendChild(input);
@@ -39,7 +39,7 @@ function mountTagEditor(root, { tags = [], onSave }) {
       chip.textContent = "#" + t;
       const x = document.createElement("button");
       x.type = "button";
-      x.textContent = "\u2715";
+      x.textContent = "✕";
       x.setAttribute("aria-label", "Remove " + t);
       x.onclick = () => {
         cur.splice(i, 1);

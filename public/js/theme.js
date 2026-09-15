@@ -10,7 +10,7 @@ function lockTip(id, locks = {}) {
   const lock = locks[id];
   if (!lock) return "";
   if (typeof lock === "string") return `Unlocks at ${lock}`;
-  return `Unlocks at ${lock.name}${lock.min ? " \xB7 " + lock.min.toLocaleString() + " words" : ""}`;
+  return `Unlocks at ${lock.name}${lock.min ? " · " + lock.min.toLocaleString() + " words" : ""}`;
 }
 function initTheme() {
   const root = document.documentElement;
@@ -319,7 +319,7 @@ function initTheme() {
       if (tip) b.dataset.tip = tip;
       else delete b.dataset.tip;
       const label = b.querySelector("span");
-      if (label) label.textContent = (locked ? "\u{1F512} " : "") + (LABELS[id] || id);
+      if (label) label.textContent = (locked ? "🔒 " : "") + (LABELS[id] || id);
     });
     if (!themeAllowed(current, gate)) applyTheme(DEFAULT_THEME);
   }
