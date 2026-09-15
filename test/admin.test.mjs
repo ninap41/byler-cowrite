@@ -187,7 +187,9 @@ test("/admin serves, and the nav entrance is hidden markup until an admin loads 
   const body = await r.text();
   assert.equal(r.status, 200);
   assert.ok(body.includes('id="adminGames"') && body.includes('id="adminUsers"'), "both moderation lists");
-  assert.ok(body.includes("/js/admin-view.js"), "rows come from the shared builder");
+  assert.ok(body.includes("/js/pages/admin.js"), "the page loads its script (emitted from client/pages/admin.ts)");
+  const script = await fetch(ctx.url + "/js/pages/admin.js").then((r) => r.text());
+  assert.ok(script.includes("/js/admin-view.js"), "rows come from the shared builder");
 });
 
 // ---- Help: users ask the admin ----

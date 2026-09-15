@@ -131,10 +131,10 @@ test("the editor round-trips the library byte-for-byte, and edits read back", ()
 });
 
 test("the admin page READS its lists with GET, api() defaults to POST, which those routes don't answer", () => {
-  const html = readFileSync(new URL("../public/admin.html", import.meta.url), "utf-8");
+  const html = readFileSync(new URL("../public/js/pages/admin.js", import.meta.url), "utf-8"); // the page's script, emitted from client/pages/admin.ts
   for (const path of ["/api/admin/games", "/api/admin/users", "/api/admin/prompts"])
     assert.match(html, new RegExp(`api\\("${path}", null, "GET"\\)`), path + " is fetched with GET");
-  const saveHandler = html.slice(html.indexOf('if (e.target.id !== "promptSave")'), html.indexOf("async function refresh()"));
+  const saveHandler = html.slice(html.indexOf('if (t.id !== "promptSave")'), html.indexOf("async function refresh()"));
   assert.ok(saveHandler.indexOf("try {") < saveHandler.indexOf("readPromptEditor("), "editor read failures are shown instead of silently rejecting the click handler");
   assert.match(saveHandler, /finally\s*\{[\s\S]*button\.disabled = false/, "Save is re-enabled after validation, parsing, or network failures");
 });
