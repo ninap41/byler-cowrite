@@ -7,11 +7,11 @@
       "skillPath": ".agents/skills/svg-character-animation/SKILL.md",
       "computedHash": "65a17b9ab121f1fb11af63ff1cc8ab36accf96a36ce8decb82660fe26df6fbf0"
     },
-    "vite-patterns": {
-      "source": "affaan-m/ECC",
+    "typescript-pro": {
+      "source": "jeffallan/claude-skills",
       "sourceType": "github",
-      "skillPath": "skills/vite-patterns/SKILL.md",
-      "computedHash": "cfebf85e0290f0c71645b215c33fc47dce247263a715648de8ae4c57c370e93d"
+      "skillPath": "skills/typescript-pro/SKILL.md",
+      "computedHash": "b53b57340243eab4b75acee9096f0444319bb1b9e8530fdab4d1d75e1568fa6c"
     }
   }
 }
