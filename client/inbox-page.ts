@@ -242,7 +242,7 @@ export function mountInboxPage({ list, filters, pane, bulk, unreadChip, readAllB
 		if (readAllBtn) readAllBtn.classList.toggle("hidden", !inbox.unread)
 	}
 	function render() {
-		threads = threadInbox(inbox.messages || []) as InboxThread[]
+		threads = threadInbox(inbox.messages || [])
 		for (const id of [...picked]) if (!threadOf(id)) picked.delete(id)
 		renderChrome()
 		renderFilters()

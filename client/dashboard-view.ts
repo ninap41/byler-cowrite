@@ -1,0 +1,545 @@
+// Dashboard render helpers (pure string builders — testable without a page).
+import { esc, safeColor, PALETTE, miniAvatar, oneLinePrompt, siteName } from "./util.js"
+import type { Ident, InboxRow, InboxThread, Phase } from "./shared/wire.js"
+
+/** A writer as the directory / online list / friends rail sees them. */
+export interface UserRef {
+	username: string
+	color?: string
+	avatar?: string
+	avatarFit?: string
+}
+export interface OnlineUser extends UserRef {
+	me?: boolean
+	badge?: string | null
+}
+/** A /api/users row: where the caller stands with this writer rides along. */
+export interface WriterRow extends OnlineUser {
+	online?: boolean
+	wordCount: number
+	friend?: boolean
+	requested?: boolean
+}
+/** A friends-rail row: the stats live in the tooltip. */
+export interface FriendRow extends UserRef {
+	online?: boolean
+	badge?: string | null
+	wordCount?: number
+	badges?: number
+	games?: number
+}
+/** The slice of the signed-in account the stat row and the rank bar read. */
+export interface MeStats {
+	wordCount: number
+	badges: string[]
+	badgeDescs?: Record<string, string | null | undefined>
+	nextBadge?: { name: string; min: number } | null
+}
+
+export function onlineUsersHtml(users: OnlineUser[]): string {
+	return (
+		users
+			.map(
+				(u) =>
+					`<span class="player-chip"><span class="st-dot on" title="Online"></span>` +
+					`<span style="color:${safeColor(u.color)}">${esc(u.username)}${u.me ? " (you)" : ""}</span>` +
+					`${u.badge ? `<span class="badge-chip">${esc(u.badge)}</span>` : ""}</span>`,
+			)
+			.join("") || '<span class="subtle">Nobody online right now.</span>'
+	)
+}
+
+const PHASES: Record<string, string> = { waiting: "gathering writers", choosing: "voting", writing: "writing" }
+
+/** The least a card needs: a code (for the cover hash) and an optional cover url. */
+export interface GameRef {
+	code: string
+	cover?: string
+}
+/** A /api/dashboard liveGames row. */
+export interface LiveGame extends GameRef {
+	name?: string
+	phase: Phase | string
+	paused?: boolean
+	hostName?: string | null
+	players: { name: string; connected?: boolean }[]
+}
+export function liveGameInfoHtml(g: LiveGame): string {
+	const on = g.players.filter((pl) => pl.connected).length
+	return (
+		// the lit rail, its running bulb, the aura and the sheen (all CSS)
+		`<span class="lg-rail" aria-hidden="true"><i class="lg-bulb"></i></span><span class="lg-aura" aria-hidden="true"></span><span class="lg-sheen" aria-hidden="true"></span>` +
+		`<span class="lg-info"><b>${esc(g.name || g.code)}</b>` +
+		`<span class="lg-sub">${esc(g.code)} · ${PHASES[g.phase] || g.phase}` +
+		`${g.hostName ? " · " + esc(g.hostName) + " (host)" : ""} · <i class="lg-pip" aria-hidden="true"></i>${on}/${g.players.length} online · ` +
+		`${esc(g.players.map((pl) => pl.name).join(", "))}</span></span>`
+	)
+}
+
+export function statsText(u: MeStats): string {
+	return (
+		`${u.wordCount} words written · ${u.badges.length} badge${u.badges.length === 1 ? "" : "s"}` +
+		(u.nextBadge ? ` · ${u.nextBadge.min - u.wordCount} word${u.nextBadge.min - u.wordCount === 1 ? "" : "s"} to ${u.nextBadge.name}` : "")
+	)
+}
+
+// Progress toward the next badge tier (100 when the ladder is topped out).
+// The label carries the real word counts — "8 / 5,000 words" reads as
+// progress even when the percentage rounds to zero; any words at all show
+// at least a sliver of fill.
+export function badgeProgress(u: MeStats): { pct: number; label: string } {
+	if (!u.nextBadge) return { pct: 100, label: "top of the ladder" }
+	// the fill is what the label says: words so far over the next rank's cost
+	// (the old "banked = words − to-go" read 0 until halfway, so the bar sat at 1%)
+	const pct = Math.max(0, Math.min(99, Math.floor((u.wordCount / u.nextBadge.min) * 100)))
+	return {
+		pct: u.wordCount > 0 ? Math.max(pct, 1) : 0,
+		label: `${u.wordCount.toLocaleString()} / ${u.nextBadge.min.toLocaleString()} words to ${u.nextBadge.name}`,
+	}
+}
+
+// A row in the writers directory (link wrapping is the page's job).
+// The tail of a row is where the caller stands with this writer: a friend, a
+// request already out, or a button to send one. Your own row carries none.
+export function friendStateHtml(u: Pick<WriterRow, "me" | "friend" | "requested" | "username">): string {
+	if (u.me) return ""
+	if (u.friend) return `<span class="badge-chip friend">friend</span>`
+	if (u.requested) return `<span class="badge-chip requested">requested</span>`
+	return `<button type="button" class="ghost add-friend" data-add-friend="${esc(u.username)}">Add friend</button>`
+}
+export function writerRowHtml(u: WriterRow): string {
+	return (
+		`<span class="st-dot ${u.online ? "on" : "off"}" title="${u.online ? "Online" : "Offline"}"></span>` +
+		miniAvatar(u) +
+		`<span class="rg-info"><b style="color:${safeColor(u.color)}">${esc(u.username)}</b>` +
+		`<span class="rg-sub">${u.wordCount.toLocaleString()} words</span></span>` +
+		friendStateHtml(u)
+	)
+}
+
+// A friends row for the dashboard rail (link wrapping is the page's job): the
+// presence dot, avatar and name, and a ✉ that opens the message composer
+// (data-msg carries the username; the page handles the click). No badge chip:
+// the rank lives in the tooltip with the rest of their stats.
+export function friendStatsTip(u: FriendRow): string {
+	const parts = [u.online ? "Online" : "Offline"]
+	if (u.badge) parts.push(u.badge)
+	if (typeof u.wordCount === "number") parts.push(`${u.wordCount.toLocaleString()} words`)
+	if (typeof u.badges === "number") parts.push(`${u.badges} badge${u.badges === 1 ? "" : "s"}`)
+	if (typeof u.games === "number") parts.push(`${u.games} game${u.games === 1 ? "" : "s"}`)
+	return parts.join(" · ")
+}
+export function friendRowHtml(u: FriendRow): string {
+	return (
+		`<span class="st-dot ${u.online ? "on" : "off"}" title="${u.online ? "Online" : "Offline"}"></span>` +
+		miniAvatar(u) +
+		`<span class="rg-info"><b style="color:${safeColor(u.color)}">${esc(u.username)}</b></span>` +
+		`<button type="button" class="rg-msg" data-msg="${esc(u.username)}" title="Message ${esc(u.username)}" aria-label="Message ${esc(u.username)}"><i class="fa-solid fa-envelope" aria-hidden="true"></i></button>`
+	)
+}
+
+// Who a message is between. A person-to-person message reads "sender → recipient"
+// by username (my own sent copy says "You" on whichever side is me); a system
+// note is just the site's name — there is no recipient to name.
+export function whoHtml(m: Pick<InboxRow, "from" | "to" | "mine">): string {
+	if (!m.from) return `<b>${esc(siteName())}</b>`
+	const name = (u: Ident) => `<b style="color:${safeColor(u.color)}">${esc(u.username)}</b>`
+	const sender = m.mine ? `<b>You</b>` : miniAvatar(m.from) + name(m.from)
+	if (!m.to) return sender
+	const recipient = m.mine ? name(m.to) : `<b>You</b>`
+	return `<span class="ib-who">${sender}<span class="ib-arrow" aria-label="to">→</span>${recipient}</span>`
+}
+
+export interface InboxMsgOpts {
+	/** whether this surface can answer at all — the dashboard preview never carries a composer */
+	reply?: boolean
+	/** the follow-ups in an ongoing conversation */
+	chain?: InboxRow[]
+	/** who the composer answers (the newest message from the other person) */
+	replyTo?: InboxRow | null
+	fold?: boolean
+}
+// An inbox message row (action buttons are appended by the page).
+export function inboxMsgHtml(m: InboxRow, { reply = true, chain = [], replyTo = m, fold = false }: InboxMsgOpts = {}): string {
+	const from = whoHtml(m)
+	const when = m.ts ? new Date(m.ts).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : ""
+	return (
+		`<span class="ib-dot${m.read ? "" : " unread"}" title="${m.read ? "Read" : "Unread"}"></span>` +
+		`<span class="ib-info"><span class="ib-from">${from}` +
+		`${m.type === "friend-request" ? '<span class="badge-chip">friend request</span>' : ""}` +
+		`${m.type === "game-invite" ? '<span class="badge-chip">game invite</span>' : ""}` +
+		`${m.type === "help" ? '<span class="badge-chip">help question</span>' : ""}` +
+		`<span class="ib-when">${esc(when)}</span></span>` +
+		`<span class="ib-text">${esc(m.text)}</span>` +
+		(fold && chain.length ? foldBtnHtml(chain.length) : "") +
+		(chain.length ? `<span class="ib-chain">${chain.map(chainMsgHtml).join("")}</span>` : "") +
+		(reply && replyTo?.from && m.type !== "friend-request" ? replyBoxHtml(replyTo as InboxRow & { from: Ident }) : "") +
+		`</span>`
+	)
+}
+
+// The fold. A long exchange is a conversation, not a wall: /inbox collapses
+// one to its opening message and this button, which says how much is folded
+// away rather than making you guess. The dashboard preview never folds —
+// it never chains in the first place. The row's `ib-collapsed` class does the
+// hiding, so the markup is the same either way and only a class changes.
+export function foldBtnHtml(n: number): string {
+	return (
+		`<button type="button" class="ib-fold" aria-expanded="true">` +
+		`<span class="ib-fold-label">Hide ${n} ${n === 1 ? "reply" : "replies"}</span>` +
+		`<span class="ib-fold-caret" aria-hidden="true">▾</span></button>`
+	)
+}
+
+// A follow-up in an ongoing conversation: same row, quieter, and sided — my
+// own replies say "You" and sit to the right, so a chain reads as an exchange
+// rather than a list of notes that happen to share a subject.
+export function chainMsgHtml(m: InboxRow): string {
+	const who = whoHtml(m)
+	const when = m.ts ? new Date(m.ts).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : ""
+	return (
+		`<span class="ib-chain-msg${m.mine ? " mine" : ""}${m.read ? "" : " unread"}">` +
+		`<span class="ib-from">${who}<span class="ib-when">${esc(when)}</span></span>` +
+		`<span class="ib-text">${esc(m.text)}</span></span>`
+	)
+}
+
+// Group a flat inbox into conversations: one entry per threadId, its messages
+// oldest-first, ordered by the newest message in each. A message with no
+// thread of its own is a conversation of one, which is most of the inbox.
+export function threadInbox(messages: InboxRow[] = []): InboxThread[] {
+	const byThread = new Map<string, InboxRow[]>()
+	for (const m of [...messages].sort((a, b) => a.ts - b.ts)) {
+		const key = m.threadId || m.id
+		if (!byThread.has(key)) byThread.set(key, [])
+		byThread.get(key)!.push(m)
+	}
+	return [...byThread.values()]
+		.map((msgs): InboxThread => ({
+			id: msgs[0]!.id,
+			messages: msgs,
+			head: msgs[0]!,
+			// the newest message decides where the conversation sits, and any
+			// unread message anywhere in it makes the whole thread unread
+			ts: msgs[msgs.length - 1]!.ts,
+			unread: msgs.some((m) => !m.read),
+			// who to answer: the most recent message that came from someone else
+			replyTo: [...msgs].reverse().find((m) => m.from && !m.mine) || null,
+		}))
+		.sort((a, b) => b.ts - a.ts)
+}
+
+// The reply composer, at the foot of the conversation it belongs to. It
+// ships folded (`hidden`) and the row's Reply button unfolds it — a message
+// is a note first and a conversation only once you choose to answer. Only
+// messages from a real person get one (there's nobody to answer a system
+// note), never a friend request (Accept/Decline is the answer), and only
+// /inbox builds them at all. The page finds its parts by class within the row, so nothing
+// here needs an id (ids would collide across rows).
+export function replyBoxHtml(m: { from: Ident }): string {
+	return (
+		`<span class="ib-reply hidden">` +
+		`<textarea class="ib-reply-text" rows="2" maxlength="1000" ` +
+		`placeholder="Reply to ${esc(m.from.username)}…"></textarea>` +
+		`<span class="ib-reply-row">` +
+		`<span class="ib-reply-msg"></span>` +
+		`<button type="button" class="primary ib-reply-send">Send</button>` +
+		`</span></span>`
+	)
+}
+
+// Deterministic cover art for a game card: two palette colors + an angle
+// derived from the code, so every story keeps its own look with no images.
+function coverGrad(code: string): string {
+	let h = 7
+	for (const ch of String(code)) h = (h * 31 + ch.charCodeAt(0)) >>> 0
+	const a = PALETTE[h % PALETTE.length]
+	// >>> not >>: a hash past 2^31 is negative under a signed shift, which
+	// indexes off the end of the palette and paints "undefined" into the css —
+	// a card with no cover at all.
+	const b = PALETTE[(h >>> 3) % PALETTE.length]
+	return `linear-gradient(${115 + (h % 130)}deg, ${a}, ${b})`
+}
+export const coverArt = (code: string): string => `background:${coverGrad(code)}`
+
+// Cover style: the host-linked header image when the game has one (the URL is
+// validated http/https server-side; esc() keeps it attr-safe), layered over
+// the deterministic code gradient so a broken link still shows the gradient.
+export const coverStyle = (g: GameRef): string =>
+	g.cover ? `background:url('${esc(g.cover)}') center/cover no-repeat, ${coverGrad(g.code)}` : coverArt(g.code)
+
+/** A card on the dashboard: what every game row has in common. */
+export interface GameCard extends GameRef {
+	name?: string
+	phase: Phase | string
+	savedAt?: number
+	hostName?: string | null
+	words?: number
+}
+/** A "games in progress" card — mine, with where the turn stands. */
+export interface MyGame extends GameCard {
+	myTurn?: boolean
+	paused?: boolean
+	currentName?: string | null
+	players: { name: string; color?: string; connected?: boolean }[]
+}
+export function myGameStatus(g: Pick<MyGame, "phase" | "myTurn" | "paused" | "currentName">): { text: string; cls: string } {
+	if (g.phase === "waiting") return { text: "Gathering writers", cls: "" }
+	if (g.phase === "choosing") return { text: "Voting on a scenario", cls: "" }
+	if (g.myTurn) return { text: "● Your turn: write!", cls: "is-turn" }
+	if (g.paused) return { text: "⏸ Paused", cls: "is-paused" }
+	return { text: g.currentName ? `Waiting for ${g.currentName}` : "In progress", cls: "" }
+}
+
+// Short date for the card corner (archive-view has its own longer fmtWhen;
+// defined here rather than imported to avoid a module cycle — archive-view
+// already imports coverStyle from this file).
+const fmtWhen = (ts: number | undefined): string => (ts ? new Date(ts).toLocaleDateString([], { dateStyle: "medium" }) : "")
+
+// A "games in progress" card (button appended by the page).
+export function myGameCardHtml(g: MyGame): string {
+	const st = myGameStatus(g)
+	const glyph = (g.name || "").trim().charAt(0).toUpperCase() || "✒"
+	return (
+		`<div class="mg-cover" style="${coverStyle(g)}">${g.cover ? "" : `<span class="mg-glyph">${esc(glyph)}</span>`}<span class="mg-date">${fmtWhen(g.savedAt)}</span></div>` +
+		`<div class="mg-body">` +
+		`<div class="mg-head"><b class="mg-name">${esc(g.name || "Untitled story")}</b>` +
+		`<span class="mg-code">${esc(g.code)}</span></div>` +
+		`<p class="mg-status ${st.cls}">${esc(st.text)}</p>` +
+		`<div class="mg-players">` +
+		g.players.map((p) => `<span class="mg-dot${p.connected ? "" : " off"}" title="${esc(p.name)}" style="background:${safeColor(p.color)}"></span>`).join("") +
+		`<span class="mg-count">${g.players.length} writer${g.players.length === 1 ? "" : "s"} · ${fmtWords(g.words)}</span>` +
+		`</div></div>`
+	)
+}
+
+export const fmtWords = (n: number | undefined): string => `${Number(n || 0).toLocaleString()} word${n === 1 ? "" : "s"}`
+
+/** A finished story on the "previous games" list. */
+export interface RecentGame extends GameCard {
+	prompt?: string
+	writers: unknown[]
+}
+// Compact finished-story row for the "previous games" list: writers · words,
+// and a "Write more" button (the page wires it) that reopens the story's
+// lobby under the same code.
+export function recentRowHtml(g: RecentGame): string {
+	return (
+		`<span class="rg-cover" style="${coverStyle(g)}"></span>` +
+		`<span class="rg-info"><b>${esc(g.name || oneLinePrompt(g.prompt) || g.code)}</b>` +
+		`<span class="rg-sub">${esc(g.code)} · ${g.writers.length} writer${g.writers.length === 1 ? "" : "s"} · ${fmtWords(g.words)}</span></span>` +
+		`<button type="button" class="ghost rg-more" data-act="write-more">✒️ Write more</button>`
+	)
+}
+
+// Earned badge chips + the greyed next tier.
+export function achievementsHtml(u: MeStats): string {
+	const earned = u.badges.map((b) => `<span class="ach earned" title="${esc(u.badgeDescs?.[b] || "No description")}">${esc(b)}</span>`).join("")
+	const next = u.nextBadge ? `<span class="ach next" title="Next up">? ${esc(u.nextBadge.name)} · ${u.nextBadge.min} words</span>` : ""
+	return earned + next || '<span class="subtle">Write your first line to start earning badges.</span>'
+}
+
+// Streak ring: an SVG circle filled to streak/best (full ring when at best).
+export function streakRingHtml(streak: number, best: number): string {
+	const R = 26
+	const C = 2 * Math.PI * R
+	const pct = best > 0 ? Math.min(1, streak / best) : 0
+	return (
+		`<svg viewBox="0 0 64 64" class="streak-ring" role="img" aria-label="${streak}-day streak">` +
+		`<circle cx="32" cy="32" r="${R}" class="ring-bg"></circle>` +
+		`<circle cx="32" cy="32" r="${R}" class="ring-fg" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${(C * (1 - pct)).toFixed(1)}"></circle>` +
+		`<text x="32" y="29" class="ring-emoji">🔥</text>` +
+		`<text x="32" y="45" class="ring-num">${streak}d</text>` +
+		`</svg>`
+	)
+}
+
+// The dashboard's glimpse of the newest announcement: title, date, the first
+// words of the post as plain text, and a Read more link to /announcements.
+// Nothing (no card) when there is no post.
+export const PREVIEW_CHARS = 160
+const ENTITIES: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', "#39": "'", "#x27": "'" }
+export function previewText(html: unknown, max: number = PREVIEW_CHARS): string {
+	const text = String(html || "")
+		.replace(/<\/(p|h[1-6]|li|blockquote|div)>|<br\s*\/?>/gi, " ")
+		.replace(/<[^>]+>/g, "")
+		.replace(/&nbsp;/g, " ")
+		// the stored html is entity-escaped; the preview is plain text, esc()'d again on render
+		.replace(/&(amp|lt|gt|quot|#39|#x27);/g, (_, e: string) => ENTITIES[e] ?? "")
+		.replace(/\s+/g, " ")
+		.trim()
+	if (text.length <= max) return text
+	return text.slice(0, max).replace(/\s+\S*$/, "") + "…"
+}
+/** What the dashboard reads of a post: the date, the sanitized html, the derived title. */
+export interface PostGlimpse {
+	at?: number
+	html?: string
+	title?: string
+}
+export function latestAnnouncementHtml(post: PostGlimpse | null | undefined): string {
+	if (!post) return ""
+	const when = post.at ? new Date(post.at).toLocaleDateString([], { dateStyle: "medium" }) : ""
+	// a post with no heading is titled by its opening words, which the
+	// preview already shows, so the title line only appears for a real heading
+	const headed = /<h[1-3]\b/i.test(post.html || "")
+	return (
+		`<div class="ann-glimpse">` +
+		`<span class="ann-glimpse-tag"><span class="ann-horn" aria-hidden="true">📣</span> Announcement${when ? ` · ${esc(when)}` : ""}</span>` +
+		(headed ? `<b class="ann-glimpse-title">${esc(post.title || "")}</b>` : "") +
+		// Read more rides at the end of the preview's last line, not on its own
+		`<p class="ann-glimpse-text">${esc(previewText(post.html))} <a class="ann-glimpse-more" href="/announcements">Read more →</a></p>` +
+		`</div>`
+	)
+}
+
+// An older post under the newest one: date · title, a link to the page.
+export function announcementRowHtml(post: PostGlimpse): string {
+	const when = post.at ? new Date(post.at).toLocaleDateString([], { dateStyle: "medium" }) : ""
+	return `<a class="ann-row" href="/announcements">` + `<span class="ann-row-when">${esc(when)}</span>` + `<span class="ann-row-title">${esc(post.title || previewText(post.html, 80))}</span>` + `</a>`
+}
+
+// ---- /inbox: the two-pane inbox ---------------------------------------------
+// The page is a list of conversations beside a reading pane (the dashboard's
+// preview keeps the notice-board rows above). These builders are pure so the
+// page module (inbox-page.js) only wires; jsdom tests read them.
+// Every message type has a filter, a label and a tag; a note has no tag —
+// it's the ordinary case and the list would be all tags otherwise.
+export const INBOX_FILTERS = [
+	{ key: "all", label: "All" },
+	{ key: "requests", label: "Requests" },
+	{ key: "invites", label: "Invites" },
+	{ key: "notes", label: "Notes" },
+	{ key: "system", label: "System" },
+] as const
+export type InboxFilter = (typeof INBOX_FILTERS)[number]["key"]
+export const MSG_KINDS: Record<string, { filter: InboxFilter; tag: string }> = {
+	"friend-request": { filter: "requests", tag: "friend request" },
+	"friend-accept": { filter: "notes", tag: "friend" },
+	"game-invite": { filter: "invites", tag: "game invite" },
+	"doc-invite": { filter: "invites", tag: "beta read" },
+	help: { filter: "notes", tag: "help question" },
+	note: { filter: "notes", tag: "" },
+	system: { filter: "system", tag: "system" },
+}
+export const msgFilter = (m: Pick<InboxRow, "type">): InboxFilter => MSG_KINDS[m.type]?.filter || "notes"
+export const msgTag = (m: Pick<InboxRow, "type">): string => MSG_KINDS[m.type]?.tag || ""
+
+export type InboxCounts = { all: number } & Partial<Record<InboxFilter, number>>
+// Count conversations per filter (a thread is filed under its opening message).
+export function inboxCounts(threads: InboxThread[]): InboxCounts {
+	const counts: InboxCounts = { all: threads.length }
+	for (const t of threads) {
+		const k = msgFilter(t.head)
+		counts[k] = (counts[k] || 0) + 1
+	}
+	return counts
+}
+
+export function inboxFiltersHtml(counts: InboxCounts, active: string = "all"): string {
+	return INBOX_FILTERS.map((f) => {
+		const n = f.key === "all" ? 0 : counts[f.key] || 0
+		return (
+			`<button type="button" class="ib-filter${f.key === active ? " on" : ""}" data-filter="${f.key}" aria-pressed="${f.key === active}">` +
+			`${esc(f.label)}${n ? ` <span class="ib-filter-n">${n}</span>` : ""}</button>`
+		)
+	}).join("")
+}
+
+const shortWhen = (ts: number | undefined): string => (ts ? new Date(ts).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "")
+// The list's sender disc: a person's avatar or initial in their colour; the
+// site itself for a system note.
+export function inboxAvatarHtml(m: Pick<InboxRow, "from">): string {
+	if (m.from) return miniAvatar({ ...m.from, name: m.from.username })
+	const s = siteName()
+	return `<span class="mini-avatar mini-initial ib-site">${esc(s.charAt(0).toUpperCase())}</span>`
+}
+export const inboxSenderName = (m: Pick<InboxRow, "from">): string => (m.from ? m.from.username : siteName())
+
+// One conversation in the list: sender · tag · date, then the newest line as
+// a snippet ("You: …" when I spoke last), an unread count or a reply count
+// on the right, a select box on the left, and the unread bar drawn by CSS.
+export function inboxListRowHtml(t: InboxThread, { selected = false, checked = false }: { selected?: boolean; checked?: boolean } = {}): string {
+	void selected // the row's `open` class is the page's; the flag rides along for symmetry
+	const m = t.head
+	const last = t.messages[t.messages.length - 1]!
+	const unreadN = t.messages.filter((x) => !x.read).length
+	const replies = t.messages.length - 1
+	const tag = msgTag(m)
+	const snippet = (last.mine ? "You: " : "") + last.text
+	const color = m.from ? safeColor(m.from.color) : "var(--good)"
+	return (
+		`<label class="ib-pick" title="Select"><input type="checkbox" class="ib-check"${checked ? " checked" : ""} aria-label="Select conversation"></label>` +
+		`<span class="ib-av">${inboxAvatarHtml(m)}</span>` +
+		`<span class="ib-main">` +
+		`<span class="ib-line"><b class="ib-name" style="color:${color}">${esc(inboxSenderName(m))}</b>` +
+		(tag ? `<span class="ib-tag ib-tag-${esc(msgFilter(m))}">${esc(tag)}</span>` : "") +
+		`</span>` +
+		`<span class="ib-snip">${esc(snippet)}</span>` +
+		`</span>` +
+		`<span class="ib-side"><span class="ib-when">${esc(shortWhen(last.ts))}</span>` +
+		(unreadN ? `<span class="ib-unread-n" title="${unreadN} unread">${unreadN}</span>` : replies ? `<span class="ib-replies" title="${replies} ${replies === 1 ? "reply" : "replies"}">↩ ${replies}</span>` : "") +
+		`</span>`
+	)
+}
+
+// sender → recipient for the pane head, without whoHtml's mini avatar (the
+// pane draws the big disc beside it already)
+function paneWhoHtml(m: Pick<InboxRow, "from" | "to" | "mine">): string {
+	if (!m.from) return esc(siteName())
+	const name = (u: Ident) => `<span style="color:${safeColor(u.color)}">${esc(u.username)}</span>`
+	const sender = m.mine ? "You" : name(m.from)
+	if (!m.to) return sender
+	return `${sender}<span class="ib-arrow" aria-label="to">→</span>${m.mine ? name(m.to) : "You"}`
+}
+// The reading pane's head: who · tag · date, and the conversation's actions
+// (the page wires the buttons by data-act). A friend request answers with
+// Accept/Decline, a game invite offers Rejoin, a beta read opens the doc;
+// every conversation can be deleted.
+export function inboxPaneHeadHtml(t: InboxThread): string {
+	const m = t.head
+	const tag = msgTag(m)
+	const acts: string[] = []
+	if (m.type === "friend-request") acts.push(`<button type="button" class="primary" data-act="accept">Accept</button>`, `<button type="button" class="ghost" data-act="decline">Decline</button>`)
+	if (m.type === "game-invite" && m.code) acts.push(`<button type="button" class="primary" data-act="rejoin">Rejoin</button>`)
+	acts.push(`<button type="button" class="ghost ib-pane-del" data-act="delete" title="${t.messages.length > 1 ? "Delete conversation" : "Delete"}">🗑 Delete</button>`)
+	return (
+		`<div class="ib-pane-who">${inboxAvatarHtml(m)}<span class="ib-pane-names">` +
+		`<b>${paneWhoHtml(m)}</b>` +
+		`<span class="ib-pane-meta">${tag ? `<span class="ib-tag ib-tag-${esc(msgFilter(m))}">${esc(tag)}</span>` : ""}` +
+		`<span class="ib-when">${esc(shortWhen(m.ts))}</span></span></span></div>` +
+		`<div class="ib-pane-acts">${acts.join("")}</div>`
+	)
+}
+
+// The conversation itself: every message as a bubble, sided — mine on the
+// right saying "You". A rank-up note lists what it unlocked underneath.
+export function inboxPaneBodyHtml(t: InboxThread): string {
+	return t.messages
+		.map((m) => {
+			const unl = m.unlocks ? [...(m.unlocks.themes || []), ...(m.unlocks.gimmicks || [])].map((x) => esc(x.name || x)).join(" · ") : ""
+			return (
+				`<div class="ib-bubble${m.mine ? " mine" : ""}${m.read ? "" : " unread"}" data-id="${esc(m.id)}">` +
+				`<span class="ib-bubble-who">${m.mine ? "You" : esc(inboxSenderName(m))}<span class="ib-when">${esc(shortWhen(m.ts))}</span></span>` +
+				`<span class="ib-bubble-text">${esc(m.text)}</span>` +
+				(unl ? `<span class="ib-bubble-unlocks">🔓 ${unl}</span>` : "") +
+				`</div>`
+			)
+		})
+		.join("")
+}
+
+// The composer at the foot of the pane — only for a conversation with a
+// person on the other end (nobody answers a system note) and never a friend
+// request (Accept/Decline is the answer).
+export const paneCanReply = (t: InboxThread): boolean => !!t.replyTo && t.head.type !== "friend-request"
+export function inboxPaneComposerHtml(t: InboxThread): string {
+	if (!paneCanReply(t)) return ""
+	return (
+		`<div class="ib-compose">` +
+		`<textarea class="ib-reply-text" rows="2" maxlength="1000" placeholder="Reply to ${esc(t.replyTo!.from!.username)}…"></textarea>` +
+		`<span class="ib-reply-row"><span class="ib-reply-msg"></span>` +
+		`<span class="ib-reply-hint">Ctrl/⌘ + Enter to send</span>` +
+		`<button type="button" class="primary ib-reply-send">Send</button></span></div>`
+	)
+}

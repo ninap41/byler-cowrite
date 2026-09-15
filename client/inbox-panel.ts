@@ -112,7 +112,7 @@ export function mountInbox({ list, unreadChip, readAllBtn, moreLink, limit = 0, 
 			unreadChip.textContent = inbox.unread ? `${inbox.unread} new` : ""
 		}
 		if (readAllBtn) readAllBtn.classList.toggle("hidden", !inbox.unread)
-		const all = threadInbox(inbox.messages || []) as InboxThread[]
+		const all = threadInbox(inbox.messages || [])
 		// The preview shows the newest few; the link below it says how many
 		// more there are rather than pretending the list is complete.
 		const shown = limit ? all.slice(0, limit) : all
@@ -146,15 +146,13 @@ export function mountInbox({ list, unreadChip, readAllBtn, moreLink, limit = 0, 
 			const folds = replies && t.messages.length > 1
 			const shownOpen = !folds || open.has(t.id)
 			if (folds && !shownOpen) row.classList.add("ib-collapsed")
-			// dashboard-view.js is untyped until it converts: its inferred opts
-			// read the `chain = []` default as never[], so the object is cast
 			row.innerHTML = inboxMsgHtml(m, {
 				fold: folds,
 				// a friend request is answered with Accept/Decline, not words
 				reply: replies && !!t.replyTo && m.type !== "friend-request",
 				chain: replies ? t.messages.slice(1) : [],
 				replyTo: t.replyTo, // the composer answers whoever spoke last
-			} as Parameters<typeof inboxMsgHtml>[1])
+			})
 			const canReply = replies && !!t.replyTo && m.type !== "friend-request"
 			if (canReply) wireReply(row, t.replyTo!)
 			const fold = row.querySelector<HTMLElement>(".ib-fold")
