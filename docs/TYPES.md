@@ -1,6 +1,8 @@
 # Types: what becomes an interface, a union, or an extension
 
-*Research for the TypeScript migration (`docs/FRONTEND_ASSESSMENT.md`), written 2026-09-14 from a full inventory of the socket contract, the REST and storage records, and the client modules. Nothing here is implemented yet; this is the map the conversion follows.*
+*Research for the TypeScript migration (`docs/FRONTEND_ASSESSMENT.md`), written 2026-09-14 from a full inventory of the socket contract, the REST and storage records, and the client modules.*
+
+**Status (2026-09-14, `migration` branch):** every module under `public/js` (67 files) now has a TypeScript source in `client/`, emitted file-for-file by `scripts/build.mjs`. The shared layer is `client/shared/` — `brands.ts`, `wire.ts` (Who/RosterWriter/StoryLine/ChatMessage, Ack/SeatAck, the inbox rows, PromptControls/MenuRow/OptionMeta), `themes.ts` (the registry, ThemeGate) and `reactions.ts` — plus `client/components/gimmick-types.ts` (the `Gimmick` base the seven toys extend). Still to do: the two Socket.IO event maps (§1) once `game.html`'s inline script is extracted to `client/pages/game.ts`; the other inline page scripts; typing `src/` and `lib/` against the same `shared/` contracts.
 
 ## The three boundaries
 
