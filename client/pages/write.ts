@@ -28,6 +28,7 @@ import { promptHtml } from "/js/util.js"
 import { mountFlipSelect } from "/js/components/flip-select.js"
 import { loadDraft, saveDraft, clearDraft, draftIsNewer } from "/js/doc-store.js"
 import { createHistory } from "/js/components/history.js"
+import { htmlPushKind, pruneSource, stripAnchorInSource, applySuggestionInSource } from "/js/components/comment-sync.js"
 import {
 	presenceHtml,
 	commentThreadHtml,
@@ -359,10 +360,13 @@ function focusComment(cid: string | null | undefined, { scroll = "both" }: { scr
 	if (scroll !== "anchor" && card) scrollToCard(card)
 }
 
-// Click an underline -> go to its comment.
+// Click an underline -> go to its comment. A closed drawer opens: the
+// card is what the click is asking for, and a highlight nobody can see
+// reads as a click that did nothing.
 $("docEditor").addEventListener("click", (e) => {
 	const a = (e.target as HTMLElement).closest<HTMLElement>("span.cmt[data-cid]")
 	if (!a) return
+	if (!prefs.sideOpen) setSideOpen(true)
 	focusComment(a.dataset.cid, { scroll: "card" })
 })
 
@@ -412,6 +416,14 @@ function pruneLocalAnchors() {
 	}
 	// merge the text nodes the unwrap left split apart
 	if (changed) $("docEditor").normalize()
+	// The HTML view is raw text that nothing re-renders: the same anchors
+	// have to come out of it, or a deleted comment's span stays on screen
+	// and, since the textarea is what's read on the way back, comes back.
+	if (sourceMode) {
+		const src = textarea("docSource").value
+		const pruned = pruneSource(src, [...live, ...pendingCids])
+		if (pruned !== src) { textarea("docSource").value = pruned; changed = true }
+	}
 	return changed
 }
 
@@ -598,10 +610,19 @@ function sendComment() {
 // on the server, which stays the authority — this is the author's own
 // view keeping up with their click.
 function decideLocally(c: CommentRow | undefined, accept: boolean) {
-	if (!c || !canEditDoc()) return
+	if (!c || !canEditDoc() || !c.cid) return
+	const taking = accept && typeof c.suggestion === "string"
+	if (sourceMode) {
+		// the textarea is the live copy here; the hidden editor is re-parsed from it
+		const src = textarea("docSource").value
+		textarea("docSource").value = taking ? applySuggestionInSource(src, c.cid, c.suggestion as string) : stripAnchorInSource(src, c.cid)
+		if (activeCid === c.cid) activeCid = null
+		setDirty(true)
+		return
+	}
 	const span = anchorsInDoc().find((a) => a.dataset.cid === c.cid)
 	if (!span) return
-	if (accept && typeof c.suggestion === "string") span.replaceWith(document.createTextNode(c.suggestion))
+	if (taking) span.replaceWith(document.createTextNode(c.suggestion as string))
 	else span.replaceWith(...span.childNodes)
 	if (activeCid === c.cid) activeCid = null
 	setDirty(true)
@@ -669,6 +690,9 @@ $("commentPane").addEventListener("click", (e) => {
 	const li = t.closest<HTMLElement>(".doc-comment")
 	if (!li) return
 	const commentId = li.dataset.id || ""
+	// Whatever I do to it, it is no longer "just sent": the prune may take
+	// its anchor the moment the server says the comment is gone.
+	if (li.dataset.cid) pendingCids.delete(li.dataset.cid)
 	if (t.closest(".dc-accept") || t.closest(".dc-reject")) {
 		// The author is the only one who can decide, and it's their editor
 		// that has to change. Apply it HERE as well as on the server: their
@@ -1763,7 +1787,12 @@ function connect() {
 		if (typeof chapterWordCount === "number") ch.wordCount = chapterWordCount
 		if (ch !== openChapter()) return renderChapters()
 		if (dirty && doc?.mine) {
-			$("docErr").textContent = "New comments arrived: save to see them underlined in place."
+			// A removal (delete, reject, resolve) needs no telling — the prune
+			// takes the underline when the comment list follows; only an
+			// ARRIVAL is something the author can't see until they save.
+			$("docErr").textContent = htmlPushKind(currentHtml(), html || "") === "added"
+				? "New comments arrived: save to see them underlined in place."
+				: ""
 			return
 		}
 		$("docEditor").innerHTML = html || ""

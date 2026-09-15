@@ -29,6 +29,7 @@ import { promptHtml } from "/js/util.js";
 import { mountFlipSelect } from "/js/components/flip-select.js";
 import { loadDraft, saveDraft, clearDraft, draftIsNewer } from "/js/doc-store.js";
 import { createHistory } from "/js/components/history.js";
+import { htmlPushKind, pruneSource, stripAnchorInSource, applySuggestionInSource } from "/js/components/comment-sync.js";
 import {
   presenceHtml,
   commentThreadHtml,
@@ -245,6 +246,7 @@ function focusComment(cid, { scroll = "both" } = {}) {
 $("docEditor").addEventListener("click", (e) => {
   const a = e.target.closest("span.cmt[data-cid]");
   if (!a) return;
+  if (!prefs.sideOpen) setSideOpen(true);
   focusComment(a.dataset.cid, { scroll: "card" });
 });
 const pendingCids = /* @__PURE__ */ new Set();
@@ -276,6 +278,14 @@ function pruneLocalAnchors() {
     changed = true;
   }
   if (changed) $("docEditor").normalize();
+  if (sourceMode) {
+    const src = textarea("docSource").value;
+    const pruned = pruneSource(src, [...live, ...pendingCids]);
+    if (pruned !== src) {
+      textarea("docSource").value = pruned;
+      changed = true;
+    }
+  }
   return changed;
 }
 function renderComments() {
@@ -392,10 +402,18 @@ function sendComment() {
   activeCid = cid;
 }
 function decideLocally(c, accept) {
-  if (!c || !canEditDoc()) return;
+  if (!c || !canEditDoc() || !c.cid) return;
+  const taking = accept && typeof c.suggestion === "string";
+  if (sourceMode) {
+    const src = textarea("docSource").value;
+    textarea("docSource").value = taking ? applySuggestionInSource(src, c.cid, c.suggestion) : stripAnchorInSource(src, c.cid);
+    if (activeCid === c.cid) activeCid = null;
+    setDirty(true);
+    return;
+  }
   const span = anchorsInDoc().find((a) => a.dataset.cid === c.cid);
   if (!span) return;
-  if (accept && typeof c.suggestion === "string") span.replaceWith(document.createTextNode(c.suggestion));
+  if (taking) span.replaceWith(document.createTextNode(c.suggestion));
   else span.replaceWith(...span.childNodes);
   if (activeCid === c.cid) activeCid = null;
   setDirty(true);
@@ -456,6 +474,7 @@ $("commentPane").addEventListener("click", (e) => {
   const li = t.closest(".doc-comment");
   if (!li) return;
   const commentId = li.dataset.id || "";
+  if (li.dataset.cid) pendingCids.delete(li.dataset.cid);
   if (t.closest(".dc-accept") || t.closest(".dc-reject")) {
     const accept = !!t.closest(".dc-accept");
     decideLocally(
@@ -1327,7 +1346,7 @@ function connect() {
     if (typeof chapterWordCount === "number") ch.wordCount = chapterWordCount;
     if (ch !== openChapter()) return renderChapters();
     if (dirty && doc?.mine) {
-      $("docErr").textContent = "New comments arrived: save to see them underlined in place.";
+      $("docErr").textContent = htmlPushKind(currentHtml(), html || "") === "added" ? "New comments arrived: save to see them underlined in place." : "";
       return;
     }
     $("docEditor").innerHTML = html || "";
