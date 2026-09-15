@@ -28,7 +28,8 @@ test("the solo-write pages serve at their clean URLs", async () => {
   assert.ok(list.body.includes('id="docList"'));
   assert.ok(list.body.includes('id="newDocBtn"'));
   // the shelf builds its own grids, one per group — the container holds none
-  assert.ok(list.body.includes("docShelfHtml(docs)"), "grouped into mine / beta reading");
+  // (the page's script is emitted from client/pages/writes.ts)
+  assert.ok((await page("/js/pages/writes.js")).body.includes("docShelfHtml(docs)"), "grouped into mine / beta reading");
   assert.ok(!/id="docList" class="doc-grid"/.test(list.body), "the grid moved into each group");
 
   const editor = await page("/write");
