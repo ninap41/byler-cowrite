@@ -1,0 +1,109 @@
+// Builders for /announcements. Pure strings. A post's html is injected AS
+// IS — it passed sanitizeRich() on the server when it was posted, the same
+// trust boundary as a story line — while every plain field is esc()'d. The
+// composer and the Delete button exist ONLY when `admin` is true: a normal
+// account's page has no markup for them at all (the server refuses the
+// calls regardless; this is the page agreeing with it).
+import { esc } from "./util.js"
+
+/** An announcement as GET /api/announcements ships it (src/announcements.js). */
+export interface AnnouncementPost {
+	id: string
+	title?: string
+	markdown?: string
+	/** sanitizeRich() output — injected as-is */
+	html?: string
+	images?: string[]
+	at: number
+	byId?: string | null
+	byName?: string
+	editedAt?: number
+	editedBy?: string
+}
+export interface AdminViewOpts {
+	admin?: boolean
+}
+
+const when = (ts: number | undefined): string => (ts ? new Date(ts).toLocaleDateString([], { dateStyle: "long" }) : "")
+
+export function postHtml(post: AnnouncementPost, { admin = false }: AdminViewOpts = {}): string {
+	return (
+		`<article class="ann-post" data-post-id="${esc(post.id)}">` +
+		`<header class="ann-head"><span class="gc-meta">${esc(when(post.at))}${post.byName ? ` · ${esc(post.byName)}` : ""}</span>` +
+		(post.editedAt ? `<span class="gc-meta ann-edited" title="${esc(when(post.editedAt))}">edited</span>` : "") +
+		(admin
+			? `<span class="ann-acts"><button type="button" class="ghost ann-discord" data-ann-discord="${esc(post.id)}" title="Post this announcement's markdown to the admin Discord channel">Post to Discord</button>` +
+				`<button type="button" class="ghost ann-edit" data-ann-edit="${esc(post.id)}">Edit</button>` +
+				`<button type="button" class="ghost danger ann-del" data-ann-delete="${esc(post.id)}">Delete</button></span>`
+			: "") +
+		`</header>` +
+		`<div class="ann-body story-line">${post.html || ""}</div>` +
+		imagesHtml(post.images) +
+		(admin ? editorHtml(post) : "") +
+		`</article>`
+	)
+}
+
+// The post's embed images, under the body. Urls were validated http(s)
+// server-side; esc() keeps them inert as attributes.
+export function imagesHtml(images: unknown): string {
+	const list = Array.isArray(images) ? (images as string[]) : []
+	if (!list.length) return ""
+	return `<div class="ann-images">` + list.map((u) => `<a href="${esc(u)}" target="_blank" rel="noopener"><img src="${esc(u)}" alt="" loading="lazy"></a>`).join("") + `</div>`
+}
+
+// The image-url list of a composer/editor: one input per url plus a + that
+// adds an empty row (the page wires it by data-ann-add). readImages() is
+// how the page reads them back.
+export function imageListHtml(key: string, images: string[] = []): string {
+	const rows = images.map((u) => imageRowHtml(u)).join("")
+	return (
+		`<div class="ann-imgs" data-ann-imgs="${esc(key)}">` +
+		`<div class="ann-imgs-head"><span class="subtle">Images (embeds)</span>` +
+		`<button type="button" class="ghost h-plus" data-ann-add="${esc(key)}" title="Add an image url">+</button></div>` +
+		`<div class="ann-imgs-rows">${rows}</div></div>`
+	)
+}
+export function imageRowHtml(url = ""): string {
+	return (
+		`<div class="ann-img-row"><input type="url" class="ann-img-url" placeholder="https://…/image.png" value="${esc(url)}">` +
+		`<button type="button" class="ghost ann-img-rm" title="Remove">✕</button></div>`
+	)
+}
+export function readImages(root: ParentNode): string[] {
+	return [...root.querySelectorAll<HTMLInputElement>(".ann-img-url")].map((i) => i.value.trim()).filter(Boolean)
+}
+
+// The in-place editor under a post (admin markup only): the post's own
+// markdown, folded until Edit unfolds it. Save PUTs it; Cancel folds it.
+export function editorHtml(post: Pick<AnnouncementPost, "id" | "markdown" | "images">): string {
+	return (
+		`<div class="ann-editbox hidden" data-ann-editbox="${esc(post.id)}">` +
+		`<textarea class="ann-editor" data-ann-editor="${esc(post.id)}" rows="10">${esc(post.markdown || "")}</textarea>` +
+		imageListHtml(post.id, post.images || []) +
+		`<div class="row" style="justify-content:flex-end;gap:8px;margin-top:10px">` +
+		`<button type="button" class="ghost" data-ann-cancel="${esc(post.id)}">Cancel</button>` +
+		`<button type="button" class="primary" data-ann-save="${esc(post.id)}">Save</button></div>` +
+		`</div>`
+	)
+}
+
+export function postListHtml(posts: AnnouncementPost[] | null | undefined, { admin = false }: AdminViewOpts = {}): string {
+	if (!posts || !posts.length) return `<p class="subtle" style="text-align:left">Nothing announced yet.</p>`
+	return posts.map((p) => postHtml(p, { admin })).join("")
+}
+
+// A plain markdown textarea: announcements are markdown only, so the same
+// text goes to Discord verbatim (the Post to Discord button on each post). A `# heading` on the first
+// line becomes the post's title.
+export function composerHtml(): string {
+	return (
+		`<div id="annComposer" class="ann-composer">` +
+		`<textarea class="ann-editor" id="annEditor" rows="10" placeholder="# Start with a heading, it becomes the title.\n\nMarkdown: **bold**, *italic*, - lists, > quotes."></textarea>` +
+		imageListHtml("new") +
+		`<p class="subtle ann-hint" style="text-align:left;margin:6px 0 0">Markdown only — it renders here and posts to Discord as written; images post as embeds.</p>` +
+		`<div class="row" style="justify-content:flex-end;gap:8px;margin-top:10px">` +
+		`<button type="button" class="primary" id="annPost">Post announcement</button></div>` +
+		`</div>`
+	)
+}
