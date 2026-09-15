@@ -458,7 +458,8 @@ test("the theme peek and the tip jar live in one thin foot bar, not two floating
 test("both shelves can be read as a list or as 3/4/6 across", async () => {
   const { body } = await page("/stories");
   assert.ok(body.includes('id="stViewWrap"'), "the picker has a home in the tools row");
-  assert.ok(body.includes("mountViewPicker"), "wired to the shared picker");
+  // the page scripts are emitted from client/pages/<page>.ts
+  assert.ok((await page("/js/pages/stories.js")).body.includes("mountViewPicker"), "wired to the shared picker");
 
   // /archive gets the same control, and shares the stored choice with it
   const arch = await page("/archive");
@@ -489,7 +490,7 @@ test("the write page is full-bleed and square, not a centred card", async () => 
 });
 
 test("reading one story hides everything that describes the list", async () => {
-  const { body } = await page("/stories");
+  const { body } = await page("/js/pages/stories.js"); // the page's script, emitted from client/pages/stories.ts
   // the toolbar, the pager and the shelf's subtitle all describe the shelf
   const hide = body.slice(body.indexOf("async function openStory"), body.indexOf("$(\"stListLink\")"));
   for (const id of ["storiesList", "storiesTools", "stPager", "storiesSub"])

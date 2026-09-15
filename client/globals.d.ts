@@ -14,3 +14,5 @@ interface Window {
 
 /** The Socket.IO client, loaded by `<script src="/socket.io/socket.io.js">` on the socket pages. */
 declare const io: typeof import("socket.io-client").io
+/** The same GSAP as a bare global — the pages guard with `typeof gsap !== "undefined"` or `window.gsap` before calling it. */
+declare const gsap: GsapLike
