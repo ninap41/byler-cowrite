@@ -186,8 +186,9 @@ test("the profile page carries a Message button beside the friend button, hidden
   const html = await fetch(ctx.url + "/profile").then((r) => r.text());
   assert.match(html, /id="msgBtn"/);
   assert.match(html, /id="msgModal"/);
-  assert.match(html, /"\/api\/message", \{ username: p\.username, text \}/);
-  assert.match(html, /msgBtn\.classList\.toggle\("hidden", itsMe\)/, "hidden on your own profile");
+  const script = await fetch(ctx.url + "/js/pages/profile.js").then((r) => r.text()); // emitted from client/pages/profile.ts
+  assert.match(script, /"\/api\/message", \{ username: p\.username, text \}/);
+  assert.match(script, /msgBtn\.classList\.toggle\("hidden", itsMe\)/, "hidden on your own profile");
 });
 
 test("the inbox panel carries an open composer's draft across its 20s poll (text, focus, caret by thread)", async () => {
