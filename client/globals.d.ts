@@ -11,3 +11,6 @@ interface GsapLike {
 interface Window {
 	gsap?: GsapLike
 }
+
+/** The Socket.IO client, loaded by `<script src="/socket.io/socket.io.js">` on the socket pages. */
+declare const io: typeof import("socket.io-client").io

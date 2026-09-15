@@ -17,6 +17,7 @@ import { esc, safeColor } from "../util.js"
 import { createGround, type Ground } from "./puddle-ground.js"
 import { hudCtlHtml } from "./gimmick-dock.js"
 import type { Gimmick, GimmickMountOpts, Ack } from "./gimmick-types.js"
+import type { Live, GunState } from "../shared/wire.js"
 
 export interface RemoteGun {
 	userId: string
@@ -381,7 +382,7 @@ export function mountSuperSoaker(opts: GimmickMountOpts): SoakerGimmick {
 		}
 		fade ? fadeOut(r.el, done) : done()
 	}
-	socket.on("gimmick-gun", (d: RemoteGun) => {
+	socket.on("gimmick-gun", (d: Live<GunState>) => {
 		if (!d || d.userId === myUserId()) return
 		if (d.on === false) dropRemote(d.userId, { fade: true })
 		else upsertRemote(d)

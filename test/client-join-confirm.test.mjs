@@ -24,8 +24,11 @@ test("a lobby offers Join the lobby; a started game says the host will be asked"
   assert.ok(!live.includes("Hosted by"));
 });
 
+// the game page's script is emitted from client/pages/game.ts to public/js/pages/game.js
+const script = () => readFileSync(new URL("../public/js/pages/game.js", import.meta.url), "utf-8");
+
 test("game.html routes a from=discord link through the confirm and joins only from the button", () => {
-  const html = readFileSync(new URL("../public/game.html", import.meta.url), "utf-8");
+  const html = script();
   assert.ok(html.includes('import { needsJoinConfirm, joinConfirmHtml } from "/js/join-confirm.js"'));
   assert.ok(html.includes('needsJoinConfirm(qs.get("from"))) confirmJoin(code)'));
   assert.ok(/\$\("joinConfirmBtn"\)\.onclick = \(\) => \{[\s\S]*?joinByCode\(code\)/.test(html));
@@ -35,7 +38,7 @@ test("game.html routes a from=discord link through the confirm and joins only fr
 test("the lobby carries its own host-only Share to Discord under the code; the drawer keeps one too", () => {
   const html = readFileSync(new URL("../public/game.html", import.meta.url), "utf-8");
   assert.ok(html.includes('id="discordLobbyBtn"') && html.includes('id="discordShareBtn"'));
-  assert.ok(html.includes('$("lobbyShare").classList.toggle("hidden", !host)'), "shown to the host only");
+  assert.ok(script().includes('$("lobbyShare").classList.toggle("hidden", !host)'), "shown to the host only");
   assert.ok(html.indexOf('id="codeDisplay"') < html.indexOf('id="discordLobbyBtn"') && html.indexOf('id="discordLobbyBtn"') < html.indexOf('id="rosterList"'), "under the code, above the roster");
 });
 
@@ -55,6 +58,6 @@ test("both Share menus name the Byler Offscreen Discord and offer Copy game link
   assert.ok(acts.indexOf('id="endBtn"') < acts.indexOf('id="inviteShareMenu"'), "Share ▾ follows End game & reveal");
   assert.ok(!html.includes('id="inviteSec"'), "the invite section is gone");
   assert.ok(html.includes('id="inviteBtn" data-share="invite"'));
-  assert.ok(html.includes('const copyGameLink = (note) => async () => {'));
-  assert.ok(html.includes('location.origin + "/game?code=" + encodeURIComponent(myCode)'), "the link is the join URL");
+  assert.ok(script().includes('const copyGameLink = (note) => async () => {'));
+  assert.ok(script().includes('location.origin + "/game?code=" + encodeURIComponent(myCode)'), "the link is the join URL");
 });

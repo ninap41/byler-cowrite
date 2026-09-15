@@ -540,8 +540,10 @@ test("pause and end-and-reveal live in the session bar, host-only", async () => 
   assert.ok(bar.includes('id="pauseBtn"') && bar.includes('id="endBtn"'), "pause and reveal, both of them");
   assert.ok(bar.includes('class="sess-acts hidden"'), "hidden until you are the host");
   assert.ok(bar.indexOf('id="endBtn"') < bar.indexOf('id="inviteShareMenu"'), "Share ▾ stands to the right of End game & reveal");
-  // one condition drives both places, so they can never disagree
-  assert.match(body, /\$\("hostGame"\)\.classList\.toggle\("hidden", !host\)/);
+  // one condition drives both places, so they can never disagree (the page's
+  // script is emitted from client/pages/game.ts to /js/pages/game.js)
+  const script = (await page("/js/pages/game.js")).body;
+  assert.match(script, /\$\("hostGame"\)\.classList\.toggle\("hidden", !host\)/);
   // and the host panel keeps only the settings — the rules form and the cover
   const panel = body.slice(body.indexOf('id="hostPanel"'), body.indexOf("</aside>"));
   assert.ok(!panel.includes('id="pauseBtn"') && !panel.includes('id="endBtn"'), "not left behind in the panel too");
@@ -556,11 +558,12 @@ test("host controls are a modal on the game page: the ⚙️ tab opens it, the �
   assert.ok(modal.includes('id="hostClose"') && modal.includes("doc-side-close"), "the ✕ is in the modal's head");
   const panel = body.slice(body.indexOf('id="hostPanel"'), body.indexOf("</div>\n\t\t\t\t\t</div>", body.indexOf('id="hostPanel"')));
   assert.ok(panel.includes('id="hostRules"') && panel.includes('id="coverInput2"'), "rules and cover live in the modal");
-  assert.match(body, /\$\("hostOpen"\)\.onclick = openHostModal/);
-  assert.match(body, /\$\("gkTabs"\)\.prepend\(\$\("hostOpen"\)\)/, "the ⚙️ tab stacks with the gimmick tabs on the left edge");
+  const script = (await page("/js/pages/game.js")).body; // emitted from client/pages/game.ts
+  assert.match(script, /\$\("hostOpen"\)\.onclick = openHostModal/);
+  assert.match(script, /\$\("gkTabs"\)\.prepend\(\$\("hostOpen"\)\)/, "the ⚙️ tab stacks with the gimmick tabs on the left edge");
   assert.match(body, /id="hostOpen"[^>]*><i class="fa-solid fa-gear"[^>]*><\/i><span class="tab-word">Host settings<\/span>/, "the tab reads [gear] Host settings");
-  assert.match(body, /\$\("hostClose"\)\.onclick = closeHostModal/);
-  assert.match(body, /e\.key === "Escape" && closeHostModal\(\)/, "Escape closes");
+  assert.match(script, /\$\("hostClose"\)\.onclick = closeHostModal/);
+  assert.match(script, /e\.key === "Escape" && closeHostModal\(\)/, "Escape closes");
   const main = body.slice(body.indexOf('class="game-main"'), body.indexOf('id="storyBox"'));
   assert.ok(main.includes('id="gamePrompt"'), "the prompt banner is inside the main column");
   const css = (await page("/css/base.css")).body;
@@ -583,13 +586,13 @@ test("host controls are a modal on the game page: the ⚙️ tab opens it, the �
   assert.ok(over.includes('class="game-cols"') && over.includes('class="game-main"'), "the reveal is a game-cols grid");
   assert.ok(over.indexOf('id="overStory"') < over.indexOf('id="overSide"'), "the story column comes first");
   assert.match(over, /<aside class="game-side" id="overSide">/);
-  assert.match(body, /id === "game" \|\| id === "over"/, "placeChat keeps the chat a sidebar on the reveal");
-  assert.match(body, /id === "game" \? chatHome : \$\("overSide"\)/);
-  assert.match(body, /home\.insertBefore\(chat, id === "game" \? \$\("doomFx"\) : null\)/, "the chat returns above the demogorgon, never under it");
+  assert.match(script, /id === "game" \|\| id === "over"/, "placeChat keeps the chat a sidebar on the reveal");
+  assert.match(script, /id === "game" \? chatHome : \$\("overSide"\)/);
+  assert.match(script, /home\.insertBefore\(chat, id === "game" \? \$\("doomFx"\) : null\)/, "the chat returns above the demogorgon, never under it");
   assert.match(css, /#game \.game-side,\n#over \.game-side \{/, "the reveal's rail wears the game's rail rule");
   // the player pills are one four-column table, words in the middle
   assert.match(css, /\.side-sec \.player-chip \{[^}]*grid-template-columns: minmax\(7\.6em, auto\) minmax\(0, 1fr\) auto auto/);
-  const chip = body.slice(body.indexOf('class="player-chip${'), body.indexOf("seatMenuHtml(w, st.writers)"));
+  const chip = script.slice(script.indexOf('class="player-chip${'), script.indexOf("seatMenuHtml(w, st.writers)"));
   assert.ok(chip.indexOf("chip-lead") < chip.indexOf("chip-who") && chip.indexOf("chip-who") < chip.indexOf("chip-words") && chip.indexOf("chip-words") < chip.indexOf("chip-tail"), "lead · who · words · tail");
   assert.ok(!chip.includes("w.words != null ?"), "the count is unconditional");
   const who = chip.slice(chip.indexOf("chip-who"), chip.indexOf("chip-words"));
@@ -629,8 +632,10 @@ test("/games is the coming-soon page, linked from the nav drawer and the dashboa
 
 test("the game page's tab title is the story's name, refreshed with the session bar, so a rename mid-vote shows at once", async () => {
   const { readFileSync } = await import("node:fs");
-  const src = readFileSync(new URL("../public/game.html", import.meta.url), "utf-8");
-  assert.match(src, /const setPageTitle = \(\) => \{\s*document\.title = "\{\{SITE_NAME\}\}: " \+ \(sessName \|\| PAGE_TITLES\[shownCard\] \|\| "Game"\)/, "the name leads, the phase is the fallback");
+  // the page's script is emitted from client/pages/game.ts; a static module never passes
+  // through renderPage(), so the site name is read off the meta tag (siteName()) there
+  const src = readFileSync(new URL("../public/js/pages/game.js", import.meta.url), "utf-8");
+  assert.match(src, /const setPageTitle = \(\) => \{\s*document\.title = siteName\(\) \+ ": " \+ \(sessName \|\| PAGE_TITLES\[shownCard\] \|\| "Game"\)/, "the name leads, the phase is the fallback");
   const bar = src.slice(src.indexOf("function updateSessionBar()"), src.indexOf("async function copyCode"));
   assert.ok(bar.includes("setPageTitle()"), "every session-bar repaint refreshes the title");
   assert.ok(!/onlyShow[\s\S]{0,200}document\.title =/.test(src), "onlyShow no longer sets a phase-only title");

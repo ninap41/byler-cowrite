@@ -168,12 +168,13 @@ test("show() is how the vote card hides the dials from non-hosts", () => {
 
 test("game.html mounts the picker in both the lobby and the vote card", () => {
   const html = readFileSync(new URL("../public/game.html", import.meta.url), "utf-8");
+  const script = readFileSync(new URL("../public/js/pages/game.js", import.meta.url), "utf-8"); // emitted from client/pages/game.ts
   assert.match(html, /id="lobbyPrompt"/);
   assert.match(html, /id="votePrompt"/);
-  assert.match(html, /mountPromptModes\(\$\("lobbyPrompt"\)/);
-  assert.match(html, /mountPromptModes\(\$\("votePrompt"\)/);
+  assert.match(script, /mountPromptModes\(\$\("lobbyPrompt"\)/);
+  assert.match(script, /mountPromptModes\(\$\("votePrompt"\)/);
   // the lobby's choice rides along with the rules on Begin
-  assert.match(html, /start-game", \{ \.\.\.lobbyRules\.values\(\), \.\.\.lobbyPrompt\.values\(\) \}/);
+  assert.match(script, /start-game", \{ \.\.\.lobbyRules\.values\(\), \.\.\.lobbyPrompt\.values\(\) \}/);
   // and chat is a section of the side column, not a dock
   assert.match(html, /id="chatCard" class="side-sec chat-sec hidden"/);
   assert.ok(!/chat-dock/.test(html), "no docked chat markup remains");
@@ -288,7 +289,7 @@ test("the vote card's mount gets a 🎲 Reroll all button; the lobby's doesn't",
   const lobby = mount("");
   mountPromptModes(lobby, { prefix: "l" });
   assert.equal(lobby.querySelector("#lReroll"), null);
-  const html = readFileSync(new URL("../public/game.html", import.meta.url), "utf-8");
+  const html = readFileSync(new URL("../public/js/pages/game.js", import.meta.url), "utf-8");
   assert.match(html, /onReroll: \(\) => \{[\s\S]*?socket\.emit\("shuffle-options"\)/);
 });
 

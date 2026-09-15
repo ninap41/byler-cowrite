@@ -1,13 +1,11 @@
 // What every gimmick mount shares (docs/TYPES.md §4): the options game.html
 // hands each toy, and the object each returns. The seven components extend
 // these with their own verb and telemetry.
-import type { RosterWriter } from "../shared/wire.js"
+import type { Socket } from "socket.io-client"
+import type { RosterWriter, ServerToClient, ClientToServer } from "../shared/wire.js"
 
-/** The slice of a Socket.IO client the gimmicks drive. */
-export interface SocketLike {
-	emit(event: string, payload?: unknown, ack?: (res: unknown) => void): unknown
-	on(event: string, handler: (payload: never) => void): unknown
-}
+/** The page's socket, typed by the wire's two event maps (docs/TYPES.md §1). */
+export type SocketLike = Socket<ServerToClient, ClientToServer>
 export interface GimmickMountOpts {
 	socket: SocketLike
 	document?: Document

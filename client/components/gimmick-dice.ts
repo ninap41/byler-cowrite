@@ -14,6 +14,7 @@ import { esc, safeColor } from "../util.js"
 import { hudCtlHtml } from "./gimmick-dock.js"
 import { createDie, type Die } from "./d20-die.js"
 import type { Gimmick, GimmickMountOpts, Ack } from "./gimmick-types.js"
+import type { Live, DieState } from "../shared/wire.js"
 import type { GimmickDef, Lock } from "../ranks-view.js"
 
 /** The /api/gimmicks payload the menu is gated on, plus what this table adds. */
@@ -395,7 +396,7 @@ export function mountGimmickDice(opts: DiceOpts): DiceMenu {
 		if (rollLock || !open) return
 		rollLock = true
 		read.innerHTML = `<span class="gd-hint">Rolling…</span>`
-		socket.emit("gimmick-roll", { id: current, steal: stealBox.checked }, (res) => {
+		socket.emit("gimmick-roll", { id: current ?? "", steal: stealBox.checked }, (res) => {
 			const ack = res as Ack<RollResult>
 			if (!ack?.ok) {
 				rollLock = false
@@ -454,7 +455,7 @@ export function mountGimmickDice(opts: DiceOpts): DiceMenu {
 		if (open) exit({ fade: true })
 		return had
 	}
-	socket.on("gimmick-die", (d: RemoteDie) => {
+	socket.on("gimmick-die", (d: Live<DieState>) => {
 		if (!d || d.userId === myUserId()) return
 		if (d.on === false) dropRemote(d.userId, { fade: true })
 		else upsertRemote(d)

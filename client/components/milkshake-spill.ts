@@ -17,6 +17,7 @@ import { esc, safeColor } from "../util.js"
 import { createGround, shade, type Ground } from "./puddle-ground.js"
 import { hudCtlHtml } from "./gimmick-dock.js"
 import type { Gimmick, GimmickMountOpts, Ack } from "./gimmick-types.js"
+import type { Live, CupState } from "../shared/wire.js"
 export { shade }
 
 export interface RemoteCup {
@@ -519,7 +520,7 @@ export function mountMilkshake(opts: GimmickMountOpts): MilkshakeGimmick {
 		}
 		fade ? fadeOut(r.el, done) : done()
 	}
-	socket.on("gimmick-cup", (d: RemoteCup) => {
+	socket.on("gimmick-cup", (d: Live<CupState>) => {
 		if (!d || d.userId === myUserId()) return
 		if (d.on === false) dropRemote(d.userId, { fade: true })
 		else upsertRemote(d)

@@ -20,6 +20,7 @@
 import { esc, safeColor } from "../util.js"
 import { hudCtlHtml } from "./gimmick-dock.js"
 import type { Gimmick, GimmickMountOpts, Ack } from "./gimmick-types.js"
+import type { Live, ShipState } from "../shared/wire.js"
 
 /** A bee on the relay: [x, y, dive, id] as fractions of the owner's screen. */
 export type BeeOnWire = [number, number, 0 | 1, number] | [number, number, 0 | 1]
@@ -513,7 +514,7 @@ export function mountGalaga(opts: GimmickMountOpts): GalagaGimmick {
 		}
 		fade ? fadeOut(r.el, done) : done()
 	}
-	socket.on("gimmick-ship", (d: RemoteShip) => {
+	socket.on("gimmick-ship", (d: Live<ShipState>) => {
 		if (!d || d.userId === myUserId()) return
 		if (d.on === false) dropRemote(d.userId, { fade: true })
 		else upsertRemote(d)

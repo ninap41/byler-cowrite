@@ -116,7 +116,7 @@ function mountVecnaCurse(opts) {
     const target = e.target;
     const t = target?.closest(".vcx-target");
     if (t && !t.disabled) {
-      socket.emit("gimmick-curse", { targetUserId: t.dataset.target }, (res) => {
+      socket.emit("gimmick-curse", { targetUserId: t.dataset.target || "" }, (res) => {
         const ack = res;
         hint.textContent = ack?.ok ? "The clock strikes… 🕰️" : ack && "error" in ack && ack.error || "The curse slipped.";
       });

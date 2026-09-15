@@ -888,7 +888,7 @@ test("gimmick-cup / gimmick-pour: the cup is relayed (clamped), the pour is call
 // picked, or stay on screen after the table went friendly — so this pins
 // every non-die gimmick id into both places.
 test("every registry gimmick is linked in game.html: a launcher in the 🎲 menu and a gimmicksOff on the friendly switch", () => {
-  const page = readFileSync(new URL("../public/game.html", import.meta.url), "utf-8");
+  const page = readFileSync(new URL("../public/js/pages/game.js", import.meta.url), "utf-8"); // emitted from client/pages/game.ts
   const launchers = page.match(/launchers:\s*\{([^}]*)\}/)?.[1] ?? "";
   const offLine = page.match(/\[([^\]]*gimmicksOff\(\)[^\]]*)\]\.some\(Boolean\)/)?.[1] ?? "";
   for (const id of GIMMICK_IDS) {

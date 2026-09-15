@@ -15,6 +15,7 @@
 import { esc, safeColor } from "../util.js"
 import { hudCtlHtml } from "./gimmick-dock.js"
 import type { Gimmick, GimmickMountOpts, Ack } from "./gimmick-types.js"
+import type { Live, BallState } from "../shared/wire.js"
 
 export interface RemoteBall {
 	userId: string
@@ -417,7 +418,7 @@ export function mountDiscoBall(opts: DiscoOpts): DiscoGimmick {
 		}
 		fade ? fadeOut(r.el, done) : done()
 	}
-	socket.on("gimmick-ball", (d: RemoteBall) => {
+	socket.on("gimmick-ball", (d: Live<BallState>) => {
 		if (!d || d.userId === myUserId()) return
 		if (d.on === false) dropRemote(d.userId, { fade: true })
 		else upsertRemote(d)

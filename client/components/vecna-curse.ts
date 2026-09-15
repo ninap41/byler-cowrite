@@ -166,7 +166,7 @@ export function mountVecnaCurse(opts: CurseOpts): CurseGimmick {
 		const target = e.target as Element | null
 		const t = target?.closest<HTMLButtonElement>(".vcx-target")
 		if (t && !t.disabled) {
-			socket.emit("gimmick-curse", { targetUserId: t.dataset.target }, (res) => {
+			socket.emit("gimmick-curse", { targetUserId: t.dataset.target || "" }, (res) => {
 				const ack = res as Ack
 				hint.textContent = ack?.ok ? "The clock strikes… 🕰️" : (ack && "error" in ack && ack.error) || "The curse slipped."
 			})

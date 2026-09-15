@@ -268,7 +268,7 @@ function mountGimmickDice(opts) {
     if (rollLock || !open) return;
     rollLock = true;
     read.innerHTML = `<span class="gd-hint">Rolling…</span>`;
-    socket.emit("gimmick-roll", { id: current, steal: stealBox.checked }, (res) => {
+    socket.emit("gimmick-roll", { id: current ?? "", steal: stealBox.checked }, (res) => {
       const ack = res;
       if (!ack?.ok) {
         rollLock = false;
