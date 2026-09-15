@@ -298,11 +298,21 @@
 						}, 900)
 				})
 				gsap.fromTo("h1", { opacity: 0, y: -10 }, { opacity: 1, y: 0, duration: 0.7, ease: "power3.out" })
-				gsap.fromTo(
-					".card",
-					{ y: 20, opacity: 0 },
-					{ y: 0, opacity: 1, duration: 0.55, stagger: 0.08, ease: "power2.out", clearProps: "transform,opacity" },
-				)
+				// only the cards on screen take part in the stagger: a page-wide
+				// stagger held every card below the fold invisible for its whole
+				// length, so scrolling right after load ran into blank cards
+				var cards = gsap.utils.toArray(".card"), inView = [], rest = []
+				cards.forEach(function (c) {
+					var r = c.getBoundingClientRect()
+					;(r.top < window.innerHeight && r.bottom > 0 ? inView : rest).push(c)
+				})
+				gsap.set(rest, { clearProps: "opacity,transform" })
+				if (inView.length)
+					gsap.fromTo(
+						inView,
+						{ y: 20, opacity: 0 },
+						{ y: 0, opacity: 1, duration: 0.55, stagger: Math.min(0.08, 0.5 / inView.length), ease: "power2.out", clearProps: "transform,opacity" },
+					)
 			})()
 		</script>
 	</body>

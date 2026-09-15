@@ -2,12 +2,12 @@
 // public/js/**/*.js — one file in, one file out, no bundling, so the pages'
 // native ES-module graph, the ids the tests look for and the Replit Run button
 // are untouched. Type checking is `npm run typecheck` (tsc --noEmit); this
-// script only strips the types (esbuild). The emitted .js is committed so a
-// checkout runs without tooling; edit the .ts, never the .js — and because it
-// is committed, a deploy that installed without devDependencies (no esbuild)
-// simply keeps the committed emit: `npm start`'s prestart says so and exits 0
-// instead of failing the boot. test/build.test.mjs is what proves the
-// committed emit is current.
+// script only strips the types (esbuild). The emitted .js is NOT committed
+// (public/js/ is gitignored): `npm start`'s prestart and `npm test`'s pretest
+// emit it, so esbuild is a runtime dependency and a checkout runs the build
+// before the server imports public/js/shared/*. Edit the .ts, never the .js.
+// test/build.test.mjs proves the emit is current and every emitted file has
+// a source.
 import { readdirSync, statSync } from "node:fs"
 import { join, relative } from "node:path"
 import { fileURLToPath } from "node:url"
@@ -46,7 +46,7 @@ export const esbuildOptions = ({ minify = false, outdir = OUT } = {}) => ({
 })
 
 // esbuild is loaded lazily so importing this module (the test does, for the
-// options) never needs it, and a missing install is a skip, not a crash.
+// options) never needs it; a missing install is reported plainly.
 async function loadEsbuild() {
   try {
     return (await import("esbuild")).build
@@ -68,6 +68,9 @@ export async function buildClient({ minify = false } = {}) {
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const files = await buildClient({ minify: process.argv.includes("--minify") })
-  if (files === null) console.log("esbuild is not installed — keeping the committed public/js (a production install without devDependencies)")
+  if (files === null) {
+    console.error("esbuild is not installed — public/js cannot be emitted (run npm install; esbuild is a dependency)")
+    process.exit(1)
+  }
   else console.log(`built ${files.length} client module(s) → public/js`)
 }

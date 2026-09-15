@@ -5,3 +5,5 @@ saves/
 data/
 .claude/
 CLAUDE.md
+# emitted by scripts/build.mjs from client/ on every start (prestart) and test (pretest)
+public/js/

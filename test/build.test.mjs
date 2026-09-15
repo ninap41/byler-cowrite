@@ -1,8 +1,9 @@
 // The TypeScript build (scripts/build.mjs): every client/**/*.ts has an
-// emitted twin at the same path under public/js, the twin is CURRENT (a fresh
-// emit into a temp dir is byte-identical), every generated file in public/js
-// still has a source, and the sources type-check. `npm test` runs the build
-// first (pretest), so a stale twin here means the build itself drifted.
+// emitted twin at the same path under public/js (gitignored, emitted by
+// pretest/prestart), the twin is CURRENT (a fresh emit into a temp dir is
+// byte-identical), every generated file in public/js still has a source (a
+// stray hand-written .js or a leftover from a deleted .ts is caught), and the
+// sources type-check. A stale twin here means the build itself drifted.
 // The server is checked too (tsconfig.server.json: checkJs over server.js,
 // src/, lib/ against client/shared/wire.ts) so the two halves of the socket
 // contract can't disagree — a handler, an emit or an ack that wire.ts

@@ -204,7 +204,7 @@ Shared contracts first because every later step consumes them. Pure builders nex
 
 ### Replit
 
-`.replit` keeps `run = "npm start"`. `package.json` gets `"build": "node scripts/build.mjs"` and `"start": "npm run build && node server.js"`. Emitted files under `public/js` are build output: either committed (simplest for Replit, which runs from the repo) or gitignored with the build in `start`. Committing the output is recommended here so a checkout still runs without Node tooling, matching how `public/vendor/gsap.min.js` is handled today.
+`.replit` keeps `run = "npm start"`. `package.json` gets `"build": "node scripts/build.mjs"` and `"start": "npm run build && node server.js"`. Emitted files under `public/js` are build output and are gitignored, with the build in `prestart` and `esbuild` a runtime dependency so a Replit deploy can emit them (they were committed at first; that produced merge conflicts in generated files and commits that changed a `.ts` without its `.js`).
 
 ## Decision
 

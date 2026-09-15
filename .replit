@@ -6,6 +6,7 @@ modules = ["nodejs-20", "web", "postgresql-16"]
 channel = "stable-25_05"
 
 [deployment]
+build = ["npm", "run", "build"]
 run = ["npm", "start"]
 deploymentTarget = "vm"
 
