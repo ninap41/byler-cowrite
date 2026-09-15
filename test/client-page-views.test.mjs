@@ -308,7 +308,7 @@ test("archive: only the host may continue a story, canContinue is host-only, by 
   assert.equal(canContinue(null, "x"), false);
   // and the page hides the buttons through it, not with an ad-hoc check
   const { readFileSync } = await import("node:fs");
-  const html = readFileSync(new URL("../public/archive.html", import.meta.url), "utf-8");
+  const html = readFileSync(new URL("../public/js/pages/archive.js", import.meta.url), "utf-8"); // emitted from client/pages/archive.ts
   assert.match(html, /import \{[^}]*canContinue[^}]*\} from "\/js\/archive-view\.js"/);
   assert.match(html, /canContinue\(g, me\?\.username\)/, "the card's Continue is gated");
   assert.match(html, /canContinue\(g, me\?\.username\)/, "the detail's Continue too");

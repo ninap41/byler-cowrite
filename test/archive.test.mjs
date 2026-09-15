@@ -252,6 +252,6 @@ test("an outsider (no seat, no line, not the host, not an admin) can only READ a
   const { readFileSync } = await import("node:fs");
   const profile = readFileSync(new URL("../public/profile.html", import.meta.url), "utf8");
   assert.match(profile, /g\.mine \? "\/archive\?code=" : "\/stories\?code="/);
-  const archive = readFileSync(new URL("../public/archive.html", import.meta.url), "utf8");
-  assert.match(archive, /e\.status === 403\) location\.replace\("\/stories\?code=" \+ encodeURIComponent\(code\)\)/);
+  const archive = readFileSync(new URL("../public/js/pages/archive.js", import.meta.url), "utf8"); // the page's script, emitted from client/pages/archive.ts
+  assert.match(archive, /status === 403\) location\.replace\("\/stories\?code=" \+ encodeURIComponent\(code\)\)/);
 });

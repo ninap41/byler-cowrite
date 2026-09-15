@@ -463,8 +463,9 @@ test("both shelves can be read as a list or as 3/4/6 across", async () => {
 
   // /archive gets the same control, and shares the stored choice with it
   const arch = await page("/archive");
-  assert.ok(arch.body.includes('id="archViewWrap"') && arch.body.includes("mountViewPicker"), "same picker on the archive");
-  assert.ok(arch.body.includes("arch-group"), "its group headings stay outside the grids");
+  const archScript = (await page("/js/pages/archive.js")).body;
+  assert.ok(arch.body.includes('id="archViewWrap"') && archScript.includes("mountViewPicker"), "same picker on the archive");
+  assert.ok(archScript.includes("arch-group"), "its group headings stay outside the grids");
 
   const picker = await page("/js/components/view-picker.js");
   assert.ok(picker.body.includes("cowriteStoriesView"), "the choice is a habit, so it's remembered");
