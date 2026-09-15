@@ -303,6 +303,44 @@ export interface ServerToClient {
 	"gimmick-paints": (list: (StrokeEvent & { strokes?: Stroke[]; live?: Stroke | boolean | null })[]) => void
 	"gimmick-paint": (p: GimmickOwner) => void
 	"gimmick-curse": (d: CurseEvent) => void
+	// the solo editor (src/game.js doc-* handlers): presence, comments and pushes
+	"doc-presence": (p: { id: string; viewers: DocViewer[] }) => void
+	"doc-comments": (p: { id: string; comments: DocCommentRow[] }) => void
+	"doc-updated": (p: { id: string; html: string; title: string; chapters: DocChapterRow[] }) => void
+	"doc-html": (p: { id: string; chapterId: string | null; html: string; chapterWordCount?: number; wordCount?: number }) => void
+	"doc-access-lost": (p: { id: string }) => void
+}
+/** A reader present on a solo write (docPresenceList). */
+export interface DocViewer {
+	username: string
+	color?: HexColor | string
+	avatar?: string
+	avatarFit?: AvatarFit | string
+}
+/** A chapter as the doc events ship it (chapterRows). */
+export interface DocChapterRow {
+	id?: string | null
+	title?: string
+	html?: string
+	wordCount?: number
+}
+/** A comment as the doc events ship it (commentRows in src/game.js). */
+export interface DocCommentRow {
+	id: string
+	cid?: string | null
+	quote?: string
+	text?: string
+	suggestion?: string | null
+	ts?: number
+	resolved?: boolean
+	accepted?: boolean
+	orphaned?: boolean
+	chapterId?: string | null
+	author: string
+	color?: HexColor | string
+	avatar?: string
+	avatarFit?: AvatarFit | string
+	isAuthor?: boolean
 }
 
 type AckFn<T = Record<never, never>> = (res: Ack<T>) => void
@@ -353,4 +391,12 @@ export interface ClientToServer {
 	"gimmick-paint": (p: Record<never, never>, ack: AckFn) => void
 	"gimmick-curse": (p: { targetUserId: string }, ack: AckFn) => void
 	"gimmick-uncurse": (p: Record<never, never>, ack: AckFn) => void
+	// the solo editor
+	"doc-open": (p: { auth: string | null; id: string }) => void
+	"doc-close": () => void
+	"doc-saved": (p: { auth: string | null; id: string }) => void
+	"doc-comment": (p: { auth: string | null; id: string; cid: string; chapterId: string | null; html: string; text: string; suggestion: string | null }) => void
+	"doc-comment-decide": (p: { auth: string | null; id: string; commentId: string; accept: boolean }) => void
+	"doc-comment-resolve": (p: { auth: string | null; id: string; commentId: string; resolved: boolean }) => void
+	"doc-comment-delete": (p: { auth: string | null; id: string; commentId: string }) => void
 }

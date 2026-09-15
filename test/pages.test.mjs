@@ -10,7 +10,12 @@ after(async () => ctx.stop());
 
 const page = async (path) => {
   const r = await fetch(ctx.url + path);
-  return { status: r.status, body: await r.text(), headers: r.headers };
+  let body = await r.text();
+  // The write page's script is emitted from client/pages/write.ts to
+  // /js/pages/write.js; the assertions below read the page and its script as
+  // one text, the way they did when the script was inline.
+  if (path === "/write") body += "\n" + (await (await fetch(ctx.url + "/js/pages/write.js")).text());
+  return { status: r.status, body, headers: r.headers };
 };
 
 test("pages/modules/css are never cached (stale-module mixing breaks handlers)", async () => {
@@ -204,7 +209,7 @@ test("the comments column is tall enough for its sticky child to travel", async 
 test("the editor drops an underline the moment its comment stops existing", async () => {
   const { body } = await page("/write");
   assert.ok(body.includes("function pruneLocalAnchors"), "the editor mirrors the server's rule");
-  assert.ok(body.includes("renderComments() {\n\t\t\t\tpruneLocalAnchors()"), "…on every comments update, and after an undo");
+  assert.ok(body.includes("renderComments() {\n  pruneLocalAnchors()"), "…on every comments update, and after an undo"); // esbuild's two-space indent
   assert.ok(body.includes("pendingCids"), "a just-sent comment's anchor is exempt until the server echoes it");
 });
 

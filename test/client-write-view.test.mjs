@@ -440,7 +440,8 @@ test("insertAfterHeading: right under the first heading, else at the very top", 
 });
 
 test("the write page carries the Prompt? chip (author only), the roller modal with Roll, Cancel and an Insert that waits for a roll, and Insert goes under the heading", () => {
-  const src = readFileSync(new URL("../public/write.html", import.meta.url), "utf-8");
+  // the page plus its script (emitted from client/pages/write.ts), read as one text
+  const src = readFileSync(new URL("../public/write.html", import.meta.url), "utf-8") + "\n" + readFileSync(new URL("../public/js/pages/write.js", import.meta.url), "utf-8");
   assert.match(src, /class="head-chip hidden" id="promptBtn"/, "hidden until the author is known");
   assert.ok(src.includes('$("promptBtn").classList.toggle("hidden", !canEdit)'), "author only");
   assert.match(src, /id="promptModal"/);
@@ -452,7 +453,8 @@ test("the write page carries the Prompt? chip (author only), the roller modal wi
   assert.ok(src.includes('$("promptInsert").classList.remove("hidden")'), "…revealed by showRolled");
   assert.ok(src.includes('api("/api/prompt/roll", { mode: promptMode, controls: promptControls })'));
   assert.ok(src.includes('insertAfterHeading($("docEditor"), promptInsertHtml(rolled.prompt))'));
-  assert.ok(/insertAfterHeading\(\$\("docEditor"\), promptInsertHtml\(rolled\.prompt\)\)\s*onEdit\(\{ immediate: true \}\)\s*closePromptModal\(\)/.test(src), "an insert is an edit (dirty, undo step) and closes the modal");
+  // [;\s]* because esbuild adds semicolons to the emitted script
+  assert.ok(/insertAfterHeading\(\$\("docEditor"\), promptInsertHtml\(rolled\.prompt\)\)[;\s]*onEdit\(\{ immediate: true \}\)[;\s]*closePromptModal\(\)/.test(src), "an insert is an edit (dirty, undo step) and closes the modal");
 });
 
 test("the prompt roller's card is one list of category | value rows and the modal scrolls instead of overflowing", () => {
