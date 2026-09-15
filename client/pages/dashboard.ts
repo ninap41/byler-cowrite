@@ -21,6 +21,7 @@ import { showInviteToast } from "/js/turn-alert.js"
 import { soloListHtml, betaReadingHtml, wireSoloDeletes } from "/js/write-view.js"
 import { confirmDialog } from "/js/components/confirm-delete.js"
 import { mountTendrilBorder } from "/js/components/tendril-border.js"
+import { whenVisible } from "/js/components/when-visible.js"
 import type { Socket } from "socket.io-client"
 import type { ServerToClient, ClientToServer } from "/js/shared/wire.js"
 import type { ChipUser } from "/js/chrome.js"
@@ -692,9 +693,16 @@ async function loadDashboard() {
 // The gsap CDN script is a classic script, so it's loaded before this
 // module runs; rows are rebuilt every poll, so old tweens die with them.
 const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches
+// each row's sparkle tweens pause while the row is off screen or the tab is
+// hidden (whenVisible); the watchers are dropped when the rows are rebuilt
+let sparkleWatchers: (() => void)[] = []
 function sparkleGathering(box: HTMLElement) {
+	for (const stop of sparkleWatchers) stop()
+	sparkleWatchers = []
 	if (!window.gsap || reduceMotion) return
 	box.querySelectorAll(".live-game.gathering").forEach((row) => {
+		const tweens: { play(): unknown; pause(): unknown }[] = []
+		sparkleWatchers.push(whenVisible(row, { onShow: () => tweens.forEach((t) => t.play()), onHide: () => tweens.forEach((t) => t.pause()) }))
 		for (let i = 0; i < 5; i++) {
 			const s = document.createElement("span")
 			s.className = "sparkle"
@@ -705,18 +713,20 @@ function sparkleGathering(box: HTMLElement) {
 				top: 8 + Math.random() * 70 + "%",
 				rotation: Math.random() * 60 - 30,
 			})
-			gsap.fromTo(
-				s,
-				{ opacity: 0, scale: 0.3 },
-				{
-					opacity: 0.9,
-					scale: 0.9 + Math.random() * 0.5,
-					duration: 0.6 + Math.random() * 0.7,
-					repeat: -1,
-					yoyo: true,
-					delay: Math.random() * 1.4,
-					ease: "sine.inOut",
-				},
+			tweens.push(
+				gsap.fromTo(
+					s,
+					{ opacity: 0, scale: 0.3 },
+					{
+						opacity: 0.9,
+						scale: 0.9 + Math.random() * 0.5,
+						duration: 0.6 + Math.random() * 0.7,
+						repeat: -1,
+						yoyo: true,
+						delay: Math.random() * 1.4,
+						ease: "sine.inOut",
+					},
+				),
 			)
 		}
 	})

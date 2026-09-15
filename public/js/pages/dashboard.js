@@ -22,6 +22,7 @@ import { showInviteToast } from "/js/turn-alert.js";
 import { soloListHtml, betaReadingHtml, wireSoloDeletes } from "/js/write-view.js";
 import { confirmDialog } from "/js/components/confirm-delete.js";
 import { mountTendrilBorder } from "/js/components/tendril-border.js";
+import { whenVisible } from "/js/components/when-visible.js";
 mountChrome({ page: "dashboard" });
 const $ = (id) => document.getElementById(id);
 let me = await requireAuth("/");
@@ -568,9 +569,14 @@ async function loadDashboard() {
   }
 }
 const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+let sparkleWatchers = [];
 function sparkleGathering(box) {
+  for (const stop of sparkleWatchers) stop();
+  sparkleWatchers = [];
   if (!window.gsap || reduceMotion) return;
   box.querySelectorAll(".live-game.gathering").forEach((row) => {
+    const tweens = [];
+    sparkleWatchers.push(whenVisible(row, { onShow: () => tweens.forEach((t) => t.play()), onHide: () => tweens.forEach((t) => t.pause()) }));
     for (let i = 0; i < 5; i++) {
       const s = document.createElement("span");
       s.className = "sparkle";
@@ -581,18 +587,20 @@ function sparkleGathering(box) {
         top: 8 + Math.random() * 70 + "%",
         rotation: Math.random() * 60 - 30
       });
-      gsap.fromTo(
-        s,
-        { opacity: 0, scale: 0.3 },
-        {
-          opacity: 0.9,
-          scale: 0.9 + Math.random() * 0.5,
-          duration: 0.6 + Math.random() * 0.7,
-          repeat: -1,
-          yoyo: true,
-          delay: Math.random() * 1.4,
-          ease: "sine.inOut"
-        }
+      tweens.push(
+        gsap.fromTo(
+          s,
+          { opacity: 0, scale: 0.3 },
+          {
+            opacity: 0.9,
+            scale: 0.9 + Math.random() * 0.5,
+            duration: 0.6 + Math.random() * 0.7,
+            repeat: -1,
+            yoyo: true,
+            delay: Math.random() * 1.4,
+            ease: "sine.inOut"
+          }
+        )
       );
     }
   });

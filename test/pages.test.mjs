@@ -746,17 +746,17 @@ test("the AO3 skin previewer is linked out to ao3-skin-previewer.replit.app from
   assert.match(bar, new RegExp(`<a class="bar-link bar-link-glow" href="${SITE}" target="_blank" rel="noopener">🎨 AO3 skin previewer</a>`), "the tour bar links it");
   assert.ok(!home.body.includes('href="/ao3-preview"'), "no in-app route link is left");
   const homeCss = (await page("/css/home.css")).body;
-  assert.match(homeCss, /\.tour-bar \.bar-link-glow \{[^}]*animation: bar-link-glow/s);
+  assert.match(homeCss, /\.tour-bar \.bar-link-glow::after \{[^}]*animation: bar-link-glow/s, "the glow breathes on a pseudo-element (opacity, composited) — test/animation-budget.test.mjs");
   const chrome = (await page("/js/chrome.js")).body;
   // esbuild may hoist the export into a trailing `export { … }` list; either spelling names the site once
   assert.match(chrome, new RegExp(`^(?:export )?const AO3_PREVIEWER_URL = "${SITE.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`, "m"));
   assert.match(chrome, /<a href="\$\{AO3_PREVIEWER_URL\}" class="nav-glow" target="_blank" rel="noopener">🎨 AO3 skin previewer<\/a>/, "the nav drawer lists it");
   const base = (await page("/css/base.css")).body;
-  assert.match(base, /\.nav-drawer a\.nav-glow \{[^}]*animation: nav-glow/s);
+  assert.match(base, /\.nav-drawer a\.nav-glow::after \{[^}]*animation: nav-glow/s);
   const dash = readFileSync(new URL("../public/dashboard.html", import.meta.url), "utf-8");
   assert.match(dash, new RegExp(`<a class="dnav dnav-glow" href="${SITE}" target="_blank" rel="noopener">`), "the dashboard rail lists it");
   const dashCss = (await page("/css/dashboard.css")).body;
-  assert.match(dashCss, /\n\.dnav-glow \{[^}]*animation: dnav-glow/s, "the previewer row glows");
+  assert.match(dashCss, /\n\.dnav-glow::after \{[^}]*animation: dnav-glow/s, "the previewer row glows");
   assert.ok(!/#soloBtn[^{]*\{[^}]*animation/s.test(dashCss), "solo write no longer glows — one beacon per rail");
   assert.match(dash, /<span class="dnav-new">New<\/span>/, "with a NEW pill");
   assert.match(dashCss, /\.dnav-new \{[^}]*animation: dnav-new/s, "that pulses");

@@ -4,6 +4,7 @@ const INSET = 1;
 const DRAW = 0.95;
 const SWEEP = 2.4;
 const SWEEP_GAP = 1.4;
+import { whenVisible } from "./when-visible.js";
 function frameD(w, h, r = RADIUS, i = INSET) {
   const x = w - i, y = h - i;
   return `M${i + r},${i} H${x - r} A${r},${r} 0 0 1 ${x},${i + r} V${y - r} A${r},${r} 0 0 1 ${x - r},${y} H${i + r} A${r},${r} 0 0 1 ${i},${y - r} V${i + r} A${r},${r} 0 0 1 ${i + r},${i} Z`;
@@ -20,6 +21,21 @@ function mountTendrilBorder(el, { horn = null, gsap = globalThis.window?.gsap, w
   const line = svg.querySelector(".vine-line"), glow = svg.querySelector(".vine-glow"), shine = svg.querySelector(".vine-shine"), grad = svg.querySelector("linearGradient");
   const still = win?.matchMedia ? win.matchMedia("(prefers-reduced-motion: reduce)").matches : false;
   let tl = null, loop = null, W = 0;
+  let canSee = true;
+  const unwatch = whenVisible(
+    el,
+    {
+      onShow: () => {
+        canSee = true;
+        loop?.play?.();
+      },
+      onHide: () => {
+        canSee = false;
+        loop?.pause?.();
+      }
+    },
+    win
+  );
   function paintTheme() {
     const cs = win?.getComputedStyle ? win.getComputedStyle(el) : null;
     const v = (n, fb) => (cs?.getPropertyValue(n) || "").trim() || fb;
@@ -59,6 +75,7 @@ function mountTendrilBorder(el, { horn = null, gsap = globalThis.window?.gsap, w
     loop = gsap.timeline({ repeat: -1, repeatDelay: SWEEP_GAP });
     loop.fromTo(grad, { attr: { x1: -band, x2: 0 } }, { attr: { x1: W, x2: W + band }, duration: SWEEP, ease: "sine.inOut" }, 0);
     loop.fromTo(glow, { opacity: 0 }, { opacity: 0.5, duration: SWEEP / 2, yoyo: true, repeat: 1, ease: "sine.inOut" }, 0);
+    if (!canSee) loop.pause?.();
   }
   function grow() {
     kill();
@@ -115,6 +132,7 @@ function mountTendrilBorder(el, { horn = null, gsap = globalThis.window?.gsap, w
     glimmer,
     destroy() {
       kill();
+      unwatch();
       ro?.disconnect();
       mo?.disconnect();
       el.ownerDocument.removeEventListener("visibilitychange", onVisible);

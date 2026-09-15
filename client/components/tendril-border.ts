@@ -11,6 +11,7 @@ export const INSET = 1 // keeps the stroke off the clipping edge
 export const DRAW = 0.95 // seconds for the border to complete
 export const SWEEP = 2.4 // seconds for one gradient pass
 export const SWEEP_GAP = 1.4 // seconds of rest between passes
+import { whenVisible } from "./when-visible.js"
 
 // The frame path: a rounded rectangle traced clockwise from the top-left.
 export function frameD(w: number, h: number, r: number = RADIUS, i: number = INSET): string {
@@ -46,6 +47,8 @@ interface TimelineLike {
 	to(...args: unknown[]): TimelineLike
 	fromTo(...args: unknown[]): TimelineLike
 	set(...args: unknown[]): TimelineLike
+	pause?(): unknown
+	play?(): unknown
 }
 export interface TendrilOpts {
 	horn?: HTMLElement | null
@@ -73,6 +76,24 @@ export function mountTendrilBorder(el: HTMLElement | null, { horn = null, gsap =
 	let tl: TimelineLike | null = null,
 		loop: TimelineLike | null = null,
 		W = 0
+	// The glimmer is a loop for as long as the card is open — but only while
+	// someone can see it: scrolled away or in a background tab it pauses,
+	// so a page with the card at the top never pays for it at the bottom.
+	let canSee = true
+	const unwatch = whenVisible(
+		el,
+		{
+			onShow: () => {
+				canSee = true
+				loop?.play?.()
+			},
+			onHide: () => {
+				canSee = false
+				loop?.pause?.()
+			},
+		},
+		win,
+	)
 
 	function paintTheme() {
 		const cs = win?.getComputedStyle ? win.getComputedStyle(el!) : null
@@ -118,6 +139,7 @@ export function mountTendrilBorder(el: HTMLElement | null, { horn = null, gsap =
 		loop = gsap.timeline({ repeat: -1, repeatDelay: SWEEP_GAP }) as TimelineLike
 		loop.fromTo(grad, { attr: { x1: -band, x2: 0 } }, { attr: { x1: W, x2: W + band }, duration: SWEEP, ease: "sine.inOut" }, 0)
 		loop.fromTo(glow, { opacity: 0 }, { opacity: 0.5, duration: SWEEP / 2, yoyo: true, repeat: 1, ease: "sine.inOut" }, 0)
+		if (!canSee) loop.pause?.()
 	}
 	function grow() {
 		kill()
@@ -179,6 +201,7 @@ export function mountTendrilBorder(el: HTMLElement | null, { horn = null, gsap =
 		glimmer,
 		destroy() {
 			kill()
+			unwatch()
 			ro?.disconnect()
 			mo?.disconnect()
 			el!.ownerDocument.removeEventListener("visibilitychange", onVisible)
