@@ -48,3 +48,12 @@ export const THEME_LABELS: Record<ThemeId, string> = {
 export const DEFAULT_THEME: ThemeId = "upside"
 
 export const isThemeId = (id: unknown): id is ThemeId => typeof id === "string" && (THEMES as readonly string[]).includes(id)
+
+/** A lock as /api/themes ships it: the tier that earns the theme. A bare tier id also works (a hand-rolled pack). */
+export type ThemeLock = { tier: string; name: string; min?: number } | string
+/** What the menu is gated on: the locks, and the ids this account may wear. */
+export interface ThemeGate {
+	locks: Record<string, ThemeLock>
+	unlocked: string[]
+	admin?: boolean
+}
