@@ -77,7 +77,9 @@ test("an admin deletes; a normal account can't; an unknown id is a 404", async (
 
 test("the page is served at /announcements with the site name filled in", async () => {
   const html = await fetch(ctx.url + "/announcements").then((r) => r.text());
-  assert.ok(html.includes("announcements-view.js"));
+  assert.ok(html.includes("/js/pages/announcements.js"), "the page loads its script, emitted from client/pages/announcements.ts");
+  const script = await fetch(ctx.url + "/js/pages/announcements.js").then((r) => r.text());
+  assert.ok(script.includes("announcements-view.js"));
   assert.ok(!html.includes("{{SITE_NAME}}"));
 });
 
