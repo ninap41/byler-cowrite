@@ -27,13 +27,10 @@ const fromCss = () => {
   return out;
 };
 
-test("every theme in theme.js has a font row, and vice versa", () => {
-  const themeJs = read("public/js/theme.js");
-  const listed = themeJs
-    .slice(themeJs.indexOf("export const THEMES = ["), themeJs.indexOf("]", themeJs.indexOf("export const THEMES = [")))
-    .match(/"[a-z]+"/g)
-    .map((s) => s.replaceAll('"', ""));
-  assert.deepEqual(Object.keys(fonts.themes).sort(), [...listed].sort(), "fonts.json covers exactly the real themes");
+// The registry is client/shared/themes.ts (emitted to public/js/shared/themes.js).
+const { THEMES, THEME_LABELS } = await import("../public/js/shared/themes.js");
+test("every theme in the registry has a font row, and vice versa", () => {
+  assert.deepEqual(Object.keys(fonts.themes).sort(), [...THEMES].sort(), "fonts.json covers exactly the real themes");
 });
 
 test("fonts.json matches the --font-* values in base.css exactly", () => {
@@ -65,9 +62,7 @@ test("every page requests the same font set, one stale <head> would change a the
 });
 
 test("each theme's label is the one the switcher shows", () => {
-  const themeJs = read("public/js/theme.js");
-  for (const [name, row] of Object.entries(fonts.themes))
-    assert.ok(themeJs.includes(`${name}: "${row.label}"`), `${name} label drifted`);
+  for (const [name, row] of Object.entries(fonts.themes)) assert.equal(THEME_LABELS[name], row.label, `${name} label drifted`);
 });
 
 // Loaded, but not by a theme: `extraFamilies` is the editor menu's own shelf.
