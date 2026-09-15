@@ -1,0 +1,400 @@
+// A d20 you can put anywhere: a real icosahedron built from numbers (not
+// twenty hand-placed faces), oriented by quaternion so a tumble never gimbal-
+// locks, shaded per frame so it catches the light, and tinted from a user's
+// palette colour so a table of dice reads as a table of PEOPLE.
+//
+// It rolls to a GIVEN value — the server decides the number, this only shows
+// it landing — so every client watching the same roll sees the same face.
+// Module-level maths is pure (tests import it); createDie() is the DOM half.
+import { safeColor } from "../util.js"
+
+export type Vec3 = [number, number, number]
+export type Vec2 = [number, number]
+export type Quat = [number, number, number, number]
+export type Rgb = [number, number, number]
+
+// ---- 1. Geometry ------------------------------------------------------------
+const PHI = (1 + Math.sqrt(5)) / 2
+const sub = (a: Vec3, b: Vec3): Vec3 => [a[0] - b[0], a[1] - b[1], a[2] - b[2]]
+export const dot = (a: Vec3, b: Vec3): number => a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
+const cross = (a: Vec3, b: Vec3): Vec3 => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]
+const unit = (a: Vec3): Vec3 => {
+	const l = Math.hypot(a[0], a[1], a[2])
+	return [a[0] / l, a[1] / l, a[2] / l]
+}
+const dist2 = (a: Vec3, b: Vec3): number => (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2
+const clamp = (v: number, lo: number, hi: number): number => Math.max(lo, Math.min(hi, v))
+
+// 12 vertices in CSS space (+y down); 20 faces = every triple whose edges are all length 2.
+const V: Vec3[] = []
+for (const a of [1, -1]) for (const b of [1, -1]) V.push([0, a, b * PHI], [a, b * PHI, 0], [b * PHI, 0, a])
+const TRI: [number, number, number][] = []
+for (let i = 0; i < 12; i++)
+	for (let j = i + 1; j < 12; j++)
+		for (let k = j + 1; k < 12; k++)
+			if (
+				Math.abs(dist2(V[i]!, V[j]!) - 4) < 1e-6 &&
+				Math.abs(dist2(V[i]!, V[k]!) - 4) < 1e-6 &&
+				Math.abs(dist2(V[j]!, V[k]!) - 4) < 1e-6
+			)
+				TRI.push([i, j, k])
+const CIRCUM = Math.hypot(...V[0]!)
+
+// Per-face basis: ez outward, ey down-in-face, ex = ey × ez — first vertex at
+// local -y so every triangle renders point-up with an upright numeral.
+export interface Face {
+	c: Vec3
+	ex: Vec3
+	ey: Vec3
+	ez: Vec3
+	proj: Vec2[]
+}
+export const FACES: Face[] = TRI.map((tri) => {
+	const [i0, i1, i2] = tri
+	const c = [0, 1, 2].map((t) => (V[i0]![t]! + V[i1]![t]! + V[i2]![t]!) / 3) as Vec3
+	const ez = unit(c)
+	const ey = unit(sub(c, V[i0]!))
+	const ex = cross(ey, ez)
+	const proj = tri.map((vi): Vec2 => {
+		const d = sub(V[vi]!, c)
+		return [dot(d, ex), dot(d, ey)]
+	})
+	return { c, ex, ey, ez, proj }
+})
+
+// Opposite faces sum to 21, like a real d20.
+export const NUM: number[] = new Array(20).fill(0)
+for (let i = 0, n = 1; i < 20; i++) {
+	if (NUM[i]) continue
+	const opp = FACES.findIndex((f, j) => j !== i && dot(FACES[i]!.ez, f.ez) < -0.999)
+	NUM[i] = n
+	NUM[opp] = 21 - n
+	n++
+}
+export const faceFor = (value: number): number => NUM.indexOf(value)
+
+// ---- 2. Quaternions ---------------------------------------------------------
+export const qMul = (a: Quat, b: Quat): Quat => [
+	a[3] * b[0] + a[0] * b[3] + a[1] * b[2] - a[2] * b[1],
+	a[3] * b[1] - a[0] * b[2] + a[1] * b[3] + a[2] * b[0],
+	a[3] * b[2] + a[0] * b[1] - a[1] * b[0] + a[2] * b[3],
+	a[3] * b[3] - a[0] * b[0] - a[1] * b[1] - a[2] * b[2],
+]
+const qNorm = (q: Quat): Quat => {
+	const l = Math.hypot(...q)
+	return q.map((v) => v / l) as Quat
+}
+export const qAxis = (axis: Vec3, angle: number): Quat => {
+	const [x, y, z] = unit(axis),
+		s = Math.sin(angle / 2)
+	return [x * s, y * s, z * s, Math.cos(angle / 2)]
+}
+const qFromRows = (r0: Vec3, r1: Vec3, r2: Vec3): Quat => {
+	const t = r0[0] + r1[1] + r2[2]
+	if (t > 0) {
+		const s = 0.5 / Math.sqrt(t + 1)
+		return qNorm([(r2[1] - r1[2]) * s, (r0[2] - r2[0]) * s, (r1[0] - r0[1]) * s, 0.25 / s])
+	}
+	if (r0[0] > r1[1] && r0[0] > r2[2]) {
+		const s = 2 * Math.sqrt(1 + r0[0] - r1[1] - r2[2])
+		return qNorm([0.25 * s, (r0[1] + r1[0]) / s, (r0[2] + r2[0]) / s, (r2[1] - r1[2]) / s])
+	}
+	if (r1[1] > r2[2]) {
+		const s = 2 * Math.sqrt(1 + r1[1] - r0[0] - r2[2])
+		return qNorm([(r0[1] + r1[0]) / s, 0.25 * s, (r1[2] + r2[1]) / s, (r0[2] - r2[0]) / s])
+	}
+	const s = 2 * Math.sqrt(1 + r2[2] - r0[0] - r1[1])
+	return qNorm([(r0[2] + r2[0]) / s, (r1[2] + r2[1]) / s, 0.25 * s, (r1[0] - r0[1]) / s])
+}
+const dot4 = (a: Quat, b: Quat): number => a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3]
+const qSlerp = (a: Quat, b: Quat, t: number): Quat => {
+	let d = dot4(a, b)
+	if (d < 0) {
+		b = b.map((v) => -v) as Quat
+		d = -d
+	}
+	if (d > 0.9995) return qNorm(a.map((v, i) => v + (b[i]! - v) * t) as Quat)
+	const th = Math.acos(d),
+		s = Math.sin(th)
+	return a.map((v, i) => (v * Math.sin((1 - t) * th)) / s + (b[i]! * Math.sin(t * th)) / s) as Quat
+}
+export const qRotate = (q: Quat, v: Vec3): Vec3 => {
+	const [x, y, z, w] = q
+	const t: Vec3 = [2 * (y * v[2] - z * v[1]), 2 * (z * v[0] - x * v[2]), 2 * (x * v[1] - y * v[0])]
+	return [
+		v[0] + w * t[0] + y * t[2] - z * t[1],
+		v[1] + w * t[1] + z * t[0] - x * t[2],
+		v[2] + w * t[2] + x * t[1] - y * t[0],
+	]
+}
+const qToMatrix3d = (q: Quat): string => {
+	const [x, y, z, w] = q
+	const m = [
+		1 - 2 * (y * y + z * z), 2 * (x * y + z * w), 2 * (x * z - y * w), 0,
+		2 * (x * y - z * w), 1 - 2 * (x * x + z * z), 2 * (y * z + x * w), 0,
+		2 * (x * z + y * w), 2 * (y * z - x * w), 1 - 2 * (x * x + y * y), 0,
+		0, 0, 0, 1,
+	]
+	return "matrix3d(" + m.map((v) => v.toFixed(6)).join(",") + ")"
+}
+
+// A small fixed tilt so the landed face reads as a face of a solid rather
+// than a flat card. restQuat(i) is the orientation with face i toward the eye.
+const TILT = qMul(qAxis([0, 1, 0], 0.14), qAxis([1, 0, 0], -0.24))
+export const restQuat = (i: number): Quat => {
+	const f = FACES[i]!
+	return qMul(TILT, qFromRows(f.ex, f.ey, f.ez))
+}
+// The un-tilted rest: face i's normal points straight at the eye (+z).
+export const restQuatFlat = (i: number): Quat => {
+	const f = FACES[i]!
+	return qFromRows(f.ex, f.ey, f.ez)
+}
+
+// ---- 3. Colour: the writer's palette hex → resin / edge / pip ramps ---------
+const hexToRgb = (hex: string): Rgb => {
+	const h = hex.replace("#", "")
+	const n = parseInt(h.length === 3 ? h.split("").map((c) => c + c).join("") : h, 16)
+	return [(n >> 16) & 255, (n >> 8) & 255, n & 255]
+}
+const lerp3 = (a: Rgb, b: Rgb, t: number): Rgb => a.map((v, i) => Math.round(v + (b[i]! - v) * t)) as Rgb
+const mixRgb = (a: Rgb, b: Rgb, t: number): string => `rgb(${lerp3(a, b, t).join(",")})`
+// Deep in shadow, hot in the light — the reference's red resin generalised:
+// shadow = the colour pulled 80% toward near-black, light = the colour itself
+// nudged toward white; edges a step brighter; pips cream over a muted base.
+export interface Ramps {
+	resin: [Rgb, Rgb]
+	edge: [Rgb, Rgb]
+	pip: [Rgb, Rgb]
+}
+export function paletteRamps(hex: string): Ramps {
+	const c = hexToRgb(safeColor(hex))
+	const dark = lerp3(c, [8, 4, 6], 0.8)
+	const light = lerp3(c, [255, 255, 255], 0.12)
+	return {
+		resin: [dark, light],
+		edge: [lerp3(c, [10, 5, 8], 0.65), lerp3(c, [255, 255, 255], 0.42)],
+		pip: [lerp3(c, [255, 245, 235], 0.45), [255, 246, 232]],
+	}
+}
+const LIGHT = unit([-0.35, -0.62, 0.85]) // upper-left, in front
+const easeOutQuint = (t: number): number => 1 - Math.pow(1 - t, 5)
+
+// ---- 4. The DOM die ---------------------------------------------------------
+// host: an element to build into (it becomes .d20-stage). Returns handles.
+export interface DieOpts {
+	color?: string
+	size?: number
+	reduceMotion?: boolean
+}
+export interface Die {
+	el: HTMLElement
+	rollTo(value: number, opts?: { onLand?: (value: number) => void }): void
+	setColor(c: string): void
+	setSize(n: number): void
+	readonly face: number | undefined
+	readonly quat: Quat
+	readonly rolling: boolean
+	settleNow(): void
+	destroy(): void
+}
+interface FaceEl {
+	el: HTMLElement
+	inner: HTMLElement
+	pip: HTMLElement
+	normal: Vec3
+}
+export function createDie(host: HTMLElement, { color = "#e63946", size = 150, reduceMotion }: DieOpts = {}): Die {
+	const doc = host.ownerDocument
+	const rm =
+		reduceMotion ??
+		(typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches)
+	host.classList.add("d20-stage")
+	host.style.setProperty("--die-size", size + "px")
+	host.innerHTML =
+		`<div class="d20-flare"></div>` +
+		`<div class="d20-lift"><div class="d20-die"></div></div>` +
+		`<div class="d20-shadow"></div>`
+	const flare = host.querySelector<HTMLElement>(".d20-flare")!
+	const lift = host.querySelector<HTMLElement>(".d20-lift")!
+	const die = host.querySelector<HTMLElement>(".d20-die")!
+	const shadow = host.querySelector<HTMLElement>(".d20-shadow")!
+
+	let ramps = paletteRamps(color)
+	const faceEls: FaceEl[] = []
+	let px = size
+
+	function build() {
+		const scale = px / (2 * CIRCUM)
+		const R = 2 / Math.sqrt(3) // face circumradius, model units
+		const side = 2 * R * scale
+		die.textContent = ""
+		faceEls.length = 0
+		FACES.forEach((f, i) => {
+			const poly = f.proj
+				.map(([qx, qy]) => `${(((qx + R) / (2 * R)) * 100).toFixed(3)}% ${(((qy + R) / (2 * R)) * 100).toFixed(3)}%`)
+				.join(", ")
+			const el = doc.createElement("div")
+			el.className = "d20-face"
+			el.style.width = side + "px"
+			el.style.height = side + "px"
+			el.style.marginLeft = el.style.marginTop = -side / 2 + "px"
+			el.style.clipPath = `polygon(${poly})`
+			el.style.transform =
+				"matrix3d(" +
+				[...f.ex, 0, ...f.ey, 0, ...f.ez, 0, ...f.c.map((v) => v * scale), 1].map((v) => (+v).toFixed(6)).join(",") +
+				")"
+			const inner = doc.createElement("div")
+			inner.className = "d20-face-in"
+			inner.style.clipPath = `polygon(${poly})`
+			const n = NUM[i]!
+			const pip = doc.createElement("span")
+			pip.className = "d20-pip"
+			pip.innerHTML = n === 6 || n === 9 ? `<u>${n}</u>` : String(n)
+			inner.appendChild(pip)
+			el.appendChild(inner)
+			die.appendChild(el)
+			faceEls.push({ el, inner, pip, normal: f.ez })
+		})
+	}
+
+	function shade(q: Quat) {
+		for (const f of faceEls) {
+			const n = qRotate(q, f.normal)
+			const t = 0.16 + 0.84 * Math.pow(Math.max(0, dot(n, LIGHT)), 0.75)
+			f.el.style.backgroundColor = mixRgb(ramps.edge[0], ramps.edge[1], t)
+			f.inner.style.backgroundColor = mixRgb(ramps.resin[0], ramps.resin[1], t)
+			f.pip.style.color = mixRgb(ramps.pip[0], ramps.pip[1], Math.max(t, 0.36))
+		}
+	}
+
+	let restingFace = faceFor(20)
+	let current = restQuat(restingFace)
+	let tossY = 0,
+		tossScale = 1
+	let rolling = false
+	let tween: { kill(): void } | null = null,
+		rafId: number | null = null
+	let settle: (() => void) | null = null // finishes the roll in flight, if any (see settleNow)
+
+	function paint() {
+		die.style.transform = qToMatrix3d(current)
+		lift.style.transform = `translate3d(0, ${tossY.toFixed(2)}px, 0) scale(${tossScale.toFixed(3)})`
+		const h = clamp(-tossY / 90, 0, 1.2)
+		shadow.style.transform = `translate(-50%, 0) scale(${(1 - h * 0.36).toFixed(3)})`
+		shadow.style.opacity = clamp(0.92 - h * 0.5, 0.1, 1).toFixed(3)
+		shade(current)
+	}
+
+	// Land on `value` (1..20). Resolves with the value once it has landed.
+	function rollTo(value: number, { onLand }: { onLand?: (value: number) => void } = {}) {
+		const faceIndex = faceFor(clamp(Math.round(value), 1, 20))
+		const target = restQuat(faceIndex)
+		restingFace = faceIndex
+		flare.classList.remove("on")
+		host.classList.remove("crit", "fumble")
+		const finish = () => {
+			settle = null
+			tween && tween.kill()
+			tween = null
+			if (typeof cancelAnimationFrame === "function" && rafId != null) cancelAnimationFrame(rafId)
+			current = target
+			tossY = 0
+			tossScale = 1
+			paint()
+			rolling = false
+			host.classList.remove("rolling")
+			if (value === 20) {
+				host.classList.add("crit")
+				flare.classList.add("on")
+				setTimeout(() => flare.classList.remove("on"), 1100)
+			} else if (value === 1) host.classList.add("fumble")
+			onLand?.(value)
+		}
+		const g = typeof window !== "undefined" ? window.gsap : undefined
+		// reduced motion — or nowhere to animate (no GSAP, no rAF) — just lands
+		// … and a hidden tab's rAF is throttled, so a tumble there would stall
+		// mid-air; it lands outright and the reader sees the result on return.
+		const hidden = typeof document !== "undefined" && document.visibilityState === "hidden"
+		if (rm || hidden || (!g && typeof requestAnimationFrame !== "function")) {
+			finish()
+			return
+		}
+		settle = finish
+		rolling = true
+		host.classList.add("rolling")
+		const DURATION = 1.4 + Math.random() * 0.3
+		const TUMBLE = 0.56
+		const axis = unit([Math.random() * 2 - 1, Math.random() * 2 - 1, Math.random() * 2 - 1] as Vec3)
+		const speed = 13 + Math.random() * 6
+		const start = current
+		let handoff = start
+		const frame = (p: number) => {
+			if (p < TUMBLE) {
+				const k = p / TUMBLE
+				const angle = speed * DURATION * (k - 0.45 * k * k)
+				current = qNorm(qMul(qAxis(axis, angle), start))
+				handoff = current
+			} else {
+				current = qNorm(qSlerp(handoff, target, easeOutQuint((p - TUMBLE) / (1 - TUMBLE))))
+			}
+			tossY = -96 * Math.abs(Math.sin(Math.PI * p * 1.85)) * Math.pow(1 - p, 0.85) * (px / 210)
+			tossScale = 1 + 0.05 * Math.sin(Math.PI * p * 1.85) * (1 - p)
+			paint()
+		}
+		if (g) {
+			tween && tween.kill()
+			const state = { p: 0 }
+			tween = g.to(state, { p: 1, duration: DURATION, ease: "none", onUpdate: () => frame(state.p), onComplete: finish })
+		} else {
+			if (rafId != null) cancelAnimationFrame(rafId)
+			const t0 = performance.now()
+			const step = (now: number) => {
+				const p = Math.min(1, (now - t0) / (DURATION * 1000))
+				frame(p)
+				if (p < 1) rafId = requestAnimationFrame(step)
+				else finish()
+			}
+			rafId = requestAnimationFrame(step)
+		}
+	}
+
+	build()
+	paint()
+	return {
+		el: host,
+		rollTo,
+		setColor(c: string) {
+			ramps = paletteRamps(c)
+			shade(current)
+		},
+		setSize(n: number) {
+			px = n
+			host.style.setProperty("--die-size", n + "px")
+			build()
+			paint()
+		},
+		// The face the die is showing (its number), and its live orientation —
+		// tests read these instead of the DOM.
+		get face() {
+			return NUM[restingFace]
+		},
+		get quat() {
+			return current
+		},
+		get rolling() {
+			return rolling
+		},
+		// Land whatever is in the air right now (a tab coming back to the
+		// foreground shouldn't find a die frozen mid-tumble).
+		settleNow() {
+			settle?.()
+		},
+		destroy() {
+			tween && tween.kill()
+			if (typeof cancelAnimationFrame === "function" && rafId != null) cancelAnimationFrame(rafId)
+			host.innerHTML = ""
+			host.classList.remove("d20-stage")
+		},
+	}
+}
