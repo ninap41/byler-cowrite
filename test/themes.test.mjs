@@ -9,10 +9,11 @@ import {
 } from "../lib/achievements.js";
 
 const ADMIN_EMAIL = "admin@cowrite.test";
-// The theme registry lives in the client (public/js/theme.js is the source of
+// The theme registry lives in the client (client/shared/themes.ts is the source of
 // truth for what themes exist); the json only names ids from it.
-const THEME_JS = readFileSync(new URL("../public/js/theme.js", import.meta.url), "utf-8");
-const THEMES = [...THEME_JS.slice(THEME_JS.indexOf("export const THEMES = ["), THEME_JS.indexOf("export const THEME_LABELS")).matchAll(/"([a-z]+)"/g)].map((m) => m[1]);
+// The registry is TypeScript now (client/shared/themes.ts, emitted to
+// public/js/shared/themes.js); import the emitted module rather than regex it.
+const { THEMES } = await import("../public/js/shared/themes.js");
 
 let ctx;
 before(async () => (ctx = await startServer()));

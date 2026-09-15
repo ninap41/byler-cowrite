@@ -7,7 +7,7 @@ import { installDom } from "./dom.mjs";
 import { readFileSync } from "node:fs";
 
 installDom(); // plainBlockHtml parses through a detached div
-import { docCardHtml, docListHtml, docShelfHtml, DOC_GROUPS, presenceHtml, soloRowHtml, soloListHtml, wireSoloDeletes, commentHtml, commentThreadHtml, readerChipsHtml, wordsLabel, formatSource, unformatSource, plainBlockHtml, visChipHtml, visMenuHtml, visLabel, VIS, scrollTargetFor, inviteOptions, inviteRowHtml, inviteListHtml, promptInsertHtml, insertAfterHeading, betaReadingHtml, chapterListHtml, chapNavHtml, chapChipLabel, countWordsHtml } from "../public/js/write-view.js";
+import { docCardHtml, docListHtml, docShelfHtml, DOC_GROUPS, presenceHtml, soloRowHtml, soloListHtml, wireSoloDeletes, commentHtml, commentThreadHtml, readerChipsHtml, wordsLabel, formatSource, unformatSource, plainBlockHtml, visChipHtml, visMenuHtml, visLabel, VIS, scrollTargetFor, inviteOptions, inviteRowHtml, inviteListHtml, promptInsertHtml, insertAfterHeading, betaReadingHtml, commentModeBannerHtml, chapterListHtml, chapNavHtml, chapChipLabel, countWordsHtml } from "../public/js/write-view.js";
 
 const DOC = {
   id: "abc", title: "The Upside Down", wordCount: 120, visibility: "private",
@@ -440,7 +440,8 @@ test("insertAfterHeading: right under the first heading, else at the very top", 
 });
 
 test("the write page carries the Prompt? chip (author only), the roller modal with Roll, Cancel and an Insert that waits for a roll, and Insert goes under the heading", () => {
-  const src = readFileSync(new URL("../public/write.html", import.meta.url), "utf-8");
+  // the page plus its script (emitted from client/pages/write.ts), read as one text
+  const src = readFileSync(new URL("../public/write.html", import.meta.url), "utf-8") + "\n" + readFileSync(new URL("../public/js/pages/write.js", import.meta.url), "utf-8");
   assert.match(src, /class="head-chip hidden" id="promptBtn"/, "hidden until the author is known");
   assert.ok(src.includes('$("promptBtn").classList.toggle("hidden", !canEdit)'), "author only");
   assert.match(src, /id="promptModal"/);
@@ -452,7 +453,8 @@ test("the write page carries the Prompt? chip (author only), the roller modal wi
   assert.ok(src.includes('$("promptInsert").classList.remove("hidden")'), "…revealed by showRolled");
   assert.ok(src.includes('api("/api/prompt/roll", { mode: promptMode, controls: promptControls })'));
   assert.ok(src.includes('insertAfterHeading($("docEditor"), promptInsertHtml(rolled.prompt))'));
-  assert.ok(/insertAfterHeading\(\$\("docEditor"\), promptInsertHtml\(rolled\.prompt\)\)\s*onEdit\(\{ immediate: true \}\)\s*closePromptModal\(\)/.test(src), "an insert is an edit (dirty, undo step) and closes the modal");
+  // [;\s]* because esbuild adds semicolons to the emitted script
+  assert.ok(/insertAfterHeading\(\$\("docEditor"\), promptInsertHtml\(rolled\.prompt\)\)[;\s]*onEdit\(\{ immediate: true \}\)[;\s]*closePromptModal\(\)/.test(src), "an insert is an edit (dirty, undo step) and closes the modal");
 });
 
 test("the prompt roller's card is one list of category | value rows and the modal scrolls instead of overflowing", () => {
@@ -564,4 +566,18 @@ test("chapNavHtml: Prev/Next name their chapters, the ends are blank, one chapte
   assert.equal(chapChipLabel([CHAPS[0]], 0), "📑 Chapters");
   assert.equal(chapChipLabel(CHAPS, 1, false), "📑 View chapters", "closed, the chip says what it opens");
   assert.equal(chapChipLabel([CHAPS[0]], 0, false), "📑 View chapters");
+});
+
+test("commentModeBannerHtml: names the mode, says the gesture, Done only for the author", () => {
+  const author = commentModeBannerHtml({ canExit: true });
+  assert.ok(author.includes("Comment mode"));
+  assert.ok(author.includes("Select any words to leave a note"));
+  assert.ok(author.includes('id="commentDone"'), "the author can leave");
+  assert.ok(!author.includes(" · "), "no count when there are none");
+  const reader = commentModeBannerHtml({ canExit: false, count: 1 });
+  assert.ok(reader.includes("Reading to comment"));
+  assert.ok(!reader.includes("commentDone"), "a reader is always in comment mode: nothing to leave");
+  assert.ok(reader.includes(" · 1 note"), "singular");
+  assert.ok(commentModeBannerHtml({ count: 3 }).includes(" · 3 notes"), "plural");
+  assert.ok(commentModeBannerHtml().includes("commentDone"), "defaults to the author's strip");
 });

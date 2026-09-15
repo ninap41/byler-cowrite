@@ -97,12 +97,13 @@ test("a help question and its answer are one conversation for the asker", async 
 
 test("the dashboard holds no messages at all; /inbox holds the conversation", async () => {
   const dash = await fetch(ctx.url + "/dashboard").then((r) => r.text());
-  const inbox = await fetch(ctx.url + "/inbox").then((r) => r.text());
+  const inbox = await fetch(ctx.url + "/js/pages/inbox.js").then((r) => r.text()); // the page's script, emitted from client/pages/inbox.ts
   // a message is a conversation and conversations happen on one page; what the
   // dashboard carries is the fact that one is waiting, on the link that goes there
   assert.ok(!/id="inboxList"/.test(dash) && !/inbox-panel\.js/.test(dash), "no message list on the dashboard");
   assert.match(dash, /id="navInbox"/, "the count rides the rail's Inbox link");
-  assert.match(dash, /api\("\/api\/inbox"/, "fed by the same endpoint, read for its count only");
+  const dashScript = await fetch(ctx.url + "/js/pages/dashboard.js").then((r) => r.text()); // emitted from client/pages/dashboard.ts
+  assert.match(dashScript, /api\("\/api\/inbox"/, "fed by the same endpoint, read for its count only");
   assert.match(inbox, /mountInbox/, "the inbox page keeps the whole panel");
   // and the module honors it: no composer markup, no Reply button, no chain
   const panel = await fetch(ctx.url + "/js/inbox-panel.js").then((r) => r.text());
@@ -144,7 +145,8 @@ test("the inbox ✕ asks first, the same confirm modal as every other delete", a
   assert.match(panel, /import \{ confirmInboxDelete \} from "\/js\/components\/confirm-delete\.js"/);
   assert.match(comp, /class="confirm-modal hidden" id="ibDelModal"/, "the site's confirm-modal shape");
   assert.match(comp, /class="primary danger" id="ibDelConfirm"/);
-  assert.match(panel, /if \(!\(await confirm\(\{ conversation: ids\.length > 1, count: ids\.length \}\)\)\) return/, "nothing is deleted until the modal says so");
+  // esbuild emits `!await confirm(…)` without the redundant parentheses
+  assert.match(panel, /if \(!\(?await confirm\(\{ conversation: ids\.length > 1, count: ids\.length \}\)\)?\) return/, "nothing is deleted until the modal says so");
   assert.match(comp, /Delete this conversation\?/);
   assert.match(comp, /Delete this message\?/);
 });
@@ -185,8 +187,9 @@ test("the profile page carries a Message button beside the friend button, hidden
   const html = await fetch(ctx.url + "/profile").then((r) => r.text());
   assert.match(html, /id="msgBtn"/);
   assert.match(html, /id="msgModal"/);
-  assert.match(html, /"\/api\/message", \{ username: p\.username, text \}/);
-  assert.match(html, /msgBtn\.classList\.toggle\("hidden", itsMe\)/, "hidden on your own profile");
+  const script = await fetch(ctx.url + "/js/pages/profile.js").then((r) => r.text()); // emitted from client/pages/profile.ts
+  assert.match(script, /"\/api\/message", \{ username: p\.username, text \}/);
+  assert.match(script, /msgBtn\.classList\.toggle\("hidden", itsMe\)/, "hidden on your own profile");
 });
 
 test("the inbox panel carries an open composer's draft across its 20s poll (text, focus, caret by thread)", async () => {

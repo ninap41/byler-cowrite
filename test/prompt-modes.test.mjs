@@ -280,7 +280,7 @@ test("only the host rerolls: shuffle-options and reroll-option are refused for a
   await ctx.wait(80);
   assert.deepEqual(state.current.options, before, "nothing moved");
   assert.equal((await ctx.emit(A, "shuffle-options")).ok, true, "the host can");
-  const src = readFileSync(new URL("../public/game.html", import.meta.url), "utf-8");
+  const src = readFileSync(new URL("../public/js/pages/game.js", import.meta.url), "utf-8"); // emitted from client/pages/game.ts
   const block = src.slice(src.indexOf("const meta = st.optionMeta?.[i]"), src.indexOf('$("voteProgress")'));
   assert.ok(/else if \(myId === hostId\) \{[\s\S]*?reroll-option/.test(block), "the ↻ button exists only in the host's markup");
   assert.ok(block.includes('b.classList.add("has-reroll")'), "and the card pads for it");
@@ -329,9 +329,9 @@ test("a hand-written scenario is tagged with its author, can't be rerolled, and 
   assert.equal((await ctx.emit(A, "remove-prompt", { index: j })).ok, true, "host removes");
   assert.equal((await ctx.emit(A, "remove-prompt", { index: 0 })).ok, false, "a dealt card is not removable");
   // the page: no ↻ on a custom card, ✕ only for its author or the host
-  const src = readFileSync(new URL("../public/game.html", import.meta.url), "utf-8");
+  const src = readFileSync(new URL("../public/js/pages/game.js", import.meta.url), "utf-8"); // emitted from client/pages/game.ts
   const block = src.slice(src.indexOf("const meta = st.optionMeta?.[i]"), src.indexOf('$("voteProgress")'));
-  assert.ok(/if \(meta\?\.custom\) \{[\s\S]*?meta\.by === me\.id\) \|\| myId === hostId[\s\S]*?remove-prompt[\s\S]*?\} else if \(myId === hostId\) \{[\s\S]*?reroll-option/.test(block), "Remove for the author/host on a custom card, ↻ for the host on a dealt one, never both");
+  assert.ok(/if \(meta\?\.custom\) \{[\s\S]*?meta\.by === me\.id\)? \|\| myId === hostId[\s\S]*?remove-prompt[\s\S]*?\} else if \(myId === hostId\) \{[\s\S]*?reroll-option/.test(block), "Remove for the author/host on a custom card, ↻ for the host on a dealt one, never both");
 });
 
 test("POST /api/prompt/roll deals one prompt for the solo editor in either mode, honours the knobs, needs an account, stores nothing", async () => {

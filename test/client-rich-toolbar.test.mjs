@@ -41,14 +41,15 @@ test("mounting wires the editor without throwing, and syncs on mount", () => {
 });
 
 test("the game page mounts the shared toolbar rather than hand-rolling one", () => {
-  const game = read("public/game.html");
+  // the page's script is emitted from client/pages/game.ts
+  const game = read("public/js/pages/game.js");
   assert.ok(game.includes("rich-toolbar.js"), "it imports the component");
   assert.ok(game.includes("mountRichToolbar($(\"writerEditor\")"), "and mounts it on the writing box");
-  assert.ok(!/<button class="ghost" data-cmd=/.test(game), "no hand-written toolbar buttons remain");
+  assert.ok(!/<button class="ghost" data-cmd=/.test(read("public/game.html")), "no hand-written toolbar buttons remain");
 });
 
 test("the game's editor emits the same subset it can produce, minus urls", () => {
-  const game = read("public/game.html");
+  const game = read("public/js/pages/game.js");
   const calls = [...game.matchAll(/cleanHtml\(.*?\}\)/g)].map((m) => m[0]);
   assert.ok(calls.length >= 3, "submit, edit and live-typing all clean the html");
   for (const c of calls) assert.match(c, /doc: true, urls: false/, "every call asks for the same subset: " + c);

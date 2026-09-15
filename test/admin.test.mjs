@@ -187,7 +187,9 @@ test("/admin serves, and the nav entrance is hidden markup until an admin loads 
   const body = await r.text();
   assert.equal(r.status, 200);
   assert.ok(body.includes('id="adminGames"') && body.includes('id="adminUsers"'), "both moderation lists");
-  assert.ok(body.includes("/js/admin-view.js"), "rows come from the shared builder");
+  assert.ok(body.includes("/js/pages/admin.js"), "the page loads its script (emitted from client/pages/admin.ts)");
+  const script = await fetch(ctx.url + "/js/pages/admin.js").then((r) => r.text());
+  assert.ok(script.includes("/js/admin-view.js"), "rows come from the shared builder");
 });
 
 // ---- Help: users ask the admin ----
@@ -291,8 +293,9 @@ test("the dashboard carries the help box, and it starts hidden for everyone", as
   assert.ok(body.includes('id="helpCard"'), "the help section exists");
   assert.match(body, /id="helpCard"[^>]*class="[^"]*hidden|class="card hidden" id="helpCard"/, "hidden until a non-admin loads it");
   assert.ok(body.includes('id="helpText"') && body.includes('id="helpSend"'), "a box and a send button");
-  assert.ok(body.includes("/api/help"), "wired to the help route");
-  assert.ok(body.includes("me.admin"), "the admin never sees it");
+  const script = await fetch(ctx.url + "/js/pages/dashboard.js").then((r) => r.text()); // the page's script, emitted from client/pages/dashboard.ts
+  assert.ok(script.includes("/api/help"), "wired to the help route");
+  assert.ok(script.includes("me?.admin"), "the admin never sees it");
 });
 
 test("the inbox reply composer is inline markup on the page, not a browser prompt", async () => {
@@ -306,7 +309,7 @@ test("the inbox reply composer is inline markup on the page, not a browser promp
   assert.ok(body.includes("/api/inbox/reply"), "wired to the reply route");
   assert.ok(body.includes('e.key === "Escape"'), "Escape clears it");
   assert.ok(body.includes("metaKey || e.ctrlKey"), "and Ctrl/Cmd+Enter sends");
-  assert.ok((await fetch(ctx.url + "/inbox").then((r) => r.text())).includes("inbox-page.js"), "/inbox uses it");
+  assert.ok((await fetch(ctx.url + "/js/pages/inbox.js").then((r) => r.text())).includes("inbox-page.js"), "/inbox uses it (its script is /js/pages/inbox.js)");
   const dash = await fetch(ctx.url + "/dashboard").then((r) => r.text());
   assert.ok(!dash.includes("inbox-panel.js"), "the dashboard does not render messages at all");
 });

@@ -119,7 +119,10 @@ export async function startedGame(ctx, { turnSeconds = 60, rounds = 2, friendly 
   const c = await ctx.emit(A, "create-session", { auth: host.token });
   const j = await ctx.emit(B, "join-session", { code: c.code, auth: mike.token });
   await ctx.emit(A, "start-game", { turnSeconds, rounds, friendly });
-  await ctx.wait(150);
+  // wait for the choosing-phase broadcast itself, not a fixed 150ms — a slow
+  // CI runner can deliver it later than that
+  for (let i = 0; !state.current?.options?.length && i < 40; i++) await ctx.wait(50);
+  if (!state.current) throw new Error("startedGame: no game-state broadcast after start-game");
   await finishVote(ctx, A, [B], state.current.options[0]);
   return { host, mike, A, B, code: c.code, hostSeatToken: c.token, mikeSeatToken: j.token, state };
 }

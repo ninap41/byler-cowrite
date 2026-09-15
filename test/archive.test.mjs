@@ -182,8 +182,8 @@ test("live games are lit: the rail/bulb/aura/sheen ride every row in theme token
   for (const k of ["lg-bulb", "lg-aura", "lg-sheen", "lg-pip"]) assert.match(css, new RegExp(`@keyframes ${k}`), k);
   const block = css.slice(css.indexOf("\n.live-game {"), css.indexOf("@media (prefers-reduced-motion: reduce) {\n\t.live-game .lg-bulb"));
   assert.ok(!/#[0-9a-f]{3,8}\b/i.test(block.replace(/rgba\(255, 255, 255[^)]*\)/g, "")), "no hard-coded colours: every theme lights its own");
-  const page = readFileSync(new URL("../public/dashboard.html", import.meta.url), "utf-8");
-  assert.match(page, /row\.style\.setProperty\("--lg-i", i\)/);
+  const page = readFileSync(new URL("../public/js/pages/dashboard.js", import.meta.url), "utf-8"); // emitted from client/pages/dashboard.ts
+  assert.match(page, /row\.style\.setProperty\("--lg-i", String\(i\)\)/);
   const g = await startedGame(ctx, { turnSeconds: 60, rounds: 3 });
   const d = await ctx.api("/api/dashboard", undefined, g.host.token);
   const row = d.data.liveGames.find((x) => x.code === g.code);
@@ -250,8 +250,8 @@ test("an outsider (no seat, no line, not the host, not an admin) can only READ a
 
   // and the pages agree: the profile routes on `mine`, the archive bounces a 403 to /stories
   const { readFileSync } = await import("node:fs");
-  const profile = readFileSync(new URL("../public/profile.html", import.meta.url), "utf8");
+  const profile = readFileSync(new URL("../public/js/pages/profile.js", import.meta.url), "utf8"); // the page's script, emitted from client/pages/profile.ts
   assert.match(profile, /g\.mine \? "\/archive\?code=" : "\/stories\?code="/);
-  const archive = readFileSync(new URL("../public/archive.html", import.meta.url), "utf8");
-  assert.match(archive, /e\.status === 403\) location\.replace\("\/stories\?code=" \+ encodeURIComponent\(code\)\)/);
+  const archive = readFileSync(new URL("../public/js/pages/archive.js", import.meta.url), "utf8"); // the page's script, emitted from client/pages/archive.ts
+  assert.match(archive, /status === 403\) location\.replace\("\/stories\?code=" \+ encodeURIComponent\(code\)\)/);
 });

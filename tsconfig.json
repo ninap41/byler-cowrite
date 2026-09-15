@@ -1,0 +1,32 @@
+{
+  "compilerOptions": {
+    "target": "es2022",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "lib": [
+      "es2022",
+      "dom",
+      "dom.iterable"
+    ],
+    "strict": true,
+    "noEmit": true,
+    "allowJs": true,
+    "checkJs": false,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "rootDirs": [
+      "client",
+      "public/js"
+    ],
+    "paths": {
+      "/js/*": [
+        "./client/*",
+        "./public/js/*"
+      ]
+    }
+  },
+  "include": [
+    "client/**/*.ts"
+  ]
+}

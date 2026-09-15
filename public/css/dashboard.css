@@ -1304,23 +1304,36 @@ a.rg-row {
    NEW pill that pulses with it: the door out to its own site is the thing to
    notice. (Solo write no longer glows — one beacon per rail.) */
 .dnav-glow {
+	position: relative;
 	border: 1px solid color-mix(in srgb, var(--accent-2) 55%, transparent);
 	border-radius: var(--r-md);
+}
+/* the glow is a pseudo-element breathing by OPACITY (composited), never an
+   animated box-shadow (a main-thread repaint of the rail every frame that
+   also invalidates the scrolling page's tiles — the dashboard's scroll blink) */
+.dnav-glow::after {
+	content: "";
+	position: absolute;
+	inset: -1px;
+	border-radius: inherit;
+	box-shadow: 0 0 14px 1px color-mix(in srgb, var(--accent-2) 45%, transparent);
+	opacity: 0;
+	pointer-events: none;
 	animation: dnav-glow 2.6s ease-in-out infinite;
 }
 @keyframes dnav-glow {
 	0%,
 	100% {
-		box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent-2) 0%, transparent);
+		opacity: 0;
 	}
 	50% {
-		box-shadow: 0 0 14px 1px color-mix(in srgb, var(--accent-2) 45%, transparent);
+		opacity: 1;
 	}
 }
 @media (prefers-reduced-motion: reduce) {
-	.dnav-glow {
+	.dnav-glow::after {
 		animation: none;
-		box-shadow: 0 0 10px 0 color-mix(in srgb, var(--accent-2) 35%, transparent);
+		opacity: 0.7;
 	}
 }
 

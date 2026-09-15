@@ -9,6 +9,12 @@
 	--bg-2: #0c1d18;
 	--panel: rgba(10, 26, 22, 0.6);
 	--panel-2: rgba(14, 34, 28, 0.62);
+	/* The FIXED chrome (user chip, theme toggle, hamburger, foot bar) never
+	   blurs what scrolls beneath it — a fixed backdrop-filter re-composites
+	   that strip on every scroll frame, on every page — so it wears this
+	   near-opaque surface instead: the page base with the panel's tint,
+	   derived per theme from the tokens each theme already sets. */
+	--panel-solid: color-mix(in srgb, var(--bg-2) 80%, var(--panel));
 	--story-bg: rgba(6, 16, 13, 0.66);
 	--ink: #dcefe6;
 	--muted: #7fa695;
@@ -565,7 +571,7 @@ body {
 	left: -3px;
 	width: 9px;
 	height: 64%;
-	top: -90%;
+	top: 0;
 	border-radius: 6px;
 	background: linear-gradient(180deg, transparent, var(--accent-2) 45%, var(--accent-2) 55%, transparent);
 	box-shadow:
@@ -574,9 +580,11 @@ body {
 	animation: lg-bulb var(--lg-run) cubic-bezier(0.45, 0, 0.55, 1) infinite;
 	animation-delay: calc(var(--lg-i) * 0.78s);
 }
+/* the bulb is 64% of the rail tall, so -90%/118% of the rail (the old top
+   values) are -140.6%/184.4% of the bulb's own height as a translate */
 @keyframes lg-bulb {
 	0% {
-		top: -90%;
+		transform: translateY(-140.6%);
 		opacity: 0;
 	}
 	12% {
@@ -586,11 +594,11 @@ body {
 		opacity: 1;
 	}
 	88% {
-		top: 118%;
+		transform: translateY(184.4%);
 		opacity: 0;
 	}
 	100% {
-		top: 118%;
+		transform: translateY(184.4%);
 		opacity: 0;
 	}
 }
@@ -643,6 +651,7 @@ body {
 	transition: text-shadow 0.4s ease;
 }
 .live-game .lg-pip {
+	position: relative;
 	display: inline-block;
 	width: 5px;
 	height: 5px;
@@ -650,17 +659,25 @@ body {
 	border-radius: 50%;
 	background: var(--accent-2);
 	vertical-align: 1px;
+}
+.live-game .lg-pip::after {
+	content: "";
+	position: absolute;
+	inset: -1px;
+	border-radius: 50%;
+	border: 1px solid var(--glow);
+	opacity: 0;
 	animation: lg-pip 2.4s ease-out infinite;
 }
 @keyframes lg-pip {
 	0% {
-		box-shadow: 0 0 0 0 var(--glow);
+		transform: scale(1);
+		opacity: 0.9;
 	}
-	70% {
-		box-shadow: 0 0 0 7px transparent;
-	}
+	70%,
 	100% {
-		box-shadow: 0 0 0 0 transparent;
+		transform: scale(3.6);
+		opacity: 0;
 	}
 }
 .live-game > button {
@@ -809,18 +826,27 @@ a.solo-title:hover {
 	border-color: var(--accent-2);
 	overflow: hidden;
 }
+.live-game.gathering::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	border-radius: inherit;
+	box-shadow: inset 0 0 20px 4px var(--glow);
+	opacity: 0.25;
+	pointer-events: none;
+}
 @media (prefers-reduced-motion: no-preference) {
-	.live-game.gathering {
+	.live-game.gathering::after {
 		animation: gather-glow 1.8s ease-in-out infinite;
 	}
 }
 @keyframes gather-glow {
 	0%,
 	100% {
-		box-shadow: 0 0 4px 0 var(--glow);
+		opacity: 0.25;
 	}
 	50% {
-		box-shadow: 0 0 20px 4px var(--glow);
+		opacity: 1;
 	}
 }
 .live-game .sparkle {
@@ -882,10 +908,8 @@ a.solo-title:hover {
 	gap: 8px;
 	padding: 9px 14px;
 	border-radius: var(--r-md);
-	background: var(--panel);
+	background: var(--panel-solid);
 	box-shadow: var(--panel-glow);
-	backdrop-filter: blur(14px);
-	-webkit-backdrop-filter: blur(14px);
 	font-size: 0.85rem;
 	font-weight: 700;
 	white-space: nowrap;
@@ -949,13 +973,11 @@ a.solo-title:hover {
 }
 .theme-toggle {
 	color: var(--ink) !important;
-	background: var(--panel) !important;
+	background: var(--panel-solid) !important;
 	border: 1px solid var(--panel-brd) !important;
 	border-radius: var(--r-md) !important;
 	padding: 9px 14px !important;
 	box-shadow: var(--panel-glow);
-	backdrop-filter: blur(14px);
-	-webkit-backdrop-filter: blur(14px);
 }
 .theme-toggle .chev {
 	font-style: normal;
@@ -1196,12 +1218,10 @@ a.solo-title:hover {
 	align-items: center;
 	justify-content: center;
 	gap: 5px;
-	background: var(--panel);
+	background: var(--panel-solid);
 	border: 0;
 	border-radius: var(--r-md);
 	box-shadow: var(--panel-glow);
-	backdrop-filter: blur(14px);
-	-webkit-backdrop-filter: blur(14px);
 	cursor: pointer;
 	padding: 0;
 	flex: none;
@@ -1288,16 +1308,30 @@ a.solo-title:hover {
 }
 /* the AO3 skin previewer: a door out to its own site, so it glows */
 .nav-drawer a.nav-glow {
+	position: relative;
 	border-color: color-mix(in srgb, var(--accent-2) 55%, transparent);
+}
+/* The glow is a pseudo-element whose OPACITY breathes: a box-shadow that
+   animates repaints the row every frame on the main thread (and, in a
+   scrolling page, invalidates the tiles Chrome needs for the scroll);
+   opacity is composited for free. test/animation-budget.test.mjs pins it. */
+.nav-drawer a.nav-glow::after {
+	content: "";
+	position: absolute;
+	inset: -1px;
+	border-radius: inherit;
+	box-shadow: 0 0 14px 1px color-mix(in srgb, var(--accent-2) 45%, transparent);
+	opacity: 0;
+	pointer-events: none;
 	animation: nav-glow 2.6s ease-in-out infinite;
 }
 @keyframes nav-glow {
 	0%,
 	100% {
-		box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent-2) 0%, transparent);
+		opacity: 0;
 	}
 	50% {
-		box-shadow: 0 0 14px 1px color-mix(in srgb, var(--accent-2) 45%, transparent);
+		opacity: 1;
 	}
 }
 @media (prefers-reduced-motion: reduce) {
@@ -6751,10 +6785,8 @@ html[data-font="system"] {
 	align-items: center;
 	justify-content: center;
 	gap: 4px;
-	background: var(--panel);
+	background: var(--panel-solid);
 	border-top: 1px solid var(--panel-brd);
-	backdrop-filter: blur(10px);
-	-webkit-backdrop-filter: blur(10px);
 }
 .foot-btn {
 	min-width: 0;
@@ -7645,9 +7677,47 @@ body.doc-page .topbar {
 }
 /* comment mode: the text stops being a writing surface and starts being a
    thing you point at */
+/* Comment mode is a picking surface, not a typing one: the cursor says so on
+   every mouse move (a speech-bubble glyph; crosshair where data: cursors
+   aren't honoured), and the editor wears a ring in the accent instead of a
+   4% tint nobody noticed. The strip above it (.cm-banner) names the mode. */
 .doc-editor.commenting {
-	cursor: text;
+	cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='22' viewBox='0 0 22 22'%3E%3Cpath d='M3 3h16v11H9l-5 4v-4H3z' fill='%23fff' stroke='%23000' stroke-width='1.5' stroke-linejoin='round'/%3E%3Cpath d='M6.5 7.5h9M6.5 10.5h6' stroke='%23000' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E") 3 3, crosshair;
 	background: color-mix(in srgb, var(--accent-2) 4%, transparent);
+	box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-2) 55%, transparent);
+	border-radius: 0 0 6px 6px;
+}
+.cm-banner {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	flex-wrap: wrap;
+	padding: 6px 12px;
+	background: color-mix(in srgb, var(--accent-2) 18%, var(--bg-2));
+	color: var(--ink);
+	border-bottom: 1px solid color-mix(in srgb, var(--accent-2) 55%, transparent);
+	font-size: 0.86rem;
+	line-height: 1.3;
+}
+.cm-banner .cmb-what b {
+	color: var(--accent-2);
+}
+.cm-banner .cmb-how {
+	opacity: 0.85;
+}
+.cm-banner .cmb-done {
+	margin-left: auto;
+	flex: none; /* the global button rule would stretch it across the strip */
+	width: auto;
+	padding: 3px 12px;
+	font-size: 0.82rem;
+	border: 1px solid var(--accent-2);
+	background: transparent;
+	color: var(--ink);
+	border-radius: 999px;
+}
+.cm-banner .cmb-done:hover {
+	background: color-mix(in srgb, var(--accent-2) 30%, transparent);
 }
 /* icon-only pickers: the glyph says it, the tooltip names it */
 .align-select {
@@ -8314,6 +8384,7 @@ body.resizing-side {
 .sess-acts.hidden,
 .guided-controls.hidden,
 .guided-controls label.hidden,
+.cm-banner.hidden,
 .player-chip.hidden,
 .prompt-roll-result.hidden,
 .scoreboard.hidden,
@@ -10677,15 +10748,26 @@ html.vcx-taken .vcx-word {
    (doubled class names outrank .player-chip.now's border) */
 .player-chip.vcx-cursed,
 [data-user].vcx-cursed.vcx-cursed {
-	animation: vcx-pulse 1.2s ease-in-out infinite alternate;
+	position: relative;
 	border-color: rgba(220, 40, 40, 0.7);
+}
+.player-chip.vcx-cursed::after,
+[data-user].vcx-cursed.vcx-cursed::after {
+	content: "";
+	position: absolute;
+	inset: -1px;
+	border-radius: inherit;
+	box-shadow: 0 0 14px 4px rgba(220, 40, 40, 0.55);
+	opacity: 0.3;
+	pointer-events: none;
+	animation: vcx-pulse 1.2s ease-in-out infinite alternate;
 }
 @keyframes vcx-pulse {
 	from {
-		box-shadow: 0 0 4px rgba(220, 40, 40, 0.3);
+		opacity: 0.3;
 	}
 	to {
-		box-shadow: 0 0 14px rgba(220, 40, 40, 0.75);
+		opacity: 1;
 	}
 }
 /* the vecna theme's own clock is the tell: while a curse is live the

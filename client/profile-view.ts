@@ -1,0 +1,88 @@
+// Profile render helpers (pure string builders).
+import { esc } from "./util.js"
+
+export interface WordTier {
+	id?: string
+	name: string
+	min: number
+	desc?: string
+}
+/** What the ladder needs of the profile (a Pick of publicUser/profileOf). */
+export interface LadderUser {
+	wordCount: number
+	wordBadges: string[]
+	currentBadge: string | null
+}
+
+// The word-count ladder: every tier as a row — earned, current (highest
+// earned), or upcoming with a progress bar on the next one to reach.
+export function ladderHtml(tiers: WordTier[], u: LadderUser): string {
+	const nextMin = tiers.find((t) => u.wordCount < t.min)?.min
+	return tiers
+		.map((t) => {
+			const earned = u.wordBadges.includes(t.name)
+			const current = u.currentBadge === t.name
+			const isNext = t.min === nextMin
+			const pct = isNext ? Math.min(99, Math.floor((u.wordCount / t.min) * 100)) : earned ? 100 : 0
+			return (
+				`<div class="tier${earned ? " earned" : ""}${current ? " current" : ""}" title="${esc(t.desc || "")}">` +
+				`<span class="tier-name">${esc(t.name)}</span>` +
+				`<span class="tier-min">${t.min.toLocaleString()} words</span>` +
+				(isNext
+					? `<span class="tier-bar"><i style="width:${pct}%"></i></span><span class="tier-pct">${pct}%</span>`
+					: `<span class="tier-state">${earned ? (current ? "current rank" : "earned") : "locked"}</span>`) +
+				`</div>`
+			)
+		})
+		.join("")
+}
+
+// The ladder, folded: only the CURRENT rank shows; every other tier lives
+// behind an accordion.
+export function ladderAccordionHtml(tiers: WordTier[], u: LadderUser): string {
+	const cur = tiers.filter((t) => u.currentBadge === t.name)
+	return (cur.length ? ladderHtml(cur, u) : "") + `<details class="ladder-acc"><summary>All ranks</summary>${ladderHtml(tiers, u)}</details>`
+}
+
+export interface AboutProfile {
+	/** sanitizeAbout() output — injected as-is */
+	about?: string
+	links?: { label: string; url: string }[]
+}
+// The About section: bio with inline <img> embeds + up to three links.
+// p.about is already server-sanitized (sanitizeAbout: everything escaped,
+// only validated <img src="http(s)…"> re-enabled) — inject it as-is, exactly
+// like story lines. Link labels/urls are still escaped here.
+export function aboutHtml(p: AboutProfile): string {
+	const about = p.about ? `<div class="about-text">${p.about}</div>` : `<p class="subtle" style="text-align:left;margin:8px 0 0">Nothing here yet.</p>`
+	const links = (p.links || [])
+		.map((l) => `<a class="about-link" href="${esc(l.url)}" target="_blank" rel="noopener noreferrer nofollow">🔗 ${esc(l.label)}</a>`)
+		.join("")
+	return about + (links ? `<div class="about-links">${links}</div>` : "")
+}
+
+// Avatar helper: external picture when set (fit per user preference),
+// otherwise the tinted initial.
+export function avatarHtml(p: { avatar?: string | null; avatarFit?: string | null; username?: string | null }): string {
+	return p.avatar
+		? `<img class="avatar-img fit-${p.avatarFit === "contain" ? "contain" : "cover"}" src="${esc(p.avatar)}" alt="" loading="lazy">`
+		: esc((p.username || "?").charAt(0).toUpperCase())
+}
+
+export interface UsageBadge {
+	name: string
+	desc?: string
+}
+// The usage-badge case: every collectible listed; earned ones glow, unearned
+// ones sit locked. Tooltips come from `descs` (the per-user earned map for
+// secret badges, or catalogue descs for open ones) — a LOCKED secret badge
+// shows only a teaser, never the how (the server doesn't even send it).
+export function usageCaseHtml(allUsage: UsageBadge[], earnedNames: string[], descs: Record<string, string | null | undefined> = {}, { secret = true }: { secret?: boolean } = {}): string {
+	return allUsage
+		.map((b) => {
+			const earned = earnedNames.includes(b.name)
+			const tip = !secret ? descs[b.name] || b.desc || "" : !earned ? "Secret: unlock it to find out how." : descs[b.name] || "Secret: they've earned it. Unlock it yourself to find out how."
+			return `<span class="ach ${earned ? "earned" : "next"}" title="${esc(tip)}">${earned ? "" : "🔒 "}${esc(b.name)}</span>`
+		})
+		.join("")
+}

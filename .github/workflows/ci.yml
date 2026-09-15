@@ -1,0 +1,35 @@
+# CI: type-check the client and run the whole suite on every push and PR.
+# Node 22 is the newest line Replit's nodejs module tracks closely enough;
+# the suite needs `unzip` (test/zip.test.mjs), present on ubuntu-latest.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  typecheck:
+    name: tsc --noEmit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+
+  test:
+    name: npm test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+        env:
+          DATABASE_URL: ""

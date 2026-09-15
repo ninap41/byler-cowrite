@@ -11,7 +11,7 @@ import { storage, getJson } from "./storage.js";
 import { generateSimplePrompt, generateIntermediatePrompt, validateIntermediateData, EXPLICIT_LEVELS, MODES, MAX_KINKS } from "../lib/prompt-gen.js";
 import { readContent, writeContent } from "./content.js";
 import { randomTitle } from "../lib/titles.js";
-import { toggleReaction } from "../public/js/components/reactions.js";
+import { toggleReaction } from "../public/js/shared/reactions.js";
 import { readDoc, writeDoc, canView, canEdit, canComment, anchorCids, anchorText, stripAnchor, stripAnchors, commentBaseline, applySuggestion, chapterById, chapterOfCid, mapChapterHtml } from "./docs.js";
 
 // Curated scenario prompts + the guided-mode component pools (edit
@@ -88,7 +88,99 @@ const GHOST_MS = Number(process.env.COWRITE_GHOST_MS) || 90_000;
 // Keyed by account id — every writer is signed in.
 const DENY_COOLDOWN_MS = 5 * 60_000;
 
+/**
+ * @typedef {import("../client/shared/wire.ts").ServerToClient} ServerToClient
+ * @typedef {import("../client/shared/wire.ts").ClientToServer} ClientToServer
+ * @typedef {import("socket.io").Server<ClientToServer, ServerToClient>} IO
+ * @typedef {import("socket.io").Socket<ClientToServer, ServerToClient>} Sock
+ */
+/** @typedef {import("./store.js").User} User */
+/**
+ * A seat at the table. Keyed by socket id in `session.writers`; a ghost
+ * (disconnected, reclaimable) keeps the same shape with `connected: false`.
+ * @typedef {Object} Writer
+ * @property {string} name
+ * @property {string} color
+ * @property {string} userId
+ * @property {string} badge
+ * @property {string} avatar
+ * @property {string} avatarFit
+ * @property {string} token
+ * @property {boolean} connected
+ * @property {any} ghostTimer
+ * @property {boolean} approved
+ * @property {number} [words]
+ */
+/** @typedef {{name: string, color: string, html: string, userId: string | null, host: boolean, edited?: boolean}} StoryLine */
+/**
+ * One live session. Everything not listed here (the per-gimmick maps, the
+ * cooldowns) is created lazily with `??=` and read as `any`.
+ * @typedef {Object} Session
+ * @property {string} code
+ * @property {string} name
+ * @property {string} cover
+ * @property {string | null} hostId  null only on a rehydrated save until someone reclaims a seat
+ * @property {string} hostToken
+ * @property {string | null} hostUserId
+ * @property {string | null} hostName
+ * @property {number | null} createdAt
+ * @property {string[]} tags
+ * @property {boolean} friendly
+ * @property {import("../client/shared/wire.ts").Phase} phase
+ * @property {Map<string, Writer>} writers
+ * @property {string[]} turnOrder
+ * @property {number} currentIdx
+ * @property {number} turnCount
+ * @property {number | null} maxTurns
+ * @property {StoryLine[]} story
+ * @property {string} prompt
+ * @property {string[]} options
+ * @property {any[]} optionMeta
+ * @property {Map<string, Set<string>>} votes
+ * @property {import("../client/shared/wire.ts").PromptMode} promptMode
+ * @property {any} promptControls
+ * @property {number} turnSeconds
+ * @property {number} deadline
+ * @property {boolean} paused
+ * @property {number} remaining
+ * @property {any} timer
+ * @property {any[]} chat
+ * @property {string} lastTyping
+ * @property {Map<string, any>} pending
+ * @property {Map<string, number>} denied
+ * @property {string} [lastTypingRaw]
+ * @property {Set<string>} [ready]
+ * @property {string | null} [thiefId]
+ * @property {number} [stealScore]
+ * @property {string} [stealBy]
+ * @property {any} [optionSets]
+ * @property {any} [idleTimer]
+ * @property {boolean} [gated]
+ * @property {Map<string, any>} [dice]
+ * @property {Map<string, any>} [ships]
+ * @property {Map<string, any>} [cups]
+ * @property {Map<string, any>} [balls]
+ * @property {Map<string, any>} [paint]
+ * @property {Map<string, any>} [guns]
+ * @property {Map<string, any>} [curses]
+ * @property {Map<string, number>} [gimmickRolls]
+ * @property {Map<string, number>} [gimmickPours]
+ * @property {Map<string, number>} [gimmickSpins]
+ * @property {Map<string, number>} [gimmickPaints]
+ * @property {Map<string, number>} [gimmickSquirts]
+ * @property {Map<string, number>} [gimmickCurses]
+ */
+/**
+ * A client may send anything, so a handler reads its payload as a loose
+ * object and validates every field itself (the wire type says what a
+ * well-behaved client sends; it is not trusted).
+ * @param {unknown} p
+ * @returns {Record<string, any>}
+ */
+const loose = (p) => (p && typeof p === "object" ? /** @type {Record<string, any>} */ (p) : {});
+/** @param {IO} io */
 export function createGame(io) {
+  /** @type {Map<string, Session>} */
   const sessions = new Map(); // code -> session (in-memory; fine for a party game)
   const onlineSockets = new Map(); // socket.id -> userId (signed-in presence for the dashboard)
   // Who currently has a solo-write doc open: socket.id -> {docId, userId}.
@@ -192,6 +284,7 @@ export function createGame(io) {
     // waiting room the host can re-start; writing/over revive as themselves.
     const phase =
       d.phase === "over" ? "over" : d.phase === "waiting" || d.phase === "choosing" ? "waiting" : "writing";
+    /** @type {Session} */
     const s = {
       code, hostId: null, hostToken: d.hostToken ?? null, phase, cover: d.cover || "",
       writers,
@@ -246,6 +339,7 @@ export function createGame(io) {
   // `chime: true` asks every client to ring for a system line (only the dice
   // gimmick's natural 20 does — every other system line stays silent).
   function announce(s, writer, text, { chime = false } = {}) {
+    /** @type {import("../client/shared/wire.ts").SystemChat} */
     const msg = {
       name: writer?.name ?? "?", color: writer?.color ?? PALETTE[0],
       text, sys: true, ts: Date.now(), ...(chime ? { chime: true } : {}),
@@ -410,6 +504,7 @@ export function createGame(io) {
     // the writer may now wear, so THEIR menu re-gates without a fetch.
     // A SECRET usage badge's description is its recipe, so it rides only to
     // the earner's own socket; the room's toast names the badge and nothing more.
+    /** @param {string | null} id @param {import("../client/shared/wire.ts").BadgeEarned["unlocks"]} [unlocks] */
     const notifyEarned = (id, unlocks = null) => {
       const payload = {
         badge: badgeName(id), desc: badgeDesc(id),
@@ -534,6 +629,7 @@ export function createGame(io) {
       const recent = [];
       // Two tries per slot: a repeated place+situation+tropes combo gets one reroll.
       for (let i = 0; i < n; i++) {
+        /** @type {any} */
         let r = null;
         for (let attempt = 0; attempt < 2; attempt++) {
           r = generateIntermediatePrompt(INTERMEDIATE, { ...s.promptControls, recentIds: recent });
@@ -548,6 +644,7 @@ export function createGame(io) {
       s.optionMeta = out.map((r) => ({ seed: r.seed, selections: r.selections, labels: r.labels }));
       if (s.options.length) return s.options;
     }
+    /** @type {string[]} */
     const recent = [];
     s.options = [];
     for (let i = 0; i < n && i < PROMPT_BANK.length; i++) {
@@ -999,6 +1096,7 @@ export function createGame(io) {
       if (!acct) return ack?.({ ok: false, error: "Sign in to host a game." });
       const code = makeCode();
       const host = newWriter(acct);
+      /** @type {Session} */
       const s = {
         // Every story has a name from the start: a random one, ≤40 chars,
         // until the host renames it — so nothing is ever listed as a bare code.
@@ -1018,7 +1116,7 @@ export function createGame(io) {
       sessions.set(code, s);
       socket.data.joinedCode = code;
       joinAsWriter(socket, s);
-      ack?.({ ok: true, code, hostId: socket.id, token: s.writers.get(socket.id).token, name: s.name });
+      ack?.({ ok: true, code, hostId: socket.id, token: host.token, name: s.name });
       broadcastRoster(s);
       saveSnapshot(s); // the code is claimable/revivable from the moment it exists
     });
@@ -1052,7 +1150,7 @@ export function createGame(io) {
       if (s.phase !== "waiting" && !isAdmin(acct) && !isOrigHost) {
         // Started games are gated: a NEW writer needs the host to let them in.
         // Admins are the exception — moderating a game means getting into it.
-        const hostSock = io.sockets.sockets.get(s.hostId);
+        const hostSock = s.hostId ? io.sockets.sockets.get(s.hostId) : undefined;
         if (!hostSock)
           return ack?.({ ok: false, error: "This game has already started and its host isn't here to let you in." });
         const coolMsg = checkDenied(s, acct.id);
@@ -1069,7 +1167,7 @@ export function createGame(io) {
       if (s.phase === "choosing" || s.phase === "writing") s.turnOrder.push(socket.id);
       socket.data.joinedCode = code;
       joinAsWriter(socket, s);
-      ack?.({ ok: true, code, hostId: s.hostId, name: w.name, color: w.color, phase: s.phase, token: w.token });
+      ack?.({ ok: true, code, hostId: s.hostId ?? "", name: w.name, color: w.color, phase: s.phase, token: w.token });
       if (s.phase === "waiting") broadcastRoster(s);
       else if (s.phase === "over") {
         broadcastRoster(s);
@@ -1176,7 +1274,8 @@ export function createGame(io) {
 
     // Approval voting: each call TOGGLES one scenario on the caller's ballot
     // (`on` forces a direction). Nothing finalizes here — see `ready`.
-    socket.on("vote", ({ prompt, on } = {}, ack) => {
+    socket.on("vote", (p, ack) => {
+      const { prompt, on } = loose(p);
       const s = mySession();
       if (!s || s.phase !== "choosing" || !s.options.includes(prompt)) return ack?.({ ok: false });
       touch(s);
@@ -1191,7 +1290,8 @@ export function createGame(io) {
 
     // "I'm done voting." Once every connected seat says so the host may
     // start; un-readying is allowed until then.
-    socket.on("ready", ({ ready = true } = {}, ack) => {
+    socket.on("ready", (p, ack) => {
+      const { ready = true } = loose(p);
       const s = mySession();
       if (!s || s.phase !== "choosing") return ack?.({ ok: false });
       touch(s);
@@ -1214,7 +1314,8 @@ export function createGame(io) {
 
     // Host-only: redeal ONE option, in the mode that is set, keeping the rest
     // of the ballot. Votes cast for the replaced option are dropped.
-    socket.on("reroll-option", ({ index } = {}, ack) => {
+    socket.on("reroll-option", (p, ack) => {
+      const { index } = loose(p);
       const s = mySession();
       const i = Number(index);
       if (!s || s.hostId !== socket.id || s.phase !== "choosing" || !Number.isInteger(i) || i < 0 || i >= s.options.length)
@@ -1222,7 +1323,10 @@ export function createGame(io) {
       // a hand-written scenario is somebody's words: it can be removed, never redealt
       if (s.optionMeta?.[i]?.custom) return ack?.({ ok: false, error: "A custom scenario can't be rerolled." });
       const old = s.options[i];
-      let next = null, meta = null;
+      /** @type {string | null} */
+      let next = null;
+      /** @type {any} */
+      let meta = null;
       for (let attempt = 0; attempt < 8 && (next == null || s.options.includes(next)); attempt++) {
         if (s.promptMode === "intermediate" && INTERMEDIATE) {
           const r = generateIntermediatePrompt(INTERMEDIATE, { ...s.promptControls });
@@ -1287,7 +1391,8 @@ export function createGame(io) {
 
     // A hand-written scenario can be withdrawn by whoever wrote it (or the
     // host / an admin); votes on it are dropped with it.
-    socket.on("remove-prompt", ({ index } = {}, ack) => {
+    socket.on("remove-prompt", (p, ack) => {
+      const { index } = loose(p);
       const s = mySession();
       const i = Number(index);
       if (!s || s.phase !== "choosing" || !Number.isInteger(i) || i < 0 || i >= s.options.length) return ack?.({ ok: false });
@@ -1599,7 +1704,8 @@ export function createGame(io) {
     // react as their account, spectators as their socket; the reactions live
     // on the message itself (so they ride the snapshot and chat-history) and
     // the room gets `chat-react {mid, reactions}` to repaint that one row.
-    socket.on("chat-react", ({ mid, emoji, name } = {}, ack) => {
+    socket.on("chat-react", (p, ack) => {
+      const { mid, emoji, name } = loose(p);
       const code = socket.data.joinedCode || socket.data.spectating;
       const s = sessions.get(code);
       if (!s) return ack?.({ ok: false });
@@ -1647,7 +1753,8 @@ export function createGame(io) {
     // owner reports it (`on: true` + where it sits, as fractions of their
     // screen; throttled client-side) or puts it away (`on: false`); the room
     // gets `gimmick-die {userId, name, color, x, y, on}` and paints it.
-    socket.on("gimmick-die", ({ on, x, y } = {}) => {
+    socket.on("gimmick-die", (p) => {
+      const { on, x, y } = loose(p);
       const s = mySession();
       const w = s?.writers.get(socket.id);
       if (!s || !w) return;
@@ -1680,7 +1787,8 @@ export function createGame(io) {
       thiefSocket.to(s.code).emit("live-typing", { html: s.lastTyping });
     }
 
-    socket.on("gimmick-roll", ({ id, steal } = {}, ack) => {
+    socket.on("gimmick-roll", (p, ack) => {
+      const { id, steal } = loose(p);
       const s = mySession();
       const w = s?.writers.get(socket.id);
       if (!s || !w) return ack?.({ ok: false, error: "You're not seated in a game." });
@@ -1719,13 +1827,15 @@ export function createGame(io) {
     // clamps and relays so the whole table — spectators too — watches every
     // battle over the live game. The SCORE here is display-only; the one that
     // counts arrives at the end via gimmick-galaga.
-    socket.on("gimmick-ship", ({ on, x, score, shots, bees } = {}) => {
+    socket.on("gimmick-ship", (p) => {
+      const { on, x, score, shots, bees } = loose(p);
       const s = mySession();
       const w = s?.writers.get(socket.id);
       if (!s || !w) return;
       if (on === false) return dropShip(s, w.userId);
       if (s.friendly !== false) return;
       const fr = (v) => Math.max(0, Math.min(1, Number(v) || 0));
+      /** @type {import("../client/shared/wire.ts").ShipState & { name: string, color: string }} */
       const ship = {
         name: w.name,
         color: w.color,
@@ -1735,6 +1845,7 @@ export function createGame(io) {
         // the 4th slot is a stable per-bee id (see galaga-game.js: viewers key
         // bees by it so a kill explodes the right one instead of reshuffling)
         bees: (Array.isArray(bees) ? bees.slice(0, 10) : []).map((p) => {
+          /** @type {import("../client/shared/wire.ts").BeeOnWire} */
           const bee = [fr(p?.[0]), fr(p?.[1]), p?.[2] ? 1 : 0];
           const id = Number(p?.[3]);
           if (Number.isFinite(id)) bee.push(Math.max(0, Math.min(1e6, Math.floor(id))));
@@ -1750,7 +1861,8 @@ export function createGame(io) {
     // as fractions/degrees, throttled client-side; the server clamps and
     // relays, and EVERY viewer simulates the spill from that stream, so the
     // mess runs down everyone's screen without a single drop on the wire.
-    socket.on("gimmick-cup", ({ on, x, y, rot, level } = {}) => {
+    socket.on("gimmick-cup", (p) => {
+      const { on, x, y, rot, level } = loose(p);
       const s = mySession();
       const w = s?.writers.get(socket.id);
       if (!s || !w) return;
@@ -1791,7 +1903,8 @@ export function createGame(io) {
     // reports where their ball hangs as fractions, throttled client-side; the
     // server clamps and relays. The light show never touches the wire — it
     // starts from `gimmick-spin` and every viewer runs it locally.
-    socket.on("gimmick-ball", ({ on, x, y } = {}) => {
+    socket.on("gimmick-ball", (p) => {
+      const { on, x, y } = loose(p);
       const s = mySession();
       const w = s?.writers.get(socket.id);
       if (!s || !w) return;
@@ -1830,7 +1943,8 @@ export function createGame(io) {
     // on their own canvas, so no pixel ever crosses the wire. `on: false`
     // puts the brush away and the PAINT STAYS; `wipe: true` clears the
     // painter's own paint everywhere and keeps the brush out.
-    socket.on("gimmick-stroke", ({ on, wipe, cursor, stroke, live } = {}) => {
+    socket.on("gimmick-stroke", (payload) => {
+      const { on, wipe, cursor, stroke, live } = loose(payload);
       const s = mySession();
       const w = s?.writers.get(socket.id);
       if (!s || !w) return;
@@ -1861,12 +1975,14 @@ export function createGame(io) {
       p.color = w.color;
       p.on = true;
       s.paint.set(w.userId, p);
+      /** @type {import("../client/shared/wire.ts").StrokeEvent} */
       const out = { userId: w.userId, name: w.name, color: w.color, on: true };
       if (Array.isArray(cursor)) {
         p.cursor = [fr(cursor[0]), fr(cursor[1])];
         out.cursor = p.cursor;
       }
       if (stroke && Array.isArray(stroke.pts) && stroke.pts.length) {
+        /** @type {import("../client/shared/wire.ts").Stroke} */
         const clean = {
           color: cleanHex(stroke.color) ?? w.color,
           size: Math.max(2, Math.min(40, Number(stroke.size) || 6)),
@@ -1908,7 +2024,8 @@ export function createGame(io) {
     // server clamps and relays. The water never touches the wire — a burst
     // starts from `gimmick-squirt` and every viewer simulates it locally
     // from the seed.
-    socket.on("gimmick-gun", ({ on, x, y, angle } = {}) => {
+    socket.on("gimmick-gun", (p) => {
+      const { on, x, y, angle } = loose(p);
       const s = mySession();
       const w = s?.writers.get(socket.id);
       if (!s || !w) return;
@@ -1951,7 +2068,8 @@ export function createGame(io) {
     // ~15 characters lifts it (their words are their Running Up That Hill),
     // else it expires on its own. One curse in flight per session, cosmetic
     // only — nothing is ever blocked.
-    socket.on("gimmick-curse", ({ targetUserId } = {}, ack) => {
+    socket.on("gimmick-curse", (p, ack) => {
+      const { targetUserId } = loose(p);
       const s = mySession();
       const w = s?.writers.get(socket.id);
       if (!s || !w) return ack?.({ ok: false, error: "You're not seated in a game." });
@@ -1987,7 +2105,7 @@ export function createGame(io) {
       const c = s.curses?.get(w.userId);
       if (!c) return ack?.({ ok: false, error: "No curse on you." });
       clearTimeout(c.timer);
-      s.curses.delete(w.userId);
+      s.curses?.delete(w.userId);
       announce(s, w, "wrote their way out of Vecna's curse ⏱");
       io.to(s.code).emit("gimmick-curse", { targetUserId: w.userId, lift: true });
       ack?.({ ok: true });
@@ -1997,7 +2115,8 @@ export function createGame(io) {
     // as a die roll, and beating GALAGA_TARGET steals the turn exactly like a
     // natural 20 (`steal: false` is the same opt-out — the score is still
     // called in chat, the turn stays put).
-    socket.on("gimmick-galaga", ({ score, steal } = {}, ack) => {
+    socket.on("gimmick-galaga", (p, ack) => {
+      const { score, steal } = loose(p);
       const s = mySession();
       const w = s?.writers.get(socket.id);
       if (!s || !w) return ack?.({ ok: false, error: "You're not seated in a game." });
@@ -2209,7 +2328,7 @@ export function createGame(io) {
       if (watched && watched.phase !== "waiting" && watched.phase !== "over") broadcastGame(watched);
       const p = sessions.get(socket.data.pendingCode);
       if (p && p.pending.delete(socket.id))
-        io.sockets.sockets.get(p.hostId)?.emit("join-request-cancel", { id: socket.id });
+        if (p.hostId) io.sockets.sockets.get(p.hostId)?.emit("join-request-cancel", { id: socket.id });
       const s = mySession();
       // Guard: after a rejoin swap, this stale socket's id is no longer a writer.
       if (s && s.writers.has(socket.id)) markDisconnected(s, socket.id);
@@ -2420,6 +2539,7 @@ export function createGame(io) {
   // End a game from outside it — an admin from /admin, or the host from
   // their dashboard. A paused snapshot with no live session is revived first
   // so the reveal (and the "over" phase) lands on disk the same way.
+  /** @param {string} code @param {User | null} [by] */
   function endGameByCode(code, by = null) {
     code = String(code || "").toUpperCase();
     const s = sessions.get(code) ?? loadSession(code);
@@ -2433,6 +2553,7 @@ export function createGame(io) {
   // code so writers can gather again. The prompt and story stay on the
   // session (a waiting room WITH a story is what tells start-game to skip
   // the vote and keep writing). Returns false unless the code is finished.
+  /** @param {string} code @param {User | null} [by] */
   function reopenGameByCode(code, by = null) {
     code = String(code || "").toUpperCase();
     const s = sessions.get(code) ?? loadSession(code);
@@ -2455,6 +2576,7 @@ export function createGame(io) {
   // doing it: every OTHER writer who held a seat gets an inbox note saying
   // the story is gone and who did it — a game vanishing from your dashboard
   // without a word would read as a bug.
+  /** @param {string} code @param {User | null} [by] */
   function deleteGame(code, by = null) {
     const s = sessions.get(code);
     let name = s?.name || "", seats = s ? [...s.writers.values()] : [];

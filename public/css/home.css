@@ -87,23 +87,35 @@ body.home-page {
 /* The AO3 skin previewer lives on its own site — the link glows so it reads
    as a door out, not one more chapter. Every colour a theme token. */
 .tour-bar .bar-link-glow {
+	position: relative;
 	color: var(--accent-2);
 	border-color: color-mix(in srgb, var(--accent-2) 55%, transparent);
+}
+/* the glow breathes by opacity on a pseudo-element — an animated box-shadow
+   repaints every frame (test/animation-budget.test.mjs) */
+.tour-bar .bar-link-glow::after {
+	content: "";
+	position: absolute;
+	inset: -1px;
+	border-radius: inherit;
+	box-shadow: 0 0 12px 1px color-mix(in srgb, var(--accent-2) 45%, transparent);
+	opacity: 0;
+	pointer-events: none;
 	animation: bar-link-glow 2.6s ease-in-out infinite;
 }
 @keyframes bar-link-glow {
 	0%,
 	100% {
-		box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent-2) 0%, transparent);
+		opacity: 0;
 	}
 	50% {
-		box-shadow: 0 0 12px 1px color-mix(in srgb, var(--accent-2) 45%, transparent);
+		opacity: 1;
 	}
 }
 @media (prefers-reduced-motion: reduce) {
-	.tour-bar .bar-link-glow {
+	.tour-bar .bar-link-glow::after {
 		animation: none;
-		box-shadow: 0 0 10px 0 color-mix(in srgb, var(--accent-2) 35%, transparent);
+		opacity: 0.7;
 	}
 }
 .tour-rail {

@@ -6,6 +6,10 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "prestart": "npm run build",
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.server.json",
+    "pretest": "npm run build",
     "test": "node --test \"test/**/*.test.mjs\"",
     "reseed-content": "node scripts/reseed-content.mjs",
     "discord-register": "node scripts/discord-register.mjs"
@@ -17,7 +21,9 @@
     "socket.io": "^4.8.1"
   },
   "devDependencies": {
+    "esbuild": "^0.28.2",
     "jsdom": "^29.1.1",
-    "socket.io-client": "^4.8.3"
+    "socket.io-client": "^4.8.3",
+    "typescript": "^7.0.2"
   }
 }

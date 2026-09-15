@@ -56,6 +56,7 @@ export function verifyInteraction({ signature, timestamp, rawBody }, publicKey =
 
 // Pure: the interaction body in, the response body out. `onlineNames()` is
 // supplied by the caller (it's the dashboard's presence list).
+/** @param {any} body @param {{ onlineNames?: () => string[], siteName?: string }} [ctx] */
 export function handleInteraction(body, { onlineNames = () => [], siteName = "Cowrite" } = {}) {
   if (body?.type === 1) return { type: 1 }; // PING → PONG (Discord's endpoint check)
   if (body?.type !== 2) return { type: 4, data: { content: "I don't know that one.", flags: 64 } };
@@ -79,6 +80,7 @@ export async function postToChannel(channelId, payload) {
       method: "POST", headers: { Authorization: `Bot ${token}`, "Content-Type": "application/json" }, body: JSON.stringify(payload),
     });
     if (!r.ok) return { error: `Discord said ${r.status}: ${(await r.text()).slice(0, 200)}` };
+    /** @type {any} */
     const m = await r.json();
     return { ok: true, id: m.id };
   } catch (e) { return { error: e.message || "Couldn't reach Discord." }; }

@@ -1,0 +1,375 @@
+// The "/" reference palette for the solo editor.
+//
+// Typing "/" at a word boundary opens a dropdown at the caret listing the
+// writers-reference groups (action verbs, dialogue tags, delivery modifiers…).
+// Arrow keys move, Enter drills in (groups -> categories -> words), Enter on a
+// word inserts it at the cursor, Backspace on an empty filter goes back up,
+// Escape closes. Characters typed after the "/" filter the current level.
+//
+// The state machine is exported separately from the DOM wiring so it can be
+// unit-tested under jsdom without a real contenteditable.
+import { esc } from "../util.js"
+
+/** The writers' reference, as GET /api/reference ships it (src/reference.js). */
+export interface RefCategory {
+	key: string
+	label: string
+	words: string[]
+}
+export interface RefGroup {
+	slug: string
+	label: string
+	desc?: string
+	prefix?: string
+	categories: RefCategory[]
+}
+export interface RefBundle {
+	groups: RefGroup[]
+}
+export type PaletteLevel = "groups" | "categories" | "words"
+export interface PaletteState {
+	bundle: RefBundle
+	level: PaletteLevel
+	group: RefGroup | null
+	category: RefCategory | null
+	filter: string
+	index: number
+}
+export type PaletteItem =
+	| { kind: "group"; key: string; label: string; hint: string; ref: RefGroup }
+	| { kind: "category"; key: string; label: string; hint: string; ref: RefCategory }
+	| { kind: "word"; key: string; label: string; hint: string; ref: string }
+
+// ---- pure state machine ----
+// levels: "groups" -> "categories" -> "words"
+export function createPaletteState(bundle: RefBundle | null | undefined): PaletteState {
+	return {
+		bundle: bundle && Array.isArray(bundle.groups) ? bundle : { groups: [] },
+		level: "groups",
+		group: null,
+		category: null,
+		filter: "",
+		index: 0,
+	}
+}
+
+// The rows visible at the current level, after filtering.
+export function visibleItems(st: PaletteState): PaletteItem[] {
+	const f = st.filter.trim().toLowerCase()
+	const match = (s: unknown): boolean => !f || String(s).toLowerCase().includes(f)
+	if (st.level === "groups")
+		return st.bundle.groups
+			.filter((g) => match(g.label) || match(g.prefix) || match(g.desc))
+			.map((g): PaletteItem => ({ kind: "group", key: g.slug, label: g.label, hint: g.prefix ?? "", ref: g }))
+	if (st.level === "categories")
+		return (st.group?.categories || [])
+			.filter((c) => match(c.label))
+			.map((c): PaletteItem => ({ kind: "category", key: c.key, label: c.label, hint: `${c.words.length}`, ref: c }))
+	return (st.category?.words || [])
+		.filter(match)
+		.map((w): PaletteItem => ({ kind: "word", key: w, label: w, hint: "", ref: w }))
+}
+
+export const clampIndex = (st: PaletteState): PaletteState => {
+	const n = visibleItems(st).length
+	st.index = n === 0 ? 0 : Math.max(0, Math.min(st.index, n - 1))
+	return st
+}
+
+export function move(st: PaletteState, delta: number): PaletteState {
+	const n = visibleItems(st).length
+	if (!n) return st
+	st.index = (st.index + delta + n) % n // wraps, like a native menu
+	return st
+}
+
+// Enter. Returns {inserted: word} when a word was chosen, else null.
+export function choose(st: PaletteState): { inserted: string } | null {
+	const item = visibleItems(st)[st.index]
+	if (!item) return null
+	if (item.kind === "group") {
+		st.group = item.ref
+		st.level = "categories"
+		st.filter = ""
+		st.index = 0
+		return null
+	}
+	if (item.kind === "category") {
+		st.category = item.ref
+		st.level = "words"
+		st.filter = ""
+		st.index = 0
+		return null
+	}
+	return { inserted: item.ref }
+}
+
+// Backspace on an empty filter, or the Back row.
+export function goBack(st: PaletteState): boolean {
+	if (st.level === "words") {
+		st.level = "categories"
+		st.category = null
+	} else if (st.level === "categories") {
+		st.level = "groups"
+		st.group = null
+	} else {
+		return false // already at the top — caller should close
+	}
+	st.filter = ""
+	st.index = 0
+	return true
+}
+
+export function setFilter(st: PaletteState, text: string): PaletteState {
+	st.filter = text
+	st.index = 0
+	return st
+}
+
+// A "/" only opens the palette when it starts a word — i.e. at the very start
+// of a block or straight after whitespace. Without this, ordinary prose sets
+// it off: "and/or", "24/7", "https://ao3.org", or a hand-typed "</p>" would
+// each pop the menu mid-sentence. Called on keydown, BEFORE the "/" lands, so
+// the character we inspect is the one the slash is about to follow.
+export function opensPalette(node: Node | null | undefined, offset: number): boolean {
+	if (!node) return false
+	if (node.nodeType !== 3) return true // element boundary — nothing typed yet
+	if (offset <= 0) return true // start of a text node
+	return /\s| /.test((node.nodeValue ?? "").charAt(offset - 1))
+}
+
+export const breadcrumb = (st: PaletteState): string =>
+	st.level === "groups" ? "Reference" : st.level === "categories" ? st.group!.label : `${st.group!.label} › ${st.category!.label}`
+
+// The one thing the bank can't hold: a live thesaurus. It lives at the foot
+// of the palette rather than on the toolbar, where it was a permanent button
+// for an occasional errand — this is where you already are when you're
+// hunting for a word.
+export const THESAURUS_URL = "https://www.powerthesaurus.org"
+
+export function paletteHtml(st: PaletteState): string {
+	const items = visibleItems(st)
+	const rows = items.length
+		? items
+				.map(
+					(it, i) =>
+						`<li class="sp-row${i === st.index ? " sel" : ""}" data-i="${i}" role="option" aria-selected="${i === st.index}">` +
+						`<span class="sp-label">${esc(it.label)}</span>` +
+						(it.hint ? `<span class="sp-hint">${esc(it.hint)}</span>` : "") +
+						`</li>`,
+				)
+				.join("")
+		: `<li class="sp-empty">No matches</li>`
+	return (
+		`<div class="sp-head"><span class="sp-crumb">${esc(breadcrumb(st))}</span>` +
+		`<span class="sp-keys">↑↓ move · ${st.level === "groups" ? "→ open" : "← back"} · ⏎ pick · esc</span></div>` +
+		`<ul class="sp-list" role="listbox">${rows}</ul>` +
+		`<div class="sp-foot"><a class="sp-thes" href="${THESAURUS_URL}" target="_blank" rel="noopener noreferrer">` +
+		`📖 Power Thesaurus <span class="sp-hint">new tab</span></a></div>`
+	)
+}
+
+// ---- DOM wiring ----
+// mountSlashPalette(editor, {getBundle, onInsert}) returns {destroy, isOpen}.
+// The editor keeps ownership of its own keydown handling for everything else;
+// we only intercept while the palette is open.
+// isEnabled lets the host switch the palette off entirely (the solo editor
+// disables it in HTML source mode, where "/" is markup, not a command).
+export interface SlashPaletteOpts {
+	bundle?: RefBundle | null
+	onInsert?: (word: string) => void
+	/** lets the host switch the palette off (the solo editor does in HTML source mode) */
+	isEnabled?: () => boolean
+}
+export interface SlashPalette {
+	isOpen(): boolean
+	close(): void
+	setBundle(b: RefBundle | null): void
+	destroy(): void
+}
+export function mountSlashPalette(editor: HTMLElement, { bundle = null, onInsert = () => {}, isEnabled = () => true }: SlashPaletteOpts = {}): SlashPalette {
+	const el = document.createElement("div")
+	el.className = "slash-palette hidden"
+	el.setAttribute("role", "dialog")
+	document.body.appendChild(el)
+
+	let st = createPaletteState(bundle)
+	let open = false
+	let anchor: Range | null = null // Range marking the "/" we typed
+
+	const render = () => {
+		el.innerHTML = paletteHtml(st)
+		el.querySelectorAll<HTMLElement>(".sp-row").forEach((row) => {
+			row.addEventListener("mousedown", (e) => {
+				e.preventDefault() // keep the caret in the editor
+				st.index = Number(row.dataset.i)
+				commit()
+			})
+		})
+	}
+
+	const place = () => {
+		const sel = window.getSelection()
+		if (!sel || !sel.rangeCount) return
+		const r = sel.getRangeAt(0).cloneRange()
+		let rect = r.getBoundingClientRect()
+		// A collapsed range at the start of an empty block measures 0×0. Fall
+		// back to the block itself so we position against the line, not (0,0).
+		if (!rect.width && !rect.height) {
+			const node = r.startContainer
+			const box = (node.nodeType === 1 ? (node as Element) : node.parentElement)?.getBoundingClientRect()
+			if (box) rect = box
+		}
+		// render() has already run and the element is un-hidden, so it measures.
+		const w = el.offsetWidth || 290
+		const h = el.offsetHeight || 300
+		// All of this is done in VIEWPORT space and converted to page space
+		// exactly once, at the end — mixing the two is how a popover ends up
+		// hundreds of pixels off after a scroll.
+		// visualViewport is the part NOT covered by the on-screen keyboard,
+		// which is exactly what "is there room below the caret" means on a phone.
+		const vpH = window.visualViewport?.height ?? window.innerHeight
+		const vpW = document.documentElement.clientWidth || window.innerWidth
+		// Below the caret when it fits; otherwise above it. Then clamp into the
+		// viewport either way, so a tight screen still shows the whole palette.
+		let vTop = rect.bottom + 6 + h <= vpH ? rect.bottom + 6 : rect.top - h - 6
+		vTop = Math.max(8, Math.min(vTop, vpH - h - 8))
+		const vLeft = Math.max(8, Math.min(rect.left, vpW - w - 8))
+		el.style.top = vTop + window.scrollY + "px"
+		el.style.left = vLeft + window.scrollX + "px"
+	}
+
+	function openAt() {
+		const sel = window.getSelection()
+		if (!sel || !sel.rangeCount) return
+		anchor = sel.getRangeAt(0).cloneRange()
+		st = createPaletteState(bundle)
+		open = true
+		el.classList.remove("hidden")
+		render()
+		place()
+	}
+
+	function close() {
+		open = false
+		anchor = null
+		el.classList.add("hidden")
+	}
+
+	// Replace the typed "/filter" with the chosen word.
+	function insertWord(word: string) {
+		const sel = window.getSelection()
+		if (!sel || !sel.rangeCount || !anchor) return
+		const r = sel.getRangeAt(0)
+		// walk back over the "/" + whatever was typed after it
+		const node = anchor.startContainer
+		if (node.nodeType === 3) {
+			const start = Math.max(0, anchor.startOffset - 1) // the "/" itself
+			const end = r.startContainer === node ? r.startOffset : (node.nodeValue ?? "").length
+			const del = document.createRange()
+			del.setStart(node, start)
+			del.setEnd(node, Math.max(start, end))
+			del.deleteContents()
+			const t = document.createTextNode(word)
+			del.insertNode(t)
+			const after = document.createRange()
+			after.setStartAfter(t)
+			after.collapse(true)
+			sel.removeAllRanges()
+			sel.addRange(after)
+		}
+		onInsert(word)
+	}
+
+	function commit() {
+		const res = choose(st)
+		if (res && res.inserted) {
+			insertWord(res.inserted)
+			close()
+		} else {
+			render()
+			place()
+		}
+	}
+
+	const onKeyDown = (e: KeyboardEvent) => {
+		if (!open) {
+			if (e.key !== "/" || !isEnabled()) return
+			const sel = window.getSelection()
+			if (!sel || !sel.rangeCount) return
+			const r = sel.getRangeAt(0)
+			// only a word-initial "/" is a command; mid-word slashes are prose
+			if (!opensPalette(r.startContainer, r.startOffset)) return
+			setTimeout(openAt, 0) // let the "/" land first
+			return
+		}
+		if (e.key === "ArrowDown") {
+			e.preventDefault()
+			move(st, 1)
+			render()
+		} else if (e.key === "ArrowUp") {
+			e.preventDefault()
+			move(st, -1)
+			render()
+		} else if (e.key === "ArrowRight") {
+			// mirror of ArrowLeft: step INTO the highlighted group/category
+			// (on a word there is nowhere further to go, so leave it be)
+			if (st.level !== "words") {
+				e.preventDefault()
+				commit()
+			}
+		} else if (e.key === "ArrowLeft") {
+			// step back up a level. Unlike Backspace this never closes the
+			// palette — at the top level there is simply nowhere left to go.
+			e.preventDefault()
+			if (goBack(st)) render()
+		} else if (e.key === "Enter" || e.key === "Tab") {
+			e.preventDefault()
+			commit()
+		} else if (e.key === "Escape") {
+			e.preventDefault()
+			close()
+		} else if (e.key === "Backspace" && st.filter === "") {
+			// step back a level instead of deleting the "/"
+			if (goBack(st)) {
+				e.preventDefault()
+				render()
+			} else {
+				close()
+			}
+		} else if (e.key === " ") {
+			close() // a space means they were writing, not searching
+		}
+	}
+
+	// Track what's been typed after the "/" as the filter.
+	const onInput = () => {
+		if (!open || !anchor) return
+		const sel = window.getSelection()
+		if (!sel || !sel.rangeCount) return close()
+		const node = anchor.startContainer
+		if (node.nodeType !== 3 || sel.getRangeAt(0).startContainer !== node) return close()
+		const typed = (node.nodeValue ?? "").slice(anchor.startOffset, sel.getRangeAt(0).startOffset)
+		if (!typed && sel.getRangeAt(0).startOffset < anchor.startOffset) return close()
+		setFilter(st, typed)
+		render()
+	}
+
+	const onBlur = () => setTimeout(() => open && close(), 120)
+
+	editor.addEventListener("keydown", onKeyDown)
+	editor.addEventListener("input", onInput)
+	editor.addEventListener("blur", onBlur)
+
+	return {
+		isOpen: () => open,
+		close,
+		setBundle: (b) => void (bundle = b),
+		destroy() {
+			editor.removeEventListener("keydown", onKeyDown)
+			editor.removeEventListener("input", onInput)
+			editor.removeEventListener("blur", onBlur)
+			el.remove()
+		},
+	}
+}
