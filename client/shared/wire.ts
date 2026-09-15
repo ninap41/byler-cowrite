@@ -104,3 +104,42 @@ export interface SeatAck {
 	token: string
 }
 export type PendingAck = { pending: true }
+
+// ---- the inbox ----
+/** Who a message is from/to, as GET /api/inbox ships it (src/routes.js msgShape). */
+export interface Ident {
+	username: string
+	color: HexColor | string
+	badge?: string | null
+	avatar?: string
+	avatarFit?: AvatarFit | string
+}
+export type MsgKind = "friend-request" | "friend-accept" | "game-invite" | "doc-invite" | "help" | "note" | "system"
+/** One inbox message on the wire. */
+export interface InboxRow {
+	id: string
+	type: MsgKind | string
+	text: string
+	read: boolean
+	ts: number
+	code?: string | null
+	threadId?: string
+	mine?: boolean
+	from?: Ident | null
+	to?: Ident | null
+	unlocks?: { themes: { id: string; name: string }[]; gimmicks: { id: string; name: string }[] } | null
+}
+export interface InboxPayload {
+	messages: InboxRow[]
+	unread: number
+}
+/** A conversation as threadInbox() (dashboard-view) groups it: oldest first inside, the head on top. */
+export interface InboxThread {
+	id: string
+	messages: InboxRow[]
+	head: InboxRow
+	ts: number
+	unread: boolean
+	/** the newest message from the other person — what a reply answers */
+	replyTo: InboxRow | null
+}

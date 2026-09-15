@@ -144,7 +144,8 @@ test("the inbox ✕ asks first, the same confirm modal as every other delete", a
   assert.match(panel, /import \{ confirmInboxDelete \} from "\/js\/components\/confirm-delete\.js"/);
   assert.match(comp, /class="confirm-modal hidden" id="ibDelModal"/, "the site's confirm-modal shape");
   assert.match(comp, /class="primary danger" id="ibDelConfirm"/);
-  assert.match(panel, /if \(!\(await confirm\(\{ conversation: ids\.length > 1, count: ids\.length \}\)\)\) return/, "nothing is deleted until the modal says so");
+  // esbuild emits `!await confirm(…)` without the redundant parentheses
+  assert.match(panel, /if \(!\(?await confirm\(\{ conversation: ids\.length > 1, count: ids\.length \}\)\)?\) return/, "nothing is deleted until the modal says so");
   assert.match(comp, /Delete this conversation\?/);
   assert.match(comp, /Delete this message\?/);
 });
