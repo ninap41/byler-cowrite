@@ -713,7 +713,7 @@ test("every page carries Open Graph tags for link previews, and the banner exist
 
 test("the homepage feature rundown never opens on a touch device while GSAP is loaded (it crashed mobile browsers)", async () => {
   const { readFileSync } = await import("node:fs");
-  const src = readFileSync(new URL("../public/index.html", import.meta.url), "utf-8");
+  const src = readFileSync(new URL("../public/js/pages/index.js", import.meta.url), "utf-8"); // the page's script, emitted from client/pages/index.ts
   assert.match(src, /\(hover: none\) and \(pointer: coarse\)/);
   assert.match(src, /featuresAllowed = \(\) => !\(touchDevice\(\) && typeof window\.gsap !== "undefined"\)/);
   assert.match(src, /if \(featuresAllowed\(\)\) \$\("featuresModal"\)\.classList\.remove\("hidden"\)/);
