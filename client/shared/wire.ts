@@ -143,3 +143,35 @@ export interface InboxThread {
 	/** the newest message from the other person — what a reply answers */
 	replyTo: InboxRow | null
 }
+
+// ---- guided prompts ----
+export type ControlIdKey = "seasonId" | "canonId" | "worldId" | "placeId" | "situationId" | "relationshipId" | "toneId" | "setupId" | "dynamicId" | "actId" | "kinkId"
+export type ControlOffKey = "situationOff" | "toneOff" | "setupOff" | "dynamicOff" | "actOff" | "kinkOff"
+export type ExplicitLevel = "none" | "explicit"
+/** The host's knobs, as cleanPromptControls() (src/game.js) shapes them: an id or "random" per axis, the off switches, the kink count. */
+export type PromptControls = Record<ControlIdKey, string> & Record<ControlOffKey, boolean> & { explicitLevel: ExplicitLevel | string; kinkCount: number }
+export type AgeGroup = "minor" | "adult"
+/** One menu row of /api/prompt-options: id + label + the RULES the generator would apply (never clause text). */
+export interface MenuRow {
+	id: string
+	label?: string
+	tags?: string[]
+	requires?: string[]
+	excludes?: string[]
+	ageGroups?: AgeGroup[]
+	canon?: string[]
+	adultOnly?: boolean
+	ageGroup?: AgeGroup
+}
+export interface PromptMenus {
+	modes: PromptMode[]
+	intermediate: null | ({ explicitLevels?: MenuRow[]; tropeGroups?: { id: string; label: string }[] } & Record<string, MenuRow[] | undefined | null | { id: string; label: string }[]>)
+}
+/** A guided option's components, as `game-state.optionMeta[]` carries them beside each ballot option. */
+export interface OptionMeta {
+	seed?: string
+	selections?: Record<string, unknown>
+	labels?: Record<string, string | string[] | undefined>
+	custom?: true
+	by?: string | null
+}
