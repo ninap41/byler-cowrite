@@ -286,7 +286,7 @@ test("a threaded conversation can be folded, and the button says how much it hid
 
 test("dashboard: the host's card menu offers End & reveal and Delete behind confirms, and both are disabled while the game is active", async () => {
   const { readFileSync } = await import("node:fs");
-  const html = readFileSync(new URL("../public/dashboard.html", import.meta.url), "utf-8");
+  const html = readFileSync(new URL("../public/js/pages/dashboard.js", import.meta.url), "utf-8"); // the page's script, emitted from client/pages/dashboard.ts
   assert.match(html, /import \{ confirmDialog \} from "\/js\/components\/confirm-delete\.js"/);
   assert.match(html, /const isActive = \(g\) => g\.live && !g\.paused/, "active = a live session that isn't paused");
   assert.match(html, /data-act="end" \$\{active \? "disabled" : ""\}/);

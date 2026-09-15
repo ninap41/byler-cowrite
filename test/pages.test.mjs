@@ -522,7 +522,8 @@ test("the column under the profile is two tabs: Dashboard (mine) and Community (
   assert.ok(!tabs.includes('id="tabCommunityN"'), "Community wears no writer count");
   assert.ok(tabs.includes('id="tabCommunityLive"'), "Community wears the live-games pill");
   assert.ok(tabs.includes('id="tabCommunityDot"'), "and a dot for unseen announcements");
-  assert.ok(body.includes('"cowriteAnnSeen"') && body.includes("markAnnouncementsSeen()"), "seen on opening the tab, remembered per browser");
+  const script = (await page("/js/pages/dashboard.js")).body // the page's script, emitted from client/pages/dashboard.ts
+  assert.ok(script.includes('"cowriteAnnSeen"') && script.includes("markAnnouncementsSeen()"), "seen on opening the tab, remembered per browser");
   const mine = body.slice(body.indexOf('id="tabDashboard"'), body.indexOf('id="tabCommunity"'));
   for (const id of ["achStrip", "myGames", "dashWrites", "recentGames"]) assert.ok(mine.includes(`id="${id}"`), id + " is mine");
   for (const id of ["dashLive", "writersList", "annCard", "helpCard"]) assert.ok(!mine.includes(`id="${id}"`), id + " is not");

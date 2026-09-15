@@ -293,8 +293,9 @@ test("the dashboard carries the help box, and it starts hidden for everyone", as
   assert.ok(body.includes('id="helpCard"'), "the help section exists");
   assert.match(body, /id="helpCard"[^>]*class="[^"]*hidden|class="card hidden" id="helpCard"/, "hidden until a non-admin loads it");
   assert.ok(body.includes('id="helpText"') && body.includes('id="helpSend"'), "a box and a send button");
-  assert.ok(body.includes("/api/help"), "wired to the help route");
-  assert.ok(body.includes("me.admin"), "the admin never sees it");
+  const script = await fetch(ctx.url + "/js/pages/dashboard.js").then((r) => r.text()); // the page's script, emitted from client/pages/dashboard.ts
+  assert.ok(script.includes("/api/help"), "wired to the help route");
+  assert.ok(script.includes("me?.admin"), "the admin never sees it");
 });
 
 test("the inbox reply composer is inline markup on the page, not a browser prompt", async () => {

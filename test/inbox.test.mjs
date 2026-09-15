@@ -102,7 +102,8 @@ test("the dashboard holds no messages at all; /inbox holds the conversation", as
   // dashboard carries is the fact that one is waiting, on the link that goes there
   assert.ok(!/id="inboxList"/.test(dash) && !/inbox-panel\.js/.test(dash), "no message list on the dashboard");
   assert.match(dash, /id="navInbox"/, "the count rides the rail's Inbox link");
-  assert.match(dash, /api\("\/api\/inbox"/, "fed by the same endpoint, read for its count only");
+  const dashScript = await fetch(ctx.url + "/js/pages/dashboard.js").then((r) => r.text()); // emitted from client/pages/dashboard.ts
+  assert.match(dashScript, /api\("\/api\/inbox"/, "fed by the same endpoint, read for its count only");
   assert.match(inbox, /mountInbox/, "the inbox page keeps the whole panel");
   // and the module honors it: no composer markup, no Reply button, no chain
   const panel = await fetch(ctx.url + "/js/inbox-panel.js").then((r) => r.text());

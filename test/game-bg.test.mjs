@@ -12,7 +12,7 @@ test("the game page mounts the theme scene exactly like the dashboard", () => {
   const gameScript = read("../public/js/pages/game.js"); // emitted from client/pages/game.ts
   const dash = read("../public/dashboard.html");
   assert.match(gameScript, /mountChrome\(\{ page: "game" \}\)/, "the same chrome mount (BG + nav + topbar) as every page");
-  assert.match(dash, /mountChrome\(\{ page: "dashboard" \}\)/);
+  assert.match(read("../public/js/pages/dashboard.js"), /mountChrome\(\{ page: "dashboard" \}\)/);
   assert.ok(!/<div class="bg-layers"/.test(game) && !/<div class="bg-layers"/.test(dash), "neither page draws its own layers — chrome.js owns the scene");
   const chrome = read("../public/js/chrome.js");
   assert.match(chrome, /insertAdjacentHTML\("afterbegin", BG \+/, "BG is mounted unconditionally, not per page");

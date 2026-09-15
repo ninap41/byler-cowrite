@@ -74,6 +74,7 @@ test("recentGames: finished games only, mine only", async () => {
 
 test("the dashboard rail is navigation: inbox count, start, join, solo write", async () => {
   const body = await fetch(ctx.url + "/dashboard").then((r) => r.text());
+  const script = await fetch(ctx.url + "/js/pages/dashboard.js").then((r) => r.text()); // the page's script, emitted from client/pages/dashboard.ts
   const rail = body.slice(body.indexOf("============ RAIL"));
 
   // every destination is a row in one nav, not a card of its own
@@ -85,12 +86,12 @@ test("the dashboard rail is navigation: inbox count, start, join, solo write", a
 
   // the unread count rides the Inbox row
   assert.ok(rail.includes('class="dnav-badge hidden" id="navInbox"'), "hidden until there is something to say");
-  assert.match(body, /b\.classList\.toggle\("hidden", !unread\)/, "the badge appears only when something is waiting");
+  assert.match(script, /b\.classList\.toggle\("hidden", !unread\)/, "the badge appears only when something is waiting");
 
   // joining needs a code, so the row unfolds one
   assert.ok(rail.includes('id="joinFold"') && rail.includes('id="code"'), "the code field folds into the row");
   assert.ok(rail.includes('aria-expanded="false"') && rail.includes('aria-controls="joinFold"'), "and says so");
-  assert.ok(body.includes('$("code").focus()'), "opening it puts the caret where you'd type");
+  assert.ok(script.includes('$("code").focus()'), "opening it puts the caret where you'd type");
 
   // the friends card sits between the nav and the quote in the rail; the
   // writers directory is a full-width card of its own in the main column
