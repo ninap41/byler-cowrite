@@ -33,6 +33,7 @@ import { htmlPushKind, pruneSource, stripAnchorInSource, applySuggestionInSource
 import {
   presenceHtml,
   commentThreadHtml,
+  commentModeBannerHtml,
   readerChipsHtml,
   wordsLabel,
   formatSource,
@@ -179,9 +180,20 @@ function setCommentMode(on) {
   $("commentToggle").setAttribute("aria-pressed", String(commentMode));
   $("docToolbar").classList.toggle("dimmed", commentMode || sourceMode);
   $("docEditor").classList.toggle("commenting", commentMode);
+  renderCommentBanner();
   $("commentsHeading").dataset.tip = commentMode ? "Select any words in the story to comment on them." : "Turn on comment mode to leave notes on your own words.";
   if (!commentMode) clearComposer();
 }
+function renderCommentBanner() {
+  const el = $("commentBanner");
+  el.classList.toggle("hidden", !commentMode);
+  if (!commentMode) return;
+  const count = comments.filter((c) => !c.resolved).length;
+  el.innerHTML = commentModeBannerHtml({ canExit: canEditDoc(), count });
+}
+$("commentBanner").addEventListener("click", (e) => {
+  if (e.target.closest("#commentDone")) setCommentMode(false);
+});
 function stickyH() {
   const el = $("docShell");
   if (!el) return 0;
@@ -310,6 +322,7 @@ function renderComments() {
   $("commentsOpenCount").textContent = total ? String(total) : "";
   $("commentsHeading").textContent = chapters.length > 1 && total ? `💬 Comments · ${live.length + orphans.length} here, ${total} in all` : "💬 Comments";
   paintChapterCounts();
+  renderCommentBanner();
   if (activeCid) focusComment(activeCid, { scroll: "none" });
   renderComposer();
 }

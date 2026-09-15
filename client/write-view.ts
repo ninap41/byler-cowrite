@@ -286,6 +286,21 @@ export function commentHtml(c: CommentRow, { isOwner = false, meName = "" }: Com
 
 // Comments grouped under the block they're anchored to, plus any that lost
 // their anchor when the author edited that text.
+/**
+ * The strip pinned to the top of the editor while comment mode is on: it
+ * names the mode, says the gesture, and — for the author, who can leave —
+ * carries the way out. A beta reader is always in comment mode (they can't
+ * edit), so their strip says so and has no Done.
+ */
+export function commentModeBannerHtml({ canExit = true, count = 0 }: { canExit?: boolean; count?: number } = {}): string {
+	const notes = count > 0 ? ` · ${count} note${count === 1 ? "" : "s"}` : ""
+	return (
+		`<span class="cmb-what">💬 <b>${canExit ? "Comment mode" : "Reading to comment"}</b></span>` +
+		`<span class="cmb-how">${canExit ? "Select any words to leave a note" : "Select any words to leave the author a note"}${notes}</span>` +
+		(canExit ? `<button class="cmb-done" id="commentDone" type="button">Done</button>` : "")
+	)
+}
+
 export function commentThreadHtml(comments: CommentRow[], { orphaned = false, isOwner = false, meName = "" }: CommentViewOpts & { orphaned?: boolean } = {}): string {
 	if (!comments.length) return ""
 	return (

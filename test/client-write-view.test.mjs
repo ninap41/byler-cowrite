@@ -7,7 +7,7 @@ import { installDom } from "./dom.mjs";
 import { readFileSync } from "node:fs";
 
 installDom(); // plainBlockHtml parses through a detached div
-import { docCardHtml, docListHtml, docShelfHtml, DOC_GROUPS, presenceHtml, soloRowHtml, soloListHtml, wireSoloDeletes, commentHtml, commentThreadHtml, readerChipsHtml, wordsLabel, formatSource, unformatSource, plainBlockHtml, visChipHtml, visMenuHtml, visLabel, VIS, scrollTargetFor, inviteOptions, inviteRowHtml, inviteListHtml, promptInsertHtml, insertAfterHeading, betaReadingHtml, chapterListHtml, chapNavHtml, chapChipLabel, countWordsHtml } from "../public/js/write-view.js";
+import { docCardHtml, docListHtml, docShelfHtml, DOC_GROUPS, presenceHtml, soloRowHtml, soloListHtml, wireSoloDeletes, commentHtml, commentThreadHtml, readerChipsHtml, wordsLabel, formatSource, unformatSource, plainBlockHtml, visChipHtml, visMenuHtml, visLabel, VIS, scrollTargetFor, inviteOptions, inviteRowHtml, inviteListHtml, promptInsertHtml, insertAfterHeading, betaReadingHtml, commentModeBannerHtml, chapterListHtml, chapNavHtml, chapChipLabel, countWordsHtml } from "../public/js/write-view.js";
 
 const DOC = {
   id: "abc", title: "The Upside Down", wordCount: 120, visibility: "private",
@@ -566,4 +566,18 @@ test("chapNavHtml: Prev/Next name their chapters, the ends are blank, one chapte
   assert.equal(chapChipLabel([CHAPS[0]], 0), "📑 Chapters");
   assert.equal(chapChipLabel(CHAPS, 1, false), "📑 View chapters", "closed, the chip says what it opens");
   assert.equal(chapChipLabel([CHAPS[0]], 0, false), "📑 View chapters");
+});
+
+test("commentModeBannerHtml: names the mode, says the gesture, Done only for the author", () => {
+  const author = commentModeBannerHtml({ canExit: true });
+  assert.ok(author.includes("Comment mode"));
+  assert.ok(author.includes("Select any words to leave a note"));
+  assert.ok(author.includes('id="commentDone"'), "the author can leave");
+  assert.ok(!author.includes(" · "), "no count when there are none");
+  const reader = commentModeBannerHtml({ canExit: false, count: 1 });
+  assert.ok(reader.includes("Reading to comment"));
+  assert.ok(!reader.includes("commentDone"), "a reader is always in comment mode: nothing to leave");
+  assert.ok(reader.includes(" · 1 note"), "singular");
+  assert.ok(commentModeBannerHtml({ count: 3 }).includes(" · 3 notes"), "plural");
+  assert.ok(commentModeBannerHtml().includes("commentDone"), "defaults to the author's strip");
 });

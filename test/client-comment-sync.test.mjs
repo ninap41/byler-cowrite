@@ -87,3 +87,35 @@ test("write page: acting on a comment drops its cid from the just-sent guard", (
   assert.match(pane, /pendingCids\.delete\(li\.dataset\.cid\)/);
   assert.ok(pane.indexOf("pendingCids.delete") < pane.indexOf('closest(".dc-accept")'), "before any action is dispatched");
 });
+
+// ---- comment mode says it is on: the strip and the cursor ----
+test("write page: comment mode shows the banner strip and Done leaves the mode", () => {
+  const html = readFileSync(new URL("../public/write.html", import.meta.url), "utf-8");
+  assert.match(html, /<div class="cm-banner hidden" id="commentBanner" role="status"/, "the strip sits above the editor, hidden until the mode is on");
+  assert.ok(html.indexOf('id="commentBanner"') < html.indexOf('id="docEditor"'), "on the editor's top edge");
+  const mode = handler("function setCommentMode(", "\n}");
+  assert.match(mode, /renderCommentBanner\(\)/, "every mode change repaints the strip");
+  const banner = handler("function renderCommentBanner(", "\n}");
+  assert.match(banner, /classList\.toggle\("hidden", !commentMode\)/);
+  assert.match(banner, /commentModeBannerHtml\(\{ canExit: canEditDoc\(\), count \}\)/);
+  const click = handler('$("commentBanner").addEventListener("click"', "});");
+  assert.match(click, /closest\("#commentDone"\)\) setCommentMode\(false\)/);
+  const render = handler("function renderComments()", "\nfunction renderDoc()");
+  assert.match(render, /renderCommentBanner\(\)/, "the note count follows the comment list");
+});
+
+test("write page css: the commenting editor wears a comment cursor and a ring, and the strip can hide", () => {
+  const css = readFileSync(new URL("../public/css/base.css", import.meta.url), "utf-8");
+  const i = css.indexOf(".doc-editor.commenting {");
+  assert.ok(i >= 0);
+  const rule = css.slice(i, css.indexOf("}", i));
+  assert.match(rule, /cursor: url\("data:image\/svg\+xml,[^"]+"\) \d+ \d+, crosshair;/, "a bubble cursor with a crosshair fallback");
+  assert.match(rule, /box-shadow: 0 0 0 2px/, "the ring");
+  assert.ok(!/cursor: text/.test(rule), "no longer the I-beam that promises editing");
+  // .hidden is only as strong as its source order (CLAUDE.md): the strip's
+  // own display: flex comes later than the early .hidden, so it needs the
+  // grouped .CLASS.hidden rule, and that rule must come after .cm-banner
+  const own = css.indexOf(".cm-banner {");
+  const hidden = css.indexOf(".cm-banner.hidden,");
+  assert.ok(own >= 0 && hidden > own, ".cm-banner.hidden is declared after .cm-banner's display");
+});

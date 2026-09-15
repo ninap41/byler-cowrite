@@ -88,6 +88,10 @@ function commentHtml(c, { isOwner = false, meName = "" } = {}) {
   const decided = c.resolved && c.suggestion != null;
   return `<li class="${cls.filter(Boolean).join(" ")}" data-id="${esc(c.id)}" data-cid="${esc(c.cid || "")}"><span class="dc-who">${miniAvatar({ avatar: c.avatar, avatarFit: c.avatarFit, name: c.author, color: c.color })}<b style="color:${safeColor(c.color)}">${esc(c.author)}</b>` + (c.isAuthor ? `<span class="dc-tag">author</span>` : "") + `<span class="dc-when">${esc(fmtWhen(c.ts))}</span></span>` + (c.suggestion != null ? `<p class="dc-suggest"><s>${esc(c.quote || "")}</s> <span class="dc-arrow">→</span> <ins>${esc(c.suggestion)}</ins></p>` : c.quote ? `<p class="dc-quote">${esc(c.quote)}</p>` : "") + (c.text ? `<p class="dc-text">${esc(c.text)}</p>` : "") + (decided ? `<p class="dc-verdict">${c.accepted ? "✓ Accepted" : "Not taken"}</p>` : "") + `<span class="dc-actions">` + (c.suggestion != null && !c.resolved && isOwner ? `<button class="linky dc-accept" type="button">Accept</button><button class="linky dc-reject" type="button">Reject</button>` : canManage ? `<button class="linky dc-resolve" type="button">${c.resolved ? "Unresolve" : "Resolve"}</button>` : "") + (canManage ? `<button class="linky dc-del" type="button">Delete</button>` : "") + `</span></li>`;
 }
+function commentModeBannerHtml({ canExit = true, count = 0 } = {}) {
+  const notes = count > 0 ? ` · ${count} note${count === 1 ? "" : "s"}` : "";
+  return `<span class="cmb-what">💬 <b>${canExit ? "Comment mode" : "Reading to comment"}</b></span><span class="cmb-how">${canExit ? "Select any words to leave a note" : "Select any words to leave the author a note"}${notes}</span>` + (canExit ? `<button class="cmb-done" id="commentDone" type="button">Done</button>` : "");
+}
 function commentThreadHtml(comments, { orphaned = false, isOwner = false, meName = "" } = {}) {
   if (!comments.length) return "";
   return (orphaned ? `<p class="dc-orphan-note">${comments.length === 1 ? "This comment was" : "These comments were"} left on text that has since changed:</p>` : "") + `<ul class="dc-list">${comments.map((c) => commentHtml(c, { isOwner, meName })).join("")}</ul>`;
@@ -273,6 +277,7 @@ export {
   chapNavHtml,
   chapterListHtml,
   commentHtml,
+  commentModeBannerHtml,
   commentThreadHtml,
   countWordsHtml,
   docCardHtml,

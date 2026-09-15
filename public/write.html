@@ -229,6 +229,10 @@
 					     dropdown instead. -->
 					<aside class="doc-chapters" id="chapPanel" aria-label="Chapters"></aside>
 					<div class="doc-col">
+						<!-- Comment mode says so where the eye is: a strip on the
+						     editor's top edge (commentModeBannerHtml in write-view.js),
+						     shown by setCommentMode. -->
+						<div class="cm-banner hidden" id="commentBanner" role="status" aria-live="polite"></div>
 						<div
 							class="editor doc-editor"
 							id="docEditor"

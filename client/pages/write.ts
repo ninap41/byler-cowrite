@@ -32,6 +32,7 @@ import { htmlPushKind, pruneSource, stripAnchorInSource, applySuggestionInSource
 import {
 	presenceHtml,
 	commentThreadHtml,
+	commentModeBannerHtml,
 	readerChipsHtml,
 	wordsLabel,
 	formatSource,
@@ -263,11 +264,25 @@ function setCommentMode(on: boolean) {
 	$("commentToggle").setAttribute("aria-pressed", String(commentMode))
 	$("docToolbar").classList.toggle("dimmed", commentMode || sourceMode)
 	$("docEditor").classList.toggle("commenting", commentMode)
+	renderCommentBanner()
 	$("commentsHeading").dataset.tip = commentMode
 		? "Select any words in the story to comment on them."
 		: "Turn on comment mode to leave notes on your own words."
 	if (!commentMode) clearComposer()
 }
+
+// The strip on the editor's top edge that says comment mode is ON and how
+// to use it; Done leaves the mode (author only — a reader is always in it).
+function renderCommentBanner() {
+	const el = $("commentBanner")
+	el.classList.toggle("hidden", !commentMode)
+	if (!commentMode) return
+	const count = comments.filter((c) => !c.resolved).length
+	el.innerHTML = commentModeBannerHtml({ canExit: canEditDoc(), count })
+}
+$("commentBanner").addEventListener("click", (e) => {
+	if ((e.target as HTMLElement).closest("#commentDone")) setCommentMode(false)
+})
 
 // Highlight one comment's words and its card together, and bring
 // whichever half you didn't click into view.
@@ -461,6 +476,7 @@ function renderComments() {
 	$("commentsOpenCount").textContent = total ? String(total) : ""
 	$("commentsHeading").textContent = chapters.length > 1 && total ? `💬 Comments · ${live.length + orphans.length} here, ${total} in all` : "💬 Comments"
 	paintChapterCounts()
+	renderCommentBanner()
 	if (activeCid) focusComment(activeCid, { scroll: "none" })
 	renderComposer()
 }
