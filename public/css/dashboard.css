@@ -897,12 +897,6 @@ a.rg-row {
 .dnav:focus-visible .dnav-go {
 	opacity: 1;
 }
-.dnav-go.chev {
-	opacity: 1; /* a fold says so whether or not you're pointing at it */
-}
-.dnav.on .dnav-go.chev {
-	transform: rotate(180deg);
-}
 /* The unread count: the one thing in this column that competes for attention,
    so it's the only thing wearing the accent. */
 .dnav-badge {
@@ -918,32 +912,128 @@ a.rg-row {
 .dnav-badge.hidden {
 	display: none;
 }
-/* the code field, folded into the Join row */
-.dnav-fold {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: 8px;
-	padding: 4px 12px 10px;
-}
-.dnav-fold.hidden {
+/* .dnav is display:flex — the admin row is hidden until the account says so,
+   so it needs the .hidden twin (source-order rule, see CLAUDE.md) */
+.dnav.hidden {
 	display: none;
 }
-.dnav-fold .code {
+/* ---- side-flyout submenus (components/nav-flyout.js) ----
+   A parent row (Cowrite, Solo writes, Account) and its panel share a wrap.
+   On a desktop the panel is FIXED beside the row, placed by the component
+   from the row's screen rect; under 900px it folds open in-flow under the
+   row (.is-fold) — the rail stacks above the column there and a popover
+   would have nowhere to go. One open at a time. */
+.dnav-wrap {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+}
+.dnav-wrap.hidden {
+	display: none;
+}
+.dnav-chev {
+	flex: 0 0 auto;
+	color: var(--muted);
+	font-size: 0.8rem;
+	transition: transform 0.15s ease, color 0.15s ease;
+}
+.dnav-parent.on .dnav-chev {
+	color: var(--accent-2);
+}
+.dnav-wrap.is-fold .dnav-parent.on .dnav-chev {
+	transform: rotate(90deg);
+}
+.dnav-sub {
+	position: fixed;
+	z-index: 70;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 230px;
+	padding: 6px;
+	background: var(--panel-solid, var(--panel));
+	border: 1px solid var(--panel-brd);
+	border-radius: var(--r-md);
+	box-shadow: var(--panel-glow);
+	/* a transient popover may blur: it sits still while open */
+	backdrop-filter: blur(12px);
+	-webkit-backdrop-filter: blur(12px);
+}
+.dnav-sub.hidden {
+	display: none;
+}
+/* the CSS fallback entrance (finite; GSAP tweens it when loaded) */
+.dnav-sub.open:not(.is-fold) {
+	animation: dnav-sub-in 0.18s ease-out;
+}
+@keyframes dnav-sub-in {
+	from {
+		opacity: 0;
+		transform: translateX(-8px);
+	}
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
+.dnav-sub.is-fold {
+	position: static;
+	padding: 2px 0 6px 20px;
+	background: none;
+	border: 0;
+	box-shadow: none;
+	backdrop-filter: none;
+	-webkit-backdrop-filter: none;
+}
+@media (max-width: 900px) {
+	.dnav-sub {
+		position: static;
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	.dnav-sub.open {
+		animation: none;
+	}
+}
+/* the code hint, now in the join modal */
+.dnav-hint {
+	margin: 6px 0 0;
+	text-align: left;
+	font-size: 0.74rem;
+}
+/* ---- the join modal: the code, then the games running now ---- */
+.join-card {
+	position: relative;
+	max-width: 520px;
+}
+.join-code-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+.join-code-row .code {
 	flex: 1 1 90px;
 	min-width: 0;
 	margin: 0;
 }
-.dnav-fold .primary {
+.join-code-row .primary {
 	flex: 0 0 auto;
 	min-width: 0;
 	padding: 9px 16px;
 }
-.dnav-hint {
-	flex: 1 1 100%;
-	margin: 0;
+.join-live-h {
+	margin: 16px 0 6px;
+	font: 700 0.72rem/1 var(--font-mono);
+	letter-spacing: 2px;
+	text-transform: uppercase;
+	color: var(--muted);
 	text-align: left;
-	font-size: 0.74rem;
+}
+.join-live {
+	display: grid;
+	gap: 8px;
+	max-height: 40vh;
+	overflow: auto;
 }
 .dash-nav .err {
 	margin: 0;

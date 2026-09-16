@@ -342,3 +342,18 @@ test("a friend row has no badge chip, carries a ✉ for the composer, and its to
   assert.equal(friendStatsTip(u), "Online · Puppy Mike · 1,234 words · 2 badges · 1 game");
   assert.match(friendStatsTip({ username: "x", online: false }), /^Offline$/);
 });
+
+test("joinLiveRowsHtml: the join modal's list — one .live-game per running game with a data-join button, gathering only when I'm not seated", async () => {
+  const { joinLiveRowsHtml } = await import("../public/js/dashboard-view.js");
+  assert.match(joinLiveRowsHtml([], "me"), /No games running right now/);
+  const games = [
+    { code: "ABCD", name: "One", phase: "waiting", players: [{ name: "other", connected: true }] },
+    { code: "EFGH", name: "Two", phase: "waiting", players: [{ name: "me", connected: true }] },
+    { code: "IJKL", name: "Three", phase: "writing", players: [{ name: "other", connected: true }] },
+  ];
+  const html = joinLiveRowsHtml(games, "me");
+  assert.equal((html.match(/class="live-game/g) || []).length, 3);
+  assert.equal((html.match(/class="live-game gathering"/g) || []).length, 1, "only the waiting game I'm not in gathers");
+  for (const code of ["ABCD", "EFGH", "IJKL"]) assert.ok(html.includes(`data-join="${code}">Join</button>`), code + " joins");
+  assert.ok(html.includes("--lg-i:2"), "rows are staggered");
+});

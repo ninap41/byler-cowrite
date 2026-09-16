@@ -82,3 +82,16 @@ test("word-count sort direction is respected", async () => {
   const counts = asc.data.stories.map((s) => s.wordCount);
   assert.deepEqual(counts, [...counts].sort((a, b) => a - b));
 });
+
+test("?kind=game|write narrows the library to one shelf; anything else lists both", async () => {
+  await startedGame(ctx);
+  const alice = await signup(ctx, "kindalice", "kind@alice.com");
+  const { data: { doc } } = await ctx.api("/api/docs", { title: "A public write" }, alice.token);
+  await ctx.api("/api/docs/" + doc.id + "/visibility", { visibility: "public" }, alice.token);
+  const games = (await ctx.api("/api/stories?kind=game&limit=50", undefined, alice.token)).data.stories;
+  assert.ok(games.length >= 1 && games.every((s) => s.kind === "game"), "only games");
+  const writes = (await ctx.api("/api/stories?kind=write&limit=50", undefined, alice.token)).data.stories;
+  assert.ok(writes.length >= 1 && writes.every((s) => s.kind === "write"), "only writes");
+  const both = (await ctx.api("/api/stories?kind=banana&limit=50", undefined, alice.token)).data.stories;
+  assert.ok(both.some((s) => s.kind === "game") && both.some((s) => s.kind === "write"), "an unknown kind is both");
+});

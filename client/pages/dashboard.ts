@@ -4,6 +4,7 @@ import { requireAuth } from "/js/auth-guard.js"
 import { safeColor } from "/js/util.js"
 import {
 	liveGameInfoHtml,
+	joinLiveRowsHtml,
 	badgeProgress,
 	myGameCardHtml,
 	myGameStatus,
@@ -20,6 +21,7 @@ import { avatarHtml } from "/js/profile-view.js"
 import { showInviteToast } from "/js/turn-alert.js"
 import { soloListHtml, betaReadingHtml, wireSoloDeletes } from "/js/write-view.js"
 import { confirmDialog } from "/js/components/confirm-delete.js"
+import { mountNavFlyout } from "/js/components/nav-flyout.js"
 import { mountTendrilBorder } from "/js/components/tendril-border.js"
 import { whenVisible } from "/js/components/when-visible.js"
 import type { Socket } from "socket.io-client"
@@ -242,31 +244,57 @@ $("inviteBtn").onclick = async () => {
 	} catch (e) {}
 }
 
-// ---- Quick start ----
-$("createBtn").onclick = () => (location.href = "/game?new=1")
-// Straight into a blank page, mirroring "Start a game". The + beside
-// the Solo Writes heading does the same thing.
+// ---- The rail ----
+// Cowrite / Solo writes / Account are parent rows whose items fly out
+// (components/nav-flyout.js); the two items that DO something rather than
+// go somewhere arrive here as actions. Straight into a blank page for a
+// solo write, mirroring New game; the + beside the Solo Writes heading
+// does the same thing.
 const newSoloWrite = async () => {
-	$("lobbyErr").textContent = ""
+	$("railErr").textContent = ""
 	try {
 		const { doc } = await api<{ doc: { id: string } }>("/api/docs", { title: "Untitled" })
 		location.href = "/write?id=" + encodeURIComponent(doc.id)
 	} catch (e) {
-		$("lobbyErr").textContent = (e as Error).message
+		$("railErr").textContent = (e as Error).message
 	}
 }
-$("soloBtn").onclick = newSoloWrite
 $("newWritePlus").onclick = newSoloWrite
-// Joining is two steps only because it needs a code: the row unfolds
-// one, and focus lands in it so you can just type.
-$("joinToggle").onclick = () => {
-	const fold = $("joinFold")
-	const open = fold.classList.toggle("hidden") === false
-	$("joinToggle").setAttribute("aria-expanded", String(open))
-	$("joinToggle").classList.toggle("on", open)
-	if (open) $("code").focus()
-	else $("lobbyErr").textContent = ""
+mountNavFlyout($("railNav"), {
+	admin: !!me?.admin,
+	onAction: (act) => {
+		if (act === "join") openJoinModal()
+		else if (act === "newSolo") newSoloWrite()
+	},
+})
+
+// ---- Join a game ----
+// Joining needs a code, so it opens a modal: the code field, with the caret
+// already in it, and the games running right now (from the same
+// /api/dashboard poll the Community tab reads — cached here, repainted
+// while the modal is open) so a public game is one click.
+let lastLive: LiveGame[] = []
+function paintJoinLive() {
+	$("joinLive").innerHTML = joinLiveRowsHtml(lastLive, me?.username)
 }
+const joinModal = $("joinModal")
+const onJoinKey = (e: KeyboardEvent) => {
+	if (e.key === "Escape") closeJoinModal()
+}
+function openJoinModal() {
+	paintJoinLive()
+	$("lobbyErr").textContent = ""
+	joinModal.classList.remove("hidden")
+	$("code").focus()
+	document.addEventListener("keydown", onJoinKey)
+}
+function closeJoinModal() {
+	joinModal.classList.add("hidden")
+	document.removeEventListener("keydown", onJoinKey)
+	$("joinOpen").focus()
+}
+$("joinClose").onclick = closeJoinModal
+joinModal.addEventListener("click", (e) => e.target === joinModal && closeJoinModal())
 $("joinBtn").onclick = () => {
 	const code = $<HTMLInputElement>("code").value.trim().toUpperCase()
 	if (code.length !== 4) return ($("lobbyErr").textContent = "Enter a 4-letter code.")
@@ -277,6 +305,10 @@ $("code").addEventListener("keydown", (e) => {
 		e.preventDefault()
 		$("joinBtn").click()
 	}
+})
+$("joinLive").addEventListener("click", (e) => {
+	const b = (e.target as Element | null)?.closest<HTMLElement>("[data-join]")
+	if (b) location.href = "/game?code=" + encodeURIComponent(b.dataset.join || "")
 })
 
 // ---- Games in progress ----
@@ -666,6 +698,8 @@ async function loadDashboard() {
 	renderWriters()
 	renderMyGames(d.myGames)
 	renderRecent(d.recentGames)
+	lastLive = d.liveGames
+	if (!joinModal.classList.contains("hidden")) paintJoinLive()
 	const box = $("dashLive")
 	if (!d.liveGames.length) {
 		box.innerHTML = '<p class="subtle" style="text-align:left;margin:0">No games running right now.</p>'

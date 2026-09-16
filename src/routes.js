@@ -799,12 +799,14 @@ export function registerRoutes(app, game) {
     // the "all of this writer's games" page linked from profiles
     const forUser = req.query.user ? findByUsername(req.query.user) : null;
     if (req.query.user && !forUser) return res.status(404).json({ error: "No writer by that name." });
+    // ?kind=game|write narrows to one shelf (the rail's "All previous games"); anything else is both
+    const kind = req.query.kind === "game" || req.query.kind === "write" ? req.query.kind : "";
     const sort = req.query.sort === "words" ? "words" : "date";
     const dir = req.query.dir === "asc" ? 1 : -1;
     const page = Math.max(1, Number(req.query.page) || 1);
     const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 12));
     const all = [];
-    for (const d of allSnapshots()) {
+    for (const d of kind === "write" ? [] : allSnapshots()) {
       {
         // "title" is what the cards show: the host-set name, else the prompt
         if (q && !`${d.name || ""} ${d.prompt || ""}`.toLowerCase().includes(q)) continue;
@@ -818,7 +820,7 @@ export function registerRoutes(app, game) {
     // in the library at large — but ONE writer's page (?user=) lists all of
     // theirs, with `viewable` deciding whether a card opens for the viewer.
     const viewer = authedUser(req);
-    for (const d of forUser ? docsOwnedBy(forUser.id) : publicDocs()) {
+    for (const d of kind === "game" ? [] : forUser ? docsOwnedBy(forUser.id) : publicDocs()) {
       if (q && !String(d.title || "").toLowerCase().includes(q)) continue;
       if (tag) continue; // documents carry no tags
       all.push({

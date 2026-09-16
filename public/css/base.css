@@ -416,6 +416,13 @@ body {
 .hero-inner {
 	max-width: 900px;
 }
+/* Staged before first paint (index.html's head script); the entrance script
+   lifts it the moment it has set the write-in's own start frame, so the
+   finished title never flashes before it writes itself in. visibility, not
+   display, so the words and underline can still be measured. */
+html.hero-staged .hero-inner {
+	visibility: hidden;
+}
 .hero-svg {
 	width: min(760px, 92vw);
 	overflow: visible;
@@ -1305,40 +1312,6 @@ a.solo-title:hover {
 }
 .nav-drawer a:hover {
 	border-color: var(--accent-2);
-}
-/* the AO3 skin previewer: a door out to its own site, so it glows */
-.nav-drawer a.nav-glow {
-	position: relative;
-	border-color: color-mix(in srgb, var(--accent-2) 55%, transparent);
-}
-/* The glow is a pseudo-element whose OPACITY breathes: a box-shadow that
-   animates repaints the row every frame on the main thread (and, in a
-   scrolling page, invalidates the tiles Chrome needs for the scroll);
-   opacity is composited for free. test/animation-budget.test.mjs pins it. */
-.nav-drawer a.nav-glow::after {
-	content: "";
-	position: absolute;
-	inset: -1px;
-	border-radius: inherit;
-	box-shadow: 0 0 14px 1px color-mix(in srgb, var(--accent-2) 45%, transparent);
-	opacity: 0;
-	pointer-events: none;
-	animation: nav-glow 2.6s ease-in-out infinite;
-}
-@keyframes nav-glow {
-	0%,
-	100% {
-		opacity: 0;
-	}
-	50% {
-		opacity: 1;
-	}
-}
-@media (prefers-reduced-motion: reduce) {
-	.nav-drawer a.nav-glow {
-		animation: none;
-		box-shadow: 0 0 10px 0 color-mix(in srgb, var(--accent-2) 35%, transparent);
-	}
 }
 /* No focus ring on menu links — the accent border is the focus cue, like hover. */
 .nav-drawer a:focus,
@@ -4618,6 +4591,29 @@ h3 {
 .confirm-card h3 {
 	margin: 0 0 8px;
 	font-family: var(--font-display);
+}
+/* a borderless ✕ in the card's corner — a dismissal, not a button competing
+   with the card (the card must be position: relative) */
+.confirm-x {
+	position: absolute;
+	top: 10px;
+	right: 10px;
+	margin: 0;
+	padding: 4px 8px;
+	min-width: 0;
+	border: 0;
+	background: none;
+	box-shadow: none;
+	color: var(--muted);
+	font-size: 0.95rem;
+	line-height: 1;
+	cursor: pointer;
+}
+.confirm-x:hover {
+	color: var(--accent-2);
+	background: none;
+	box-shadow: none;
+	transform: none;
 }
 button.danger,
 .primary.danger {
@@ -10158,12 +10154,6 @@ body.game-page .session-bar .sess-name {
 }
 .nav-drawer {
 	gap: 2px;
-}
-.nav-drawer .nav-sep {
-	width: 100%;
-	border: 0;
-	border-top: 1px solid var(--line);
-	margin: 8px 0;
 }
 .nav-drawer a {
 	background: none;

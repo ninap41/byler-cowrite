@@ -115,19 +115,9 @@ const NAV = (page: string): string => `
 		<button type="button" class="nav-logout" id="navLogout">🚪 Log out</button>
 		<p class="nav-title">Menu</p>
 		<a href="/dashboard" ${page === "dashboard" ? 'aria-current="page"' : ""}>🏠 Dashboard</a>
-		<a href="/inbox" ${page === "inbox" ? 'aria-current="page"' : ""}>📬 Inbox</a>
 		<a href="/announcements" ${page === "announcements" ? 'aria-current="page"' : ""}>📣 Announcements</a>
-		<a href="/game" ${page === "game" ? 'aria-current="page"' : ""}>✍️ Current game</a>
-		<a href="/games" ${page === "games" ? 'aria-current="page"' : ""}>🕹️ Games</a>
-		<hr class="nav-sep" />
-		<a href="/writes" ${page === "writes" || page === "write" ? 'aria-current="page"' : ""}>✒️ Solo writes</a>
-		<a href="/archive" ${page === "archive" ? 'aria-current="page"' : ""}>📚 Previous games</a>
 		<a href="/stories" ${page === "stories" ? 'aria-current="page"' : ""}>📖 All stories</a>
-		<hr class="nav-sep" />
-		<a href="/profile" ${page === "profile" ? 'aria-current="page"' : ""}>🏆 Profile</a>
 		<a href="/ranks" ${page === "ranks" ? 'aria-current="page"' : ""}>🏅 Ranks &amp; unlocks</a>
-		<a href="/settings" ${page === "settings" ? 'aria-current="page"' : ""}>⚙️ Settings</a>
-		<a href="${AO3_PREVIEWER_URL}" class="nav-glow" target="_blank" rel="noopener">🎨 AO3 skin previewer</a>
 		<a href="/admin" class="hidden" id="navAdmin" ${page === "admin" ? 'aria-current="page"' : ""}>🛡️ Admin</a>
 	</nav>`
 

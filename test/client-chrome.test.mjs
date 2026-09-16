@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { installDom } from "./dom.mjs";
 
 installDom();
-const { mountChrome, mountKofi, KOFI_ACCOUNT, KOFI_EMBED, KOFI_PAGE } = await import("../public/js/chrome.js");
+const { mountChrome, mountKofi, setUserChip, KOFI_ACCOUNT, KOFI_EMBED, KOFI_PAGE } = await import("../public/js/chrome.js");
 const { THEMES, THEME_LABELS, initTheme, themeAllowed, lockTip, DEFAULT_THEME } = await import("../public/js/theme.js");
 
 test("theme registry: all nineteen themes present with labels", () => {
@@ -152,6 +152,12 @@ test("mountChrome injects shared chrome + the foot bar", () => {
   assert.ok(document.getElementById("navDrawer"), "nav drawer injected");
   assert.ok(document.getElementById("themeSwitch"), "theme switch injected");
   assert.equal(document.querySelector('#navDrawer a[aria-current="page"]').getAttribute("href"), "/dashboard");
+  // The drawer is site pages only — everything you DO lives in the dashboard rail's flyouts.
+  assert.deepEqual([...document.querySelectorAll("#navDrawer a")].map((a) => a.getAttribute("href")), ["/dashboard", "/announcements", "/stories", "/ranks", "/admin"]);
+  assert.ok(!document.querySelector("#navDrawer .nav-sep"), "no separators in a four-row menu");
+  assert.ok(document.getElementById("navAdmin").classList.contains("hidden"), "Admin hides until the account says so");
+  setUserChip({ username: "kip", admin: true });
+  assert.ok(!document.getElementById("navAdmin").classList.contains("hidden"));
   // The two bits of furniture live in one thin strip, not two floating chips.
   assert.ok(document.getElementById("footBar"), "foot bar injected");
   assert.ok(document.getElementById("peekBtn") && document.getElementById("kofiBtn"), "both controls sit in it");

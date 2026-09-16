@@ -194,50 +194,44 @@
 
 				<!-- ============ RAIL (left on desktop, below the column on a phone) ============ -->
 				<!-- The rail is navigation first: where you go from here, as one column
-				     of equal-weight rows (it sits LEFT of the column on desktop), with the inbox wearing its own unread count so
-				     a waiting message is visible without opening anything. Joining needs
-				     a code, so it unfolds one inline rather than living in its own card. -->
+				     of equal-weight rows (it sits LEFT of the column on desktop), with the
+				     inbox wearing its own unread count so a waiting message is visible
+				     without opening anything. Rows with children (Cowrite, Solo writes,
+				     Account) open a side-flyout submenu — components/nav-flyout.js — which
+				     flies out to the right on desktop and folds open under the row on a
+				     phone. This markup is exactly what navFlyoutHtml() emits (a test pins
+				     it); it stays static here so the page renders whole with no flash.
+				     Joining needs a code, so it opens a modal (#joinModal) that also lists
+				     the games running right now. -->
 				<div class="dash-rail">
-					<nav class="card dash-nav" aria-label="Go somewhere">
-						<a class="dnav" href="/inbox">
-							<span class="dnav-ico" aria-hidden="true">📬</span><span class="dnav-label">Inbox</span>
-							<span class="dnav-badge hidden" id="navInbox"></span>
-						</a>
-						<button type="button" class="dnav" id="createBtn">
-							<span class="dnav-ico" aria-hidden="true">✨</span><span class="dnav-label">Start a game</span
-							><span class="dnav-go">&#8594;</span>
-						</button>
-						<button type="button" class="dnav" id="joinToggle" aria-expanded="false" aria-controls="joinFold">
-							<span class="dnav-ico" aria-hidden="true">🔑</span><span class="dnav-label">Join a game</span
-							><span class="dnav-go chev">&#9662;</span>
-						</button>
-						<!-- a 4-letter code is the whole form, so it folds into the row -->
-						<div class="dnav-fold hidden" id="joinFold">
-							<input id="code" class="code" placeholder="XXXX" maxlength="4" aria-label="Game code" />
-							<button class="primary" id="joinBtn" type="button">Join</button>
-							<p class="subtle dnav-hint">Ask a friend for their 4-letter code.</p>
-						</div>
-						<button type="button" class="dnav" id="soloBtn">
-							<span class="dnav-ico" aria-hidden="true">✒️</span><span class="dnav-label">New solo write</span
-							><span class="dnav-go">&#8594;</span>
-						</button>
-						<a class="dnav" href="/writes">
-							<span class="dnav-ico" aria-hidden="true">📚</span><span class="dnav-label">My solo writes</span>
-						</a>
-						<a class="dnav" href="/games">
-							<span class="dnav-ico" aria-hidden="true">🕹️</span><span class="dnav-label">Games</span
-							><span class="dnav-tag">soon</span>
-						</a>
-						<a class="dnav dnav-glow" href="https://ao3-skin-previewer.replit.app" target="_blank" rel="noopener">
-							<span class="dnav-ico" aria-hidden="true">🎨</span><span class="dnav-label">AO3 skin previewer</span
-							><span class="dnav-new">New</span>
-						</a>
-						<button type="button" class="dnav" id="inviteBtn">
-							<span class="dnav-ico" aria-hidden="true">➕</span
-							><span class="dnav-label" id="inviteLabel">Invite a friend</span>
-						</button>
-						<div class="err" id="lobbyErr"></div>
+					<nav class="card dash-nav" id="railNav" aria-label="Go somewhere">
+						<a class="dnav" href="/inbox"><span class="dnav-ico" aria-hidden="true">📬</span><span class="dnav-label">Inbox</span><span class="dnav-badge hidden" id="navInbox"></span></a>
+						<div class="dnav-wrap" data-flyout="cowrite"><button type="button" class="dnav dnav-parent" id="railCowrite" aria-haspopup="menu" aria-expanded="false" aria-controls="railCowriteMenu"><span class="dnav-ico" aria-hidden="true">👥</span><span class="dnav-label">Cowrite</span><span class="dnav-chev" aria-hidden="true">&#9656;</span></button><div class="dnav-sub hidden" id="railCowriteMenu" role="menu" aria-label="Cowrite"><a class="dnav" id="createBtn" role="menuitem" href="/game?new=1"><span class="dnav-ico" aria-hidden="true">✨</span><span class="dnav-label">New game</span></a><button type="button" class="dnav" id="joinOpen" role="menuitem" data-action="join"><span class="dnav-ico" aria-hidden="true">🔑</span><span class="dnav-label">Join game</span></button><a class="dnav" role="menuitem" href="/archive"><span class="dnav-ico" aria-hidden="true">📚</span><span class="dnav-label">Your previous games</span></a><a class="dnav" role="menuitem" href="/stories?kind=game"><span class="dnav-ico" aria-hidden="true">📖</span><span class="dnav-label">All previous games</span></a></div></div>
+						<div class="dnav-wrap" data-flyout="solo"><button type="button" class="dnav dnav-parent" id="railSolo" aria-haspopup="menu" aria-expanded="false" aria-controls="railSoloMenu"><span class="dnav-ico" aria-hidden="true">✒️</span><span class="dnav-label">Solo writes</span><span class="dnav-chev" aria-hidden="true">&#9656;</span></button><div class="dnav-sub hidden" id="railSoloMenu" role="menu" aria-label="Solo writes"><a class="dnav" role="menuitem" href="/writes"><span class="dnav-ico" aria-hidden="true">📚</span><span class="dnav-label">Your solo writes</span></a><button type="button" class="dnav" id="soloBtn" role="menuitem" data-action="newSolo"><span class="dnav-ico" aria-hidden="true">✒️</span><span class="dnav-label">New solo write</span></button></div></div>
+						<div class="dnav-wrap" data-flyout="account"><button type="button" class="dnav dnav-parent" id="railAccount" aria-haspopup="menu" aria-expanded="false" aria-controls="railAccountMenu"><span class="dnav-ico" aria-hidden="true">👤</span><span class="dnav-label">Account</span><span class="dnav-chev" aria-hidden="true">&#9656;</span></button><div class="dnav-sub hidden" id="railAccountMenu" role="menu" aria-label="Account"><a class="dnav" role="menuitem" href="/profile"><span class="dnav-ico" aria-hidden="true">🏆</span><span class="dnav-label">Profile</span></a><a class="dnav" role="menuitem" href="/settings"><span class="dnav-ico" aria-hidden="true">⚙️</span><span class="dnav-label">Settings</span></a></div></div>
+						<a class="dnav dnav-glow" href="https://ao3-skin-previewer.replit.app" target="_blank" rel="noopener"><span class="dnav-ico" aria-hidden="true">🎨</span><span class="dnav-label">AO3 skin previewer</span><span class="dnav-new">New</span></a>
+						<a class="dnav hidden" id="railAdmin" href="/admin" data-admin><span class="dnav-ico" aria-hidden="true">🛡️</span><span class="dnav-label">Admin</span></a>
+						<a class="dnav" href="/games"><span class="dnav-ico" aria-hidden="true">🕹️</span><span class="dnav-label">Other games</span><span class="dnav-tag">soon</span></a>
+						<button type="button" class="dnav" id="inviteBtn"><span class="dnav-ico" aria-hidden="true">➕</span><span class="dnav-label" id="inviteLabel">Invite a friend</span></button>
+						<div class="err" id="railErr"></div>
 					</nav>
+
+					<!-- Join a game: the 4-letter code, and the games running right now
+					     (the same rows as the Community tab, from the same poll) -->
+					<div class="confirm-modal hidden" id="joinModal" role="dialog" aria-modal="true" aria-labelledby="joinTitle">
+						<div class="confirm-card join-card">
+							<button type="button" class="confirm-x" id="joinClose" aria-label="Close">✕</button>
+							<h3 id="joinTitle">Join a game</h3>
+							<div class="join-code-row">
+								<input id="code" class="code" placeholder="XXXX" maxlength="4" aria-label="Game code" />
+								<button class="primary" id="joinBtn" type="button">Join</button>
+							</div>
+							<p class="subtle dnav-hint">Ask a friend for their 4-letter code.</p>
+							<div class="err" id="lobbyErr"></div>
+							<p class="join-live-h">Running right now</p>
+							<div class="join-live" id="joinLive"></div>
+						</div>
+					</div>
 
 					<!-- the people you already know, under the nav -->
 					<div class="card friends-card">

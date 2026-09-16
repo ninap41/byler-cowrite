@@ -406,7 +406,7 @@ test("the inbox has a page of its own, linked from the dashboard and the nav", a
   assert.ok(dash.body.includes('id="navInbox"'), "just the unread count on the link");
 
   const chrome = await page("/js/chrome.js");
-  assert.ok(chrome.body.includes('href="/inbox"'), "it's in the nav drawer too");
+  assert.ok(!chrome.body.includes('href="/inbox"'), "the nav drawer is site pages only — the inbox is reached from the dashboard rail");
 });
 
 test("the messages you type are fixed boxes, not drag-to-resize ones", async () => {
@@ -628,15 +628,15 @@ test("pages are rendered from site.json: no raw tokens, name in title, meta inje
   assert.ok(home.body.includes("getComputedTextLength"), "by measuring, not guessing");
 });
 
-test("/games is the coming-soon page, linked from the nav drawer and the dashboard rail", async () => {
+test("/games is the coming-soon page, linked from the dashboard rail as Other games (the drawer no longer lists it)", async () => {
   const r = await fetch(ctx.url + "/games");
   assert.equal(r.status, 200);
   const html = await r.text();
   assert.match(html, /Coming soon/);
   assert.doesNotMatch(html, /\{\{[A-Z_]+\}\}/, "tokens filled");
   const { readFileSync } = await import("node:fs");
-  assert.match(readFileSync(new URL("../public/js/chrome.js", import.meta.url), "utf-8"), /href="\/games"[^>]*>🕹️ Games</, "the hamburger menu lists it");
-  assert.match(readFileSync(new URL("../public/dashboard.html", import.meta.url), "utf-8"), /class="dnav" href="\/games"/, "the dashboard rail lists it");
+  assert.doesNotMatch(readFileSync(new URL("../public/js/chrome.js", import.meta.url), "utf-8"), /href="\/games"/, "the hamburger menu is site pages only");
+  assert.match(readFileSync(new URL("../public/dashboard.html", import.meta.url), "utf-8"), /class="dnav" href="\/games"[^]*?Other games/, "the dashboard rail lists it as Other games");
 });
 
 test("the game page's tab title is the story's name, refreshed with the session bar, so a rename mid-vote shows at once", async () => {
@@ -737,9 +737,10 @@ test("archive: tags are read-only chips above the prompt with a ✎ that opens t
   assert.ok(!detail.includes('id="archTags"'), "no tag input on the page outside the modal");
 });
 
-// The previewer is its own site now: linked out from the tour bar, the nav
-// drawer and the dashboard rail, each link glowing (theme tokens only).
-test("the AO3 skin previewer is linked out to ao3-skin-previewer.replit.app from the tour bar, the nav drawer and the dashboard rail, and every link glows", async () => {
+// The previewer is its own site now: linked out from the tour bar and the
+// dashboard rail, each link glowing (theme tokens only). The nav drawer is
+// site pages only and no longer carries it.
+test("the AO3 skin previewer is linked out to ao3-skin-previewer.replit.app from the tour bar and the dashboard rail, and every link glows", async () => {
   const SITE = "https://ao3-skin-previewer.replit.app";
   const home = await page("/");
   const bar = home.body.slice(home.body.indexOf('id="tourBar"'), home.body.indexOf('id="tourDots"'));
@@ -750,9 +751,9 @@ test("the AO3 skin previewer is linked out to ao3-skin-previewer.replit.app from
   const chrome = (await page("/js/chrome.js")).body;
   // esbuild may hoist the export into a trailing `export { … }` list; either spelling names the site once
   assert.match(chrome, new RegExp(`^(?:export )?const AO3_PREVIEWER_URL = "${SITE.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`, "m"));
-  assert.match(chrome, /<a href="\$\{AO3_PREVIEWER_URL\}" class="nav-glow" target="_blank" rel="noopener">🎨 AO3 skin previewer<\/a>/, "the nav drawer lists it");
+  assert.ok(!chrome.includes("nav-glow"), "the nav drawer no longer lists it");
   const base = (await page("/css/base.css")).body;
-  assert.match(base, /\.nav-drawer a\.nav-glow::after \{[^}]*animation: nav-glow/s);
+  assert.ok(!base.includes("@keyframes nav-glow"), "and its glow is gone with it");
   const dash = readFileSync(new URL("../public/dashboard.html", import.meta.url), "utf-8");
   assert.match(dash, new RegExp(`<a class="dnav dnav-glow" href="${SITE}" target="_blank" rel="noopener">`), "the dashboard rail lists it");
   const dashCss = (await page("/css/dashboard.css")).body;
@@ -761,7 +762,7 @@ test("the AO3 skin previewer is linked out to ao3-skin-previewer.replit.app from
   assert.match(dash, /<span class="dnav-new">New<\/span>/, "with a NEW pill");
   assert.match(dashCss, /\.dnav-new \{[^}]*animation: dnav-new/s, "that pulses");
   for (const css of [homeCss, base, dashCss]) {
-    for (const block of css.match(/@keyframes (bar-link-glow|nav-glow|dnav-glow|dnav-new)[^}]*\}[^}]*\}[^}]*\}/g) || []) assert.ok(!/#[0-9a-f]{3,6}\b/i.test(block), "the glow is theme tokens, no hard-coded colour");
+    for (const block of css.match(/@keyframes (bar-link-glow|dnav-glow|dnav-new)[^}]*\}[^}]*\}[^}]*\}/g) || []) assert.ok(!/#[0-9a-f]{3,6}\b/i.test(block), "the glow is theme tokens, no hard-coded colour");
   }
 });
 

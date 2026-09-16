@@ -7,6 +7,13 @@
 			// Apply the saved theme before first paint (initTheme() re-validates it later)
 			if (/[?&]og=1\b/.test(location.search)) document.documentElement.classList.add("og-capture"); // banner capture: scripts/og-banner.sh
 			try { var _t = localStorage.getItem("cowriteTheme"); if (_t) document.documentElement.setAttribute("data-theme", _t); var _f = localStorage.getItem("cowriteFont"); if (_f) document.documentElement.setAttribute("data-font", _f) } catch (e) {}
+			// Stage the hero before first paint: its contents stay invisible until
+			// the write-in has set its own start frame (the entrance script lifts
+			// the class), so the finished title never flashes before it writes
+			// itself. Reduced motion shows the static title; the timer is the
+			// safety net if the entrance script never runs.
+			if (!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches)) document.documentElement.classList.add("hero-staged")
+			setTimeout(function () { document.documentElement.classList.remove("hero-staged") }, 4000)
 		</script>
 		<title>{{SITE_NAME}}</title>
 		<link rel="icon" type="image/x-icon" href="./favicon.ico?v=2" />
@@ -208,7 +215,9 @@
 			import { makeCoil, NIB } from "/js/logo.js"
 			;(function () {
 				var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches
-				if (typeof gsap === "undefined" || reduce) return
+				// staged in the head script; lifted once the animation owns the frame
+				function heroStage(on) { document.documentElement.classList.toggle("hero-staged", !!on) }
+				if (typeof gsap === "undefined" || reduce) return heroStage(false)
 
 				/* ----- Hero: SVG "writing" animation — the title's letter outlines
 				   draw themselves in (stroke-dashoffset), the ink fills, and a pen
@@ -256,6 +265,7 @@
 					gsap.set("#heroUnderline", { strokeDashoffset: 0 })
 					gsap.set(["#heroTag", "#heroBtns", "#heroMore"], { opacity: 1, y: 0, clearProps: "transform" })
 					tagSpanEl.textContent = tagFullText
+					heroStage(false)
 				}
 				function heroWriteIn() {
 					if (heroEl.classList.contains("hidden")) return
@@ -265,7 +275,9 @@
 					var underline = document.getElementById("heroUnderline")
 					var uLen = underline.getTotalLength()
 					gsap.set(words, { fillOpacity: 0, strokeDasharray: HERO_DASH, strokeDashoffset: HERO_DASH, strokeWidth: 2.2 })
-					gsap.set(underline, { strokeDasharray: uLen, strokeDashoffset: uLen })
+					// gap longer than the path: with round caps, a dash starting exactly
+					// at the path's end paints its cap there as a stray dot
+					gsap.set(underline, { strokeDasharray: uLen + " " + (uLen + 4), strokeDashoffset: uLen })
 					// tagline types itself out, character by character
 					var tagSpan = tagSpanEl
 					var tagFull = tagFullText
@@ -290,7 +302,7 @@
 						var strokes = [{ taper: coil, el: logoCoil, len: coil.len }].concat(
 							logoRays.map(function (p) {
 								var L = p.getTotalLength()
-								p.style.strokeDasharray = L
+								p.style.strokeDasharray = L + " " + (L + 4) // same stray-cap guard as the underline
 								p.style.strokeDashoffset = L
 								return { el: p, len: L }
 							}),
@@ -322,6 +334,8 @@
 						if (logoGlyph) gsap.to(logoGlyph, { rotation: 360, duration: 40, ease: "none", repeat: -1, svgOrigin: "110 100", delay: 1.4 })
 					}
 					var quillDraws = !!(logoEl && logoQuill && logoCoil)
+					// every start value is set: the stage is blank, so unhide it now
+					heroStage(false)
 					// A point along the underline (hero-svg coords) mapped into the logo
 					// svg's coords as a nib offset — via screen space, per frame, so the
 					// pen tracks the live layout across the two svgs.

@@ -76,6 +76,23 @@ export function liveGameInfoHtml(g: LiveGame): string {
 	)
 }
 
+/** The join modal's list: every game running now, each with a Join button
+ *  (`data-join` = code). A game still gathering writers that I'm not seated in
+ *  wears `.gathering`, like the Community tab's rows. */
+export function joinLiveRowsHtml(games: LiveGame[], meName?: string): string {
+	if (!games.length) return '<p class="subtle" style="text-align:left;margin:0">No games running right now.</p>'
+	return games
+		.map((g, i) => {
+			const gathering = g.phase === "waiting" && !g.players.some((pl) => pl.name === meName)
+			return (
+				`<div class="live-game${gathering ? " gathering" : ""}" style="--lg-i:${i}">` +
+				liveGameInfoHtml(g) +
+				`<button type="button" class="ghost" data-join="${esc(g.code)}">Join</button></div>`
+			)
+		})
+		.join("")
+}
+
 export function statsText(u: MeStats): string {
 	return (
 		`${u.wordCount} words written · ${u.badges.length} badge${u.badges.length === 1 ? "" : "s"}` +

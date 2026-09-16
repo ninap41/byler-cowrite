@@ -72,26 +72,43 @@ test("recentGames: finished games only, mine only", async () => {
   assert.equal(d.myGames.find((g) => g.code === code), undefined, "finished game not in progress");
 });
 
-test("the dashboard rail is navigation: inbox count, start, join, solo write", async () => {
+test("the dashboard rail is navigation: inbox count, then Cowrite / Solo writes / Account flyouts, AO3, Admin, Other games, Invite", async () => {
   const body = await fetch(ctx.url + "/dashboard").then((r) => r.text());
   const script = await fetch(ctx.url + "/js/pages/dashboard.js").then((r) => r.text()); // the page's script, emitted from client/pages/dashboard.ts
   const rail = body.slice(body.indexOf("============ RAIL"));
 
   // every destination is a row in one nav, not a card of its own
-  assert.ok(rail.includes('<nav class="card dash-nav"'), "one nav column");
-  for (const id of ["navInbox", "createBtn", "joinToggle", "soloBtn", "inviteBtn"])
+  assert.ok(rail.includes('<nav class="card dash-nav" id="railNav"'), "one nav column");
+  for (const id of ["navInbox", "railCowrite", "railSolo", "railAccount", "createBtn", "joinOpen", "soloBtn", "railAdmin", "inviteBtn", "joinModal", "code", "joinBtn", "lobbyErr", "joinLive"])
     assert.ok(rail.includes(`id="${id}"`), id + " is in the rail");
-  assert.ok(rail.includes('href="/inbox"') && rail.includes('href="/writes"'), "the plain links are links");
+  assert.ok(rail.includes('href="/inbox"'), "the plain links are links");
   assert.ok(!body.includes('id="quickStart"'), "the old create/join card is gone, not duplicated");
+  const at = (needle) => { const i = rail.indexOf(needle); assert.ok(i >= 0, needle + " present"); return i; };
+  assert.ok(at('id="railCowrite"') < at('id="railSolo"') && at('id="railSolo"') < at('id="railAccount"') && at('id="railAccount"') < at("dnav-glow") && at("dnav-glow") < at('id="railAdmin"') && at('id="railAdmin"') < at('href="/games"') && at('href="/games"') < at('id="inviteBtn"'), "Inbox, Cowrite, Solo writes, Account, AO3, Admin, Other games, Invite");
+
+  // a parent row is a menu button; its panel is a menu (components/nav-flyout.js)
+  assert.match(rail, /id="railCowrite" aria-haspopup="menu" aria-expanded="false" aria-controls="railCowriteMenu"/);
+  assert.ok(rail.includes('id="railCowriteMenu" role="menu"'));
+  assert.match(rail, /<span class="dnav-ico" aria-hidden="true">👥<\/span><span class="dnav-label">Cowrite<\/span>/, "Cowrite wears a people icon: this is the co-writing mode");
+  for (const href of ["/game?new=1", "/archive", "/stories?kind=game", "/writes", "/profile", "/settings"]) assert.ok(rail.includes(`href="${href}"`), href + " is a submenu item");
+  assert.ok(rail.includes('class="dnav hidden" id="railAdmin"'), "Admin is hidden until the account says so");
+  assert.match(script, /admin: !!me\?\.admin/, "and the page reveals it for an admin");
 
   // the unread count rides the Inbox row
   assert.ok(rail.includes('class="dnav-badge hidden" id="navInbox"'), "hidden until there is something to say");
   assert.match(script, /b\.classList\.toggle\("hidden", !unread\)/, "the badge appears only when something is waiting");
 
-  // joining needs a code, so the row unfolds one
-  assert.ok(rail.includes('id="joinFold"') && rail.includes('id="code"'), "the code field folds into the row");
-  assert.ok(rail.includes('aria-expanded="false"') && rail.includes('aria-controls="joinFold"'), "and says so");
+  // joining needs a code, so it opens a modal — the code field plus the games running now
+  const modal = rail.slice(rail.indexOf('id="joinModal"'), rail.indexOf('class="card friends-card"'));
+  assert.ok(modal.includes('id="code"') && modal.includes('id="joinBtn"') && modal.includes('id="joinLive"'), "the code field and the live list are in the modal");
+  assert.ok(!rail.includes('id="joinFold"'), "the inline fold is gone");
   assert.ok(script.includes('$("code").focus()'), "opening it puts the caret where you'd type");
+  assert.match(script, /lastLive = d\.liveGames/, "the modal's list is the dashboard poll's");
+
+  // the flyout CSS follows the .hidden source-order rule and never animates forever
+  const css = await fetch(ctx.url + "/css/dashboard.css").then((r) => r.text());
+  for (const twin of [".dnav.hidden {", ".dnav-sub.hidden {", ".dnav-wrap.hidden {"]) assert.ok(css.includes(twin), twin + " twin");
+  assert.ok(!/\.dnav-sub[^{]*\{[^}]*infinite/.test(css), "a flyout entrance is finite");
 
   // the friends card sits between the nav and the quote in the rail; the
   // writers directory is a full-width card of its own in the main column

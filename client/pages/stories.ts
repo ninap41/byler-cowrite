@@ -52,6 +52,16 @@ mountViewPicker($("stViewWrap"), (cols) => {
 // ?user=NAME narrows the library to one writer's games (linked from
 // their profile) — the heading and a back-to-profile link follow suit
 const forUser = new URLSearchParams(location.search).get("user") || ""
+// ?kind=game|write narrows the library to one shelf — the dashboard rail's
+// "All previous games" is /stories?kind=game
+const kind = new URLSearchParams(location.search).get("kind") || ""
+if (kind === "game" && !forUser) {
+	$("storiesHeading").textContent = "All previous games"
+	$("storiesSub").textContent = "Every cowrite game ever played here, read any of them."
+} else if (kind === "write" && !forUser) {
+	$("storiesHeading").textContent = "All solo writes"
+	$("storiesSub").textContent = "Every public solo write on the site, read any of them."
+}
 if (forUser) {
 	$("storiesHeading").textContent = `${forUser}'s stories`
 	$("storiesSub").textContent = "Every game this writer hosted or held a seat in."
@@ -64,6 +74,7 @@ async function loadStories() {
 	const [sort = "", dir = ""] = $<HTMLSelectElement>("stSort").value.split("-")
 	const params = new URLSearchParams({ sort, dir, page: String(page), limit: "12" })
 	if (forUser) params.set("user", forUser)
+	if (kind) params.set("kind", kind)
 	const q = $<HTMLInputElement>("stQ").value.trim()
 	const tag = $<HTMLInputElement>("stTag").value.trim()
 	if (q) params.set("q", q)
