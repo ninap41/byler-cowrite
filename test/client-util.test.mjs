@@ -129,3 +129,10 @@ test("gradAllEmojis: every emoji gets the gradient except rank/badge and editabl
   assert.ok(document.querySelector("textarea").value.includes("🎲"));
   assert.equal(document.querySelector(".story-line").textContent, "He smiled 😄 and 🎉", "text preserved");
 });
+
+test("gradAllEmojis leaves the SuperSoaker's gun alone", () => {
+  const root = document.createElement("div");
+  root.innerHTML = '<div class="sk-layer"><span class="sk-gun3d"><span class="sk-emoji">🔫</span></span></div><button class="sk-gunbtn remote"><span class="sk-emoji">🔫</span></button>';
+  gradAllEmojis(root);
+  assert.equal(root.querySelector(".emoji-grad"), null, "the gun is not a gradient outline");
+});

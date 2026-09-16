@@ -69,6 +69,7 @@ export const galagaHtml = (): string => `<div class="gg-layer hidden" id="ggLaye
 		<b class="gg-title">👾 Palace Arcade</b>
 		<div class="gg-row"><span class="gg-score" id="ggScore">0</span><span class="gg-meta">beat ${GALAGA_TARGET} to steal the turn</span><span class="gg-time" id="ggTime">${ROUND_SECS}</span></div>
 		<div class="gg-over hidden" id="ggOver"></div>
+		<span class="gg-hint gg-howto">Hit Space to fire · ← → or the mouse to steer</span>
 		<label class="gg-steal checkline"><input type="checkbox" id="ggSteal" checked /> Steal the turn if I beat ${GALAGA_TARGET}</label>
 		<div class="gg-row">
 			<button type="button" class="gg-fire" data-act="gg-fire">🔫 Fire (Space)</button>

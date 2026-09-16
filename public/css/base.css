@@ -7603,6 +7603,7 @@ body.doc-page .topbar {
 .doc-editor {
 	min-height: 58vh;
 	max-height: none;
+	padding-inline: 1em; /* the prose keeps an em of air at each side, every width */
 	font-size: 16px; /* the ladder's default — unstyled text really is 16 */
 	/* Highlighting the words is how you comment on them, and in comment mode
 	   the surface isn't editable — so say out loud that the prose is
@@ -8972,7 +8973,7 @@ body.resizing-side {
 	.doc-editor {
 		min-height: 52vh;
 		min-height: 52svh;
-		padding: 14px 12px;
+		padding: 14px 1em;
 		border-radius: var(--r-md);
 	}
 	#editorHint {
@@ -9610,6 +9611,11 @@ html.gg-live .bg-set.arcade .shot {
 .gg-meta {
 	flex: 1;
 	min-width: 0;
+}
+.gg-howto {
+	display: block;
+	font-size: 0.78rem;
+	color: var(--muted);
 }
 .gg-time {
 	font-variant-numeric: tabular-nums;

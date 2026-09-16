@@ -382,6 +382,14 @@ test("solo rows: mine → Continue + Delete, viewable → Read, private → lock
   assert.match(priv, /class="solo-row locked"/);
   assert.match(priv, /🔒 Private/);
   assert.doesNotMatch(priv, /href=/, "nothing to click");
+  // an admin viewing someone else's shelf: Delete beside Read, or beside the lock
+  const modPub = soloRowHtml({ id: "d4", title: "Theirs", wordCount: 1, updatedAt: 0, visibility: "public", mine: false, viewable: true, deletable: true });
+  assert.match(modPub, /Read<\/a>/);
+  assert.match(modPub, /class="ghost danger solo-del" data-id="d4"/);
+  const modPriv = soloRowHtml({ id: "d5", title: "Secret", wordCount: 0, updatedAt: 0, visibility: "private", mine: false, viewable: false, deletable: true });
+  assert.match(modPriv, /🔒 Private/);
+  assert.match(modPriv, /solo-del/);
+  assert.doesNotMatch(modPub, /Continue/, "deletable is not a pen");
   assert.match(soloListHtml([], { empty: "Nada." }), /Nada\./);
   const many = Array.from({ length: 7 }, (_, i) => ({ id: "x" + i, title: "T" + i, mine: true, viewable: true }));
   assert.equal((soloListHtml(many).match(/class="solo-row/g) || []).length, 5, "capped at 5");

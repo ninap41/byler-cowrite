@@ -511,6 +511,7 @@ export function registerRoutes(app, game) {
     // writer has written; `viewable` says whether the viewer may open it.
     const writes = docsOwnedBy(u.id).map((d) => ({
       ...docSummary(d, nameOf), mine: d.ownerId === viewer.id, viewable: canView(d, viewer?.id ?? null),
+      deletable: d.ownerId === viewer.id || isAdmin(viewer), // an admin may delete any story
     }));
     // Sprints: the newest 20, each naming the project it was written in.
     const sprints = (u.sprints || []).slice(0, 20);
@@ -830,6 +831,7 @@ export function registerRoutes(app, game) {
         createdAt: d.createdAt, savedAt: d.updatedAt,
         wordCount: d.wordCount || 0,
         visibility: d.visibility, viewable: canView(d, viewer?.id ?? null),
+        deletable: !!viewer && (d.ownerId === viewer.id || isAdmin(viewer)),
       });
     }
     all.sort((a, b) => dir * (sort === "words" ? a.wordCount - b.wordCount : a.createdAt - b.createdAt));
@@ -945,8 +947,17 @@ export function registerRoutes(app, game) {
     if (!u) return res.status(401).json({ error: "Sign in first." });
     const doc = readDoc(req.params.id);
     if (!doc) return res.status(404).json({ error: "No such document." });
-    if (!canEdit(doc, u.id)) return res.status(403).json({ error: "Only the author can delete this." });
+    // The author, or an admin (moderation: a story that has to go). An admin's
+    // delete tells the author who did it, the way deleteGame tells the seats.
+    if (!canEdit(doc, u.id) && !isAdmin(u)) return res.status(403).json({ error: "Only the author can delete this." });
     deleteDoc(doc.id);
+    if (doc.ownerId !== u.id) {
+      const owner = store.users.find((x) => x.id === doc.ownerId);
+      if (owner) {
+        (owner.inbox ??= []).unshift(makeMsg("system", null, `🗑 Your solo write “${doc.title || "Untitled"}” has been deleted by ${u.username}.`));
+        saveStore();
+      }
+    }
     res.json({ ok: true });
   });
 

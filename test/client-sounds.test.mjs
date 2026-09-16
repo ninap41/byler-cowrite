@@ -42,14 +42,13 @@ test("vecna clock: looped, idempotent start, stop rewinds", () => {
   assert.equal(clockAudio.pauses, 1);
 });
 
-test("shouldChime: only the last 15s of MY live turn", () => {
-  const live = (left) => ({ left, paused: false });
-  assert.equal(shouldChime(live(15), true), true);
-  assert.equal(shouldChime(live(1), true), true);
-  assert.equal(shouldChime(live(16), true), false, "not before the window");
-  assert.equal(shouldChime(live(0), true), false, "silent once expired");
-  assert.equal(shouldChime(live(10), false), false, "someone else's turn is silent");
-  assert.equal(shouldChime({ left: 10, paused: true }, true), false, "paused is silent");
+test("shouldChime: everyone hears the last 10s of a live turn", () => {
+  const live = (left) => ({ left, paused: false, low: left <= 10 });
+  assert.equal(shouldChime(live(10)), true);
+  assert.equal(shouldChime(live(1)), true);
+  assert.equal(shouldChime(live(11)), false, "not before the demogorgon");
+  assert.equal(shouldChime(live(0)), false, "silent once expired");
+  assert.equal(shouldChime({ left: 5, paused: true, low: false }), false, "paused is silent");
 });
 
 test("chat chime rules: others' real messages only", () => {

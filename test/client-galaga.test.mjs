@@ -24,6 +24,7 @@ test("galagaHtml: layer, my battle, others' box, HUD with score/time/steal/fire/
   for (const id of ["ggLayer", "ggMine", "ggOthers", "ggHud", "ggScore", "ggTime", "ggOver", "ggSteal"]) assert.match(h, new RegExp(`id="${id}"`));
   assert.match(h, /beat 8000 to steal the turn/);
   assert.match(h, /data-act="gg-fire"/);
+  assert.match(h, /Hit Space to fire/, "the HUD tells you how to shoot");
   assert.match(h, /data-act="gg-exit"/);
 });
 

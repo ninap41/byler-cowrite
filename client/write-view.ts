@@ -18,6 +18,8 @@ export interface DocSummary {
 	readers?: string[]
 	comments?: number
 	mine?: boolean
+	/** mine, or the viewer is an admin: the row offers Delete */
+	deletable?: boolean
 	viewable?: boolean
 }
 /** A comment row as the socket ships it (commentRows in src/game.js). */
@@ -372,6 +374,7 @@ export const readerChipsHtml = (readers: UserRef[] | null | undefined, canManage
 // ---- solo writes as a compact list (profile + dashboard) ----
 // One row per document. What the row OFFERS depends on who's looking:
 //   mine      → Continue (the editor) + Delete (two-click: the first arms it)
+//   deletable → an admin: Delete beside Read/🔒 (moderation, never a pen)
 //   viewable  → Read (public, or I'm a beta reader)
 //   otherwise → 🔒 listed but not openable — a private write exists, it just
 //               isn't yours to read. That's deliberate: the list is the
@@ -389,6 +392,7 @@ export function soloRowHtml(d: DocSummary): string {
 			`<button type="button" class="ghost danger solo-del" data-id="${esc(d.id)}" data-title="${title}">Delete</button>`
 	else if (d.viewable) acts = `<a class="ghost solo-open" href="${open}">Read</a>`
 	else acts = `<span class="solo-lock" title="Private, only its author can open it">🔒 Private</span>`
+	if (!d.mine && d.deletable) acts += `<button type="button" class="ghost danger solo-del" data-id="${esc(d.id)}" data-title="${title}">Delete</button>`
 	const head = d.mine || d.viewable ? `<a class="solo-title" href="${open}">${title}</a>` : `<span class="solo-title locked">${title}</span>`
 	return (
 		`<div class="solo-row${d.mine || d.viewable ? "" : " locked"}" data-id="${esc(d.id)}">` +

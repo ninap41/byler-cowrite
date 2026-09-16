@@ -1009,9 +1009,9 @@ function startTimer(st: GameState, myTurn: boolean) {
 		t.classList.toggle("low", v.low)
 		// the demogorgon stalks in behind the story only when time runs low
 		$("doomFx").classList.toggle("on", v.low && !v.paused && !v.expired)
-		// Vecna clock: chimes through the last 15s of MY turn, silent
-		// the instant the turn ends, pauses, or passes to someone else.
-		if (shouldChime(v, myTurn)) vecnaClock.start()
+		// Vecna clock: everyone hears it while the demogorgon dances (the
+		// last 10s of ANY turn), silent the instant the turn ends or pauses.
+		if (shouldChime(v)) vecnaClock.start()
 		else vecnaClock.stop()
 		if (v.expired) {
 			clearInterval(tickInterval)

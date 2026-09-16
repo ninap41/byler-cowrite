@@ -106,9 +106,11 @@ export function createSounds(AudioC: AudioCtor = globalThis.Audio as unknown as 
 	}
 }
 
-// The clock chimes only during the final stretch of MY live turn.
-export const shouldChime = (v: { paused: boolean; left: number }, myTurn: boolean, windowSecs = 15): boolean =>
-	!!myTurn && !v.paused && v.left <= windowSecs && v.left > 0
+// The clock chimes for EVERYONE at the table while the demogorgon dances —
+// the same low-time window the countdown paints (`low`), whoever's turn it
+// is — and stops the instant the turn ends or the game pauses.
+export const shouldChime = (v: { paused: boolean; left: number; low: boolean }): boolean =>
+	!v.paused && v.low && v.left > 0
 
 // A chat message chimes only when it's someone else's real message: system
 // messages are silent, and so is my own echo (msgs carry the sender's id).

@@ -523,3 +523,30 @@ test("GET /api/admin/smtp reports the email setup to an admin only, never a secr
   const page = await fetch(ctx.url + "/admin").then((x) => x.text());
   assert.ok(page.includes('id="adminSmtp"'), "the check has a button on /admin");
 });
+
+test("an admin can delete anyone's solo write (the author is told); a normal account can't", async () => {
+  const c = await startServer();
+  try {
+  const admin = await makeAdmin(c);
+  const author = await signup(c, "docauthor", "docauthor@byers.com");
+  const other = await signup(c, "docstranger", "docstranger@byers.com");
+  const doc = (await c.api("/api/docs", { title: "Keep out" }, author.token)).data.doc;
+
+  // the admin sees Delete offered on the author's profile rows, a stranger doesn't
+  const asAdmin = await c.api("/api/users/docauthor", null, admin.token, "GET");
+  assert.equal(asAdmin.data.writes.find((d) => d.id === doc.id).deletable, true);
+  const asOther = await c.api("/api/users/docauthor", null, other.token, "GET");
+  assert.equal(asOther.data.writes.find((d) => d.id === doc.id).deletable, false);
+
+  // a normal account is refused; the admin is not
+  assert.equal((await c.api("/api/docs/" + doc.id, null, other.token, "DELETE")).status, 403);
+  assert.equal((await c.api("/api/docs/" + doc.id, null, admin.token, "DELETE")).status, 200);
+  assert.equal((await c.api("/api/docs/" + doc.id, null, author.token, "GET")).status, 404);
+
+  // the author hears who did it
+  const inbox = await c.api("/api/inbox", null, author.token, "GET");
+  const note = inbox.data.messages.find((m) => m.type === "system" && /Keep out/.test(m.text));
+  assert.ok(note, "an inbox note names the deleted story");
+  assert.match(note.text, /deleted by ninaadmin/);
+  } finally { await c.stop(); }
+});
