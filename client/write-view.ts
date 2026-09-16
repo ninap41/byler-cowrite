@@ -523,11 +523,9 @@ export function chapNavHtml(chapters: Chapter[] | null | undefined, idx: number)
 
 // The head-row chip that opens the chapter panel. Closed, it says what
 // pressing it does; open, it names where you are.
-export const chapChipLabel = (chapters: unknown[] | null | undefined, idx: number, open = true): string => {
-	if (!open) return "📑 View chapters"
-	const n = (chapters || []).length
-	return n > 1 ? `📑 Chapter ${idx + 1} of ${n}` : "📑 Chapters"
-}
+// One word, always: the chip is a door, and where you are is the panel's job.
+// (The signature stays for the callers and the tests.)
+export const chapChipLabel = (_chapters: unknown[] | null | undefined, _idx: number, _open = true): string => "📑 Chapters"
 
 // ---- sprints ----
 // A sprint row: when, how many words, how long, and the project it was written

@@ -50,7 +50,7 @@
 								<!-- Export: this chapter, or the whole work, as a styled
 								     standalone .html — for everyone who can open the story. -->
 								<span class="vis-wrap" id="exportWrap">
-									<button class="head-chip" id="exportBtn" type="button" aria-expanded="false" data-tip="Download as a styled .html">⬇ Export</button>
+									<button class="head-chip head-chip-icon" id="exportBtn" type="button" aria-expanded="false" aria-label="Export" data-tip="Export: download as a styled .html">⬇</button>
 									<div class="vis-menu" id="exportMenu" role="menu">
 										<button type="button" class="vis-opt" id="exportChapter" role="menuitem"><b>This chapter</b><span class="subtle">The open chapter, headed with the story's title</span></button>
 										<button type="button" class="vis-opt" id="exportWork" role="menuitem"><b>Whole work</b><span class="subtle">Every chapter, headed and ruled apart</span></button>
@@ -64,13 +64,14 @@
 								     how many words were written in between. Leaving the page
 								     stops it too. Author only: it's a habit tool, not a reader's. -->
 								<button
-									class="head-chip hidden"
+									class="head-chip head-chip-icon hidden"
 									id="sprintBtn"
 									type="button"
 									aria-pressed="false"
+									aria-label="Sprint"
 									data-tip="Sprint: time a burst of writing and log the words"
 								>
-									⏱ Sprint
+									⏱
 								</button>
 								<!-- Prompt?: roll a scenario from the game's prompt library (Simple
 								     or Advanced) and drop it into the document under the heading.
@@ -215,6 +216,13 @@
 						<button class="ghost" id="restoreYes" type="button">Restore them</button>
 						<button class="linky" id="restoreNo" type="button">Discard</button>
 					</div>
+					<!-- Autosave conflict: another tab of yours saved since this one
+					     last did. Autosave stops; the writer chooses. -->
+					<div class="restore-bar conflict-bar hidden" id="conflictBar" role="alert">
+						<span><b>This story was changed in another tab.</b> Autosave is paused here so nothing is lost.</span>
+						<button class="ghost" id="conflictReload" type="button">Reload to see it</button>
+						<button class="linky" id="conflictSave" type="button">Save &amp; overwrite</button>
+					</div>
 				</div>
 
 				<div class="err" id="docErr"></div>
@@ -241,7 +249,7 @@
 						></div>
 						<textarea class="editor doc-editor doc-source hidden" id="docSource" spellcheck="false"></textarea>
 						<p class="hint" id="editorHint">
-							Type <b>/</b> for action verbs, dialogue tags and more · Ctrl/⌘+S to save · autosaved locally every 30s
+							Type <b>/</b> for action verbs, dialogue tags and more · Ctrl/⌘+S to save · autosaves every 30s
 						</p>
 						<!-- Prev / Next at the foot of the chapter, for readers and author alike. -->
 						<div id="chapNav"></div>

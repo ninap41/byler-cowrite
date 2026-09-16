@@ -308,7 +308,7 @@ export interface ServerToClient {
 	// the solo editor (src/game.js doc-* handlers): presence, comments and pushes
 	"doc-presence": (p: { id: string; viewers: DocViewer[] }) => void
 	"doc-comments": (p: { id: string; comments: DocCommentRow[] }) => void
-	"doc-updated": (p: { id: string; html: string; title: string; chapters: DocChapterRow[] }) => void
+	"doc-updated": (p: { id: string; html: string; title: string; chapters: DocChapterRow[]; updatedAt?: number }) => void
 	"doc-html": (p: { id: string; chapterId: string | null; html: string; chapterWordCount?: number; wordCount?: number }) => void
 	"doc-access-lost": (p: { id: string }) => void
 }

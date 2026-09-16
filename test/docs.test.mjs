@@ -1269,3 +1269,25 @@ test("chapters: a document written before chapters existed takes a reader's comm
   assert.ok(d.chapters[0].html.startsWith("<p>First</p>"), "accepted rewrite applied");
   assert.equal(last(B.pushes).chapterId, chId);
 });
+
+test("autosave conflict: a save naming a stale base is refused with 409; one without a base overwrites", async () => {
+  const doc = await newDoc(alice.token, "Two tabs");
+  const first = await ctx.api("/api/docs/" + doc.id, { chapters: [{ title: "One", html: "<p>tab A</p>" }] }, alice.token, "PUT");
+  assert.equal(first.status, 200);
+  const seen = first.data.doc.updatedAt;
+  await new Promise((r) => setTimeout(r, 5));
+  // tab B saves after A last looked
+  const b = await ctx.api("/api/docs/" + doc.id, { chapters: [{ title: "One", html: "<p>tab B</p>" }], baseUpdatedAt: seen }, alice.token, "PUT");
+  assert.equal(b.status, 200, "a base that matches the stored copy saves");
+  // tab A's autosave, still holding the old stamp, is refused
+  const a = await ctx.api("/api/docs/" + doc.id, { chapters: [{ title: "One", html: "<p>tab A again</p>" }], baseUpdatedAt: seen }, alice.token, "PUT");
+  assert.equal(a.status, 409);
+  assert.equal(a.data.conflict, true);
+  assert.equal(a.data.updatedAt, b.data.doc.updatedAt, "the refusal names the current stamp");
+  const kept = await ctx.api("/api/docs/" + doc.id, null, alice.token, "GET");
+  assert.equal(kept.data.doc.html, "<p>tab B</p>", "the refused save changed nothing");
+  // a deliberate Save carries no base and wins
+  const force = await ctx.api("/api/docs/" + doc.id, { chapters: [{ title: "One", html: "<p>tab A wins</p>" }] }, alice.token, "PUT");
+  assert.equal(force.status, 200);
+  assert.equal(force.data.doc.html, "<p>tab A wins</p>");
+});

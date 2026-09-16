@@ -908,6 +908,13 @@ export function registerRoutes(app, game) {
     const doc = readDoc(req.params.id);
     if (!doc) return res.status(404).json({ error: "No such document." });
     if (!canEdit(doc, u.id)) return res.status(403).json({ error: "Only the author can edit this." });
+    // Optimistic concurrency: a client that says which copy it started from
+    // (`baseUpdatedAt`, the updatedAt it last received) is refused when the
+    // stored copy is newer — another tab of the same author saved in between.
+    // A body without it (an old client, a deliberate overwrite) saves as before.
+    const base = req.body?.baseUpdatedAt;
+    if (typeof base === "number" && doc.updatedAt && doc.updatedAt !== base)
+      return res.status(409).json({ error: "This story was changed elsewhere — in another tab, perhaps. Reload to see it, or Save to overwrite.", conflict: true, updatedAt: doc.updatedAt });
     if (typeof req.body?.title === "string") doc.title = cleanTitle(req.body.title);
     const chapters = req.body?.chapters;
     if (chapters !== undefined) {

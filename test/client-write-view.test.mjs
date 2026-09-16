@@ -562,10 +562,10 @@ test("chapNavHtml: Prev/Next name their chapters, the ends are blank, one chapte
   assert.match(last, /class="ghost chap-prev" data-i="1">← Two/);
   assert.ok(!/chap-next/.test(last));
   assert.match(chapNavHtml(CHAPS, 1), /← One &lt;b&gt;bold&lt;\/b&gt;/, "escaped");
-  assert.equal(chapChipLabel(CHAPS, 1), "📑 Chapter 2 of 3");
+  assert.equal(chapChipLabel(CHAPS, 1), "📑 Chapters", "one word, open or closed, one chapter or many");
   assert.equal(chapChipLabel([CHAPS[0]], 0), "📑 Chapters");
-  assert.equal(chapChipLabel(CHAPS, 1, false), "📑 View chapters", "closed, the chip says what it opens");
-  assert.equal(chapChipLabel([CHAPS[0]], 0, false), "📑 View chapters");
+  assert.equal(chapChipLabel(CHAPS, 1, false), "📑 Chapters");
+  assert.equal(chapChipLabel([CHAPS[0]], 0, false), "📑 Chapters");
 });
 
 test("commentModeBannerHtml: names the mode, says the gesture, Done only for the author", () => {

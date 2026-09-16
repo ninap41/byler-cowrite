@@ -7334,6 +7334,17 @@ body.doc-page .topbar {
 .doc-save-state {
 	font-size: 0.85rem;
 	color: var(--good);
+	/* wide enough for "Unsaved", so Saved ⇄ Unsaved never shoves the chips */
+	min-width: 4.2em;
+}
+/* the count beside it: tabular digits, so a word landing never nudges the row */
+#wordCount {
+	font-variant-numeric: tabular-nums;
+}
+/* icon-only chips (export, an idle sprint): a round thumb, the word in the tip */
+.head-chip.head-chip-icon {
+	padding-inline: 7px;
+	justify-content: center;
 }
 .doc-save-state.unsaved {
 	color: var(--accent);
@@ -7353,6 +7364,10 @@ body.doc-page .topbar {
 	border-radius: 0 0 17px 17px;
 	background: var(--chip);
 	font-size: 0.9rem;
+}
+.restore-bar.conflict-bar {
+	border-top-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+	background: color-mix(in srgb, var(--accent) 12%, var(--chip));
 }
 .restore-bar button {
 	flex: 0 0 auto;

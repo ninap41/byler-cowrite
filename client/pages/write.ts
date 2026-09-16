@@ -1,4 +1,4 @@
-import { api, getToken } from "/js/api.js"
+import { api, getToken, ApiError } from "/js/api.js"
 import { mountChrome, setUserChip } from "/js/chrome.js"
 import { requireAuth } from "/js/auth-guard.js"
 import { cleanHtml, asterisksToTags, FONT_SIZES, newCid } from "/js/components/editor.js"
@@ -127,9 +127,11 @@ function setStatus(text: string) {
 }
 
 // ---- dirty tracking ----
+let lastEditAt = 0 // for the autosave: never save mid-sentence
 const setDirty = (v: boolean) => {
 	dirty = v
-	$("saveState").textContent = v ? "Unsaved changes" : "Saved"
+	if (v) lastEditAt = Date.now()
+	$("saveState").textContent = v ? "Unsaved" : "Saved"
 	$("saveState").classList.toggle("unsaved", v)
 }
 
@@ -1212,7 +1214,7 @@ function setMode(toSource: boolean) {
 	$("modeHtml").setAttribute("aria-pressed", String(toSource))
 	$("editorHint").innerHTML = toSource
 		? "Editing raw HTML: unsupported tags are stripped when you switch back or save."
-		: "Type <b>/</b> for action verbs, dialogue tags and more · Ctrl/⌘+S to save · autosaved locally every 30s"
+		: "Type <b>/</b> for action verbs, dialogue tags and more · Ctrl/⌘+S to save · autosaves every 30s"
 	if (!toSource) updateWords()
 	;(toSource ? $("docSource") : $("docEditor")).focus()
 	setDirty(true)
@@ -1222,12 +1224,27 @@ $("modeHtml").addEventListener("click", () => setMode(true))
 $("docSource").addEventListener("input", () => setDirty(true))
 
 // ---- saving ----
-async function save() {
+let saving = false
+let conflicted = false // an autosave was refused: another tab saved first
+// quiet: the 30s autosave — the server's sanitized copy is NOT painted
+// back into the editor (that would jump the caret and reset undo while
+// you type); the next save sends the editor's own copy again anyway.
+async function save({ quiet = false }: { quiet?: boolean } = {}) {
 	if (!doc?.mine) return true
+	if (saving) return false
+	saving = true
 	$("docErr").textContent = ""
 	const list = allChapters()
+	const editedSince = lastEditAt
 	try {
-		const r = await api<{ doc: DocPayload }>("/api/docs/" + encodeURIComponent(docId), { title: input("docTitle").value, chapters: list }, "PUT")
+		// An autosave names the copy it started from and is refused (409) when
+		// another tab saved since; a deliberate Save carries no base and wins.
+		const body: Record<string, unknown> = { title: input("docTitle").value, chapters: list }
+		if (quiet && typeof doc.updatedAt === "number") body.baseUpdatedAt = doc.updatedAt
+		const r = await api<{ doc: DocPayload }>("/api/docs/" + encodeURIComponent(docId), body, "PUT")
+		conflicted = false
+		$("conflictBar").classList.add("hidden")
+		measureSticky()
 		doc = r.doc
 		comments = doc.comments || []
 		// the server's copy is the truth now: ids for new chapters, sanitized
@@ -1235,8 +1252,9 @@ async function save() {
 		chapters = (doc.chapters || []).map((c) => ({ ...c }))
 		openIdx = Math.min(openIdx, chapters.length - 1)
 		// render the server's sanitized copy so what we see is what's stored
-		if (!sourceMode) $("docEditor").innerHTML = chapters[openIdx]?.html || ""
-		setDirty(false)
+		if (!sourceMode && !quiet) $("docEditor").innerHTML = chapters[openIdx]?.html || ""
+		// a keystroke that landed while the request was out keeps it dirty
+		if (lastEditAt === editedSince) setDirty(false)
 		clearDraft(docId)
 		socket?.emit("doc-saved", { auth: getToken(), id: docId })
 		renderComments()
@@ -1244,11 +1262,26 @@ async function save() {
 		renderChapters()
 		return true
 	} catch (e) {
+		// A conflict stops the autosave (the message would otherwise repaint
+		// every 30s over whatever you typed); Save still goes through.
+		if (e instanceof ApiError && e.status === 409) {
+			conflicted = true
+			$("conflictBar").classList.remove("hidden")
+			measureSticky()
+			return false
+		}
 		$("docErr").textContent = (e as Error).message
 		return false
+	} finally {
+		saving = false
 	}
 }
-$("saveBtn").addEventListener("click", save)
+$("saveBtn").addEventListener("click", () => save())
+$("conflictSave").addEventListener("click", () => save())
+$("conflictReload").addEventListener("click", () => {
+	dirty = false // the writer chose the other tab's copy; don't ask again on the way out
+	location.reload()
+})
 document.addEventListener("keydown", (e) => {
 	if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
 		e.preventDefault()
@@ -1256,10 +1289,17 @@ document.addEventListener("keydown", (e) => {
 	}
 })
 
-// Local crash-cache — NOT a server write.
+// Autosave: every AUTOSAVE_MS a dirty document goes to the server, but only
+// after AUTOSAVE_IDLE_MS without a keystroke — a save mid-sentence would
+// credit and broadcast half a word. While you keep typing, the local
+// crash-cache is written instead so a closed tab still loses nothing.
+const AUTOSAVE_MS = 30000
+const AUTOSAVE_IDLE_MS = 3000
 setInterval(() => {
-	if (dirty && doc?.mine) saveDraft(docId, allChapters(), input("docTitle").value)
-}, 30000)
+	if (!dirty || !doc?.mine || conflicted) return
+	if (Date.now() - lastEditAt >= AUTOSAVE_IDLE_MS) save({ quiet: true })
+	else saveDraft(docId, allChapters(), input("docTitle").value)
+}, AUTOSAVE_MS)
 
 $("restoreYes").addEventListener("click", () => {
 	const d = loadDraft(docId)
@@ -1305,13 +1345,13 @@ const fmtClock = (ms: number) => {
 function paintSprint() {
 	const b = $("sprintBtn")
 	if (!sprint) {
-		b.textContent = "⏱ Sprint"
+		b.textContent = "⏱"
 		b.classList.remove("on")
 		b.setAttribute("aria-pressed", "false")
 		return
 	}
 	const delta = countNow() - sprint.startWords
-	b.textContent = `⏹ ${fmtClock(Date.now() - sprint.startedAt)} · ${delta >= 0 ? "+" : ""}${delta} words`
+	b.textContent = `⏹ ${fmtClock(Date.now() - sprint.startedAt)} · ${delta >= 0 ? "+" : ""}${delta}`
 	b.classList.add("on")
 	b.setAttribute("aria-pressed", "true")
 }
@@ -1773,8 +1813,16 @@ function connect() {
 		for (const cid of pendingCids) if (rows.some((c) => c.cid === cid)) pendingCids.delete(cid)
 		renderComments()
 	})
-	s.on("doc-updated", ({ id, html, title, chapters: rows }) => {
-		if (id !== docId || !doc || doc.mine) return
+	s.on("doc-updated", ({ id, html, title, chapters: rows, updatedAt }) => {
+		if (id !== docId || !doc) return
+		// My own other tab saved. A clean tab follows it, so it is never stale;
+		// a tab with unsaved typing keeps its words and lets the version check
+		// on its next autosave say so.
+		if (doc.mine) {
+			// the stale stamp stays on a dirty tab, so its next autosave is refused
+			if (dirty || saving) return
+			if (typeof updatedAt === "number") doc.updatedAt = updatedAt
+		}
 		doc.html = html
 		doc.title = title
 		input("docTitle").value = title

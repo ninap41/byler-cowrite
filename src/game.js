@@ -2317,7 +2317,7 @@ export function createGame(io) {
       const u = userByToken(auth);
       const doc = readDoc(id);
       if (!u || !doc || !canEdit(doc, u.id)) return;
-      socket.to(docRoom(doc.id)).emit("doc-updated", { id: doc.id, html: doc.html, title: doc.title, chapters: chapterRows(doc) });
+      socket.to(docRoom(doc.id)).emit("doc-updated", { id: doc.id, html: doc.html, title: doc.title, chapters: chapterRows(doc), updatedAt: doc.updatedAt });
     });
 
     socket.on("disconnect", () => {
