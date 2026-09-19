@@ -163,6 +163,9 @@ test("the solo editor's head row: one size, state then the Share and Document me
   const order = ["saveState", "wordCount", "sprintLive", "visWrap", "visMenu", "shareBtn", "docMenuBtn", "commentToggle", "chapChip", "promptBtn", "sprintBtn", "exportChapter", "exportWork"].map((id) => meta.indexOf(`id="${id}"`));
   assert.ok(order.every((at, i) => at > 0 && (i === 0 || at > order[i - 1])), "in this order: " + order);
   assert.ok(!meta.includes('id="findBtn"'), "find is not in the head row");
+  // who is reading along stands right beside the dropdowns: the Document menu
+  // closes, then the presence row, still inside the head meta
+  assert.match(html, /id="exportWork"[\s\S]{0,400}?<\/div>\s*<\/span>\s*(<!--[\s\S]*?-->\s*)?<span class="presence-row" id="presenceRow"><\/span>\s*<\/div>/, "presence avatars sit right after the Document menu");
   // Share holds visibility, the readers and comment mode; Document the panel,
   // the roller, the sprint and the downloads: every row says what it is in words
   const share = meta.slice(meta.indexOf('id="visMenu"'), meta.indexOf('id="docMenuWrap"'));
