@@ -227,11 +227,16 @@
 							data-placeholder="Start writing… type / for the reference bank"
 						></div>
 						<textarea class="editor doc-editor doc-source hidden" id="docSource" spellcheck="false"></textarea>
-						<p class="hint" id="editorHint">
-							Type <b>/</b> for action verbs, dialogue tags and more · Ctrl/⌘+S to save · autosaves every 30s
-						</p>
-						<!-- Prev / Next at the foot of the chapter, for readers and author alike. -->
-						<div id="chapNav"></div>
+						<!-- The editor's foot: pinned over the bottom of the prose on a fade
+						     of the paper's colour. The hint on the left (authors only),
+						     and in the CENTRE where you are, "Chapter 2 of 5", with a tiny
+						     arrow each side to turn the page (readers and author alike). -->
+						<div class="hint-bar" id="hintBar">
+							<p class="hint" id="editorHint">
+								Type <b>/</b> for action verbs, dialogue tags and more · Ctrl/⌘+S to save · autosaves every 30s
+							</p>
+							<div id="chapNav"></div>
+						</div>
 					</div>
 
 					<!-- The comments rail is a DRAWER: it opens and closes, and its

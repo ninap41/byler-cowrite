@@ -565,13 +565,13 @@ test("chapNavHtml: Prev/Next name their chapters, the ends are blank, one chapte
   assert.equal(chapNavHtml([CHAPS[0]], 0), "", "no nav for a single chapter");
   const first = chapNavHtml(CHAPS, 0);
   assert.match(first, /^<nav class="chap-nav"/);
-  assert.ok(!/chap-prev/.test(first), "nothing before the first");
-  assert.match(first, /class="ghost chap-next" data-i="1">Two →/);
+  assert.match(first, /class="chap-arrow chap-prev" disabled/, "nothing before the first: the arrow stays, disabled");
+  assert.match(first, /class="chap-arrow chap-next" data-i="1" aria-label="Two" data-tip="Two">›/);
   assert.match(first, /Chapter 1 of 3/);
   const last = chapNavHtml(CHAPS, 2);
-  assert.match(last, /class="ghost chap-prev" data-i="1">← Two/);
-  assert.ok(!/chap-next/.test(last));
-  assert.match(chapNavHtml(CHAPS, 1), /← One &lt;b&gt;bold&lt;\/b&gt;/, "escaped");
+  assert.match(last, /class="chap-arrow chap-prev" data-i="1" aria-label="Two"/);
+  assert.match(last, /class="chap-arrow chap-next" disabled/);
+  assert.match(chapNavHtml(CHAPS, 1), /aria-label="One &lt;b&gt;bold&lt;\/b&gt;"/, "escaped");
   assert.equal(chapChipLabel(CHAPS, 1), "📑 " + CHAPS[1].title, "the chip names the open chapter");
   assert.equal(chapChipLabel(CHAPS, 1, false), chapChipLabel(CHAPS, 1), "the same whether the panel is open or shut");
   assert.equal(chapChipLabel([{ title: "  " }], 0), "📑 Chapter 1", "a blank title falls back to its number");

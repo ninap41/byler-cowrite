@@ -478,10 +478,10 @@ function renderComments() {
 	$("commentPane").innerHTML = html || `<p class="subtle">No comments${elsewhere ? " in this chapter" : " yet"}.</p>`
 	// The edge tab carries the WHOLE story's count, so closing the drawer
 	// hides the notes but never the fact that they exist; the heading
-	// says how many of them are here.
+	// counts only the open chapter's.
 	const total = live.length + orphans.length + elsewhere
 	$("commentsOpenCount").textContent = total ? String(total) : ""
-	$("commentsHeading").textContent = chapters.length > 1 && total ? `💬 Comments · ${live.length + orphans.length} here, ${total} in all` : "💬 Comments"
+	$("commentsHeading").textContent = live.length + orphans.length ? `💬 Comments · ${live.length + orphans.length}` : "💬 Comments"
 	paintChapterCounts()
 	renderCommentBanner()
 	if (activeCid) focusComment(activeCid, { scroll: "none" })

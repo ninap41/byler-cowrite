@@ -7541,30 +7541,36 @@ body.doc-page .topbar {
 }
 /* Prev / Next at the foot of the chapter */
 .chap-nav {
-	display: grid;
-	grid-template-columns: 1fr auto 1fr;
+	display: inline-flex;
 	align-items: center;
-	gap: 10px;
-	margin: 18px 0 8px;
-}
-.chap-nav .chap-prev {
-	justify-self: start;
-}
-.chap-nav .chap-next {
-	justify-self: end;
-}
-.chap-nav .chap-prev,
-.chap-nav .chap-next {
-	min-width: 0;
-	max-width: 100%;
-	overflow: hidden;
-	text-overflow: ellipsis;
+	gap: 6px;
 	white-space: nowrap;
 }
 .chap-pos {
-	font-size: 0.82rem;
 	color: var(--muted);
-	white-space: nowrap;
+}
+button.chap-arrow {
+	flex: none;
+	min-width: 0;
+	width: 1.6em;
+	height: 1.6em;
+	padding: 0;
+	border: 0;
+	border-radius: 50%;
+	background: none;
+	color: var(--ink);
+	font: inherit;
+	font-size: 1.15em;
+	line-height: 1;
+	cursor: pointer;
+}
+button.chap-arrow:hover:not(:disabled) {
+	background: var(--panel-2);
+	transform: none;
+}
+button.chap-arrow:disabled {
+	opacity: 0.25;
+	cursor: default;
 }
 /* 860 is about COLUMNS ONLY, and is deliberately not the same number as the
    760 phone block at the end of this file. An iPad in portrait (768–834px)
@@ -8695,10 +8701,6 @@ body.resizing-side {
 .write-page #docErr:not(:empty) {
 	padding-block: 8px;
 }
-.write-page .doc-col .hint,
-.write-page #chapNav {
-	padding-inline: 14px;
-}
 /* A writing page sits still: the theme's scenery is put away (hidden AND
    paused, so it costs nothing behind the prose) and only the plain wash stays.
    "View theme" in the foot bar is the toggle: peeking brings the scenery
@@ -8742,17 +8744,53 @@ html:has(body.write-page) {
 	padding-bottom: 64px;
 	scroll-behavior: smooth;
 }
-.write-page .doc-col .hint {
+.write-page .hint-bar {
 	position: sticky;
 	bottom: var(--footbar-h, 0px);
 	z-index: 2;
+	/* ONE flex row: the hint, then the chapter nav in the centre. The ::after
+	   is the empty third cell that balances the hint, so the nav centres. */
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 14px;
 	margin: -56px 0 0;
 	padding: 26px 14px 10px;
+	font-size: 0.8em; /* em: it follows the page's own size, phone included */
 	background: linear-gradient(to bottom, transparent, var(--paper-bg) 55%);
 	pointer-events: none;
 }
-.write-page .doc-col .hint.hidden {
-	display: none;
+.write-page .hint-bar .hint,
+.write-page .hint-bar::after {
+	content: "";
+	flex: 1 1 0;
+	min-width: 0;
+	margin: 0;
+	font-size: 1em;
+}
+.write-page .hint-bar .hint.hidden {
+	display: block;
+	visibility: hidden; /* a reader has no hint, but its cell still centres the nav */
+}
+.write-page .hint-bar #chapNav {
+	flex: 0 0 auto;
+	pointer-events: auto;
+}
+@media (max-width: 860px) {
+	.write-page .hint-bar {
+		gap: 8px;
+		font-size: 0.68em;
+	}
+	/* no balancing cell on a phone: the hint takes the room, the nav the end */
+	.write-page .hint-bar::after {
+		display: none;
+	}
+	.write-page .hint-bar .hint.hidden {
+		display: none;
+	}
+	.write-page .hint-bar:has(.hint.hidden) {
+		justify-content: center;
+	}
 }
 /* Title and status share ONE line on a desktop: the title is as wide as its
    words (field-sizing; a fixed 18ch where that isn't supported) and the meta

@@ -520,9 +520,16 @@ export function chapNavHtml(chapters: Chapter[] | null | undefined, idx: number)
 	const list = chapters || []
 	const n = list.length
 	if (n < 2) return ""
-	const prev = idx > 0 ? `<button type="button" class="ghost chap-prev" data-i="${idx - 1}">← ${esc(list[idx - 1]!.title || `Chapter ${idx}`)}</button>` : `<span></span>`
-	const next = idx < n - 1 ? `<button type="button" class="ghost chap-next" data-i="${idx + 1}">${esc(list[idx + 1]!.title || `Chapter ${idx + 2}`)} →</button>` : `<span></span>`
-	return `<nav class="chap-nav" aria-label="Chapters">${prev}<span class="chap-pos">Chapter ${idx + 1} of ${n}</span>${next}</nav>`
+	// tiny arrows either side of the position; each names its chapter on hover,
+	// and the ends keep a disabled arrow so the words stay centred
+	const arrow = (cls: string, to: number, glyph: string) => {
+		const t = list[to]
+		const name = t ? t.title || `Chapter ${to + 1}` : ""
+		return t
+			? `<button type="button" class="chap-arrow ${cls}" data-i="${to}" aria-label="${esc(name)}" data-tip="${esc(name)}">${glyph}</button>`
+			: `<button type="button" class="chap-arrow ${cls}" disabled aria-hidden="true">${glyph}</button>`
+	}
+	return `<nav class="chap-nav" aria-label="Chapters">${arrow("chap-prev", idx - 1, "‹")}<span class="chap-pos">Chapter ${idx + 1} of ${n}</span>${arrow("chap-next", idx + 1, "›")}</nav>`
 }
 
 // The head-row chip that opens the chapter panel. Closed, it says what
