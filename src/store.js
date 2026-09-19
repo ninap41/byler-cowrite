@@ -86,7 +86,12 @@ export const saveStore = () => {
 
 // The only accounts that carry admin: true — applied to existing accounts at
 // startup (below) and at signup (routes.js). Nobody else ever gets the flag.
-export const ADMIN_EMAILS = new Set(["admin2@cowrite.test", "admin@cowrite.test"]);
+// The addresses are configuration, not source: ADMIN_EMAILS in the environment
+// (a Replit Secret in production, .env locally), comma-separated. Unset means
+// NO admins — never a default list, so the repo names nobody.
+export const ADMIN_EMAILS = new Set(
+  String(process.env.ADMIN_EMAILS || "").split(",").map((e) => e.trim().toLowerCase()).filter((e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)), // EMAIL_RE's shape; that const is declared further down
+);
 {
   let changed = false;
   for (const u of store.users)

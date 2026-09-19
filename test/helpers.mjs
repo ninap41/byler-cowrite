@@ -7,6 +7,9 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { io } from "socket.io-client";
 
+// The accounts the suite's servers treat as admins (ADMIN_EMAILS in the env).
+export const TEST_ADMIN_EMAILS = ["admin@cowrite.test", "admin2@cowrite.test"];
+
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 export async function startServer(extraEnv = {}) {
@@ -35,6 +38,7 @@ export async function startServer(extraEnv = {}) {
       env: {
         ...testEnv,
         DATABASE_URL: "", // a developer's shell must never point the suite at real Postgres
+        ADMIN_EMAILS: TEST_ADMIN_EMAILS.join(","), // never a real address: the suite names its own admins
         PORT: String(port),
         COWRITE_DATA_DIR: dataDir,
         COWRITE_SAVE_DIR: saveDir,

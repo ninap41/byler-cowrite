@@ -1,17 +1,17 @@
 {
-  "version": 1,
-  "skills": {
-    "svg-character-animation": {
-      "source": "calesthio/OpenMontage",
-      "sourceType": "github",
-      "skillPath": ".agents/skills/svg-character-animation/SKILL.md",
-      "computedHash": "65a17b9ab121f1fb11af63ff1cc8ab36accf96a36ce8decb82660fe26df6fbf0"
-    },
-    "typescript-pro": {
-      "source": "jeffallan/claude-skills",
-      "sourceType": "github",
-      "skillPath": "skills/typescript-pro/SKILL.md",
-      "computedHash": "b53b57340243eab4b75acee9096f0444319bb1b9e8530fdab4d1d75e1568fa6c"
-    }
-  }
+	"version": 1,
+	"skills": {
+		"svg-character-animation": {
+			"source": "calesthio/OpenMontage",
+			"sourceType": "github",
+			"skillPath": ".agents/skills/svg-character-animation/SKILL.md",
+			"computedHash": "65a17b9ab121f1fb11af63ff1cc8ab36accf96a36ce8decb82660fe26df6fbf0"
+		},
+		"typescript-pro": {
+			"source": "jeffallan/claude-skills",
+			"sourceType": "github",
+			"skillPath": "skills/typescript-pro/SKILL.md",
+			"computedHash": "b53b57340243eab4b75acee9096f0444319bb1b9e8530fdab4d1d75e1568fa6c"
+		}
+	}
 }

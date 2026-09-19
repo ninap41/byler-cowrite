@@ -15,6 +15,13 @@ import { storage, describeStorage } from "./src/storage.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+// Local secrets (.env, gitignored — see .env.example). Production has no such
+// file: Replit's Secrets are already in the environment. Before anything that
+// reads process.env at import (store.js's ADMIN_EMAILS).
+try {
+  process.loadEnvFile?.(join(__dirname, ".env"));
+} catch {} // no .env is the normal case
+
 // Pick the store BEFORE store.js/game.js load — they read it at import.
 // DATABASE_URL set (Replit Postgres): the database is the store, loaded into
 // memory here. Unset (local dev, tests): the JSON files under data/ and saves/.
