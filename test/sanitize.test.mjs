@@ -195,3 +195,41 @@ test("sanitizeRich: comment anchors belong to documents, not to story lines", ()
   const out = sanitizeRich('<span class="cmt" data-cid="0123456789ab">x</span>');
   assert.ok(!/data-cid=[^&]/.test(out), "no data attribute survives here: " + out);
 });
+
+// The sanitizers must be safe to feed their own output: the solo editor sends
+// every closed chapter back exactly as the server stored it, on every autosave.
+// A second pass that escaped the first pass's entities grew `'` into
+// `&amp;amp;amp;…#39;` one level per save.
+test("every sanitizer is idempotent on its own output", () => {
+  const samples = [
+    `<p>'Closed' & "open" <b>x</b> 1 < 2 > 0</p>`,
+    `<p class="al-c">don't &amp; won't &lt;3 &quot;q&quot; &#39;s&#39;</p><hr><br>`,
+    `<a href="https://ao3.org/x?a=1&b=2">it's</a><img src="https://x.com/a.png">`,
+    `<span class="fs-18">big</span><span class="cmt" data-cid="0123456789ab">noted</span>`,
+    `<script>alert('x')</script><a href="javascript:x">no</a><img src=y onerror=z>`,
+    `&nbsp; &copy; &#8217; &unknown; & &amp`,
+  ];
+  for (const fn of [sanitizeDoc, sanitizeRich, sanitizeAbout]) {
+    for (const s of samples) {
+      const once = fn(s);
+      assert.equal(fn(once), once, `${fn.name} twice on ${s}`);
+      assert.equal(fn(fn(fn(once))), once, `${fn.name} four times on ${s}`);
+    }
+  }
+});
+
+test("a second pass never wakes anything the first pass left inert", () => {
+  const evil = `<script>alert(1)</script><a href="javascript:x">no</a><img src=y onerror=z><p onclick="x">p</p>`;
+  for (const fn of [sanitizeDoc, sanitizeRich, sanitizeAbout]) {
+    const twice = fn(fn(evil));
+    assert.ok(!/<script|<a href="javascript|<img|onclick="/.test(twice.replace(/&lt;[^]*?&gt;/g, "")), fn.name);
+    assert.ok(twice.includes("&lt;script&gt;"), fn.name + " keeps the script as text");
+  }
+  // already-escaped markup from a hostile client is text, or allowlisted — never more
+  assert.ok(!sanitizeDoc("&lt;script&gt;x&lt;/script&gt;").includes("<script"));
+});
+
+test("an apostrophe escapes exactly once", () => {
+  assert.equal(sanitizeDoc("<p>'Closed'</p>"), "<p>&#39;Closed&#39;</p>");
+  assert.equal(sanitizeDoc("<p>&#39;Closed&#39;</p>"), "<p>&#39;Closed&#39;</p>");
+});

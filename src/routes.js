@@ -10,7 +10,7 @@ import { SITE } from "./site.js";
 import { getPromptData, setPromptData } from "./game.js";
 import { WORD_TIERS, USAGE, USAGE_OPEN, getAchievements, setAchievements, badgeName, awardWordBadges, themeLocks, unlockedThemes, gimmickLocks, unlockedGimmicks } from "../lib/achievements.js";
 import { GIMMICKS } from "../lib/gimmicks.js";
-import { cleanColor, stripTags, plainText, clip, httpUrl, sanitizeAbout, sanitizeDoc } from "./sanitize.js";
+import { cleanColor, stripTags, plainText, clip, httpUrl, sanitizeAbout, sanitizeDoc, DOC_MAX } from "./sanitize.js";
 import {
   readDoc, writeDoc, createDoc, deleteDoc, listDocsFor, docSummary,
   canView, canEdit, canComment, isReader, cleanTitle, cleanVisibility, publicDocs, docsOwnedBy,
@@ -925,6 +925,10 @@ export function registerRoutes(app, game) {
       // comments read as orphaned from then on, nothing else to do.
       if (!Array.isArray(chapters) || !chapters.length) return res.status(400).json({ error: "A document needs at least one chapter." });
       if (chapters.length > MAX_CHAPTERS) return res.status(400).json({ error: `At most ${MAX_CHAPTERS} chapters.` });
+      // Refuse, never cut: sanitizeDoc slices at DOC_MAX, and a silent slice is
+      // the end of somebody's chapter gone for good.
+      const long = chapters.findIndex((c) => String(c?.html ?? "").length > DOC_MAX);
+      if (long >= 0) return res.status(413).json({ error: `Chapter ${long + 1} is too long to save. Split it into two chapters.` });
       const known = new Set(doc.chapters.map((c) => c.id)), used = new Set();
       doc.chapters = chapters.map((c, i) => {
         const keep = known.has(c?.id) && !used.has(c.id);
@@ -935,6 +939,7 @@ export function registerRoutes(app, game) {
     } else if (typeof req.body?.html === "string") {
       // the pre-chapter save shape: the body of a single-chapter document
       if (doc.chapters.length !== 1) return res.status(400).json({ error: "This document has chapters — send them." });
+      if (req.body.html.length > DOC_MAX) return res.status(413).json({ error: "This chapter is too long to save. Split it into two chapters." });
       doc.chapters[0].html = sanitizeDoc(req.body.html);
     }
     writeDoc(doc); // recomputes wordCount

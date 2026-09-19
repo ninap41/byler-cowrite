@@ -4,7 +4,8 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { startServer, signup } from "./helpers.mjs";
-import { anchorCids, anchorText, stripAnchor, applySuggestion } from "../src/docs.js";
+import { anchorCids, anchorText, stripAnchor, applySuggestion, repairEntities, countWords } from "../src/docs.js";
+import { DOC_MAX } from "../src/sanitize.js";
 
 let ctx, alice, bob, carol;
 before(async () => {
@@ -958,8 +959,8 @@ test("chapters: PUT keeps ids, mints new ones, sanitizes each, honours order, dr
   assert.equal(ch[1].title, "Chapter 2", "an empty title is numbered by position");
   assert.match(ch[2].id, /^[0-9a-f]{12}$/);
   assert.notEqual(ch[2].id, "not-a-real-one", "an unknown id is replaced");
-  assert.deepEqual(ch.map((c) => c.wordCount), [6, 2, 1], "the escaped script counts as words, as it always did");
-  assert.equal(r.data.doc.wordCount, 9, "the document's count is the sum");
+  assert.deepEqual(ch.map((c) => c.wordCount), [4, 2, 1], "entities are decoded before counting, so the escaped script is ONE run of text");
+  assert.equal(r.data.doc.wordCount, 7, "the document's count is the sum");
   assert.equal(r.data.doc.html, ch.map((c) => c.html).join(""));
   // reorder and drop the middle one
   r = await ctx.api("/api/docs/" + doc.id, { chapters: [{ id: ch[2].id, title: "Third", html: "<p>f</p>" }, { id: first, title: "Opening", html: "<p>a b c</p>" }] }, alice.token, "PUT");
@@ -1290,4 +1291,81 @@ test("autosave conflict: a save naming a stale base is refused with 409; one wit
   const force = await ctx.api("/api/docs/" + doc.id, { chapters: [{ title: "One", html: "<p>tab A wins</p>" }] }, alice.token, "PUT");
   assert.equal(force.status, 200);
   assert.equal(force.data.doc.html, "<p>tab A wins</p>");
+});
+
+// ---- the &amp;amp;amp; bug ----
+// The editor sends EVERY chapter on every autosave, and the closed ones are
+// the server's own stored html. Each save used to escape them again, growing
+// `'` into `&amp;amp;…#39;` until the chapter hit DOC_MAX and lost its tail.
+test("autosaving the server's own chapters back changes nothing, however often", async () => {
+  const doc = await newDoc(alice.token, "Tattered sign");
+  const first = await ctx.api(
+    "/api/docs/" + doc.id,
+    { chapters: [
+      { title: "One", html: `<p>He flipped the sign to 'Closed' & said "don't" — 1 < 2. <a href="https://ao3.org/?a=1&b=2">link</a></p>` },
+      { title: "Two", html: "<p>Later.</p>" },
+    ] },
+    alice.token,
+    "PUT"
+  );
+  const want = first.data.doc;
+  assert.ok(want.chapters[0].html.includes("&#39;Closed&#39;"));
+  let chapters = want.chapters;
+  for (let i = 0; i < 6; i++) {
+    const r = await ctx.api("/api/docs/" + doc.id, { chapters: chapters.map(({ id, title, html }) => ({ id, title, html })) }, alice.token, "PUT");
+    assert.equal(r.data.doc.chapters[0].html, want.chapters[0].html, "save " + (i + 1));
+    assert.equal(r.data.doc.html, want.html, "joined html, save " + (i + 1));
+    assert.equal(r.data.doc.wordCount, want.wordCount, "word count, save " + (i + 1));
+    chapters = r.data.doc.chapters;
+  }
+  const back = await ctx.api("/api/docs/" + doc.id, null, alice.token, "GET");
+  assert.equal(back.data.doc.html, want.html, "and a reload reads the same");
+  assert.ok(!back.data.doc.html.includes("&amp;amp;"));
+});
+
+test("an already-mangled chapter is repaired when it is read", () => {
+  const bad = "<p>sign to &amp;amp;amp;amp;#39;Closed&amp;amp;amp;amp;#39; &amp;amp;quot;x&amp;amp;quot; &amp;amp;lt;3 Tom &amp;amp; Jerry</p>";
+  assert.equal(repairEntities(bad), "<p>sign to &#39;Closed&#39; &quot;x&quot; &lt;3 Tom &amp; Jerry</p>");
+  const good = "<p>&#39;fine&#39; &amp; &lt;dandy&gt;</p>";
+  assert.equal(repairEntities(good), good, "healthy html is untouched");
+  assert.equal(repairEntities(repairEntities(bad)), repairEntities(bad));
+  const doc = ensureChapters({ chapters: [{ id: "0123456789ab", title: "One", html: bad }] });
+  assert.ok(!doc.html.includes("amp;amp;") && doc.html.includes("&#39;Closed&#39;"));
+});
+
+test("words count the way the editor counts them: an entity is part of its word", () => {
+  assert.equal(countWords("<p>don&#39;t</p>"), 1);
+  assert.equal(countWords("<p>&quot;Closed&quot; he said</p>"), 3);
+  assert.equal(countWords("<h2>One</h2><p>two</p>"), 2);
+  assert.equal(countWords("<p>said <b>won&#39;t</b>. The <span class=\"cmt\" data-cid=\"0123456789ab\">si</span>gn</p>"), 4, "an inline tag never splits a word");
+  assert.equal(countWords(""), 0);
+});
+
+test("a chapter too long to store is refused, never silently cut", async () => {
+  const doc = await newDoc(alice.token, "Long");
+  await ctx.api("/api/docs/" + doc.id, { html: "<p>kept</p>" }, alice.token, "PUT");
+  const huge = "<p>" + "word ".repeat(DOC_MAX / 5 + 10) + "</p>";
+  const r = await ctx.api("/api/docs/" + doc.id, { chapters: [{ id: null, title: "One", html: huge }] }, alice.token, "PUT");
+  assert.equal(r.status, 413);
+  assert.match(r.data.error, /too long/i);
+  assert.equal((await ctx.api("/api/docs/" + doc.id, { html: huge }, alice.token, "PUT")).status, 413);
+  assert.equal((await docOf(doc.id)).html, "<p>kept</p>", "the stored copy is untouched");
+});
+
+test("a reader can still comment on prose full of quotes after the author has saved many times", async () => {
+  const doc = await newDoc(alice.token, "Quoted");
+  let r = await ctx.api("/api/docs/" + doc.id, { html: `<p>'Closed' it said.</p>` }, alice.token, "PUT");
+  for (let i = 0; i < 3; i++) r = await ctx.api("/api/docs/" + doc.id, { html: r.data.doc.html }, alice.token, "PUT");
+  await ctx.api("/api/docs/" + doc.id + "/readers", { username: "bobbeta" }, alice.token);
+  const B = await ctx.conn();
+  B.emit("doc-open", { auth: bob.token, id: doc.id });
+  await ctx.wait(150);
+  const cid = "a1b2c3d4e5f6";
+  // what a reader's browser sends: the DOM-decoded html with one new anchor
+  B.emit("doc-comment", { auth: bob.token, id: doc.id, cid, text: "nice", html: `<p>'<span class="cmt" data-cid="${cid}">Closed</span>' it said.</p>` });
+  await ctx.wait(200);
+  const after = await docOf(doc.id);
+  assert.equal(after.comments.length, 1, "the comment was taken");
+  assert.ok(!after.html.includes("amp;"), after.html);
+  B.close();
 });

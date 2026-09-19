@@ -269,7 +269,8 @@ test("Resolve/Delete appear only for someone who could actually use them", () =>
 test("the chip states where you stand, it does not ask", () => {
   for (const v of ["private", "readers", "public"]) {
     const chip = visChipHtml(v);
-    assert.ok(chip.includes(VIS[v].icon) && chip.includes(VIS[v].label), v + " names itself");
+    assert.ok(chip.includes(`>${VIS[v].icon} ${VIS[v].label}<`), v + " names itself in words — it is a dropdown, not an icon");
+    assert.ok(chip.includes(`data-tip="${VIS[v].label}: `), "and the tooltip says what that state means");
     assert.ok(chip.includes(`data-vis="${v}"`), "the state is readable by the page too");
   }
   // an action label ("Share…") would leave the off state ambiguous
@@ -450,7 +451,7 @@ test("insertAfterHeading: right under the first heading, else at the very top", 
 test("the write page carries the Prompt? chip (author only), the roller modal with Roll, Cancel and an Insert that waits for a roll, and Insert goes under the heading", () => {
   // the page plus its script (emitted from client/pages/write.ts), read as one text
   const src = readFileSync(new URL("../public/write.html", import.meta.url), "utf-8") + "\n" + readFileSync(new URL("../public/js/pages/write.js", import.meta.url), "utf-8");
-  assert.match(src, /class="head-chip hidden" id="promptBtn"/, "hidden until the author is known");
+  assert.match(src, /class="vis-opt menu-row hidden" id="promptBtn"/, "hidden until the author is known");
   assert.ok(src.includes('$("promptBtn").classList.toggle("hidden", !canEdit)'), "author only");
   assert.match(src, /id="promptModal"/);
   assert.match(src, /id="soloPrompt"/, "the game's mode picker is mounted inside");
@@ -530,6 +531,7 @@ test("countWordsHtml mirrors the server's count: tags are spaces, entities are l
   assert.equal(countWordsHtml("<h2>One</h2><p>Mike knocked twice.</p>"), 4);
   assert.equal(countWordsHtml("<p>don&#39;t stop</p>"), 2);
   assert.equal(countWordsHtml("<p>a&nbsp;b</p>"), 2);
+  assert.equal(countWordsHtml("<p>said <b>won&#39;t</b>. The end</p>"), 4, "an inline tag never splits a word");
   assert.equal(countWordsHtml(""), 0);
 });
 
@@ -570,10 +572,11 @@ test("chapNavHtml: Prev/Next name their chapters, the ends are blank, one chapte
   assert.match(last, /class="ghost chap-prev" data-i="1">← Two/);
   assert.ok(!/chap-next/.test(last));
   assert.match(chapNavHtml(CHAPS, 1), /← One &lt;b&gt;bold&lt;\/b&gt;/, "escaped");
-  assert.equal(chapChipLabel(CHAPS, 1), "📑 Chapters", "one word, open or closed, one chapter or many");
-  assert.equal(chapChipLabel([CHAPS[0]], 0), "📑 Chapters");
-  assert.equal(chapChipLabel(CHAPS, 1, false), "📑 Chapters");
-  assert.equal(chapChipLabel([CHAPS[0]], 0, false), "📑 Chapters");
+  assert.equal(chapChipLabel(CHAPS, 1), "📑 " + CHAPS[1].title, "the chip names the open chapter");
+  assert.equal(chapChipLabel(CHAPS, 1, false), chapChipLabel(CHAPS, 1), "the same whether the panel is open or shut");
+  assert.equal(chapChipLabel([{ title: "  " }], 0), "📑 Chapter 1", "a blank title falls back to its number");
+  assert.equal(chapChipLabel([], 0), "📑");
+  assert.equal(chapChipLabel(null, 0), "📑");
 });
 
 test("commentModeBannerHtml: names the mode, says the gesture, Done only for the author", () => {
@@ -588,4 +591,17 @@ test("commentModeBannerHtml: names the mode, says the gesture, Done only for the
   assert.ok(reader.includes(" · 1 note"), "singular");
   assert.ok(commentModeBannerHtml({ count: 3 }).includes(" · 3 notes"), "plural");
   assert.ok(commentModeBannerHtml().includes("commentDone"), "defaults to the author's strip");
+});
+
+test("visOptionsHtml: three radio rows, the current one ticked; fontListHtml: a row per face in its own face", async () => {
+  const { visOptionsHtml } = await import("../public/js/write-view.js");
+  const { fontListHtml, DOC_FONTS } = await import("../public/js/doc-prefs.js");
+  const v = visOptionsHtml("readers");
+  assert.equal((v.match(/role="menuitemradio"/g) || []).length, 3);
+  assert.match(v, /class="vis-opt on"[^>]*aria-checked="true" data-vis="readers"/);
+  assert.ok(!v.includes('id="visMenu"'), "rows only: the page owns the menu around them");
+  const f = fontListHtml("theme");
+  assert.equal((f.match(/data-font="/g) || []).length, DOC_FONTS.length);
+  assert.match(f, /font-opt on"[^>]*aria-checked="true" data-font="theme"/);
+  assert.match(f, /style="font-family:/);
 });

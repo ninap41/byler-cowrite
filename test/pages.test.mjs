@@ -83,11 +83,18 @@ test("clean URLs serve each page", async () => {
   assert.ok(arch.body.includes('id="archiveList"'));
   for (const id of ["delModal", "archDelete", "delConfirm", "delCancel", "archNotice"])
     assert.ok(arch.body.includes(`id="${id}"`), id + " in the delete flow");
-  // exports live on the story itself, not inside the delete modal
-  for (const id of ["archExport", "archCopy", "archHtml", "archPdf"]) assert.ok(arch.body.includes(`id="${id}"`), id + " export row");
+  // exports live on the story itself, not inside the delete modal: one
+  // Share / Download ▾ flyout mounted into #archExport by the page module
+  assert.ok(arch.body.includes('id="archExport"'), "export host");
+  for (const id of ["archCopy", "archHtml", "archPdf", "archBylines"]) assert.ok(!arch.body.includes(`id="${id}"`), id + " is the flyout's, not the page's");
+  const archJs = await page("/js/pages/archive.js");
+  assert.ok(archJs.body.includes('prefix: "arch"') && archJs.body.includes("mountExportMenu"), "the archive page mounts the flyout");
+  const gameJs = await page("/js/pages/game.js");
+  assert.ok(gameJs.body.includes('prefix: "over"') && gameJs.body.includes("mountExportMenu"), "so does the reveal card");
+  assert.ok(game.body.includes('id="overExport"') && !game.body.includes('id="copyBtn"') && !game.body.includes('id="downloadBtn"'), "the reveal's loose buttons are gone");
   assert.ok(!arch.body.includes('id="delHtml"') && !arch.body.includes('id="delPdf"'), "no export inside the modal");
   const modal = arch.body.slice(arch.body.indexOf('id="delModal"'));
-  assert.ok(!modal.includes('id="archHtml"'), "export row precedes the modal");
+  assert.ok(!modal.includes('id="archExport"'), "export row precedes the modal");
   const prof = await page("/profile");
   assert.equal(prof.status, 200);
   assert.ok(prof.body.includes('id="ladder"') && prof.body.includes('id="usageCase"'));
@@ -110,7 +117,7 @@ test("clean URLs serve each page", async () => {
 test("the editor offers a three-way paper colour beside line spacing", async () => {
   const { body } = await page("/write");
   assert.ok(body.includes('id="paperSelect"'), "the control is on the toolbar");
-  for (const v of ["theme", "light", "dark"]) assert.ok(body.includes(`value="${v}"`), v + " is offered");
+  for (const v of ["theme", "light", "dark"]) assert.ok(body.includes(`data-paper="${v}"`), v + " is offered");
   assert.ok(body.indexOf('id="lineStepper"') < body.indexOf('id="paperSelect"'), "it sits next to line spacing");
   assert.ok(body.includes("applyPaper"), "and is applied on load, not just on change");
 });
@@ -149,6 +156,46 @@ test("comment mode explains itself on hover", async () => {
   assert.match(btn, /aria-label="Comment mode"/, "the emoji alone is not a name");
 });
 
+test("the solo editor's head row: one size, state then the Share and Document menus; Appearance ends the toolbar row; Find sits with the formatting tools", async () => {
+  const { body } = await page("/write");
+  const html = body.slice(0, body.indexOf("</html>"));
+  const meta = html.slice(html.indexOf('class="doc-head-meta"'), html.indexOf('id="presenceRow"'));
+  const order = ["saveState", "wordCount", "sprintLive", "visWrap", "visMenu", "shareBtn", "docMenuBtn", "commentToggle", "chapChip", "promptBtn", "sprintBtn", "exportChapter", "exportWork"].map((id) => meta.indexOf(`id="${id}"`));
+  assert.ok(order.every((at, i) => at > 0 && (i === 0 || at > order[i - 1])), "in this order: " + order);
+  assert.ok(!meta.includes('id="findBtn"'), "find is not in the head row");
+  // Share holds visibility, the readers and comment mode; Document the panel,
+  // the roller, the sprint and the downloads: every row says what it is in words
+  const share = meta.slice(meta.indexOf('id="visMenu"'), meta.indexOf('id="docMenuWrap"'));
+  for (const id of ["visOpts", "shareBtn"]) assert.ok(share.includes(`id="${id}"`), id + " is in the Share menu");
+  assert.match(meta, /id="docMenu"[^>]*>\s*<button[^>]*id="commentToggle"/, "comment mode opens the Document menu");
+  assert.match(meta, /id="shareBtn"[^>]*>\s*<span>👥 Invite beta reader/);
+  assert.match(meta, /id="commentToggle"[^>]*>\s*<span>💬 Comment mode/);
+  assert.match(meta, /id="docMenuBtn"[^>]*>📑 Document/);
+  assert.match(meta, /id="chapChip"[^>]*>\s*<span>📑 Chapter panel/);
+  assert.match(meta, /id="promptBtn"[^>]*>🎲 Roll a prompt…/);
+  assert.match(meta, /id="sprintBtn"[^>]*>⏱ Start a sprint/);
+  assert.match(meta, /Download as \.html/);
+  for (const gone of ["exportBtn", "exportMenu"]) assert.ok(!html.includes(`id="${gone}"`), gone + " folded into the Document menu");
+  // Appearance: one pill after the formatting toolbar, its menu holding all three prefs
+  const view = html.slice(html.indexOf('id="docViewPrefs"'), html.indexOf('class="toolbar-right"'));
+  assert.match(view, /id="viewBtn"[^>]*><b>Aa<\/b> Appearance/);
+  for (const id of ["viewMenu", "lineStepper", "fontSelect", "paperSelect"]) assert.ok(view.includes(`id="${id}"`), id);
+  const js = (await page("/js/pages/write.js")).body;
+  assert.ok(js.includes("HEAD_MENUS") && js.includes('"viewMenu"') && js.includes('"docMenu"') && js.includes('"visMenu"'), "one opener for the three menus");
+  // Find: beside Clear formatting, with its word and the Font Awesome glass
+  const bar = html.slice(html.indexOf('id="docToolbar"'), html.indexOf('id="docViewPrefs"'));
+  assert.match(bar, /id="clearFmtBtn"[^]*?<button[^>]*id="findBtn"[^>]*>\s*<i class="fa-solid fa-magnifying-glass"[^>]*><\/i> Find\s*<\/button>/);
+  const css = (await page("/css/base.css")).body;
+  // The page hands every <i> the document's face (for italics); an icon must be
+  // exempted AFTER that rule or it draws as an empty box.
+  const inherit = css.indexOf("font-family: inherit;", css.indexOf(".write-page\n\t.write-inner"));
+  assert.ok(inherit > 0 && css.indexOf(".write-page .write-inner :is(i.fa-solid") > inherit, "Font Awesome icons keep their own font on the write page");
+  assert.match(css, /\.doc-head-meta :is\(\.head-chip, \.vis-chip, \.doc-save-state, #wordCount\) \{\s*font-size: inherit;/, "one font size across the row");
+  assert.match(css, /\.toolbar\.dimmed \.tb-find \{\s*pointer-events: auto;/, "find stays clickable in the HTML view");
+  const util = (await page("/js/util.js")).body;
+  assert.match(util, /\.head-chip, \.vis-chip/, "the emoji-gradient pass skips the head row");
+});
+
 test("the game page carries the shared toolbar, not its own", async () => {
   const { body } = await page("/game");
   assert.ok(body.includes('id="gameToolbar"'), "one mount point");
@@ -161,17 +208,19 @@ test("visibility is a chip in the editor head, not a checkbox in the share modal
   assert.ok(!body.includes('id="visToggle"'), "the ambiguous checkbox is gone");
   assert.ok(body.includes('id="visWrap"'), "the chip sits with the title and word count");
   assert.ok(body.indexOf('id="visWrap"') < body.indexOf('id="shareModal"'), "in the head, ahead of the modal");
-  assert.ok(body.includes("visChipHtml") && body.includes("visMenuHtml"));
+  assert.ok(body.includes("visChipHtml") && body.includes("visOptionsHtml"));
   assert.ok(body.includes('id="sharePrivateNote"'), "the modal warns when readers can't actually see it");
 });
 
-test("the unsaved-draft bar is sticky under the toolbar", async () => {
+test("the editor's banners are sticky under the toolbar", async () => {
   const { body } = await page("/write");
   const shell = body.slice(body.indexOf('id="docShell"'), body.indexOf('id="docErr"'));
-  assert.ok(shell.includes('id="restoreBar"'), "it lives inside the sticky shell");
-  assert.ok(shell.indexOf('id="docToolbar"') < shell.indexOf('id="restoreBar"'), "below the toolbar");
+  assert.ok(shell.includes('id="docBanners"'), "the banner host lives inside the sticky shell");
+  assert.ok(shell.indexOf('id="docToolbar"') < shell.indexOf('id="docBanners"'), "below the toolbar");
+  assert.ok(!body.includes('id="restoreBar"') && !body.includes('id="conflictBar"'), "no hand-written banner: the component mounts them");
   const css = await page("/css/base.css");
-  assert.match(css.body, /\.restore-bar \{[^}]*border-top/, "it reads as attached to the toolbar above it");
+  assert.match(css.body, /\.doc-banner \{[^}]*border-top/, "it reads as attached to the toolbar above it");
+  assert.match(css.body, /\.doc-banner\.hidden,/, "display:flex needs its .hidden twin");
 });
 
 test("the comments pane sticks under the head, and jumps land clear of it", async () => {
@@ -303,8 +352,7 @@ test("the typeface dropdown offers the site's own families and never touches the
   assert.ok(body.indexOf('id="fontSelect"') < body.indexOf('id="paperSelect"'), "beside the other view preferences");
   // our own dropdown, not a native select: a browser-drawn option list can't be
   // trusted to render a face legibly (see components/flip-select.js)
-  assert.ok(body.includes("mountFlipSelect($(\"fontSelect\")"), "the flip menu, mounted on the toolbar slot");
-  assert.ok(body.includes("rows: fontRows()"), "built from the shared list, not hand-written options");
+  assert.ok(body.includes('$("fontSelect").innerHTML = fontListHtml(prefs.font)'), "an inline list in the Appearance menu, built from the shared list");
   assert.ok(body.includes('setProperty("--doc-font"'), "applied as a css variable");
   // the choice dresses the WHOLE page, so it is set on the page root and the
   // page's hard-coded faces are told to inherit
@@ -384,7 +432,7 @@ test("readers and comment mode sit with visibility, not on the formatting toolba
   assert.ok(head.includes('id="visWrap"') && head.includes('id="shareBtn"') && head.includes('id="commentToggle"'),
     "all three state controls are in the document head");
   assert.ok(head.indexOf('id="visWrap"') < head.indexOf('id="shareBtn"'), "visibility first, then who can read it");
-  const toolbar = body.slice(body.indexOf('class="toolbar-right"'), body.indexOf('id="restoreBar"'));
+  const toolbar = body.slice(body.indexOf('class="toolbar-right"'), body.indexOf('id="docBanners"'));
   assert.ok(!toolbar.includes('id="shareBtn"') && !toolbar.includes('id="commentToggle"'), "and no longer on the toolbar");
   assert.ok(toolbar.includes('id="modeRich"') && toolbar.includes('id="modeHtml"'), "which keeps rich/HTML only");
   const css = await page("/css/base.css");

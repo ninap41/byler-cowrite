@@ -51,6 +51,18 @@ export function fontMenuHtml(selected: string): string {
 export function fontRows(): { value: string; label: string; style: string }[] {
 	return DOC_FONTS.map((f) => ({ value: f.key, label: f.label, style: `font-family:${f.stack || "var(--font-story)"}` }))
 }
+// And as the Appearance menu's inline radio list: a row per face, set in that
+// face, the chosen one ticked.
+export function fontListHtml(selected: string): string {
+	return fontRows()
+		.map(
+			(f) =>
+				`<button type="button" class="vis-opt menu-row font-opt${f.value === selected ? " on" : ""}" role="menuitemradio" ` +
+				`aria-checked="${f.value === selected}" data-font="${f.value}" style="${f.style}">` +
+				`<span>${f.label}</span><span class="menu-state">${f.value === selected ? "✓" : ""}</span></button>`,
+		)
+		.join("")
+}
 const cleanFont = (v: unknown): string => (DOC_FONTS.some((f) => f.key === v) ? (v as string) : DEFAULT_FONT)
 
 // The comments drawer: whether it's open, and how wide you dragged it. Same

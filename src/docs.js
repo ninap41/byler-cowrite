@@ -4,18 +4,28 @@
 // isolates docs for free.
 import { randomUUID, randomBytes } from "crypto";
 import { storage, getJson } from "./storage.js";
-import { stripTags } from "./sanitize.js";
+import { stripTags, plainText } from "./sanitize.js";
 
 // Ids go straight into a filename — never trust one that isn't a plain uuid.
 export const ID_RE = /^[0-9a-f-]{36}$/i;
 
 export const cleanTitle = (t) => stripTags(String(t ?? "")).slice(0, 80) || "Untitled";
-// Tags become spaces, not nothing: "</h2><p>" separates two words, and
-// stripTags alone would glue them into one.
+// Counted on plainText(): tags become spaces ("</h2><p>" separates two words)
+// and entities are DECODED, so "don&#39;t" is one word — the same answer the
+// editor's own counter gives, so the number doesn't move on a reload.
+// Inline tags vanish WITHOUT a space first: "<b>won't</b>." is one word, not
+// "won't" and a stray ".".
+const INLINE_TAG = /<\/?(?:b|i|u|s|strong|em|del|span|a)(?:\s[^>]*)?>/gi;
 export const countWords = (html) => {
-  const text = stripTags(String(html ?? "").replace(/<[^>]+>/g, " "));
+  const text = plainText(String(html ?? "").replace(INLINE_TAG, ""));
   return text ? text.split(/\s+/).filter(Boolean).length : 0;
 };
+
+// Documents saved while the sanitizer still re-escaped its own output carry
+// `&amp;amp;…#39;` where an apostrophe was. Collapse any such run back to the
+// one entity it started as. A no-op on healthy html, so it runs on every read.
+export const repairEntities = (html) =>
+  String(html ?? "").replace(/&(?:amp;)+(amp|lt|gt|quot|#39);/g, "&$1;");
 
 // ---- chapters ----
 // A document is a list of chapters, each its own html. `doc.html` is DERIVED —
@@ -41,7 +51,7 @@ export function ensureChapters(doc) {
   doc.chapters = doc.chapters.map((c, i) => ({
     id: CH_ID_RE.test(String(c?.id ?? "")) ? c.id : newChapterId(),
     title: cleanChapterTitle(c?.title, i + 1),
-    html: String(c?.html ?? ""),
+    html: repairEntities(c?.html),
     wordCount: 0,
   }));
   return syncDocHtml(doc);

@@ -23,7 +23,7 @@ import { confirmDialog } from "/js/components/confirm-delete.js"
 import { getSpectatorName } from "/js/spectator-names.js"
 import { countdownView } from "/js/components/countdown.js"
 import { mountRulesForm } from "/js/components/rules-form.js"
-import { buildExports, exportDocument } from "/js/export.js"
+import { mountExportMenu } from "/js/components/export-menu.js"
 import { mountTagEditor } from "/js/components/tag-chips.js"
 import { showInviteToast } from "/js/turn-alert.js"
 import { needsJoinConfirm, joinConfirmHtml } from "/js/join-confirm.js"
@@ -49,12 +49,6 @@ interface Profile {
 	wordCount?: number
 	wordBadges?: string[]
 	usageBadges?: string[]
-}
-declare global {
-	interface Window {
-		_html?: string
-		_plain?: string
-	}
 }
 type Card = "waiting" | "choosing" | "game" | "over" | "none"
 mountChrome({ page: "game" })
@@ -1239,42 +1233,13 @@ $("continueBtn").onclick = () =>
 	socket.emit("continue-writing", contRules.values(), (res) => {
 		if (!res?.ok) alert("Could not continue: the host is here and only they can, or nobody is seated.")
 	})
-// Exports (js/export.js): prose only, formatting preserved, NO usernames.
+// Share / Download ▾ (components/export-menu.js): copy as rich text, .html, .pdf,
+// each line signed with its writer or prose only.
+let overStory: { prompt: string; story: StoryLine[] } = { prompt: "", story: [] }
 function rebuildExports(prompt: string, story: StoryLine[]) {
-	const ex = buildExports(prompt, story)
-	window._html = ex.html
-	window._plain = ex.plain
+	overStory = { prompt, story }
 }
-// Copy as rich text so pasting into Docs/Word/AO3 keeps bold/italic/underline.
-$("copyBtn").onclick = async () => {
-	const btn = $("copyBtn")
-	try {
-		await navigator.clipboard.write([
-			new ClipboardItem({
-				"text/html": new Blob([window._html || ""], { type: "text/html" }),
-				"text/plain": new Blob([window._plain || ""], { type: "text/plain" }),
-			}),
-		])
-		btn.textContent = "Copied: paste into Docs/Word"
-	} catch (e) {
-		try {
-			await navigator.clipboard.writeText(window._plain || "")
-			btn.textContent = "Copied (plain text)"
-		} catch (_) {
-			btn.textContent = "Copy failed"
-		}
-	}
-}
-// Download a self-contained, styled HTML file.
-$("downloadBtn").onclick = () => {
-	const doc = exportDocument(window._html || "")
-	const blob = new Blob([doc], { type: "text/html" })
-	const a = document.createElement("a")
-	a.href = URL.createObjectURL(blob)
-	a.download = "byler-cowrite.html"
-	a.click()
-	URL.revokeObjectURL(a.href)
-}
+mountExportMenu($("overExport"), { prefix: "over", source: () => ({ ...overStory, code: myCode }) })
 $("dashBtn").onclick = () => {
 	clearRejoin() // otherwise /game auto-rejoins straight back here
 	location.href = "/dashboard"

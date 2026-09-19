@@ -7003,7 +7003,7 @@ body.write-page {
 .write-page .doc-editor,
 .write-page .doc-source,
 .write-page .doc-side-card,
-.write-page .restore-bar {
+.write-page .doc-banner {
 	border-radius: 0;
 }
 .doc-title-input {
@@ -7343,7 +7343,6 @@ body.doc-page .topbar {
 }
 /* icon-only chips (export, an idle sprint): a round thumb, the word in the tip */
 .head-chip.head-chip-icon {
-	padding-inline: 7px;
 	justify-content: center;
 }
 .doc-save-state.unsaved {
@@ -7352,9 +7351,9 @@ body.doc-page .topbar {
 .doc-dot {
 	color: var(--muted);
 }
-/* Inside the sticky shell, under the toolbar: unsaved work from a previous
-   session must not scroll away unnoticed. */
-.restore-bar {
+/* The editor's banners (components/doc-banner.js), inside the sticky shell
+   under the toolbar: a decision waiting must not scroll away unnoticed. */
+.doc-banner {
 	display: flex;
 	align-items: center;
 	gap: 10px;
@@ -7365,11 +7364,11 @@ body.doc-page .topbar {
 	background: var(--chip);
 	font-size: 0.9rem;
 }
-.restore-bar.conflict-bar {
+.doc-banner.warn {
 	border-top-color: color-mix(in srgb, var(--accent) 45%, var(--line));
 	background: color-mix(in srgb, var(--accent) 12%, var(--chip));
 }
-.restore-bar button {
+.doc-banner button {
 	flex: 0 0 auto;
 	min-width: 0;
 	padding: 6px 12px;
@@ -8388,7 +8387,7 @@ body.resizing-side {
 /* These set display:*, which outranks the global .hidden by source order —
    without re-declaring it here they could never be hidden (same reason
    .confirm-modal.hidden exists above). */
-.restore-bar.hidden,
+.doc-banner.hidden,
 .doc-statusbar.hidden,
 .presence-row.hidden,
 .toolbar.hidden,
@@ -8432,12 +8431,37 @@ body.resizing-side {
 	white-space: nowrap;
 	cursor: pointer;
 }
-.head-chip:hover {
-	border-color: var(--accent-2);
+/* ONE size for the whole head row: the save state, the count, the chips' text
+   and their icons all inherit .doc-head-meta's font-size, so nothing in the
+   strip is bigger or smaller than its neighbour. No padding of their own —
+   the row's gap spaces them. */
+.doc-head-meta :is(.head-chip, .vis-chip, .doc-save-state, #wordCount) {
+	font-size: inherit;
+	line-height: 1.4;
+}
+.head-chip,
+.vis-chip {
+	padding: 0;
+	border-radius: 6px;
+}
+/* a running sprint is a readout: give its numbers a little room */
+#sprintLive {
+	padding: 0 6px;
+}
+/* Find sits with the formatting tools. The toolbar dims (and stops taking the
+   pointer) in the HTML view, but find works there too, so it stays live. */
+.toolbar .tb-find {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	white-space: nowrap;
+}
+.toolbar.dimmed .tb-find {
+	pointer-events: auto;
 }
 .head-chip.on {
 	background: var(--chip);
-	border-color: var(--accent);
+	border-color: transparent;
 	color: var(--ink);
 }
 
@@ -8445,6 +8469,9 @@ body.resizing-side {
 	display: inline-flex;
 	align-items: center;
 	gap: 5px;
+	/* an emoji and a chevron: opt out of the global button's 110px floor */
+	flex: 0 0 auto;
+	min-width: 0;
 	padding: 2px 8px;
 	border: 1px solid var(--line);
 	border-radius: 999px;
@@ -8455,15 +8482,25 @@ body.resizing-side {
 	cursor: pointer;
 	white-space: nowrap;
 }
-.vis-chip:hover {
-	border-color: var(--accent-2);
-}
 .vis-chip[data-vis="public"] {
 	border-color: var(--accent);
 }
 .vis-chip .chev {
 	color: var(--muted);
 	font-size: 0.7rem;
+}
+/* No outline at rest: the head row is a line of quiet icons, and a ring round
+   each one made seven buttons out of what should read as one strip. Hover and
+   the pressed state fill in instead. */
+.head-chip,
+.vis-chip {
+	border-color: transparent;
+	background: none;
+}
+.head-chip:hover,
+.vis-chip:hover {
+	border-color: transparent;
+	background: var(--panel-2);
 }
 .vis-menu {
 	display: none;
@@ -8510,6 +8547,378 @@ body.resizing-side {
 .vis-opt-blurb {
 	font-size: 0.74rem;
 	color: var(--muted);
+}
+
+/* ---------- The solo editor's three menus: Share, Document, Appearance ---------- */
+/* The head row holds state (saved, words) and two pills; the toolbar row ends
+   in a third. Each pill opens a .vis-menu: captions, rules, and rows that
+   carry their current state on the right. */
+.write-page .vis-chip {
+	padding: 3px 11px;
+	border: 1px solid var(--line);
+	border-radius: 999px;
+	background: var(--panel-2);
+}
+.write-page .vis-chip:hover,
+.write-page .vis-chip[aria-expanded="true"] {
+	border-color: var(--accent-2);
+	background: var(--panel-2);
+}
+.write-page .vis-chip[data-vis="public"] {
+	border-color: var(--accent);
+}
+#docMenuBtn {
+	max-width: 30ch;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.view-chip {
+	font-size: 0.8rem;
+}
+.menu-cap {
+	padding: 5px 10px 3px;
+	font-size: 0.68rem;
+	font-weight: 600;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--muted);
+}
+.menu-rule {
+	height: 1px;
+	margin: 6px 4px;
+	background: var(--line);
+}
+.vis-opt.menu-row {
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	font-size: 0.86rem;
+	font-weight: 600;
+}
+.vis-opt.hidden {
+	display: none;
+}
+.menu-state {
+	font-size: 0.74rem;
+	font-weight: 400;
+	color: var(--accent-2);
+}
+#readerCount {
+	color: var(--muted);
+}
+.vis-opt.on .vis-opt-label::after {
+	content: " ✓";
+	color: var(--accent-2);
+	font-size: 0.74rem;
+}
+/* a menu over prose stands on a SOLID ground: a see-through one is unreadable */
+.write-page .vis-menu {
+	background: var(--bg-2);
+	backdrop-filter: none;
+	-webkit-backdrop-filter: none;
+}
+/* Appearance hangs off the RIGHT edge: its pill sits at the row's end */
+.view-menu {
+	left: auto;
+	right: 0;
+	min-width: 280px;
+	max-width: calc(100vw - 32px);
+}
+.view-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 6px 10px;
+	font-size: 0.82rem;
+}
+.font-list {
+	max-height: 232px;
+	overflow-y: auto;
+}
+.vis-opt.font-opt {
+	padding: 6px 10px;
+	font-size: 0.95rem;
+	font-weight: 400;
+}
+.paper-pick {
+	display: flex;
+	gap: 4px;
+	padding: 4px 8px 6px;
+}
+.paper-pick button {
+	flex: 1;
+	min-width: 0;
+	padding: 6px 4px;
+	border: 1px solid var(--line);
+	border-radius: var(--r-md);
+	background: none;
+	color: var(--ink);
+	font: inherit;
+	font-size: 0.74rem;
+	white-space: nowrap;
+	cursor: pointer;
+}
+.paper-pick button:hover {
+	border-color: var(--accent-2);
+	transform: none;
+}
+.paper-pick button.on {
+	border-color: var(--accent);
+	background: var(--chip);
+}
+.view-note {
+	margin: 0;
+	padding: 2px 10px 6px;
+	font-size: 0.7rem;
+	font-style: italic;
+	color: var(--muted);
+}
+
+/* ---------- The solo editor's body: three flush columns under the slab ---------- */
+/* The head slab is its own thing, parted from the body by its bottom border
+   alone. Under it the chapter panel, the prose and the comments drawer stand
+   edge to edge: no gutter round them, no gap between them, no card chrome,
+   just a rule where two columns meet. Desktop only: under 860px the panel is
+   a dropdown and the drawer a bottom sheet, and both keep their own rules. */
+.write-page .doc-shell {
+	margin-bottom: 0;
+}
+/* the error line takes no room until it has something to say: an empty one
+   was the strip of background between the slab and the columns */
+.write-page #docErr {
+	margin: 0;
+	min-height: 0;
+	padding-inline: 14px;
+}
+.write-page #docErr:not(:empty) {
+	padding-block: 8px;
+}
+.write-page .doc-col .hint,
+.write-page #chapNav {
+	padding-inline: 14px;
+}
+/* A writing page sits still: the theme's scenery is put away (hidden AND
+   paused, so it costs nothing behind the prose) and only the plain wash stays.
+   "View theme" in the foot bar is the toggle: peeking brings the scenery
+   back, moving, and leaving the peek puts it away again. */
+body.write-page:not(.ui-peek) .bg-set {
+	visibility: hidden;
+}
+body.write-page:not(.ui-peek) .bg-set,
+body.write-page:not(.ui-peek) .bg-set * {
+	animation-play-state: paused !important;
+}
+/* The prose runs the full height down to the foot bar, however little is
+   written, and the page scrolls smoothly under the slab. The hint rides the
+   BOTTOM of the editor: pinned above the foot bar, laid over the editor's last
+   lines on a fade of the paper's own colour (the editor keeps that much bottom
+   padding, so the words never sit under it), and it never takes the pointer. */
+html:has(body.write-page) {
+	scroll-behavior: smooth;
+}
+@media (prefers-reduced-motion: reduce) {
+	html:has(body.write-page) {
+		scroll-behavior: auto;
+	}
+}
+.write-page .doc-col {
+	--paper-bg: var(--bg);
+	display: flex;
+	flex-direction: column;
+	min-height: calc(100vh - var(--doc-sticky, 0px) - var(--footbar-h, 0px));
+}
+.write-page .doc-col:has(> [data-paper="light"]) {
+	--paper-bg: #ffffff;
+}
+.write-page .doc-col:has(> [data-paper="dark"]) {
+	--paper-bg: #000000;
+}
+.write-page .doc-editor,
+.write-page .doc-source {
+	flex: 1 0 auto;
+	resize: none;
+	padding-bottom: 64px;
+	scroll-behavior: smooth;
+}
+.write-page .doc-col .hint {
+	position: sticky;
+	bottom: var(--footbar-h, 0px);
+	z-index: 2;
+	margin: -56px 0 0;
+	padding: 26px 14px 10px;
+	background: linear-gradient(to bottom, transparent, var(--paper-bg) 55%);
+	pointer-events: none;
+}
+.write-page .doc-col .hint.hidden {
+	display: none;
+}
+/* Title and status share ONE line on a desktop: the title is as wide as its
+   words (field-sizing; a fixed 18ch where that isn't supported) and the meta
+   row follows it on the same baseline, wrapping under only when it must. */
+@media (min-width: 861px) {
+	.write-page .doc-head-main {
+		display: flex;
+		align-items: baseline;
+		flex-wrap: wrap;
+		gap: 4px 16px;
+	}
+	.write-page .doc-head-main .doc-title-input {
+		flex: 0 1 auto;
+		width: 18ch;
+		min-width: 8ch;
+		max-width: 40ch;
+		field-sizing: content;
+		margin-bottom: 0;
+	}
+	.write-page .doc-head-meta {
+		flex: 1 1 auto;
+		min-width: 0;
+	}
+}
+@media (min-width: 861px) {
+	.write-page .doc-main {
+		padding: 0;
+		gap: 0;
+	}
+	.write-page .doc-editor,
+	.write-page .doc-source {
+		border: 0;
+		margin: 0;
+	}
+	.write-page .doc-chapters,
+	.write-page .doc-side-card {
+		top: var(--doc-sticky, 0px);
+		height: calc(100vh - var(--doc-sticky, 0px) - var(--footbar-h, 0px));
+		max-height: none;
+		margin: 0;
+		border: 0;
+		border-radius: 0;
+		box-shadow: none;
+		background: color-mix(in srgb, var(--panel) 70%, transparent);
+	}
+	.write-page .doc-chapters {
+		padding: 12px;
+		border-right: 1px solid var(--panel-brd);
+	}
+	.write-page .doc-side-card {
+		padding: 12px 12px 12px 20px; /* the left 20 is the grip's */
+		border-left: 1px solid var(--panel-brd);
+	}
+}
+
+/* ---------- Share / Download ▾ (components/export-menu.js) ---------- */
+/* The one way out of a finished story: a small labelled button whose flyout
+   holds the three exports and the sign-every-line switch. It opens where it
+   can be seen — `.up` above the button when the page ends first, `.right`
+   hung off the right edge when the side does — and never wider than the
+   screen, so on a phone the list still fits. */
+.xp-wrap {
+	position: relative;
+	display: inline-flex;
+	vertical-align: middle;
+}
+.xp-btn .chev {
+	color: var(--muted);
+	font-size: 0.7rem;
+	margin-left: 2px;
+}
+.xp-menu {
+	display: none;
+	position: absolute;
+	top: calc(100% + 6px);
+	left: 0;
+	z-index: 70;
+	width: 300px;
+	max-width: calc(100vw - 32px);
+	padding: 6px;
+	border: 1px solid var(--panel-brd);
+	border-radius: var(--r-md);
+	background: var(--panel-solid);
+	box-shadow: var(--panel-glow);
+	text-align: left;
+}
+.xp-menu.open {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+.xp-menu.up {
+	top: auto;
+	bottom: calc(100% + 6px);
+}
+.xp-menu.right {
+	left: auto;
+	right: 0;
+}
+.xp-opt {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	width: 100%;
+	margin: 0;
+	padding: 8px 10px;
+	border: 0;
+	border-radius: var(--r-md);
+	background: none;
+	color: var(--ink);
+	font: inherit;
+	font-size: 0.86rem;
+	font-weight: 400;
+	line-height: 1.35;
+	text-align: left;
+	cursor: pointer;
+}
+.xp-opt:hover,
+.xp-opt:active {
+	background: var(--panel-2);
+	transform: none;
+}
+.xp-opt b {
+	font-weight: 600;
+}
+.xp-opt .subtle {
+	font-size: 0.74rem;
+	color: var(--muted);
+	text-align: left;
+}
+/* the switch is a row too: box beside a two-line label, a rule under it */
+.xp-toggle {
+	/* a <label>, but not the form kind: no caps, no mono, no margin */
+	margin: 0 0 4px;
+	text-transform: none;
+	letter-spacing: 0;
+	font-family: inherit;
+	font-size: 0.86rem;
+	color: var(--ink);
+	flex-direction: row;
+	align-items: flex-start;
+	gap: 9px;
+	margin-bottom: 4px;
+	padding-bottom: 10px;
+	border-bottom: 1px solid var(--line);
+	border-radius: 0;
+}
+.xp-toggle input {
+	flex: none;
+	width: 16px;
+	height: 16px;
+	margin: 2px 0 0;
+	accent-color: var(--accent);
+}
+.xp-toggle > span {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+.xp-note {
+	min-height: 1.2em;
+	padding: 4px 10px 2px;
+	font-size: 0.76rem;
+}
+.xp-note:empty {
+	display: none;
 }
 
 /* ---------- Rich text / HTML mode switch ---------- */
@@ -8713,6 +9122,16 @@ body.resizing-side {
 		.subtle
 	) {
 	font-family: inherit;
+}
+/* ...and except ICONS: `i` is on the list above for italics, which also
+   caught every Font Awesome `<i class="fa-solid …">` and handed it the
+   document's face — a face with no icon glyphs, so the icon drew as an empty
+   box. Same specificity as the rule above, later in the file, so it wins. */
+.write-page .write-inner :is(i.fa-solid, i.fa-regular, i.fa-brands, i.fa, i.fas, i.far) {
+	font-family: "Font Awesome 6 Free";
+}
+.write-page .write-inner :is(i.fa-brands, i.fab) {
+	font-family: "Font Awesome 6 Brands";
 }
 /* ...except the things whose whole job is to be a different face: the html
    source view (code is mono), and the size stepper's numerals. */
@@ -11842,6 +12261,99 @@ html.vcx-live[data-theme="vecna"] #vc-pend {
 	min-width: min(300px, calc(100vw - 32px));
 	background: color-mix(in srgb, var(--panel) 92%, transparent);
 	border-color: var(--panel-brd);
+}
+
+/* ---- Find & replace (the solo editor) ----
+   ONE slim row inside the sticky shell, under the toolbar (so --doc-sticky
+   measures it): find on the left, replace beside it, wrapping only on a
+   narrow screen. Small on purpose — it is a tool, not a panel. */
+.find-bar {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 4px 14px;
+	padding: 4px 12px;
+	border-top: 1px solid var(--line);
+	background: var(--panel-solid);
+	font-size: 0.74rem;
+}
+.find-bar.hidden,
+.find-row.hidden {
+	display: none;
+}
+.find-row {
+	display: flex;
+	align-items: center;
+	gap: 5px;
+}
+.find-bar .find-input {
+	flex: none;
+	width: 170px;
+	height: 24px;
+	padding: 0 8px;
+	border-radius: 6px;
+	font-size: 0.76rem;
+}
+.find-bar.find-none #findInput {
+	border-color: var(--accent);
+}
+.find-count {
+	min-width: 5em;
+	color: var(--muted);
+	font-variant-numeric: tabular-nums;
+}
+/* the global `button` is a wide, filled call-to-action (flex: 1, 110px floor);
+   these are small tools beside a text box */
+.find-bar .find-btn {
+	flex: none;
+	min-width: 24px;
+	height: 24px;
+	padding: 0 6px;
+	border: 1px solid var(--line);
+	border-radius: 6px;
+	background: var(--panel-2);
+	color: var(--ink);
+	font-size: 0.74rem;
+	font-weight: 600;
+	line-height: 1;
+}
+.find-bar .find-btn.find-word {
+	padding: 0 9px;
+}
+.find-bar .find-close {
+	order: 3;
+	margin-left: auto;
+	border-color: transparent;
+	background: none;
+}
+.find-opt {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	color: var(--muted);
+	font-size: 0.7rem;
+	letter-spacing: 0;
+	text-transform: none; /* "Aa" has to read as Aa, not the site's uppercase label */
+	white-space: nowrap;
+}
+.find-opt input {
+	width: 12px;
+	height: 12px;
+	margin: 0;
+}
+/* a phone keeps its 16px fields (no zoom on focus) and lets them fill the row */
+@media (hover: none) and (pointer: coarse) {
+	.find-bar .find-input {
+		flex: 1 1 140px;
+		height: 30px;
+	}
+}
+::highlight(find-all) {
+	background-color: color-mix(in srgb, var(--accent-2) 35%, transparent);
+}
+::highlight(find-current) {
+	background-color: var(--accent-2);
+	color: var(--bg);
 }
 
 /* ---- Gimmick HUD buttons: one small, uniform size on every glass ----

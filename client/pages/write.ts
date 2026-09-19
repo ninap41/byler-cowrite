@@ -18,16 +18,17 @@ import {
 	DEFAULT_LINE,
 	PAPERS,
 	fontOf,
-	fontRows,
+	fontListHtml,
 	clampSide,
 	DEFAULT_SIDE,
 } from "/js/doc-prefs.js"
 import { mountSlashPalette } from "/js/components/slash-palette.js"
 import { mountPromptModes } from "/js/components/prompt-modes.js"
 import { promptHtml } from "/js/util.js"
-import { mountFlipSelect } from "/js/components/flip-select.js"
 import { loadDraft, saveDraft, clearDraft, draftIsNewer } from "/js/doc-store.js"
 import { createHistory } from "/js/components/history.js"
+import { mountDocBanners } from "/js/components/doc-banner.js"
+import { mountFindReplace, type FindReplaceApi } from "/js/components/find-replace.js"
 import { htmlPushKind, pruneSource, stripAnchorInSource, applySuggestionInSource } from "/js/components/comment-sync.js"
 import {
 	presenceHtml,
@@ -41,7 +42,7 @@ import {
 	visChipHtml,
 	promptInsertHtml,
 	insertAfterHeading,
-	visMenuHtml,
+	visOptionsHtml,
 	visOf,
 	scrollTargetFor,
 	inviteOptions,
@@ -110,6 +111,8 @@ let chapters: Chapter[] = []
 let openIdx = 0
 let dirty = false
 let sourceMode = false
+// mounted further down; a chapter or mode switch before that finds nothing to refresh
+let finder: FindReplaceApi | null = null
 let comments: CommentRow[] = []
 let commentMode = false
 let activeCid: string | null = null // the comment whose words are highlighted
@@ -215,7 +218,7 @@ async function load() {
 	if (repairedOnLoad) setDirty(true)
 
 	const draft = loadDraft(docId)
-	if (canEdit && draftIsNewer(draft, doc)) $("restoreBar").classList.remove("hidden")
+	if (canEdit && draftIsNewer(draft, doc)) banners.show("restoreBar")
 	connect()
 }
 
@@ -264,6 +267,8 @@ function setCommentMode(on: boolean) {
 	$("docEditor").contentEditable = String(!commentMode && canEditDoc())
 	$("commentToggle").classList.toggle("on", commentMode)
 	$("commentToggle").setAttribute("aria-pressed", String(commentMode))
+	$("commentToggle").setAttribute("aria-checked", String(commentMode))
+	$("commentState").textContent = commentMode ? "On ✓" : "Off"
 	$("docToolbar").classList.toggle("dimmed", commentMode || sourceMode)
 	$("docEditor").classList.toggle("commenting", commentMode)
 	renderCommentBanner()
@@ -1036,7 +1041,10 @@ applyLineHeight()
 // the writing surfaces, never a change to the document.
 function applyPaper() {
 	for (const el of [$("docEditor"), $("docSource")]) el.dataset.paper = prefs.paper
-	$<HTMLSelectElement>("paperSelect").value = prefs.paper
+	for (const b of $("paperSelect").querySelectorAll<HTMLElement>("[data-paper]")) {
+		b.classList.toggle("on", b.dataset.paper === prefs.paper)
+		b.setAttribute("aria-pressed", String(b.dataset.paper === prefs.paper))
+	}
 }
 // ---- typeface (this writer's preference only) ----
 // The families are the ones the site already loads (fonts.json), so a
@@ -1051,23 +1059,19 @@ function applyFont() {
 	// theme's own.
 	const root = document.body
 	stack ? root.style.setProperty("--doc-font", stack) : root.style.removeProperty("--doc-font")
-	// the closed control previews the face it is currently set to
-	fontPick?.set(prefs.font)
+	$("fontSelect").innerHTML = fontListHtml(prefs.font)
 }
-const fontPick = mountFlipSelect($("fontSelect"), {
-	id: "fontMenu",
-	label: "Typeface",
-	rows: fontRows(),
-	value: prefs.font,
-	onChange: (v) => {
-		prefs = savePrefs({ ...prefs, font: v })
-		applyFont()
-	},
+$("fontSelect").addEventListener("click", (e) => {
+	const row = (e.target as HTMLElement).closest<HTMLElement>("[data-font]")
+	if (!row) return
+	prefs = savePrefs({ ...prefs, font: row.dataset.font || "theme" })
+	applyFont()
 })
 applyFont()
 
-$("paperSelect").addEventListener("change", (e) => {
-	const v = (e.target as HTMLSelectElement).value
+$("paperSelect").addEventListener("click", (e) => {
+	const v = (e.target as HTMLElement).closest<HTMLElement>("[data-paper]")?.dataset.paper
+	if (!v) return
 	const paper = (PAPERS as readonly string[]).includes(v) ? (v as (typeof PAPERS)[number]) : "theme"
 	prefs = savePrefs({ ...prefs, paper })
 	applyPaper()
@@ -1212,6 +1216,7 @@ function setMode(toSource: boolean) {
 	$("modeHtml").classList.toggle("on", toSource)
 	$("modeRich").setAttribute("aria-pressed", String(!toSource))
 	$("modeHtml").setAttribute("aria-pressed", String(toSource))
+	finder?.refresh()
 	$("editorHint").innerHTML = toSource
 		? "Editing raw HTML: unsupported tags are stripped when you switch back or save."
 		: "Type <b>/</b> for action verbs, dialogue tags and more · Ctrl/⌘+S to save · autosaves every 30s"
@@ -1243,8 +1248,7 @@ async function save({ quiet = false }: { quiet?: boolean } = {}) {
 		if (quiet && typeof doc.updatedAt === "number") body.baseUpdatedAt = doc.updatedAt
 		const r = await api<{ doc: DocPayload }>("/api/docs/" + encodeURIComponent(docId), body, "PUT")
 		conflicted = false
-		$("conflictBar").classList.add("hidden")
-		measureSticky()
+		banners.hide("conflictBar")
 		doc = r.doc
 		comments = doc.comments || []
 		// the server's copy is the truth now: ids for new chapters, sanitized
@@ -1266,8 +1270,7 @@ async function save({ quiet = false }: { quiet?: boolean } = {}) {
 		// every 30s over whatever you typed); Save still goes through.
 		if (e instanceof ApiError && e.status === 409) {
 			conflicted = true
-			$("conflictBar").classList.remove("hidden")
-			measureSticky()
+			banners.show("conflictBar")
 			return false
 		}
 		$("docErr").textContent = (e as Error).message
@@ -1277,17 +1280,56 @@ async function save({ quiet = false }: { quiet?: boolean } = {}) {
 	}
 }
 $("saveBtn").addEventListener("click", () => save())
-$("conflictSave").addEventListener("click", () => save())
-$("conflictReload").addEventListener("click", () => {
-	dirty = false // the writer chose the other tab's copy; don't ask again on the way out
-	location.reload()
-})
 document.addEventListener("keydown", (e) => {
 	if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
 		e.preventDefault()
 		save()
 	}
 })
+
+// ---- find & replace ----
+// One bar for both views: text nodes in Rich text, the raw string in HTML.
+// A replace is an edit like any other — dirty, and its own undo step.
+const findBar = (finder = mountFindReplace({
+	editor: $("docEditor"),
+	source: textarea("docSource"),
+	bar: $("findBar"),
+	isSource: () => sourceMode,
+	canReplace: () => canEditDoc() && !commentMode,
+	onEdit: () => (sourceMode ? setDirty(true) : onEdit({ immediate: true })),
+	reveal: (range) => {
+		const rect = range.getBoundingClientRect()
+		window.scrollTo({
+			top: scrollTargetFor({
+				rectTop: rect.top,
+				rectH: rect.height,
+				scrollY: window.scrollY,
+				viewportH: window.innerHeight,
+				headH: stickyH(),
+				maxScroll: document.documentElement.scrollHeight - window.innerHeight,
+			}),
+		})
+	},
+}))
+const toggleFind = (on = !findBar.isOpen()) => {
+	if (on) findBar.open()
+	else findBar.close()
+	$("findBtn").setAttribute("aria-expanded", String(findBar.isOpen()))
+}
+$("findBtn").addEventListener("click", () => toggleFind())
+$("findBar").addEventListener("click", () => $("findBtn").setAttribute("aria-expanded", String(findBar.isOpen())))
+document.addEventListener("keydown", (e) => {
+	if ((e.metaKey || e.ctrlKey) && !e.altKey && e.key.toLowerCase() === "f") {
+		e.preventDefault()
+		toggleFind(true)
+	}
+	// Escape closes the bar from anywhere on the page, not only from its own
+	// boxes — you are usually back in the prose by the time you want it gone.
+	else if (e.key === "Escape" && findBar.isOpen() && !e.defaultPrevented) toggleFind(false)
+})
+// the words moved under an open bar: typing, a chapter switch, a mode switch
+$("docEditor").addEventListener("input", () => findBar.refresh())
+$("docSource").addEventListener("input", () => findBar.refresh())
 
 // Autosave: every AUTOSAVE_MS a dirty document goes to the server, but only
 // after AUTOSAVE_IDLE_MS without a keystroke — a save mid-sentence would
@@ -1301,31 +1343,67 @@ setInterval(() => {
 	else saveDraft(docId, allChapters(), input("docTitle").value)
 }, AUTOSAVE_MS)
 
-$("restoreYes").addEventListener("click", () => {
-	const d = loadDraft(docId)
-	if (d) {
-		// a draft chapter with no id (never saved, or a pre-chapter draft)
-		// takes the stored chapter's id at the same position, if any
-		chapters = d.chapters.map((c, i) => ({
-			id: c.id ?? doc?.chapters?.[i]?.id ?? null,
-			title: c.title || doc?.chapters?.[i]?.title || `Chapter ${i + 1}`,
-			html: c.html,
-		}))
-		openIdx = Math.min(openIdx, chapters.length - 1)
-		if (sourceMode) setMode(false)
-		$("docEditor").innerHTML = chapters[openIdx]?.html ?? ""
-		if (d.title) input("docTitle").value = d.title
-		undoHistory.reset()
-		setDirty(true)
-		renderComments()
-		updateWords()
-		renderChapters()
-	}
-	$("restoreBar").classList.add("hidden")
+// The banners under the toolbar: unsaved work from a previous session, and an
+// autosave refused because another tab saved first. Both are decisions, so
+// each offers exactly two; showing or hiding one remeasures the sticky shell.
+const banners = mountDocBanners($("docBanners"), { onChange: measureSticky })
+banners.add({
+	id: "restoreBar",
+	html: "You have unsaved changes from a previous session.",
+	actions: [
+		{
+			id: "restoreYes",
+			label: "Restore them",
+			primary: true,
+			onClick: () => {
+				const d = loadDraft(docId)
+				if (d) {
+					// a draft chapter with no id (never saved, or a pre-chapter draft)
+					// takes the stored chapter's id at the same position, if any
+					chapters = d.chapters.map((c, i) => ({
+						id: c.id ?? doc?.chapters?.[i]?.id ?? null,
+						title: c.title || doc?.chapters?.[i]?.title || `Chapter ${i + 1}`,
+						html: c.html,
+					}))
+					openIdx = Math.min(openIdx, chapters.length - 1)
+					if (sourceMode) setMode(false)
+					$("docEditor").innerHTML = chapters[openIdx]?.html ?? ""
+					if (d.title) input("docTitle").value = d.title
+					undoHistory.reset()
+					setDirty(true)
+					renderComments()
+					updateWords()
+					renderChapters()
+				}
+				banners.hide("restoreBar")
+			},
+		},
+		{
+			id: "restoreNo",
+			label: "Discard",
+			onClick: () => {
+				clearDraft(docId)
+				banners.hide("restoreBar")
+			},
+		},
+	],
 })
-$("restoreNo").addEventListener("click", () => {
-	clearDraft(docId)
-	$("restoreBar").classList.add("hidden")
+banners.add({
+	id: "conflictBar",
+	kind: "warn",
+	html: "<b>This story was changed in another tab.</b> Autosave is paused here so nothing is lost.",
+	actions: [
+		{
+			id: "conflictReload",
+			label: "Reload to see it",
+			primary: true,
+			onClick: () => {
+				dirty = false // the writer chose the other tab's copy; don't ask again on the way out
+				location.reload()
+			},
+		},
+		{ id: "conflictSave", label: "Save & overwrite", onClick: () => save() },
+	],
 })
 
 // ---- sprints ----
@@ -1344,16 +1422,16 @@ const fmtClock = (ms: number) => {
 }
 function paintSprint() {
 	const b = $("sprintBtn")
+	const live = $("sprintLive")
+	live.classList.toggle("hidden", !sprint)
+	b.setAttribute("aria-pressed", String(!!sprint))
 	if (!sprint) {
-		b.textContent = "⏱"
-		b.classList.remove("on")
-		b.setAttribute("aria-pressed", "false")
+		b.textContent = "⏱ Start a sprint"
 		return
 	}
 	const delta = countNow() - sprint.startWords
-	b.textContent = `⏹ ${fmtClock(Date.now() - sprint.startedAt)} · ${delta >= 0 ? "+" : ""}${delta}`
-	b.classList.add("on")
-	b.setAttribute("aria-pressed", "true")
+	b.textContent = "⏹ Stop the sprint"
+	live.textContent = `⏹ ${fmtClock(Date.now() - sprint.startedAt)} · ${delta >= 0 ? "+" : ""}${delta}`
 }
 function startSprint() {
 	sprint = { startWords: countNow(), startedAt: Date.now(), tick: setInterval(paintSprint, 500) }
@@ -1385,6 +1463,7 @@ function stopSprint({ leaving = false }: { leaving?: boolean } = {}) {
 		.catch(() => {})
 }
 $("sprintBtn").addEventListener("click", () => (sprint ? stopSprint() : startSprint()))
+$("sprintLive").addEventListener("click", () => stopSprint())
 // pagehide fires on every way out (close, reload, back, in-app links)
 window.addEventListener("pagehide", () => stopSprint({ leaving: true }))
 
@@ -1431,24 +1510,44 @@ $("leaveSave").addEventListener("click", async () => {
 function renderVis() {
 	if (!doc) return
 	if (!doc.mine) return ($("visWrap").innerHTML = `<span class="doc-pill on">📖 Reading</span>`)
-	$("visWrap").innerHTML = visChipHtml(doc.visibility) + visMenuHtml(doc.visibility)
-	$("visChip").addEventListener("click", (e) => {
+	$("visWrap").innerHTML = visChipHtml(doc.visibility)
+	$("visOpts").innerHTML = visOptionsHtml(doc.visibility)
+	paintReaderCount()
+}
+const paintReaderCount = () => ($("readerCount").textContent = `${doc?.readerRows?.length || 0} invited`)
+$("visOpts").addEventListener("click", (e) => {
+	const opt = (e.target as HTMLElement).closest<HTMLElement>(".vis-opt")
+	if (opt) setVisibility(opt.dataset.vis || "")
+})
+
+// ---- the head's three menus: Share, Document, Appearance ----
+// One open at a time. A pick in Share or Document closes it; Appearance
+// stays open while you try faces and spacing. Outside click and Escape
+// close whatever is open. The Share chip is re-rendered with the
+// visibility, so its click is delegated from the wrap.
+const HEAD_MENUS: [wrap: string, btn: string, menu: string][] = [
+	["visWrap", "visChip", "visMenu"],
+	["docMenuWrap", "docMenuBtn", "docMenu"],
+	["docViewPrefs", "viewBtn", "viewMenu"],
+]
+function setHeadMenu(which: string | null) {
+	for (const [, btn, menu] of HEAD_MENUS) {
+		const open = menu === which
+		$(menu).classList.toggle("open", open)
+		document.getElementById(btn)?.setAttribute("aria-expanded", String(open))
+	}
+}
+const closeVis = () => setHeadMenu(null)
+for (const [wrap, btn, menu] of HEAD_MENUS) {
+	$(wrap).addEventListener("click", (e) => {
+		if (!(e.target as HTMLElement).closest("#" + btn)) return
 		e.stopPropagation()
-		const open = $("visMenu").classList.toggle("open")
-		$("visChip").setAttribute("aria-expanded", String(open))
-	})
-	$("visMenu").addEventListener("click", async (e) => {
-		const opt = (e.target as HTMLElement).closest<HTMLElement>(".vis-opt")
-		if (!opt) return
-		closeVis()
-		await setVisibility(opt.dataset.vis || "")
+		setHeadMenu($(menu).classList.contains("open") ? null : menu)
 	})
 }
-const closeVis = () => {
-	$("visMenu")?.classList.remove("open")
-	$("visChip")?.setAttribute("aria-expanded", "false")
-}
-document.addEventListener("click", closeVis)
+document.addEventListener("click", (e) => {
+	if (!(e.target as HTMLElement).closest("#viewMenu")) closeVis()
+})
 document.addEventListener("keydown", (e) => e.key === "Escape" && closeVis())
 
 async function setVisibility(next: string) {
@@ -1520,6 +1619,7 @@ async function invite(username: string) {
 	}
 }
 function renderShare() {
+	paintReaderCount()
 	if (!doc) return
 	$("sharePrivateNote").classList.toggle("hidden", doc.visibility !== "private")
 	$("readerChips").innerHTML = readerChipsHtml(doc.readerRows, !!doc.mine)
@@ -1609,8 +1709,10 @@ function goChapter(idx: number) {
 	stashCurrent()
 	openIdx = idx
 	const ch = chapters[openIdx]
-	if (sourceMode) textarea("docSource").value = formatSource(ch?.html || "")
 	$("docEditor").innerHTML = ch?.html || ""
+	// The HTML view is filled the way setMode fills it — from the DOM, never
+	// from the stored string — so it shows `'`, not the `&#39;` the server keeps.
+	if (sourceMode) textarea("docSource").value = formatSource(cleanHtml($("docEditor"), { doc: true }))
 	undoHistory.reset()
 	pendingRange = null
 	clearComposer()
@@ -1620,6 +1722,7 @@ function goChapter(idx: number) {
 	renderChapters()
 	closeChapMenu()
 	window.scrollTo({ top: 0 })
+	finder?.refresh()
 }
 function addChapter() {
 	if (!canEditDoc()) return
@@ -1722,7 +1825,12 @@ $("chapNav").addEventListener("click", (e) => {
 const phoneChap = () => window.matchMedia("(max-width: 860px)").matches
 const chapIsOpen = () => (phoneChap() ? $("chapPanel").classList.contains("menu-open") : prefs.chapOpen !== false)
 function paintChapChip() {
-	$("chapChip").textContent = chapChipLabel(chapters, openIdx, chapIsOpen())
+	// the Document chip names where you are; the menu row says whether the
+	// panel is showing
+	const n = chapters.length
+	$("docMenuBtn").firstChild!.textContent = n > 1 ? chapChipLabel(chapters, openIdx, chapIsOpen()) : "📑 Document"
+	$("chapState").textContent = chapIsOpen() ? "Shown ✓" : "Hidden"
+	$("chapChip").setAttribute("aria-checked", String(chapIsOpen()))
 }
 function applyChap() {
 	const open = chapIsOpen()
@@ -1742,8 +1850,7 @@ function closeChap() {
 	else prefs = savePrefs({ ...prefs, chapOpen: false })
 	applyChap()
 }
-$("chapChip").addEventListener("click", (e) => {
-	e.stopPropagation()
+$("chapChip").addEventListener("click", () => {
 	if (phoneChap()) $("chapPanel").classList.toggle("menu-open")
 	else prefs = savePrefs({ ...prefs, chapOpen: prefs.chapOpen === false })
 	applyChap()
@@ -1769,27 +1876,14 @@ const download = (html: string, name: string) => {
 	a.click()
 	URL.revokeObjectURL(a.href)
 }
-const setExportOpen = (open: boolean) => {
-	$("exportMenu").classList.toggle("open", open)
-	$("exportBtn").setAttribute("aria-expanded", String(open))
-}
-$("exportBtn").addEventListener("click", (e) => {
-	e.stopPropagation()
-	setExportOpen(!$("exportMenu").classList.contains("open"))
-})
-document.addEventListener("click", (e) => {
-	if (!(e.target as HTMLElement).closest("#exportWrap")) setExportOpen(false)
-})
 $("exportChapter").addEventListener("click", () => {
 	const list = allChapters()
 	const d = { title: input("docTitle").value || doc?.title, chapters: list }
 	download(exportChapterHtml(d, list[openIdx]!, openIdx + 1), `${slugOf(d.title)}-ch${openIdx + 1}.html`)
-	setExportOpen(false)
 })
 $("exportWork").addEventListener("click", () => {
 	const d = { title: input("docTitle").value || doc?.title, chapters: allChapters() }
 	download(exportWork(d), `${slugOf(d.title)}.html`)
-	setExportOpen(false)
 })
 
 // ---- live presence + comments ----

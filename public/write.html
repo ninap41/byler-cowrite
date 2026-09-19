@@ -37,59 +37,48 @@
 								<span id="saveState" class="doc-save-state">Saved</span>
 								<span class="doc-dot">·</span>
 								<span id="wordCount" class="subtle">0 words</span>
+								<!-- A running sprint shows its clock here, beside the count it
+								     measures; pressing it stops and logs. It starts from the
+								     Document menu. -->
+								<button class="head-chip on hidden" id="sprintLive" type="button" aria-label="Stop the sprint" data-tip="Stop the sprint and log the words"></button>
 								<span class="doc-dot">·</span>
-								<!-- Who can see this: a chip naming the CURRENT state, with a
-								     three-option menu. Visibility sits with the document's
-								     identity; the 👥 modal stays about WHO, not what. -->
-								<span class="vis-wrap" id="visWrap"></span>
-								<!-- Chapters: the chip names where you are and opens the
-								     chapter panel (a left column on a desktop, a dropdown
-								     on a phone). Everyone gets it: a reader's panel is the
-								     table of contents. -->
-								<button class="head-chip" id="chapChip" type="button" aria-expanded="true" data-tip="Chapters">📑 Chapters</button>
-								<!-- Export: this chapter, or the whole work, as a styled
-								     standalone .html — for everyone who can open the story. -->
-								<span class="vis-wrap" id="exportWrap">
-									<button class="head-chip head-chip-icon" id="exportBtn" type="button" aria-expanded="false" aria-label="Export" data-tip="Export: download as a styled .html">⬇</button>
-									<div class="vis-menu" id="exportMenu" role="menu">
-										<button type="button" class="vis-opt" id="exportChapter" role="menuitem"><b>This chapter</b><span class="subtle">The open chapter, headed with the story's title</span></button>
-										<button type="button" class="vis-opt" id="exportWork" role="menuitem"><b>Whole work</b><span class="subtle">Every chapter, headed and ruled apart</span></button>
+								<!-- SHARE: who can see this, who reads along, and whether you
+								     are writing or commenting — one menu under a chip that
+								     names the CURRENT visibility. A reader gets a plain
+								     "Reading" pill and no menu. -->
+								<span class="vis-wrap" id="shareWrap">
+									<span class="vis-wrap" id="visWrap"></span>
+									<div class="vis-menu" id="visMenu" role="menu">
+										<div class="menu-cap">Who can see this</div>
+										<div id="visOpts"></div>
+										<div class="menu-rule"></div>
+										<button type="button" class="vis-opt menu-row" id="shareBtn" role="menuitem">
+											<span>👥 Invite beta reader</span><span class="menu-state" id="readerCount"></span>
+										</button>
 									</div>
 								</span>
-								<!-- Who else is in this document, and how you're working in it:
-								     both belong beside the visibility chip, not on the
-								     formatting toolbar. -->
-								<button class="head-chip" id="shareBtn" type="button" data-tip="Beta readers">👥 Readers</button>
-								<!-- Sprint: press to start the clock, press again to stop and log
-								     how many words were written in between. Leaving the page
-								     stops it too. Author only: it's a habit tool, not a reader's. -->
-								<button
-									class="head-chip head-chip-icon hidden"
-									id="sprintBtn"
-									type="button"
-									aria-pressed="false"
-									aria-label="Sprint"
-									data-tip="Sprint: time a burst of writing and log the words"
-								>
-									⏱
-								</button>
-								<!-- Prompt?: roll a scenario from the game's prompt library (Simple
-								     or Advanced) and drop it into the document under the heading.
-								     Author only: it writes into the text. -->
-								<button class="head-chip hidden" id="promptBtn" type="button" data-tip="Roll a prompt from the scenario library and insert it">
-									🎲 Prompt?
-								</button>
-								<button
-									class="head-chip"
-									id="commentToggle"
-									type="button"
-									aria-pressed="false"
-									aria-label="Comment mode"
-									title="Comment mode: leave notes on the words instead of editing them"
-									data-tip="Comment mode: leave notes on the words instead of editing them"
-								>
-									💬 Comment
-								</button>
+								<!-- DOCUMENT: the chapter panel, the prompt roller, the sprint
+								     clock and the downloads. Everyone gets it: a reader's
+								     holds the table of contents and the downloads. -->
+								<span class="vis-wrap" id="docMenuWrap">
+									<button type="button" class="vis-chip" id="docMenuBtn" aria-haspopup="menu" aria-expanded="false">📑 Document<span class="chev">&#9662;</span></button>
+									<div class="vis-menu" id="docMenu" role="menu">
+										<button type="button" class="vis-opt menu-row" id="commentToggle" role="menuitemcheckbox" aria-checked="false" aria-pressed="false" aria-label="Comment mode" title="Comment mode: leave notes on the words instead of editing them" data-tip="Comment mode: leave notes on the words instead of editing them">
+											<span>💬 Comment mode</span><span class="menu-state" id="commentState">Off</span>
+										</button>
+										<button type="button" class="vis-opt menu-row" id="chapChip" role="menuitemcheckbox" aria-checked="true" aria-expanded="true" aria-label="Chapter panel">
+											<span>📑 Chapter panel</span><span class="menu-state" id="chapState">Shown ✓</span>
+										</button>
+										<!-- author only: it writes into the text -->
+										<button type="button" class="vis-opt menu-row hidden" id="promptBtn" role="menuitem">🎲 Roll a prompt…</button>
+										<!-- author only: a habit tool, not a reader's -->
+										<button type="button" class="vis-opt menu-row hidden" id="sprintBtn" role="menuitem" aria-pressed="false" aria-label="Sprint">⏱ Start a sprint</button>
+										<div class="menu-rule"></div>
+										<div class="menu-cap">⬇ Download as .html</div>
+										<button type="button" class="vis-opt" id="exportChapter" role="menuitem"><span class="vis-opt-label">This chapter</span><span class="vis-opt-blurb">The open chapter, headed with the story's title</span></button>
+										<button type="button" class="vis-opt" id="exportWork" role="menuitem"><span class="vis-opt-label">Whole work</span><span class="vis-opt-blurb">Every chapter, headed and ruled apart</span></button>
+									</div>
+								</span>
 								<!-- beta readers currently viewing; hover shows the name -->
 								<span class="presence-row" id="presenceRow"></span>
 							</div>
@@ -153,44 +142,44 @@
 								<button class="ghost" id="emDashBtn" title="Insert em dash" type="button">—</button>
 								<button class="ghost" data-cmd="insertHorizontalRule" title="Horizontal rule" type="button">HR</button>
 								<button class="ghost" id="clearFmtBtn" title="Clear formatting" type="button">Tx</button>
+								<!-- Find (and replace) in the open chapter; ⌘/Ctrl+F opens the
+								     same bar — which is also how a beta reader, who has no
+								     toolbar, reaches it. -->
+								<button class="ghost tb-find" id="findBtn" type="button" aria-expanded="false" data-tip="Find and replace in this chapter (Ctrl/⌘+F)">
+									<i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i> Find
+								</button>
 							</span>
 						</div>
 
-						<!-- Line spacing, typeface and paper are VIEW preferences: they
-						     never enter the html, never reach the server, and are
-						     remembered per browser. They live OUTSIDE #docToolbar because
-						     they are not editing controls, a beta reader keeps them when
-						     the formatting toolbar goes away. -->
-						<span class="toolbar tb-group doc-view-prefs" id="docViewPrefs">
-							<span
-								class="stepper pref-stepper"
-								id="lineStepper"
-								data-tip="Line spacing: your view only, not saved into the story"
-							>
-								<span class="step-label">↕</span>
-								<button class="step-btn" id="lsDown" type="button" aria-label="Tighter line spacing">−</button>
-								<span class="step-value" id="lsValue">1.7</span>
-								<button class="step-btn" id="lsUp" type="button" aria-label="Looser line spacing">+</button>
-							</span>
-							<!-- the typeface picker is our own dropdown, not a native
-							     select: the browser draws an option list in its own
-							     colours, and a face you can't read is no preview.
-							     See components/flip-select.js. -->
-							<span
-								id="fontSelect"
-								class="pref-pick"
-								data-tip="Typeface for this page, your view only, not saved into the story"
-							></span>
-							<select
-								id="paperSelect"
-								class="ghost"
-								aria-label="Paper colour"
-								data-tip="Paper colour: your view only, not saved into the story"
-							>
-								<option value="theme">🎨 Theme</option>
-								<option value="light">🌕 Light</option>
-								<option value="dark">🌑 Dark</option>
-							</select>
+						<!-- APPEARANCE: line spacing, typeface and paper are VIEW
+						     preferences: they never enter the html, never reach the
+						     server, and are remembered per browser. One menu, OUTSIDE
+						     #docToolbar because they are not editing controls: a beta
+						     reader keeps it when the formatting toolbar goes away. -->
+						<span class="vis-wrap doc-view-prefs" id="docViewPrefs">
+							<button type="button" class="vis-chip view-chip" id="viewBtn" aria-haspopup="menu" aria-expanded="false"><b>Aa</b> Appearance<span class="chev">&#9662;</span></button>
+							<div class="vis-menu view-menu" id="viewMenu" role="menu">
+								<div class="view-row">
+									<span class="subtle">↕ Line spacing</span>
+									<span class="stepper pref-stepper" id="lineStepper">
+										<button class="step-btn" id="lsDown" type="button" aria-label="Tighter line spacing">−</button>
+										<span class="step-value" id="lsValue">1.7</span>
+										<button class="step-btn" id="lsUp" type="button" aria-label="Looser line spacing">+</button>
+									</span>
+								</div>
+								<div class="menu-rule"></div>
+								<div class="menu-cap">Typeface</div>
+								<!-- every row set in its own face (fontListHtml in doc-prefs) -->
+								<div class="font-list" id="fontSelect" role="group" aria-label="Typeface"></div>
+								<div class="menu-rule"></div>
+								<div class="menu-cap">Paper</div>
+								<div class="paper-pick" id="paperSelect" role="group" aria-label="Paper colour">
+									<button type="button" data-paper="theme">🎨 Theme</button>
+									<button type="button" data-paper="light">🌕 Light</button>
+									<button type="button" data-paper="dark">🌑 Dark</button>
+								</div>
+								<p class="view-note">Your view only, never saved into the story.</p>
+							</div>
 						</span>
 
 						<div class="toolbar-right">
@@ -207,22 +196,12 @@
 							</div>
 						</div>
 					</div>
-					<!-- Offer to restore a newer local draft rather than clobbering
-					     either copy. It lives inside the sticky shell, under the
-					     toolbar, so scrolling a long chapter never hides the fact
-					     that there's unsaved work waiting. -->
-					<div class="restore-bar hidden" id="restoreBar">
-						<span>You have unsaved changes from a previous session.</span>
-						<button class="ghost" id="restoreYes" type="button">Restore them</button>
-						<button class="linky" id="restoreNo" type="button">Discard</button>
-					</div>
-					<!-- Autosave conflict: another tab of yours saved since this one
-					     last did. Autosave stops; the writer chooses. -->
-					<div class="restore-bar conflict-bar hidden" id="conflictBar" role="alert">
-						<span><b>This story was changed in another tab.</b> Autosave is paused here so nothing is lost.</span>
-						<button class="ghost" id="conflictReload" type="button">Reload to see it</button>
-						<button class="linky" id="conflictSave" type="button">Save &amp; overwrite</button>
-					</div>
+					<!-- The editor's banners (components/doc-banner.js): the restore-draft
+					     and autosave-conflict strips, mounted by the page. They live inside
+					     the sticky shell, under the toolbar, so scrolling a long chapter
+					     never hides that a decision is waiting. -->
+					<div class="find-bar hidden" id="findBar" role="search"></div>
+					<div id="docBanners"></div>
 				</div>
 
 				<div class="err" id="docErr"></div>

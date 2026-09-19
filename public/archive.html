@@ -42,12 +42,10 @@
 					</div>
 					<div class="prompt-banner" id="archPrompt"></div>
 					<div class="story" id="archStory" style="max-height: none"></div>
-					<!-- keep a copy: anyone who can open the story is in it -->
-					<div class="row" id="archExport">
-						<button class="ghost" id="archCopy">📋 Copy (formatted)</button>
-						<button class="ghost" id="archHtml">⬇ Download .html</button>
-						<button class="ghost" id="archPdf">⬇ Download .pdf</button>
-					</div>
+					<!-- keep a copy: anyone who can open the story is in it. One
+					     Share / Download ▾ flyout (components/export-menu.js): copy,
+					     .html, .pdf, with or without each line's writer signed. -->
+					<div class="row" id="archExport"></div>
 					<div class="row">
 						<button class="primary" id="archContinue">Continue this story →</button>
 						<button class="ghost danger hidden" id="archDelete">🗑 Delete story…</button>

@@ -23,6 +23,17 @@ export const cleanHex = (c) => (typeof c === "string" && /^#[0-9a-f]{6}$/i.test(
 // escaped text. Mirrored in public/js/write-view.js for the client.
 export const FONT_SIZES = [6, 8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 48];
 const FS_RE = new RegExp(`&lt;span class=&quot;fs-(${FONT_SIZES.join("|")})&quot;&gt;`, "g");
+// Escape everything — ONCE. An `&` that already opens one of the five entities
+// this function itself writes is left alone, so a sanitizer fed its own output
+// returns it unchanged. That matters because stored html DOES come back: the
+// solo editor sends every closed chapter on every autosave exactly as the
+// server stored it, and a blind second escape grew `'` into `&amp;amp;…#39;`
+// one level per save. Nothing here can wake markup: `&lt;script&gt;` is inert
+// text whichever pass wrote it, and only the allowlists below re-open a tag.
+const escapeOnce = (s) =>
+  s.replace(/&(?!(?:amp|lt|gt|quot|#39);)/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+
 // Rich-text sanitizer: escape everything, then re-enable a tiny allowlist —
 // inline formatting, block formats, lists, the font-size ladder, and exactly
 // two alignment classes on blocks. No other attribute ever survives.
@@ -32,9 +43,7 @@ const FS_RE = new RegExp(`&lt;span class=&quot;fs-(${FONT_SIZES.join("|")})&quot
 // carry a url. That's the deliberate line: a story line may be shaped, but it
 // can never carry a link or load a remote image into another player's page.
 export function sanitizeRich(html) {
-  let out = String(html).slice(0, 8000)
-    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  let out = escapeOnce(String(html).slice(0, 8000));
   out = out
     .replace(/&lt;(\/?)(b|i|u|s|strong|em|del|h1|h2|h3|p|ul|ol|li|blockquote)&gt;/g, "<$1$2>")
     .replace(/&lt;(h1|h2|h3|p|blockquote) class=&quot;al-(c|r)&quot;&gt;/g, '<$1 class="al-$2">')
@@ -84,9 +93,7 @@ export const newCid = () => randomBytes(6).toString("hex");
 const CMT_RE = /&lt;span class=&quot;cmt&quot; data-cid=&quot;([0-9a-f]{12})&quot;&gt;/g;
 
 export function sanitizeDoc(html) {
-  let out = String(html).slice(0, DOC_MAX)
-    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  let out = escapeOnce(String(html).slice(0, DOC_MAX));
   out = out
     // inline + block formatting, no attributes
     .replace(/&lt;(\/?)(b|i|u|s|strong|em|del|h1|h2|h3|p|ul|ol|li|blockquote)&gt;/g, "<$1$2>")
@@ -101,15 +108,18 @@ export function sanitizeDoc(html) {
     // closing </span> and </a> are inert on their own; the OPENING tags are
     // the gated ones (a size off the ladder simply never opens a span)
     .replace(/&lt;\/(span|a)&gt;/g, "</$1>");
+  // (Both url-bearing tags are also accepted in the exact form this function
+  // WRITES them — rel/target, class/alt/loading — so a stored link or image
+  // survives being sanitized again; the url is re-gated either way.)
   // Links: only http/https survive; anything else stays inert escaped text.
-  out = out.replace(/&lt;a href=&quot;(.+?)&quot;&gt;/gi, (whole, escapedHref) => {
+  out = out.replace(/&lt;a href=&quot;(.+?)&quot;(?: target=&quot;_blank&quot; rel=&quot;noopener noreferrer nofollow&quot;)?&gt;/gi, (whole, escapedHref) => {
     const href = unescapeEntities(escapedHref);
     return httpUrl(href)
       ? `<a href="${escAttr(href)}" target="_blank" rel="noopener noreferrer nofollow">`
       : whole;
   });
   // Images: same url gate as sanitizeAbout.
-  out = out.replace(/&lt;img\s+src=&quot;(.+?)&quot;\s*\/?&gt;/gi, (whole, escapedSrc) => {
+  out = out.replace(/&lt;img(?: class=&quot;doc-img&quot;)?\s+src=&quot;(.+?)&quot;(?: alt=&quot;&quot; loading=&quot;lazy&quot;)?\s*\/?&gt;/gi, (whole, escapedSrc) => {
     const src = unescapeEntities(escapedSrc);
     return httpUrl(src) ? `<img class="doc-img" src="${escAttr(src)}" alt="" loading="lazy">` : whole;
   });
@@ -135,10 +145,8 @@ const escAttr = (s) =>
 // <img src="http(s)://…"> tags whose src validates — so users can embed
 // images inline in their About with plain html.
 export function sanitizeAbout(input) {
-  let out = String(input).slice(0, 2000)
-    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-  out = out.replace(/&lt;img\s+src=&quot;(.+?)&quot;\s*\/?&gt;/gi, (whole, escapedSrc) => {
+  let out = escapeOnce(String(input).slice(0, 2000));
+  out = out.replace(/&lt;img(?: class=&quot;about-img&quot;)?\s+src=&quot;(.+?)&quot;(?: alt=&quot;&quot; loading=&quot;lazy&quot;)?\s*\/?&gt;/gi, (whole, escapedSrc) => {
     const src = unescapeEntities(escapedSrc);
     return httpUrl(src) ? `<img class="about-img" src="${escAttr(src)}" alt="" loading="lazy">` : whole;
   });

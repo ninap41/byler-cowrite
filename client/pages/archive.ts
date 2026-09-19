@@ -4,7 +4,7 @@ import { requireAuth } from "/js/auth-guard.js"
 import { gameCardHtml, archiveStoryHtml, fmtWhen, canContinue } from "/js/archive-view.js"
 import { mountViewPicker, applyGrid } from "/js/components/view-picker.js"
 import { safeColor, oneLinePrompt, promptHtml } from "/js/util.js"
-import { buildExports, exportDocument } from "/js/export.js"
+import { mountExportMenu } from "/js/components/export-menu.js"
 import { mountTagEditor } from "/js/components/tag-chips.js"
 import type { ArchiveGame } from "/js/archive-view.js"
 import type { ChipUser } from "/js/chrome.js"
@@ -18,26 +18,6 @@ interface MyArchiveGame extends ArchiveGame {
 interface GameDetail extends ArchiveGame {
 	story: StoryLine[]
 	tags?: string[]
-}
-/** The slice of jsPDF the export uses (loaded from the CDN on demand). */
-interface JsPdfDoc {
-	internal: { pageSize: { getWidth(): number; getHeight(): number } }
-	setFont(name: string, style: string): void
-	setFontSize(n: number): void
-	splitTextToSize(text: string, width: number): string[]
-	text(text: string, x: number, y: number, opts?: { align?: string }): void
-	addPage(): void
-	setDrawColor(n: number): void
-	line(x1: number, y1: number, x2: number, y2: number): void
-	save(name: string): void
-}
-interface JsPdfModule {
-	jsPDF: new (opts: { unit: string; format: string }) => JsPdfDoc
-}
-declare global {
-	interface Window {
-		jspdf?: JsPdfModule
-	}
 }
 
 mountChrome({ page: "archive" })
@@ -213,29 +193,11 @@ $("archListLink").onclick = (e) => {
 	showList()
 }
 
-// ---- export: copy as rich text (falls back to plain), .html, .pdf ----
-const exportDoc = () => exportDocument(buildExports(curG?.prompt || "", curG?.story || []).html)
-$("archCopy").onclick = async () => {
-	const btn = $("archCopy")
-	const ex = buildExports(curG?.prompt || "", curG?.story || [])
-	try {
-		await navigator.clipboard.write([
-			new ClipboardItem({
-				"text/html": new Blob([ex.html], { type: "text/html" }),
-				"text/plain": new Blob([ex.plain], { type: "text/plain" }),
-			}),
-		])
-		btn.textContent = "Copied: paste into Docs/Word"
-	} catch (e) {
-		try {
-			await navigator.clipboard.writeText(ex.plain)
-			btn.textContent = "Copied (plain text)"
-		} catch (_) {
-			btn.textContent = "Copy failed"
-		}
-	}
-	setTimeout(() => (btn.textContent = "📋 Copy (formatted)"), 2200)
-}
+// ---- export: Share / Download ▾ (copy as rich text, .html, .pdf; signed or not) ----
+mountExportMenu($("archExport"), {
+	prefix: "arch",
+	source: () => ({ prompt: curG?.prompt || "", story: curG?.story || [], code: curG?.code }),
+})
 // ---- delete flow ----
 $("archDelete").onclick = () => {
 	$("delName").textContent = curG?.name || oneLinePrompt(curG?.prompt) || curG?.code || ""
@@ -250,91 +212,6 @@ $("tagModal").onclick = (e) => {
 $("delModal").addEventListener("click", (e) => {
 	if (e.target === $("delModal")) $("delModal").classList.add("hidden")
 })
-$("archHtml").onclick = () => {
-	const blob = new Blob([exportDoc()], { type: "text/html" })
-	const a = document.createElement("a")
-	a.href = URL.createObjectURL(blob)
-	a.download = "byler-cowrite-" + curG?.code + ".html"
-	a.click()
-	URL.revokeObjectURL(a.href)
-}
-// Lazy-load jsPDF only when someone actually asks for a PDF.
-let jsPdfPromise: Promise<JsPdfModule> | null = null
-const loadJsPdf = (): Promise<JsPdfModule> =>
-	(jsPdfPromise ??= new Promise<JsPdfModule>((res, rej) => {
-		if (window.jspdf) return res(window.jspdf)
-		const s = document.createElement("script")
-		s.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"
-		s.onload = () => res(window.jspdf!)
-		s.onerror = () => {
-			jsPdfPromise = null
-			rej(new Error("Could not load the PDF library."))
-		}
-		document.head.appendChild(s)
-	}))
-function storyToPdf(jspdf: JsPdfModule, prompt: string, story: StoryLine[], code: string) {
-	const doc = new jspdf.jsPDF({ unit: "pt", format: "a4" })
-	const M = 64,
-		W = doc.internal.pageSize.getWidth() - M * 2,
-		BOTTOM = doc.internal.pageSize.getHeight() - M
-	let y = M
-	const tmp = document.createElement("div")
-	const put = (text: string, size: number, style: string, align?: string) => {
-		doc.setFont("times", style)
-		doc.setFontSize(size)
-		const lh = size * 1.55
-		for (const ln of doc.splitTextToSize(text, W)) {
-			if (y + lh > BOTTOM) {
-				doc.addPage()
-				y = M
-			}
-			const x = align === "center" ? M + W / 2 : align === "right" ? M + W : M
-			doc.text(ln, x, y, { align: align || "left" })
-			y += lh
-		}
-	}
-	if (prompt) {
-		put(prompt, 13, "italic")
-		y += 10
-	}
-	for (const l of story) {
-		const html = l.html || ""
-		const m = /^<(h1|h2|h3|p|hr)( class="(al-c|al-r)")?[ >]/.exec(html)
-		const tag = m?.[1] || "p"
-		const align = m?.[3] === "al-c" ? "center" : m?.[3] === "al-r" ? "right" : "left"
-		if (tag === "hr") {
-			if (y + 20 > BOTTOM) {
-				doc.addPage()
-				y = M
-			}
-			doc.setDrawColor(180)
-			doc.line(M, y, M + W, y)
-			y += 20
-			continue
-		}
-		tmp.innerHTML = html.replace(/<br\s*\/?>/g, "\n")
-		const text = (tmp.textContent || "").trim()
-		if (!text) continue
-		const size = tag === "h1" ? 22 : tag === "h2" ? 18 : tag === "h3" ? 15 : 12
-		put(text, size, tag === "p" ? "normal" : "bold", align)
-		y += 8
-	}
-	doc.save("byler-cowrite-" + code + ".pdf")
-}
-$("archPdf").onclick = async () => {
-	$("delErr").textContent = ""
-	try {
-		storyToPdf(await loadJsPdf(), curG?.prompt || "", curG?.story || [], curG?.code || "")
-	} catch (e) {
-		// offline / CDN blocked: fall back to the browser's print-to-PDF
-		const w = window.open("", "_blank")
-		if (!w) return ($("delErr").textContent = (e as Error).message)
-		w.document.write(exportDoc())
-		w.document.close()
-		w.focus()
-		w.print()
-	}
-}
 $("delConfirm").onclick = async () => {
 	try {
 		const title = curG?.name || oneLinePrompt(curG?.prompt) || curG?.code

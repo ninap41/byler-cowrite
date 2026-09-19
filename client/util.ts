@@ -60,6 +60,8 @@ const EMOJI_SKIP =
 	'.emoji-grad, .badge-chip, .ach-strip, [data-badge], .rk-badge, .rk-ladder, .rk-usage, .ladder-acc, .rung, ' +
 	'.rank-bar, .rank-label, .tier-name, .rk-tier, .ts-badges, ' +
 	'#chatCard, #docSide, #commentsOpen, #commentToggle, #imgBtn, .react-pick, ' +
+	// the solo editor's head row is icon-only chips: each one IS its emoji
+	'.head-chip, .vis-chip, .vis-menu, ' +
 	// the SuperSoaker's gun IS the 🔫 emoji (mirrored and rotated to the aim), so a
 	// gradient outline there paints a hollow gun — the whole layer stays plain
 	'.sk-layer, .sk-gunbtn'

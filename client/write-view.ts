@@ -159,12 +159,12 @@ export const visLabel = (v: unknown): string => `${visOf(v).icon} ${visOf(v).lab
 // action, so you can read where you stand without decoding a checkbox.
 export const visChipHtml = (v: string): string =>
 	`<button type="button" class="vis-chip" id="visChip" aria-haspopup="menu" aria-expanded="false" ` +
-	`data-tip="Who can see this write" data-vis="${esc(v)}">${visLabel(v)}<span class="chev">&#9662;</span></button>`
+	`aria-label="${esc(visOf(v).label)}: who can see this write" data-tip="${esc(visOf(v).label)}: ${esc(visOf(v).blurb)} Click to change." ` +
+	`data-vis="${esc(v)}">${visLabel(v)}<span class="chev">&#9662;</span></button>`
 
 // Three options, each with its consequence spelled out. A radio list, not a
 // switch: three states can't be a toggle.
-export const visMenuHtml = (current: string): string =>
-	`<div class="vis-menu" id="visMenu" role="menu">` +
+export const visOptionsHtml = (current: string): string =>
 	Object.entries(VIS)
 		.map(
 			([key, v]) =>
@@ -173,8 +173,8 @@ export const visMenuHtml = (current: string): string =>
 				`<span class="vis-opt-label">${v.icon} ${esc(v.label)}</span>` +
 				`<span class="vis-opt-blurb">${esc(v.blurb)}</span></button>`,
 		)
-		.join("") +
-	`</div>`
+		.join("")
+export const visMenuHtml = (current: string): string => `<div class="vis-menu" id="visMenu" role="menu">${visOptionsHtml(current)}</div>`
 
 // ---- /writes listing ----
 export function docCardHtml(d: DocSummary): string {
@@ -478,7 +478,7 @@ export function wireSoloDeletes(box: HTMLElement, onDelete: (id: string | undefi
 // chapter id to how many comments sit in it. A chapter not yet saved has no
 // id — its row is keyed by index instead (`data-i`), and every row carries it.
 export const countWordsHtml = (html: unknown): number => {
-	const text = String(html || "").replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/&[a-z#0-9]+;/gi, "x").trim()
+	const text = String(html || "").replace(/<\/?(?:b|i|u|s|strong|em|del|span|a)(?:\s[^>]*)?>/gi, "").replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/&[a-z#0-9]+;/gi, "x").trim()
 	return text ? text.split(/\s+/).filter(Boolean).length : 0
 }
 export function chapterListHtml(chapters: Chapter[] | null | undefined, { openIdx = 0, canEdit = false, commentCounts = {} }: { openIdx?: number; canEdit?: boolean; commentCounts?: Record<string, number> } = {}): string {
@@ -529,7 +529,13 @@ export function chapNavHtml(chapters: Chapter[] | null | undefined, idx: number)
 // pressing it does; open, it names where you are.
 // One word, always: the chip is a door, and where you are is the panel's job.
 // (The signature stays for the callers and the tests.)
-export const chapChipLabel = (_chapters: unknown[] | null | undefined, _idx: number, _open = true): string => "📑 Chapters"
+// The chip names the chapter you are IN — plain text (the page sets it with
+// textContent), cut by CSS when the title is long. A blank title falls back
+// to its number, the way the panel numbers it.
+export const chapChipLabel = (chapters: { title?: string }[] | null | undefined, idx: number, _open = true): string => {
+	const title = String(chapters?.[idx]?.title ?? "").trim()
+	return chapters?.length ? `📑 ${title || `Chapter ${idx + 1}`}` : "📑"
+}
 
 // ---- sprints ----
 // A sprint row: when, how many words, how long, and the project it was written
