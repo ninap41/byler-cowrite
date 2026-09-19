@@ -19,6 +19,9 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 // DATABASE_URL set (Replit Postgres): the database is the store, loaded into
 // memory here. Unset (local dev, tests): the JSON files under data/ and saves/.
 await storage.init();
+// Comments used to live inside each story's blob; move any that still do into
+// their own records before anything reads a document.
+(await import("./src/docs.js")).migrateDocComments();
 console.log(describeStorage());
 const { SITE, renderPage } = await import("./src/site.js"); // reads the content pack — after init
 const { createGame } = await import("./src/game.js");

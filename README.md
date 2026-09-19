@@ -105,7 +105,8 @@ Everything the app keeps is a named JSON document, persisted by
 | `users/users` | `data/users.json` | accounts, sessions, reset tokens, waitlist | `saveStore()` in `src/store.js` |
 | `announcements/announcements` | `data/announcements.json` | the admins' blog posts on `/announcements` | `/announcements` (admins) |
 | `save/<CODE>` | `saves/<CODE>.json` | one snapshot per game (story, chat, seats, rules) | `saveSnapshot()` in `src/game.js` |
-| `doc/<id>` | `data/docs/<id>.json` | one solo-write document (html, beta readers, comments) | `writeDoc()` in `src/docs.js` |
+| `doc/<id>` | `data/docs/<id>.json` | one solo-write document (chapters, beta readers) | `writeDoc()` in `src/docs.js` |
+| `comment/<doc id>` | `data/comments/<doc id>.json` | that document's comment threads, kept apart so a comment is never an edit | `writeComments()` in `src/docs.js` |
 | `content/<name>` | `content/<name>.json` | the fandom pack (prompts, site, quotes, titles, achievements) | `/admin` prompt editor |
 | `reference/<name>` | `writers-reference/<name>.json` | the `/` palette word banks + `index.json` | `/admin` reference editor |
 
@@ -190,7 +191,7 @@ What persists — everything in PostgreSQL, because `DATABASE_URL` is set:
 - the admins' announcements (`announcements/announcements`)
 - every game snapshot — paused, finished, or mid-write as of its last
   committed line (`save/<CODE>`)
-- solo-write documents (`doc/<id>`)
+- solo-write documents (`doc/<id>`) and their comment threads (`comment/<doc id>`)
 - content-pack and writers'-reference edits made in `/admin`
 
 What does NOT persist — the in-memory state that needs a single process:

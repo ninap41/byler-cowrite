@@ -42,6 +42,7 @@ export interface CommentRow {
 	declined?: boolean
 	edited?: boolean
 	replies?: ReplyRow[]
+	pos?: { chapterId: string; start: number; text: string; before: string; after: string } | null
 }
 /** One reply in a comment's thread (DocReplyRow in shared/wire.ts). */
 export interface ReplyRow {

@@ -877,6 +877,7 @@ export function registerRoutes(app, game) {
     html: doc.html || "", // the chapters joined — kept for readers of the old shape
     chapters: doc.chapters.map(({ id, title, html, wordCount }) => ({ id, title, html, wordCount })),
     mine: doc.ownerId === u.id,
+    rev: doc.rev || 0,
     readerRows: readerRows(doc),
     comments: commentRows(doc),
   });
@@ -910,13 +911,16 @@ export function registerRoutes(app, game) {
     const doc = readDoc(req.params.id);
     if (!doc) return res.status(404).json({ error: "No such document." });
     if (!canEdit(doc, u.id)) return res.status(403).json({ error: "Only the author can edit this." });
-    // Optimistic concurrency: a client that says which copy it started from
-    // (`baseUpdatedAt`, the updatedAt it last received) is refused when the
-    // stored copy is newer — another tab of the same author saved in between.
-    // A body without it (an old client, a deliberate overwrite) saves as before.
-    const base = req.body?.baseUpdatedAt;
-    if (typeof base === "number" && doc.updatedAt && doc.updatedAt !== base)
-      return res.status(409).json({ error: "This story was changed elsewhere — in another tab, perhaps. Reload to see it, or Save to overwrite.", conflict: true, updatedAt: doc.updatedAt });
+    // Optimistic concurrency: a client that says which SAVE it started from
+    // (`baseRev`, the rev it last received) is refused when another save has
+    // landed since — another tab of the same author. `rev` moves here and
+    // nowhere else: comments, sprints and sharing all stamp `updatedAt`, and
+    // none of them is a reason to stop an author's autosave. A body without it
+    // (a deliberate overwrite) saves as before.
+    const base = req.body?.baseRev;
+    if (typeof base === "number" && (doc.rev || 0) !== base)
+      return res.status(409).json({ error: "This story was changed elsewhere — in another tab, perhaps. Reload to see it, or Save to overwrite.", conflict: true, rev: doc.rev || 0 });
+    doc.rev = (doc.rev || 0) + 1;
     if (typeof req.body?.title === "string") doc.title = cleanTitle(req.body.title);
     const chapters = req.body?.chapters;
     if (chapters !== undefined) {

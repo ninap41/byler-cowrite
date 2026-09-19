@@ -308,7 +308,7 @@ export interface ServerToClient {
 	// the solo editor (src/game.js doc-* handlers): presence, comments and pushes
 	"doc-presence": (p: { id: string; viewers: DocViewer[] }) => void
 	"doc-comments": (p: { id: string; comments: DocCommentRow[] }) => void
-	"doc-updated": (p: { id: string; html: string; title: string; chapters: DocChapterRow[]; updatedAt?: number }) => void
+	"doc-updated": (p: { id: string; html: string; title: string; chapters: DocChapterRow[]; updatedAt?: number; rev?: number }) => void
 	"doc-html": (p: { id: string; chapterId: string | null; html: string; chapterWordCount?: number; wordCount?: number }) => void
 	"doc-access-lost": (p: { id: string }) => void
 }
@@ -347,6 +347,20 @@ export interface DocCommentRow {
 	declined?: boolean
 	edited?: boolean
 	replies?: DocReplyRow[]
+	/** where the words sat when the comment was made — absent on older comments */
+	pos?: DocCommentPos | null
+}
+/**
+ * A comment's place in its chapter's plain text (textContent offsets), so an
+ * editor with unsaved typing can underline the words itself instead of taking
+ * the server's html (placeAnchor in components/comment-sync).
+ */
+export interface DocCommentPos {
+	chapterId: string
+	start: number
+	text: string
+	before: string
+	after: string
 }
 /** One reply in a comment's thread — identity for rendering, never an account id. */
 export interface DocReplyRow {

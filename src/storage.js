@@ -6,6 +6,7 @@
 //   announcements/announcements  data/announcements.json (the admin's blog posts)
 //   save/<CODE>            saves/<CODE>.json
 //   doc/<uuid>             data/docs/<uuid>.json
+//   comment/<doc uuid>     data/comments/<uuid>.json  (a doc's comment threads)
 //   content/<name>         content/<name>.json        (prompts, site, quotes …)
 //   reference/<name>       writers-reference/<name>.json (index, romance …)
 //
@@ -33,7 +34,7 @@ import { dirname, join } from "path";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, "..");
 
-export const KINDS = ["users", "announcements", "save", "doc", "content", "reference"];
+export const KINDS = ["users", "announcements", "save", "doc", "comment", "content", "reference"];
 // Kinds that are ONE document rather than a directory of them.
 const SINGLE = new Set(["users", "announcements"]);
 
@@ -43,6 +44,7 @@ export function defaultDirs() {
     dataDir,
     saveDir: process.env.COWRITE_SAVE_DIR || join(ROOT, "saves"),
     docDir: process.env.COWRITE_DOC_DIR || join(dataDir, "docs"),
+    commentDir: process.env.COWRITE_COMMENT_DIR || join(dataDir, "comments"),
     contentDir: process.env.COWRITE_CONTENT_DIR || join(ROOT, "content"),
     refDir: process.env.COWRITE_REF_DIR || join(ROOT, "writers-reference"),
   };
@@ -51,6 +53,7 @@ export function defaultDirs() {
 const dirFor = (dirs, kind) =>
   SINGLE.has(kind) ? dirs.dataDir
     : kind === "doc" ? dirs.docDir
+      : kind === "comment" ? dirs.commentDir
       : kind === "content" ? dirs.contentDir
         : kind === "reference" ? dirs.refDir
           : dirs.saveDir;
@@ -72,7 +75,7 @@ function readDir(dir) {
 // ---- files ---------------------------------------------------------------
 
 function fileBackend(dirs) {
-  for (const k of ["dataDir", "saveDir", "docDir"]) mkdirSync(dirs[k], { recursive: true });
+  for (const k of ["dataDir", "saveDir", "docDir", "commentDir"]) mkdirSync(dirs[k], { recursive: true });
   return {
     mode: "files",
     get(kind, name) {
@@ -155,6 +158,7 @@ async function postgresBackend(dirs, pool) {
   }
   seedDir("save", dirs.saveDir);
   seedDir("doc", dirs.docDir);
+  seedDir("comment", dirs.commentDir);
   seedDir("content", dirs.contentDir);
   seedDir("reference", dirs.refDir);
   await Promise.all(chains.values());
@@ -226,5 +230,5 @@ export const getJson = (kind, name) => {
 
 export const describeStorage = () => {
   const c = storage.counts();
-  return `storage: ${storage.mode} (users ${c.users}, announcements ${c.announcements}, saves ${c.save}, docs ${c.doc}, content ${c.content}, reference ${c.reference}${storage.mode === "postgres" ? `, seeded ${storage.seeded}` : ""})`;
+  return `storage: ${storage.mode} (users ${c.users}, announcements ${c.announcements}, saves ${c.save}, docs ${c.doc}, comment records ${c.comment}, content ${c.content}, reference ${c.reference}${storage.mode === "postgres" ? `, seeded ${storage.seeded}` : ""})`;
 };

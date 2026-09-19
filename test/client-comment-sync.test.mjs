@@ -4,7 +4,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { anchorCids, htmlPushKind, stripAnchorInSource, applySuggestionInSource, pruneSource } from "../public/js/components/comment-sync.js";
+import { installDom, mount } from "./dom.mjs";
+installDom();
+const { anchorCids, stripAnchorInSource, applySuggestionInSource, pruneSource, placeAnchor, locateText } = await import("../public/js/components/comment-sync.js");
 
 const A = "aaaaaaaaaaaa", B = "bbbbbbbbbbbb";
 const span = (cid, inner, cls = "cmt") => `<span class="${cls}" data-cid="${cid}">${inner}</span>`;
@@ -16,16 +18,58 @@ test("anchorCids lists every anchor once, in order, and ignores junk", () => {
   assert.deepEqual(anchorCids(""), []);
 });
 
-test("htmlPushKind: an arrival, a removal, or the same set", () => {
-  const none = "<p>the words</p>";
-  const one = `<p>the ${span(A, "words")}</p>`;
-  const two = `<p>${span(B, "the")} ${span(A, "words")}</p>`;
-  assert.equal(htmlPushKind(none, one), "added", "someone commented");
-  assert.equal(htmlPushKind(one, none), "removed", "a comment was deleted/decided");
-  assert.equal(htmlPushKind(two, one), "removed");
-  assert.equal(htmlPushKind(one, one), "same");
-  assert.equal(htmlPushKind(one, "<p>the accepted words</p>".replace("accepted ", "")), "removed", "an accepted suggestion drops its anchor");
-  assert.equal(htmlPushKind(one, `<p>${span(B, "the")} words</p>`), "added", "a swap counts as an arrival — the author has something new to see");
+// ---- an arriving comment, merged into an editor with unsaved typing ----
+const posOf = (before, text, after) => ({ start: before.length, text, before: before.slice(-32), after: after.slice(0, 32) });
+
+test("placeAnchor underlines the words where they were recorded, and is a no-op the second time", () => {
+  const root = mount("<p>first</p><p>his striped shirt hangs</p>");
+  const pos = posOf("firsthis ", "striped shirt", " hangs");
+  assert.equal(placeAnchor(root, A, pos), true);
+  assert.equal(root.innerHTML, `<p>first</p><p>his ${span(A, "striped shirt")} hangs</p>`);
+  assert.equal(placeAnchor(root, A, pos), true, "already there");
+  assert.equal(anchorCids(root.innerHTML).length, 1);
+});
+
+test("placeAnchor finds the words after the author has typed above them, and keeps the author's typing", () => {
+  const root = mount("<p>first, and a whole new sentence typed just now</p><p>his striped shirt hangs</p>");
+  assert.equal(placeAnchor(root, A, posOf("firsthis ", "striped shirt", " hangs")), true);
+  assert.ok(root.innerHTML.includes("typed just now"));
+  assert.ok(root.innerHTML.includes(`his ${span(A, "striped shirt")} hangs`));
+});
+
+test("locateText picks the occurrence whose surroundings match, not the first one", () => {
+  const full = "the door. NEW WORDS. he opened the door slowly";
+  const at = locateText(full, { start: 20, text: "the door", before: "he opened ", after: " slowly" });
+  assert.equal(at, full.lastIndexOf("the door"));
+  assert.equal(locateText("nothing alike", { start: 0, text: "the door", before: "", after: "" }), -1);
+  assert.equal(locateText("anything", { start: 0, text: "", before: "", after: "" }), -1, "no words, no anchor");
+});
+
+test("placeAnchor wraps words that start or end inside italics, entities and all", () => {
+  const root = mount("<p>he <i>really didn&#39;t</i> mean it</p>");
+  assert.equal(placeAnchor(root, A, posOf("he really ", "didn't mean", " it")), true);
+  const a = root.querySelector("span.cmt");
+  assert.equal(a.textContent, "didn't mean");
+  assert.equal(root.textContent, "he really didn't mean it", "not a word moved");
+});
+
+test("placeAnchor refuses words that are gone, a bad cid, and a range across two paragraphs", () => {
+  const html = "<p>one two</p><p>three four</p>";
+  const root = mount(html);
+  assert.equal(placeAnchor(root, A, posOf("", "deleted words", "")), false);
+  assert.equal(placeAnchor(root, "nope", posOf("one ", "two", "three")), false);
+  assert.equal(placeAnchor(root, A, posOf("one ", "twothree", " four")), false, "an anchor never wraps a block");
+  assert.equal(root.innerHTML, html, "and nothing was touched");
+});
+
+test("placeAnchor leaves the caret where the author was typing", () => {
+  const root = mount("<p>his striped shirt hangs</p>");
+  const text = root.querySelector("p").firstChild;
+  const sel = document.getSelection();
+  sel.collapse(text, 20); // …shirt ha|ngs
+  assert.equal(placeAnchor(root, A, posOf("his ", "striped shirt", " hangs")), true);
+  const now = document.getSelection();
+  assert.equal(now.anchorNode.data.slice(0, now.anchorOffset), " ha", "still between the same two letters");
 });
 
 test("stripAnchorInSource unwraps one anchor, nesting-aware, and leaves everything else", () => {
@@ -70,9 +114,21 @@ test("write page: clicking an underline opens a closed drawer before focusing th
   assert.ok(click.indexOf("setSideOpen(true)") < click.indexOf("focusComment("), "opened first, then focused");
 });
 
-test("write page: a removal never paints the 'new comments arrived' line; only an arrival does", () => {
+test("write page: an author with unsaved typing keeps their own html and underlines an arriving comment in place", () => {
   const push = handler('s.on("doc-html"', "s.on(");
-  assert.match(push, /htmlPushKind\(currentHtml\(\), html \|\| ""\) === "added"/);
+  assert.match(push, /if \(dirty && doc\?\.mine\) return/, "the server's html is not taken over unsaved words");
+  assert.ok(push.indexOf("doc?.mine) return") < push.indexOf("ch.html = html"), "…for any chapter, open or not");
+  assert.ok(!page.includes("New comments arrived"), "and the author is no longer told to save to see them");
+  const rows = handler('s.on("doc-comments"', "s.on(");
+  assert.ok(rows.indexOf("mergeArrivedAnchors()") > 0 && rows.indexOf("mergeArrivedAnchors()") < rows.indexOf("renderComments()"), "placed before the rail prunes and renders");
+  const merge = handler("function mergeArrivedAnchors()", "\nfunction ");
+  assert.match(merge, /placeAnchor\(\$\("docEditor"\), c\.cid, c\.pos\)/);
+  assert.match(merge, /c\.resolved \|\| c\.orphaned/, "only comments the server still has anchored");
+});
+
+test("write page: a quiet save names the SAVE it started from, never a timestamp", () => {
+  assert.match(page, /body\.baseRev = doc\.rev/);
+  assert.ok(!page.includes("baseUpdatedAt"));
 });
 
 test("write page: the HTML view is pruned with the editor, and decisions act on it there", () => {

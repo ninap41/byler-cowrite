@@ -12,7 +12,7 @@ import { generateSimplePrompt, generateIntermediatePrompt, validateIntermediateD
 import { readContent, writeContent } from "./content.js";
 import { randomTitle } from "../lib/titles.js";
 import { toggleReaction } from "../public/js/shared/reactions.js";
-import { readDoc, writeDoc, canView, canEdit, canComment, anchorCids, anchorText, stripAnchor, stripAnchors, commentBaseline, applySuggestion, chapterById, chapterOfCid, mapChapterHtml } from "./docs.js";
+import { readDoc, writeDoc, writeComments, anchorPos, canView, canEdit, canComment, anchorCids, anchorText, stripAnchor, stripAnchors, commentBaseline, applySuggestion, chapterById, chapterOfCid, mapChapterHtml } from "./docs.js";
 
 // Curated scenario prompts + the guided-mode component pools (edit
 // content/prompts.json freely — no code changes). See docs/PROMPT_GENERATION.md.
@@ -2241,12 +2241,19 @@ export function createGame(io) {
         if (commentBaseline(next) !== commentBaseline(ch.html)) return;
       }
       ch.html = next;
+      const at = anchorPos(next, cid);
       doc.comments = [...(doc.comments || []), {
         id: randomUUID(), cid,
         quote: anchorText(next, cid).slice(0, 200),
         userId: u.id, text: body, suggestion: suggest,
         ts: Date.now(), resolved: false, accepted: false,
+        // where the words sit, so an author with unsaved typing can underline
+        // them in place instead of having to take this html
+        ...(at ? { pos: { chapterId: ch.id, ...at } } : {}),
       }];
+      // Two records: the thread, and the chapter that now wears its anchor.
+      // Neither write moves `rev` — a comment is not an edit of the story.
+      writeComments(doc);
       writeDoc(doc);
       // Skip only the AUTHOR (a live editor whose caret a re-render would move);
       // a beta reader has no unsaved edits, so pushing the canonical html back
@@ -2272,6 +2279,7 @@ export function createGame(io) {
       mapChapterHtml(doc, (h) => (taking ? applySuggestion(h, c.cid, c.suggestion) : stripAnchor(h, c.cid)));
       c.resolved = true;
       c.accepted = taking;
+      writeComments(doc);
       writeDoc(doc); // recomputes wordCount from the new html
       broadcastDocHtml(doc, socket, chId); // the decider already applied it locally
       broadcastDocComments(doc);
@@ -2294,8 +2302,12 @@ export function createGame(io) {
       // A resolved comment stops underlining its words; unresolving can't put
       // the anchor back (the words may have moved on), so it reads as orphaned.
       const chId = chapterOfCid(doc, c.cid)?.id;
-      if (c.resolved && c.cid) mapChapterHtml(doc, (h) => stripAnchor(h, c.cid));
-      writeDoc(doc);
+      writeComments(doc);
+      // only a resolve that actually removes an underline touches the story
+      if (c.resolved && chId) {
+        mapChapterHtml(doc, (h) => stripAnchor(h, c.cid));
+        writeDoc(doc);
+      }
       if (c.resolved) broadcastDocHtml(doc, null, chId);
       broadcastDocComments(doc);
     });
@@ -2315,7 +2327,7 @@ export function createGame(io) {
       const replies = Array.isArray(c.replies) ? c.replies : [];
       if (replies.length >= MAX_REPLIES) return;
       c.replies = [...replies, { id: randomUUID(), userId: u.id, text: body, ts: Date.now() }];
-      writeDoc(doc);
+      writeComments(doc); // words in the margin: the story's record is not touched
       broadcastDocComments(doc);
     });
 
@@ -2336,7 +2348,7 @@ export function createGame(io) {
       if (body === target.text) return;
       target.text = body;
       target.editedAt = Date.now();
-      writeDoc(doc);
+      writeComments(doc);
       broadcastDocComments(doc);
     });
 
@@ -2348,9 +2360,9 @@ export function createGame(io) {
         // one reply: its own writer, or the document's author
         const t = (doc.comments || []).find((x) => x.id === commentId);
         const r = (t?.replies || []).find((x) => x.id === replyId);
-        if (!r || (r.userId !== u.id && doc.ownerId !== u.id)) return;
-        t.replies = t.replies.filter((x) => x.id !== replyId);
-        writeDoc(doc);
+        if (!t || !r || (r.userId !== u.id && doc.ownerId !== u.id)) return;
+        t.replies = (t.replies || []).filter((x) => x.id !== replyId);
+        writeComments(doc);
         broadcastDocComments(doc);
         return;
       }
@@ -2359,7 +2371,8 @@ export function createGame(io) {
       const chId = chapterOfCid(doc, c.cid)?.id;
       if (c.cid) mapChapterHtml(doc, (h) => stripAnchor(h, c.cid)); // the underline goes with it
       doc.comments = (doc.comments || []).filter((x) => x.id !== commentId);
-      writeDoc(doc);
+      writeComments(doc);
+      if (chId) writeDoc(doc);
       broadcastDocHtml(doc, null, chId);
       broadcastDocComments(doc);
     });
@@ -2370,7 +2383,7 @@ export function createGame(io) {
       const u = userByToken(auth);
       const doc = readDoc(id);
       if (!u || !doc || !canEdit(doc, u.id)) return;
-      socket.to(docRoom(doc.id)).emit("doc-updated", { id: doc.id, html: doc.html, title: doc.title, chapters: chapterRows(doc), updatedAt: doc.updatedAt });
+      socket.to(docRoom(doc.id)).emit("doc-updated", { id: doc.id, html: doc.html || "", title: doc.title, chapters: chapterRows(doc), updatedAt: doc.updatedAt, rev: doc.rev || 0 });
     });
 
     socket.on("disconnect", () => {
@@ -2432,6 +2445,7 @@ export function createGame(io) {
         orphaned: !!c.cid && !anchorCids(doc.html).includes(c.cid),
         chapterId: chapterOfCid(doc, c.cid)?.id || null, // which chapter holds its words
         declined: !!c.resolved && !!c.declined, edited: !!c.editedAt,
+        pos: c.pos && typeof c.pos.start === "number" ? c.pos : null,
         // older comments have no `replies` field at all
         replies: (Array.isArray(c.replies) ? c.replies : []).map((r) => ({
           id: r.id, text: r.text, ts: r.ts, edited: !!r.editedAt, ...voiceOf(doc, r.userId),

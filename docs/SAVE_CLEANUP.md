@@ -8,9 +8,9 @@ The solo editor autosaves to the server, with two-tab protection. But autosave f
 
 ## What stays (and why)
 
-- `save({quiet})` + `dirty`/`setDirty`/`lastEditAt` — autosave, the Saved/Unsaved chip and comment sync (`doc-html` pushes ignored while dirty, `htmlPushKind`) all stand on them.
-- Two-tab protection, untouched: `baseUpdatedAt` on quiet saves only, the 409 in `src/routes.js`, the `conflicted` gate, `conflictBar` (Reload / Save & overwrite — which needs the base-less `save()`), the `doc-updated` early return for a dirty tab.
-- Ctrl/⌘+S — the "save NOW" the app itself asks for ("Save first, then comment in the new chapter", "New comments arrived: save to see them…").
+- `save({quiet})` + `dirty`/`setDirty`/`lastEditAt` — autosave, the Saved/Unsaved chip and comment sync (`doc-html` pushes ignored while dirty, `mergeArrivedAnchors`) all stand on them.
+- Two-tab protection, untouched: `baseRev` on quiet saves only (`doc.rev` moves only on a save — comments never conflict), the 409 in `src/routes.js`, the `conflicted` gate, `conflictBar` (Reload / Save & overwrite — which needs the base-less `save()`), the `doc-updated` early return for a dirty tab.
+- Ctrl/⌘+S — the "save NOW" the app itself asks for ("Save first, then comment in the new chapter").
 - The local draft + `restoreBar` (`client/doc-store.ts`) — as the OFFLINE/FAILURE fallback only.
 - The 413 refusal, and `#docErr` for failures.
 
@@ -39,4 +39,4 @@ The solo editor autosaves to the server, with two-tab protection. But autosave f
 
 - More PUTs per session (one per pause), each sending EVERY chapter — fine at ~100 users, but consider skipping the save when `allChapters()` equals the last saved shape.
 - keepalive's 64 KB cap: long works fall back to the draft + the native prompt.
-- Every quiet save bumps `updatedAt`, so a second dirty tab hits the conflict bar sooner — intended.
+- Every quiet save bumps `rev`, so a second dirty tab hits the conflict bar sooner — intended.

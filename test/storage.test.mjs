@@ -12,7 +12,7 @@ const { storage, getJson, describeStorage, KINDS } = await import("../src/storag
 
 const tmp = () => mkdtempSync(join(tmpdir(), "cowrite-storage-"));
 const dirsIn = (root) => ({
-  dataDir: join(root, "data"), saveDir: join(root, "saves"), docDir: join(root, "data", "docs"),
+  dataDir: join(root, "data"), saveDir: join(root, "saves"), docDir: join(root, "data", "docs"), commentDir: join(root, "data", "comments"),
   contentDir: join(root, "content"), refDir: join(root, "ref"),
 });
 
@@ -108,7 +108,7 @@ test("postgres: rows are the store, loaded at boot, read from memory, written in
     assert.ok(!existsSync(join(root, "saves")) || readdirSync(join(root, "saves")).length === 0, "saves/ untouched");
     assert.ok(!existsSync(join(root, "data", "users.json")), "users.json untouched");
     assert.equal(storage.lastError, null);
-    assert.match(describeStorage(), /^storage: postgres \(users 1, announcements 0, saves 1, docs 0, content 1, reference 0, seeded 0\)/);
+    assert.match(describeStorage(), /^storage: postgres \(users 1, announcements 0, saves 1, docs 0, comment records 0, content 1, reference 0, seeded 0\)/);
     assert.deepEqual(Object.keys(storage.counts()), KINDS);
   } finally {
     storage._reset();
@@ -174,6 +174,103 @@ test("postgres: a failed query is remembered and reported to an awaiting caller 
     assert.match(storage.lastError, /save\/BOOM: connection reset/);
     assert.equal(storage.get("save", "BOOM"), "{}", "the cache still holds it, the app keeps working");
     assert.ok(pool.rows.has("save/FINE"), "other writes are unaffected");
+  } finally {
+    storage._reset();
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+// ---- comments move out of the story blobs (migrateDocComments) ----
+// Production is the postgres backend, so the carry-over is proven against it:
+// rows that look like today's production go in, and what comes out is one
+// comment record per document with every thread intact.
+const DOC_ID = "11111111-2222-3333-4444-555555555555";
+const OTHER_ID = "99999999-2222-3333-4444-555555555555";
+const oldComments = [
+  { id: "c1", cid: "aaaaaaaaaaaa", quote: "striped shirt", userId: "u2", text: "lovely", suggestion: null, ts: 10, resolved: false, accepted: false,
+    replies: [{ id: "r1", userId: "u1", text: "thank you", ts: 11 }] },
+  { id: "c2", cid: "bbbbbbbbbbbb", quote: "hangs", userId: "u2", text: "", suggestion: "drapes", ts: 20, resolved: true, accepted: true, declined: false, editedAt: 21 },
+];
+const oldDoc = (id, comments) => ({
+  id, ownerId: "u1", title: "Before the split",
+  chapters: [{ id: "abcdefabcdef", title: "Chapter 1", html: '<p>his <span class="cmt" data-cid="aaaaaaaaaaaa">striped shirt</span> hangs</p>' }],
+  betaReaders: ["u2"], visibility: "readers", comments, wordCount: 4, createdAt: 1, updatedAt: 1234,
+});
+
+test("postgres: comments embedded in story rows become comment rows at boot — every thread, nothing else touched, and only once", async () => {
+  delete process.env.DATABASE_URL;
+  const root = tmp();
+  const pool = fakePool([
+    { kind: "doc", name: DOC_ID, doc: JSON.stringify(oldDoc(DOC_ID, oldComments)) },
+    { kind: "doc", name: OTHER_ID, doc: JSON.stringify(oldDoc(OTHER_ID, [])) },
+  ]);
+  try {
+    await storage.init({ ...dirsIn(root), pool });
+    const { migrateDocComments, readDoc } = await import("../src/docs.js");
+    assert.deepEqual(migrateDocComments(), { docs: 1, comments: 2 });
+    await storage.flush();
+
+    const record = JSON.parse(pool.rows.get("comment/" + DOC_ID).doc);
+    assert.equal(record.docId, DOC_ID);
+    assert.deepEqual(record.comments, oldComments, "ids, replies, suggestions, resolved flags — all of it");
+    const story = JSON.parse(pool.rows.get("doc/" + DOC_ID).doc);
+    assert.ok(!("comments" in story), "the story row no longer carries them");
+    assert.equal(story.updatedAt, 1234, "a migration is not an edit");
+    assert.deepEqual(story.chapters, oldDoc(DOC_ID, []).chapters, "the prose and its underline are byte for byte the same");
+    assert.ok(!pool.rows.has("comment/" + OTHER_ID), "a story with no comments gets no record");
+    assert.ok(!("comments" in JSON.parse(pool.rows.get("doc/" + OTHER_ID).doc)));
+
+    // what the app reads is what it read before
+    const doc = readDoc(DOC_ID);
+    assert.deepEqual(doc.comments, oldComments);
+    assert.ok(doc.html.includes('data-cid="aaaaaaaaaaaa"'));
+
+    // the next boot finds nothing to do
+    const writes = pool.log.length;
+    assert.deepEqual(migrateDocComments(), { docs: 0, comments: 0 });
+    await storage.flush();
+    assert.equal(pool.log.length, writes, "not one more query");
+  } finally {
+    storage._reset();
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("postgres: a story row that still carries comments is unioned into an existing record, never over it", async () => {
+  delete process.env.DATABASE_URL;
+  const root = tmp();
+  const newer = { id: "c3", cid: "cccccccccccc", quote: "his", userId: "u2", text: "made after the split", suggestion: null, ts: 30, resolved: false, accepted: false };
+  const pool = fakePool([
+    // a crash between the two writes, or an old blob restored over a migrated one
+    { kind: "doc", name: DOC_ID, doc: JSON.stringify(oldDoc(DOC_ID, oldComments)) },
+    { kind: "comment", name: DOC_ID, doc: JSON.stringify({ docId: DOC_ID, comments: [oldComments[0], newer] }) },
+  ]);
+  try {
+    await storage.init({ ...dirsIn(root), pool });
+    const { migrateDocComments } = await import("../src/docs.js");
+    assert.deepEqual(migrateDocComments(), { docs: 1, comments: 1 }, "only the one the record lacked");
+    await storage.flush();
+    const ids = JSON.parse(pool.rows.get("comment/" + DOC_ID).doc).comments.map((c) => c.id);
+    assert.deepEqual(ids, ["c1", "c2", "c3"], "all three, oldest first, none twice");
+  } finally {
+    storage._reset();
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("files: the same carry-over on disk, and a blob met by a plain read migrates itself", async () => {
+  delete process.env.DATABASE_URL;
+  const root = tmp();
+  const dirs = dirsIn(root);
+  try {
+    await storage.init(dirs);
+    writeFileSync(join(dirs.docDir, DOC_ID + ".json"), JSON.stringify(oldDoc(DOC_ID, oldComments)));
+    const { readDoc } = await import("../src/docs.js");
+    assert.deepEqual(readDoc(DOC_ID).comments, oldComments, "no boot sweep ran: the read did it");
+    assert.deepEqual(JSON.parse(readFileSync(join(dirs.commentDir, DOC_ID + ".json"), "utf-8")).comments, oldComments);
+    const story = JSON.parse(readFileSync(join(dirs.docDir, DOC_ID + ".json"), "utf-8"));
+    assert.ok(!("comments" in story));
+    assert.equal(story.updatedAt, 1234);
   } finally {
     storage._reset();
     rmSync(root, { recursive: true, force: true });

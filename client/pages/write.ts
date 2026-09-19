@@ -29,7 +29,7 @@ import { loadDraft, saveDraft, clearDraft, draftIsNewer } from "/js/doc-store.js
 import { createHistory } from "/js/components/history.js"
 import { mountDocBanners } from "/js/components/doc-banner.js"
 import { mountFindReplace, type FindReplaceApi } from "/js/components/find-replace.js"
-import { htmlPushKind, pruneSource, stripAnchorInSource, applySuggestionInSource } from "/js/components/comment-sync.js"
+import { placeAnchor, pruneSource, stripAnchorInSource, applySuggestionInSource } from "/js/components/comment-sync.js"
 import {
 	presenceHtml,
 	commentThreadHtml,
@@ -76,6 +76,8 @@ interface DocPayload {
 	sprintWords?: number
 	sprints?: Sprint[]
 	updatedAt?: number
+	/** the save this copy came from — what a quiet save names as its base */
+	rev?: number
 }
 type DirectoryRow = NonNullable<InviteOptionsInput["users"]>[number]
 /** execCommand's value slot for commands that take none — kept `null`, as the browser API has always been called here. */
@@ -448,6 +450,28 @@ function pruneLocalAnchors() {
 		if (pruned !== src) { textarea("docSource").value = pruned; changed = true }
 	}
 	return changed
+}
+
+// A comment the server has anchored but this editor hasn't: the author was
+// mid-sentence when it arrived, so the server's html was not taken. Underline
+// the words here, in the author's own copy, so their next save carries the
+// anchor instead of orphaning the comment. Only an author can be in this
+// state — a reader has no unsaved words and simply takes the push.
+function mergeArrivedAnchors() {
+	if (!canEditDoc() || !dirty) return
+	for (const c of comments) {
+		if (c.resolved || c.orphaned || !c.cid || !c.pos) continue
+		const ch = chapters.find((x) => x.id === c.pos!.chapterId)
+		if (!ch) continue
+		if (ch === openChapter()) {
+			if (!sourceMode) placeAnchor($("docEditor"), c.cid, c.pos)
+			continue
+		}
+		if ((ch.html || "").includes(`data-cid="${c.cid}"`)) continue
+		const box = document.createElement("div")
+		box.innerHTML = ch.html || ""
+		if (placeAnchor(box, c.cid, c.pos)) ch.html = cleanHtml(box, { doc: true })
+	}
 }
 
 // ---- threads: replies, inline edit, the ⋮ menu ----
@@ -1362,6 +1386,7 @@ function setMode(toSource: boolean) {
 		$("docEditor").innerHTML = cleanHtml($("docEditor"), { doc: true })
 	}
 	sourceMode = toSource
+	if (!toSource) mergeArrivedAnchors() // comments that arrived while the words were raw text
 	$("docEditor").classList.toggle("hidden", toSource)
 	$("docSource").classList.toggle("hidden", !toSource)
 	$("docToolbar").classList.toggle("dimmed", toSource)
@@ -1399,7 +1424,7 @@ async function save({ quiet = false }: { quiet?: boolean } = {}) {
 		// An autosave names the copy it started from and is refused (409) when
 		// another tab saved since; a deliberate Save carries no base and wins.
 		const body: Record<string, unknown> = { title: input("docTitle").value, chapters: list }
-		if (quiet && typeof doc.updatedAt === "number") body.baseUpdatedAt = doc.updatedAt
+		if (quiet && typeof doc.rev === "number") body.baseRev = doc.rev
 		const r = await api<{ doc: DocPayload }>("/api/docs/" + encodeURIComponent(docId), body, "PUT")
 		conflicted = false
 		banners.hide("conflictBar")
@@ -2059,17 +2084,19 @@ function connect() {
 		// the server has spoken: nothing is "just sent" any more, so any
 		// anchor it doesn't know about is fair game for the prune
 		for (const cid of pendingCids) if (rows.some((c) => c.cid === cid)) pendingCids.delete(cid)
+		mergeArrivedAnchors()
 		renderComments()
 	})
-	s.on("doc-updated", ({ id, html, title, chapters: rows, updatedAt }) => {
+	s.on("doc-updated", ({ id, html, title, chapters: rows, updatedAt, rev }) => {
 		if (id !== docId || !doc) return
 		// My own other tab saved. A clean tab follows it, so it is never stale;
 		// a tab with unsaved typing keeps its words and lets the version check
 		// on its next autosave say so.
 		if (doc.mine) {
-			// the stale stamp stays on a dirty tab, so its next autosave is refused
+			// the stale rev stays on a dirty tab, so its next autosave is refused
 			if (dirty || saving) return
 			if (typeof updatedAt === "number") doc.updatedAt = updatedAt
+			if (typeof rev === "number") doc.rev = rev
 		}
 		doc.html = html
 		doc.title = title
@@ -2085,9 +2112,10 @@ function connect() {
 		renderChapters()
 	})
 	// The html itself changed: someone anchored a comment, or a suggestion
-	// was accepted. Re-rendering moves the caret, so an author with
-	// unsaved edits is told rather than interrupted — their next save
-	// carries their own copy of the anchors anyway.
+	// was accepted. An author with unsaved edits keeps their OWN copy of every
+	// chapter — taking the server's would cost them their typing — and the
+	// comment list that follows underlines the new words in it
+	// (mergeArrivedAnchors) or prunes the ones that went.
 	// One CHAPTER's html at a time. A chapter that isn't on screen is
 	// updated in the array alone (stashCurrent only ever writes the OPEN
 	// one back, so the two can't clobber each other).
@@ -2095,18 +2123,10 @@ function connect() {
 		if (id !== docId) return
 		const ch = chapters.find((c) => c.id === chapterId)
 		if (!ch) return
+		if (dirty && doc?.mine) return
 		ch.html = html
 		if (typeof chapterWordCount === "number") ch.wordCount = chapterWordCount
 		if (ch !== openChapter()) return renderChapters()
-		if (dirty && doc?.mine) {
-			// A removal (delete, reject, resolve) needs no telling — the prune
-			// takes the underline when the comment list follows; only an
-			// ARRIVAL is something the author can't see until they save.
-			$("docErr").textContent = htmlPushKind(currentHtml(), html || "") === "added"
-				? "New comments arrived: save to see them underlined in place."
-				: ""
-			return
-		}
 		$("docEditor").innerHTML = html || ""
 		undoHistory.reset()
 		renderDoc()

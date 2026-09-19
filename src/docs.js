@@ -6,6 +6,34 @@ import { randomUUID, randomBytes } from "crypto";
 import { storage, getJson } from "./storage.js";
 import { stripTags, plainText } from "./sanitize.js";
 
+/**
+ * The stored shapes. A document's prose and its comment threads are TWO
+ * records (doc/<id> and comment/<id>): a beta reader writing on the margins
+ * must never look, to the author's editor, like somebody editing the story.
+ *
+ * @typedef {{ id: string, title: string, html: string, wordCount?: number }} DocChapter
+ * @typedef {{ id: string, userId: string, text: string, ts: number, editedAt?: number }} DocReply
+ * Where a comment's words sat when it was made, in the chapter's plain text
+ * (tags gone, entities decoded — what a DOM calls textContent), so an editor
+ * that never received the anchor can put the underline back in place.
+ * @typedef {{ chapterId: string, start: number, text: string, before: string, after: string }} CommentPos
+ * @typedef {{
+ *   id: string, cid: string, quote: string, userId: string, text: string,
+ *   suggestion: string | null, ts: number, resolved: boolean, accepted: boolean,
+ *   declined?: boolean, editedAt?: number, replies?: DocReply[], pos?: CommentPos,
+ * }} DocComment
+ * @typedef {{ docId: string, comments: DocComment[] }} CommentRecord
+ * `html` and `comments` are ATTACHED on read and never persisted in the doc
+ * blob; `rev` counts the author's saves and is the only thing a save conflicts on.
+ * @typedef {{
+ *   id: string, ownerId: string, title: string, chapters: DocChapter[],
+ *   betaReaders: string[], visibility: string, wordCount: number,
+ *   createdAt: number, updatedAt: number, rev?: number,
+ *   sprintWords?: number, sprints?: number,
+ *   html?: string, comments: DocComment[],
+ * }} Doc
+ */
+
 // Ids go straight into a filename — never trust one that isn't a plain uuid.
 export const ID_RE = /^[0-9a-f-]{36}$/i;
 
@@ -82,22 +110,82 @@ export function mapChapterHtml(doc, fn) {
 // shape straight back (the html moved, nothing else: no `updatedAt` stamp, no
 // anchor pruning — a read must not edit or reorder anything), so the id is the
 // same on every read after.
+/** @returns {Doc | null} */
 export function readDoc(id) {
   if (!ID_RE.test(String(id || ""))) return null;
   const raw = getJson("doc", id);
   if (!raw) return null;
   const legacy = !Array.isArray(raw.chapters) || !raw.chapters.length;
+  // a blob from before comments had their own record: move them out first
+  const embedded = "comments" in raw;
+  if (embedded) splitComments(raw);
   const doc = ensureChapters(raw);
-  if (legacy) {
+  if (legacy || embedded) {
     try {
-      storage.put("doc", doc.id, JSON.stringify({ ...doc, html: undefined }, null, 1));
+      storage.put("doc", doc.id, JSON.stringify({ ...doc, html: undefined, comments: undefined }, null, 1));
     } catch (e) {
       console.error("readDoc migration failed:", e.message);
     }
   }
+  doc.comments = readComments(doc.id);
   return doc;
 }
 
+// ---- the comment record ----
+// comment/<doc id> holds every thread on one document. Nothing in it is prose,
+// so writing it never stamps the document and never moves `rev`.
+/** @returns {DocComment[]} */
+export function readComments(docId) {
+  const rec = getJson("comment", docId);
+  return Array.isArray(rec?.comments) ? rec.comments : [];
+}
+
+/** @param {Pick<Doc, "id" | "comments">} doc */
+export function writeComments(doc) {
+  const comments = Array.isArray(doc.comments) ? doc.comments : [];
+  try {
+    if (!comments.length) { if (storage.has("comment", doc.id)) storage.del("comment", doc.id); }
+    else storage.put("comment", doc.id, JSON.stringify({ docId: doc.id, comments }, null, 1));
+  } catch (e) {
+    console.error("writeComments failed:", e.message);
+  }
+}
+
+// The migration, one document: comments embedded in a doc blob (the shape
+// before the split) are UNIONED by id into the comment record — never over
+// it, so a half-finished run or a blob re-seeded from disk can't lose a
+// thread — and dropped from the blob. The record is written FIRST: a crash in
+// between leaves the comments in both places, and the next pass re-unions
+// the same ids to the same answer. Returns how many comments moved.
+function splitComments(raw) {
+  const embedded = Array.isArray(raw.comments) ? raw.comments.filter((c) => c && c.id) : [];
+  delete raw.comments;
+  if (!embedded.length) return 0;
+  const kept = readComments(raw.id);
+  const known = new Set(kept.map((c) => c.id));
+  const fresh = embedded.filter((c) => !known.has(c.id));
+  if (fresh.length) writeComments({ id: raw.id, comments: [...kept, ...fresh].sort((a, b) => (a.ts || 0) - (b.ts || 0)) });
+  return fresh.length;
+}
+
+// Boot-time sweep (server.js, right after storage.init): every document still
+// carrying its comments is split. readDoc does the same lazily, so this is
+// for the log line and so production is whole the moment it's up. Touches
+// neither `updatedAt` nor the anchors — a migration is not an edit.
+export function migrateDocComments() {
+  let docs = 0, comments = 0;
+  for (const id of storage.list("doc")) {
+    const raw = getJson("doc", id);
+    if (!raw || !("comments" in raw) || !ID_RE.test(String(raw.id || ""))) continue;
+    const moved = splitComments(raw);
+    storage.put("doc", raw.id, JSON.stringify({ ...raw, html: undefined }, null, 1));
+    if (moved) { docs++; comments += moved; }
+  }
+  if (docs) console.log(`comments: migrated ${comments} comment${comments === 1 ? "" : "s"} out of ${docs} document${docs === 1 ? "" : "s"}`);
+  return { docs, comments };
+}
+
+/** @param {Doc} doc */
 export function writeDoc(doc) {
   // An anchor with no live comment behind it is not a legal state, and the
   // author's editor is the one thing that can reintroduce one: their undo
@@ -108,8 +196,9 @@ export function writeDoc(doc) {
   ensureChapters(doc);
   mapChapterHtml(doc, (h) => pruneAnchors(h, doc.comments));
   doc.updatedAt = Date.now();
-  // the derived join is never persisted — the chapters are the truth
-  const json = JSON.stringify({ ...doc, html: undefined }, null, 1);
+  // the derived join is never persisted — the chapters are the truth — and
+  // the comments are their own record (writeComments)
+  const json = JSON.stringify({ ...doc, html: undefined, comments: undefined }, null, 1);
   try {
     storage.put("doc", doc.id, json);
   } catch (e) {
@@ -124,13 +213,14 @@ export function createDoc(ownerId, title) {
     id: randomUUID(), ownerId, title: cleanTitle(title),
     chapters: [{ id: newChapterId(), title: "Chapter 1", html: "" }],
     betaReaders: [], visibility: "private", comments: [], // private until the author says otherwise
-    wordCount: 0, createdAt: now, updatedAt: now,
+    wordCount: 0, createdAt: now, updatedAt: now, rev: 0,
   });
 }
 
 export function deleteDoc(id) {
   if (!ID_RE.test(String(id || ""))) return false;
   storage.del("doc", id);
+  if (storage.has("comment", id)) storage.del("comment", id);
   return true;
 }
 
@@ -287,4 +377,29 @@ export function applySuggestion(html, cid, text) {
 export function anchorText(html, cid) {
   const s = anchorSpan(html, cid);
   return s ? stripTags(html.slice(s.from, s.to)) : "";
+}
+
+// The anchored words as a DOM would read them: tags gone with NO space put in
+// their place, entities decoded. (`stripTags`/`plainText` are for counting and
+// quoting; this one has to agree with textContent offset for offset.)
+const NAMED = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: "\u00a0" };
+const domText = (html) =>
+  String(html ?? "").replace(/<[^>]+>/g, "").replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (m, e) => {
+    if (e[0] !== "#") return NAMED[e.toLowerCase()] ?? m;
+    const n = e[1].toLowerCase() === "x" ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10);
+    return Number.isFinite(n) && n > 0 && n <= 0x10ffff ? String.fromCodePoint(n) : m;
+  });
+
+// Where an anchor sits in its chapter's text, with a little of what surrounds
+// it — enough for the author's editor to find the same words again after the
+// author has typed elsewhere (see placeAnchor in the client's comment-sync).
+const POS_CONTEXT = 32;
+/** @returns {Omit<CommentPos, "chapterId"> | null} */
+export function anchorPos(html, cid) {
+  const s = anchorSpan(html, cid);
+  if (!s) return null;
+  const before = domText(html.slice(0, s.at));
+  const text = domText(html.slice(s.from, s.to));
+  const after = domText(html.slice(s.end));
+  return { start: before.length, text: text.slice(0, 1000), before: before.slice(-POS_CONTEXT), after: after.slice(0, POS_CONTEXT) };
 }

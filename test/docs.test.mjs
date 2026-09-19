@@ -1271,26 +1271,115 @@ test("chapters: a document written before chapters existed takes a reader's comm
   assert.equal(last(B.pushes).chapterId, chId);
 });
 
-test("autosave conflict: a save naming a stale base is refused with 409; one without a base overwrites", async () => {
+test("autosave conflict: a save naming a stale rev is refused with 409; one without a base overwrites", async () => {
   const doc = await newDoc(alice.token, "Two tabs");
   const first = await ctx.api("/api/docs/" + doc.id, { chapters: [{ title: "One", html: "<p>tab A</p>" }] }, alice.token, "PUT");
   assert.equal(first.status, 200);
-  const seen = first.data.doc.updatedAt;
-  await new Promise((r) => setTimeout(r, 5));
+  const seen = first.data.doc.rev;
+  assert.equal(typeof seen, "number");
   // tab B saves after A last looked
-  const b = await ctx.api("/api/docs/" + doc.id, { chapters: [{ title: "One", html: "<p>tab B</p>" }], baseUpdatedAt: seen }, alice.token, "PUT");
+  const b = await ctx.api("/api/docs/" + doc.id, { chapters: [{ title: "One", html: "<p>tab B</p>" }], baseRev: seen }, alice.token, "PUT");
   assert.equal(b.status, 200, "a base that matches the stored copy saves");
-  // tab A's autosave, still holding the old stamp, is refused
-  const a = await ctx.api("/api/docs/" + doc.id, { chapters: [{ title: "One", html: "<p>tab A again</p>" }], baseUpdatedAt: seen }, alice.token, "PUT");
+  assert.equal(b.data.doc.rev, seen + 1, "every save is one rev");
+  // tab A's autosave, still holding the old rev, is refused
+  const a = await ctx.api("/api/docs/" + doc.id, { chapters: [{ title: "One", html: "<p>tab A again</p>" }], baseRev: seen }, alice.token, "PUT");
   assert.equal(a.status, 409);
   assert.equal(a.data.conflict, true);
-  assert.equal(a.data.updatedAt, b.data.doc.updatedAt, "the refusal names the current stamp");
+  assert.equal(a.data.rev, b.data.doc.rev, "the refusal names the current rev");
   const kept = await ctx.api("/api/docs/" + doc.id, null, alice.token, "GET");
   assert.equal(kept.data.doc.html, "<p>tab B</p>", "the refused save changed nothing");
   // a deliberate Save carries no base and wins
   const force = await ctx.api("/api/docs/" + doc.id, { chapters: [{ title: "One", html: "<p>tab A wins</p>" }] }, alice.token, "PUT");
   assert.equal(force.status, 200);
   assert.equal(force.data.doc.html, "<p>tab A wins</p>");
+});
+
+// ---- comments are not edits ----
+// Reported from production: a beta reader commented while the author was
+// writing, and the author's autosave was refused — "changed in another tab,
+// reload to see it" — so new comments cost them their unsaved words. Nothing a
+// reader (or the author's own sprint timer, or the share menu) does may stand
+// between an author and their save.
+test("a beta reader comments, replies, edits, resolves and deletes while the author is mid-sentence: the author's autosave is never refused", async () => {
+  const doc = await commentableDoc();
+  const base = (await docOf(doc.id)).rev;
+  const B = await ctx.conn();
+  B.emit("doc-open", { auth: bob.token, id: doc.id });
+  await ctx.wait(150);
+  B.emit("doc-comment", { auth: bob.token, id: doc.id, cid: "a1a1a1a1a1a1", html: anchored("a1a1a1a1a1a1"), text: "lovely" });
+  await ctx.wait(200);
+  let now = await docOf(doc.id);
+  const c = now.comments[0];
+  assert.deepEqual(c.pos, { chapterId: now.chapters[0].id, start: "firsthis ".length, text: "striped shirt", before: "firsthis ", after: " hangs" }, "the comment knows where its words sit");
+  B.emit("doc-comment-reply", { auth: bob.token, id: doc.id, commentId: c.id, text: "and another thing" });
+  await ctx.wait(150);
+  B.emit("doc-comment-edit", { auth: bob.token, id: doc.id, commentId: c.id, text: "lovely!" });
+  await ctx.wait(150);
+  now = await docOf(doc.id);
+  assert.equal(now.comments[0].text, "lovely!");
+  assert.equal(now.comments[0].replies.length, 1);
+  assert.equal(now.rev, base, "none of that was a save");
+
+  // the author's editor merged the underline in place (placeAnchor) and kept typing
+  const mine = "<p>first</p><p>a line bob never saw</p><p>his " + '<span class="cmt" data-cid="a1a1a1a1a1a1">striped shirt</span> hangs</p>';
+  const saved = await ctx.api("/api/docs/" + doc.id, { chapters: [{ id: now.chapters[0].id, title: "One", html: mine }], baseRev: base }, alice.token, "PUT");
+  assert.equal(saved.status, 200, "the autosave goes through");
+  assert.ok(saved.data.doc.html.includes("a line bob never saw"));
+  assert.equal(saved.data.doc.comments[0].orphaned, false, "and the comment is still pinned to its words");
+
+  B.emit("doc-comment-resolve", { auth: bob.token, id: doc.id, commentId: c.id, resolved: true });
+  await ctx.wait(150);
+  B.emit("doc-comment-delete", { auth: bob.token, id: doc.id, commentId: c.id });
+  await ctx.wait(150);
+  const again = await ctx.api("/api/docs/" + doc.id, { chapters: [{ id: now.chapters[0].id, title: "One", html: mine + "<p>more</p>" }], baseRev: saved.data.doc.rev }, alice.token, "PUT");
+  assert.equal(again.status, 200, "nor do a resolve and a delete refuse the next one");
+  assert.equal(again.data.doc.comments.length, 0);
+  assert.ok(!again.data.doc.html.includes("data-cid"), "the dead underline the author still held is pruned on the way in");
+});
+
+test("a sprint, an invitation and a visibility change don't refuse the author's next autosave either", async () => {
+  const doc = await newDoc(alice.token, "Busy author");
+  const first = await ctx.api("/api/docs/" + doc.id, { html: BODY }, alice.token, "PUT");
+  const base = first.data.doc.rev;
+  assert.equal((await ctx.api("/api/docs/" + doc.id + "/sprint", { words: 12, seconds: 60 }, alice.token)).status, 200);
+  assert.equal((await ctx.api("/api/docs/" + doc.id + "/readers", { username: "bobbeta" }, alice.token)).status, 200);
+  const save = await ctx.api("/api/docs/" + doc.id, { html: BODY + "<p>still typing</p>", baseRev: base }, alice.token, "PUT");
+  assert.equal(save.status, 200);
+});
+
+test("the story's record holds no comments and the comment record holds no story", async () => {
+  const { readFileSync, existsSync } = await import("node:fs");
+  const { join } = await import("node:path");
+  const doc = await commentableDoc();
+  const storyFile = join(ctx.dataDir, "docs", doc.id + ".json");
+  const threadFile = join(ctx.dataDir, "comments", doc.id + ".json");
+  assert.ok(!existsSync(threadFile), "no comments, no record");
+  const B = await ctx.conn();
+  B.emit("doc-open", { auth: bob.token, id: doc.id });
+  await ctx.wait(150);
+  B.emit("doc-comment", { auth: bob.token, id: doc.id, cid: "b2b2b2b2b2b2", html: anchored("b2b2b2b2b2b2"), text: "kept apart" });
+  await ctx.wait(250);
+  const story = JSON.parse(readFileSync(storyFile, "utf-8"));
+  assert.ok(!("comments" in story));
+  const before = story.updatedAt;
+  const threads = JSON.parse(readFileSync(threadFile, "utf-8"));
+  assert.equal(threads.docId, doc.id);
+  assert.equal(threads.comments[0].text, "kept apart");
+  assert.ok(!JSON.stringify(threads).includes("first</p>"), "not a word of prose");
+
+  // a reply writes the comment record and nothing else
+  B.emit("doc-comment-reply", { auth: bob.token, id: doc.id, commentId: threads.comments[0].id, text: "margin only" });
+  await ctx.wait(200);
+  assert.equal(JSON.parse(readFileSync(storyFile, "utf-8")).updatedAt, before, "the story's record was not even opened");
+  assert.equal(JSON.parse(readFileSync(threadFile, "utf-8")).comments[0].replies.length, 1);
+
+  // a stranger still can't write there, and deleting the story takes its threads
+  const C = await ctx.conn();
+  C.emit("doc-comment-reply", { auth: carol.token, id: doc.id, commentId: threads.comments[0].id, text: "let me in" });
+  await ctx.wait(200);
+  assert.equal(JSON.parse(readFileSync(threadFile, "utf-8")).comments[0].replies.length, 1, "a normal account with no invitation is refused");
+  assert.equal((await ctx.api("/api/docs/" + doc.id, null, alice.token, "DELETE")).status, 200);
+  assert.ok(!existsSync(storyFile) && !existsSync(threadFile));
 });
 
 // ---- the &amp;amp;amp; bug ----
