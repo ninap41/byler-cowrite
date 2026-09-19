@@ -1441,6 +1441,18 @@ test("a chapter too long to store is refused, never silently cut", async () => {
   assert.equal((await docOf(doc.id)).html, "<p>kept</p>", "the stored copy is untouched");
 });
 
+test("a whole story too large to send is refused in words, and nothing stored changes", async () => {
+  const doc = await newDoc(alice.token, "Vast");
+  await ctx.api("/api/docs/" + doc.id, { html: "<p>kept</p>" }, alice.token, "PUT");
+  // every chapter under DOC_MAX, the request over the body limit
+  const big = "<p>" + "word ".repeat(DOC_MAX / 5 - 10) + "</p>";
+  const chapters = Array.from({ length: 12 }, (_, i) => ({ id: null, title: "Ch " + (i + 1), html: big }));
+  const r = await ctx.api("/api/docs/" + doc.id, { chapters }, alice.token, "PUT");
+  assert.equal(r.status, 413);
+  assert.match(r.data.error, /too large to save/i);
+  assert.equal((await docOf(doc.id)).html, "<p>kept</p>", "the stored copy is untouched");
+});
+
 test("a reader can still comment on prose full of quotes after the author has saved many times", async () => {
   const doc = await newDoc(alice.token, "Quoted");
   let r = await ctx.api("/api/docs/" + doc.id, { html: `<p>'Closed' it said.</p>` }, alice.token, "PUT");

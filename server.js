@@ -62,6 +62,19 @@ app.use("/sounds", express.static(join(__dirname, "sounds"), { maxAge: "7d" }));
 // The raw body is kept (req.rawBody) because Discord's interaction signature
 // is computed over the exact bytes sent — a re-serialized JSON wouldn't verify.
 app.use(express.json({ limit: "2mb", verify: (req, _res, buf) => { req.rawBody = buf; } })); // the admin prompt editor PUTs the whole library
+// A body over that limit never reaches a route, and express would answer it
+// with an html error page — which the editor can only show as "Something went
+// wrong". Say what happened instead: a solo save sends EVERY chapter, so this is
+// the ceiling on a whole story (the per-chapter one is DOC_MAX, in the route).
+app.use((err, req, res, next) => {
+  if (err?.type !== "entity.too.large") return next(err);
+  const story = /^\/api\/docs\//.test(req.path);
+  res.status(413).json({
+    error: story
+      ? "This story is too large to save in one piece. Your words are still here — copy them somewhere safe, then move some chapters into a second story."
+      : "That is too large to send.",
+  });
+});
 
 const game = createGame(io); // owns sessions, presence, saves/, socket handlers
 registerRoutes(app, game);

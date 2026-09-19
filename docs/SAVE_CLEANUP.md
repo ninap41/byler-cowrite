@@ -21,11 +21,12 @@ The solo editor autosaves to the server, with two-tab protection. But autosave f
 3. **Leave = flush, no modal.** Remove `#leaveModal` and the link interceptor's three choices: on an in-app link while dirty, `await save({quiet: true})` then navigate (on failure: write the draft, show `#docErr`, stay). On `pagehide`/`beforeunload` while dirty: `saveDraft(...)` plus a `fetch(..., {keepalive: true})` PUT (the sprint logger's pattern) — and only `preventDefault()` when the body exceeds keepalive's 64 KB limit or a save has just failed.
 4. **Draft written where it helps.** Drop the tick's `else saveDraft(...)` branch; write the draft (a) when a save FAILS — today it isn't, so an idle author with a 401/413/offline has no fallback until unload — and (b) on unload. Still cleared on every successful save.
 5. **Failure retry.** After a non-409 failure, retry with backoff (5s → 60s cap) while dirty instead of waiting for the next tick; 413/401/403 don't retry (they need the author) and keep their message.
-6. **Housekeeping.** Fix `doc-store.ts`'s header comment (no "debounce while typing" writer exists); note that the draft key is one global slot, not per document — acceptable, but say so.
+6. **Send only what changed.** Today every save PUTs EVERY chapter, so three limits disagree: `DOC_MAX` (200,000 chars a chapter) × `MAX_CHAPTERS` (200) allows ~40 MB, but the request body limit in `server.js` is 2 MB — the real ceiling on a whole story is ~2 million characters (~300,000 words, or ten full-size chapters). Over it, the server now answers a worded 413 ("too large to save in one piece") instead of express's html error page — that stopgap is DONE; this step removes the ceiling. The client keeps the last saved shape per chapter (`id`, `title`, `html`) and sends `{order: [ids], changed: [{id, title, html}], baseRev}`; the server reads the stored chapter list (invariant 9: a save reads the whole list), swaps in the changed ones, reorders/drops by `order`, and sanitizes and `DOC_MAX`-checks only `changed`. A new chapter is a `changed` entry with `id: null`, answered with its minted id as now. The full-list shape stays accepted (the legacy single-`html` one too), and the conflict rule is unchanged — `rev` still moves once per PUT. A save with nothing changed and the same order is skipped client-side, which also answers the "more PUTs per session" risk below. Pin: a 15-chapter story of full-size chapters saves one edited chapter; an unknown id in `order` is a 400; a changed chapter over `DOC_MAX` is still a 413 and nothing is stored.
+7. **Housekeeping.** Fix `doc-store.ts`'s header comment (no "debounce while typing" writer exists); note that the draft key is one global slot, not per document — acceptable, but say so.
 
 ## Order of work
 
-1 → 4 → 5 (pure behaviour, the button still present as a safety net) → 2 → 3 → 6. Each step is shippable alone.
+1 → 4 → 5 (pure behaviour, the button still present as a safety net) → 2 → 3 → 6 (before or with 1 if a story nears 2 MB — the debounce multiplies full-story PUTs) → 7. Each step is shippable alone.
 
 ## Tests
 
@@ -37,6 +38,6 @@ The solo editor autosaves to the server, with two-tab protection. But autosave f
 
 ## Risks
 
-- More PUTs per session (one per pause), each sending EVERY chapter — fine at ~100 users, but consider skipping the save when `allChapters()` equals the last saved shape.
+- More PUTs per session (one per pause), each sending EVERY chapter until step 6 lands — fine at ~100 users; step 6 skips the save when nothing changed.
 - keepalive's 64 KB cap: long works fall back to the draft + the native prompt.
 - Every quiet save bumps `rev`, so a second dirty tab hits the conflict bar sooner — intended.
