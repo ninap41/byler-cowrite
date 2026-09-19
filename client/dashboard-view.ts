@@ -134,6 +134,42 @@ export function writerRowHtml(u: WriterRow): string {
 	)
 }
 
+// ---- the directory's filters (pure; the page only reads its controls) ----
+/** Word-count bands offered by the directory; `max` is exclusive, absent = no ceiling. */
+export const WORD_BANDS: { id: string; label: string; min: number; max?: number }[] = [
+	{ id: "0", label: "Under 1,000 words", min: 0, max: 1000 },
+	{ id: "1k", label: "1,000 – 9,999 words", min: 1000, max: 10000 },
+	{ id: "10k", label: "10,000 – 49,999 words", min: 10000, max: 50000 },
+	{ id: "50k", label: "50,000 words and up", min: 50000 },
+]
+export interface WriterFilter {
+	q?: string
+	/** a WORD_BANDS id, or "" for any */
+	words?: string
+	/** "friends" | "others" | "" — your own row is neither */
+	who?: string
+	/** a rank name exactly as the row carries it, "none" for no rank yet, or "" for any */
+	rank?: string
+}
+export function filterWriters(rows: WriterRow[], f: WriterFilter): WriterRow[] {
+	const q = (f.q || "").trim().toLowerCase()
+	const band = WORD_BANDS.find((b) => b.id === f.words)
+	return rows.filter((u) => {
+		if (q && !u.username.toLowerCase().includes(q)) return false
+		if (band && (u.wordCount < band.min || (band.max !== undefined && u.wordCount >= band.max))) return false
+		if (f.who === "friends" && !u.friend) return false
+		if (f.who === "others" && (u.friend || u.me)) return false
+		if (f.rank === "none" ? !!u.badge : f.rank ? u.badge !== f.rank : false) return false
+		return true
+	})
+}
+/** The ranks somebody in the directory actually holds, lowest first (by the fewest words any holder has). */
+export function writerRanks(rows: WriterRow[]): string[] {
+	const floor = new Map<string, number>()
+	for (const u of rows) if (u.badge) floor.set(u.badge, Math.min(floor.get(u.badge) ?? Infinity, u.wordCount))
+	return [...floor.keys()].sort((a, b) => floor.get(a)! - floor.get(b)! || a.localeCompare(b))
+}
+
 // A friends row for the dashboard rail (link wrapping is the page's job): the
 // presence dot, avatar and name, and a ✉ that opens the message composer
 // (data-msg carries the username; the page handles the click). No badge chip:
@@ -371,6 +407,20 @@ export function streakRingHtml(streak: number, best: number): string {
 	)
 }
 
+// How a streak is earned, in the words the "?" beside it shows (lib/streak.js
+// is the rule: a UTC calendar day with a committed game line). One builder for
+// the dashboard and the profile, so the two can't word it differently.
+export const STREAK_TIP =
+	"Write at least one line in a game each day to keep your streak going. More lines the same day don't add to it, and a missed day starts it again at 1. Days turn over at midnight UTC. Solo writes don't count."
+const days = (n: number) => `${n} day${n === 1 ? "" : "s"}`
+export function streakMetaHtml(streak: number, best: number): string {
+	return (
+		`<div class="streak-meta"><b>${days(streak)}</b> current streak ` +
+		`<button type="button" class="streak-help" aria-label="How streaks work" data-tip="${esc(STREAK_TIP)}">?</button>` +
+		`<br>Best: ${days(best)}</div>`
+	)
+}
+
 // The dashboard's glimpse of the newest announcement: title, date, the first
 // words of the post as plain text, and a Read more link to /announcements.
 // Nothing (no card) when there is no post.
@@ -408,12 +458,6 @@ export function latestAnnouncementHtml(post: PostGlimpse | null | undefined): st
 		`<p class="ann-glimpse-text">${esc(previewText(post.html))} <a class="ann-glimpse-more" href="/announcements">Read more →</a></p>` +
 		`</div>`
 	)
-}
-
-// An older post under the newest one: date · title, a link to the page.
-export function announcementRowHtml(post: PostGlimpse): string {
-	const when = post.at ? new Date(post.at).toLocaleDateString([], { dateStyle: "medium" }) : ""
-	return `<a class="ann-row" href="/announcements">` + `<span class="ann-row-when">${esc(when)}</span>` + `<span class="ann-row-title">${esc(post.title || previewText(post.html, 80))}</span>` + `</a>`
 }
 
 // ---- /inbox: the two-pane inbox ---------------------------------------------

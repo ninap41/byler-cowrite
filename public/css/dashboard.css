@@ -382,6 +382,31 @@
 .streak-meta b {
 	color: var(--ink);
 }
+/* the "?" beside the streak: a small round button whose data-tip says how it works */
+.streak-help {
+	display: inline-grid;
+	place-items: center;
+	width: 18px;
+	height: 18px;
+	padding: 0;
+	margin-left: 2px;
+	border-radius: 50%;
+	border: 1px solid var(--line);
+	background: transparent;
+	color: var(--muted);
+	font: inherit;
+	font-size: 0.7rem;
+	line-height: 1;
+	cursor: help;
+	vertical-align: middle;
+}
+.streak-help:hover,
+.streak-help:focus-visible {
+	color: var(--accent-2);
+	border-color: var(--accent-2);
+	transform: none;
+	box-shadow: none;
+}
 
 /* ---- previous games (compact rows) ---- */
 .rg-row {
@@ -1458,22 +1483,8 @@ a.rg-row {
 	}
 }
 
-/* older announcements under the newest: one line each */
-#annSec .ann-card { margin-top: 10px; }
-.ann-row {
-	display: flex;
-	gap: 12px;
-	align-items: baseline;
-	padding: 8px 0;
-	border-bottom: 1px solid var(--line);
-	color: var(--ink);
-	text-decoration: none;
-	text-align: left;
-}
-.ann-row:last-child { border-bottom: 0; }
-.ann-row:hover .ann-row-title { color: var(--accent-2); }
-.ann-row-when { flex: none; font-family: var(--font-mono); font-size: 0.7rem; color: var(--muted); }
-.ann-row-title { font-size: 0.9rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* the newest announcement leads its card: no heading above it, so no gap either */
+#annSec .ann-card { margin-top: 0; }
 
 /* unseen announcements: a count dot on the Community tab */
 .dtab-dot {
@@ -1501,3 +1512,20 @@ a.rg-row {
 .dtab-live.hidden { display: none; }
 @keyframes dtab-live { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
 @media (prefers-reduced-motion: reduce) { .dtab-live { animation: none; } }
+
+/* the writers directory's filters: three selects and a count under the search box */
+.writer-filters {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	margin-top: 8px;
+}
+.writer-filters select {
+	flex: 1 1 150px;
+	min-width: 0;
+}
+.writer-filters #writerCount {
+	flex: 0 0 auto;
+	margin-left: auto;
+}

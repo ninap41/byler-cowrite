@@ -57,6 +57,12 @@ export function initTooltips(doc: Document = document): Tips {
 		},
 		true,
 	)
+	// A keyboard reaches a tip too: focus shows it, leaving hides it.
+	doc.addEventListener("focusin", (e) => {
+		const el = (e.target as Element | null)?.closest?.<HTMLElement>("[data-tip]")
+		if (el?.dataset.tip) show(el, el.dataset.tip)
+	})
+	doc.addEventListener("focusout", () => anchor && hide())
 	doc.addEventListener("scroll", () => anchor && place(anchor), true)
 	return { show, hide }
 }

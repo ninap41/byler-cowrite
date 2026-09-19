@@ -2,7 +2,7 @@ import { api } from "/js/api.js"
 import { mountChrome, setUserChip } from "/js/chrome.js"
 import { requireAuth } from "/js/auth-guard.js"
 import { safeColor, siteName } from "/js/util.js"
-import { streakRingHtml } from "/js/dashboard-view.js"
+import { streakRingHtml, streakMetaHtml } from "/js/dashboard-view.js"
 import { ladderAccordionHtml, usageCaseHtml, aboutHtml, avatarHtml } from "/js/profile-view.js"
 import { soloListHtml, betaReadingHtml, wireSoloDeletes, sprintListHtml, wireSprintDeletes } from "/js/write-view.js"
 import type { ChipUser } from "/js/chrome.js"
@@ -269,6 +269,6 @@ if (me) {
 		$("usageCase").innerHTML = usageCaseHtml(meta.usage, p.usageBadges, p.badgeDescs || {})
 		$("streakBox").innerHTML =
 			streakRingHtml(p.streak, Math.max(p.bestStreak, 1)) +
-			`<div class="streak-meta"><b>${p.streak} day${p.streak === 1 ? "" : "s"}</b> current streak<br>Best: ${p.bestStreak} day${p.bestStreak === 1 ? "" : "s"}</div>`
+			streakMetaHtml(p.streak, p.bestStreak)
 	}
 }

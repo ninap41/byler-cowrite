@@ -3275,8 +3275,11 @@ input[type="checkbox"]:focus-visible {
 	min-width: 0;
 }
 /* the invite dropdown wears the theme like an input: same panel, line, ink
-   and radius, its options on the panel too (a bare select is the browser's) */
-#inviteFriend {
+   and radius, its options on the panel too (a bare select is the browser's).
+   .field-select is the same dress for any other dropdown that sits beside
+   text fields (the dashboard's writer filters) */
+#inviteFriend,
+.field-select {
 	appearance: none;
 	-webkit-appearance: none;
 	padding: 12px 34px 12px 14px;
@@ -3297,11 +3300,14 @@ input[type="checkbox"]:focus-visible {
 		5px 5px;
 	background-repeat: no-repeat;
 }
-#inviteFriend:focus {
+#inviteFriend:focus,
+.field-select:focus {
 	outline: none;
 	border-color: var(--accent-2);
+	box-shadow: 0 0 0 3px var(--chip);
 }
-#inviteFriend option {
+#inviteFriend option,
+.field-select option {
 	background: var(--panel);
 	color: var(--ink);
 }

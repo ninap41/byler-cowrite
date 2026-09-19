@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   onlineUsersHtml, liveGameInfoHtml, statsText, badgeProgress, coverArt, coverStyle,
-  myGameStatus, myGameCardHtml, recentRowHtml, achievementsHtml, streakRingHtml, writerRowHtml, inboxMsgHtml, replyBoxHtml, chainMsgHtml, threadInbox, foldBtnHtml,
+  myGameStatus, myGameCardHtml, recentRowHtml, achievementsHtml, streakRingHtml, streakMetaHtml, STREAK_TIP, writerRowHtml, filterWriters, writerRanks, WORD_BANDS, inboxMsgHtml, replyBoxHtml, chainMsgHtml, threadInbox, foldBtnHtml,
 } from "../public/js/dashboard-view.js";
 import { gameCardHtml, archiveMetaText, archiveStoryHtml } from "../public/js/archive-view.js";
 
@@ -50,6 +50,30 @@ test("badgeProgress: fill = words / next rank's cost (what the label says); sliv
   assert.equal(badgeProgress({ wordCount: 99, nextBadge: { min: 100, name: "x" } }).pct, 99);
   assert.equal(badgeProgress({ wordCount: 75, nextBadge: { min: 100, name: "x" } }).pct, 75);
   assert.equal(badgeProgress({ wordCount: 50000, nextBadge: null }).pct, 100);
+});
+
+test("filterWriters: name, word band, friends vs not, and rank combine; my own row is neither friend nor stranger", () => {
+  const rows = [
+    { username: "Will", color: "#6c8cff", wordCount: 12000, badge: "🎨 Painter", friend: true },
+    { username: "mike", color: "#6c8cff", wordCount: 999, badge: "✏️ Inkling" },
+    { username: "El", color: "#6c8cff", wordCount: 1000, badge: "✏️ Inkling", requested: true },
+    { username: "newbie", color: "#6c8cff", wordCount: 0, badge: null },
+    { username: "self", color: "#6c8cff", wordCount: 60000, badge: "🎨 Painter", me: true },
+  ];
+  const names = (f) => filterWriters(rows, f).map((u) => u.username);
+  assert.deepEqual(names({}), ["Will", "mike", "El", "newbie", "self"], "no filter, everyone");
+  assert.deepEqual(names({ q: " wIL " }), ["Will"], "the name search is trimmed and caseless");
+  assert.deepEqual(names({ words: "0" }), ["mike", "newbie"], "999 is under 1,000");
+  assert.deepEqual(names({ words: "1k" }), ["El"], "1,000 opens the next band");
+  assert.deepEqual(names({ words: "50k" }), ["self"], "the top band has no ceiling");
+  assert.deepEqual(names({ who: "friends" }), ["Will"]);
+  assert.deepEqual(names({ who: "others" }), ["mike", "El", "newbie"], "a pending request is not a friend yet; I am not a stranger to myself");
+  assert.deepEqual(names({ rank: "✏️ Inkling" }), ["mike", "El"]);
+  assert.deepEqual(names({ rank: "none" }), ["newbie"]);
+  assert.deepEqual(names({ rank: "🎨 Painter", who: "friends", words: "10k" }), ["Will"], "filters combine");
+  assert.deepEqual(names({ words: "nonsense", who: "nonsense" }), ["Will", "mike", "El", "newbie", "self"], "an unknown choice filters nothing");
+  assert.deepEqual(writerRanks(rows), ["✏️ Inkling", "🎨 Painter"], "ranks held by someone, lowest first");
+  for (let i = 1; i < WORD_BANDS.length; i++) assert.equal(WORD_BANDS[i].min, WORD_BANDS[i - 1].max, "the bands leave no gap");
 });
 
 test("writerRowHtml: escapes, online dot, and the tail is the friend state — friend / requested / Add friend / nothing on my own row", () => {
@@ -114,6 +138,11 @@ test("recentRowHtml + achievementsHtml + streakRingHtml", () => {
   const ring = streakRingHtml(3, 7);
   assert.ok(ring.includes('aria-label="3-day streak"'));
   assert.ok(ring.includes("3d"));
+  const meta = streakMetaHtml(1, 12);
+  assert.ok(meta.includes("<b>1 day</b> current streak") && meta.includes("Best: 12 days"), "singular and plural days");
+  assert.ok(meta.includes('class="streak-help"') && meta.includes('aria-label="How streaks work"'), "a ? button says how it works");
+  assert.ok(meta.includes('data-tip="') && meta.includes("don&#39;t") && !/data-tip="[^"]*'/.test(meta), "the tip is escaped into its attribute");
+  for (const fact of [/one line in a game/, /missed day/, /midnight UTC/, /Solo writes don't count/]) assert.match(STREAK_TIP, fact);
   const full = streakRingHtml(7, 7);
   assert.ok(full.includes('stroke-dashoffset="0.0"'), "at best -> full ring");
 });

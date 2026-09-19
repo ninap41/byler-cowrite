@@ -151,10 +151,9 @@
 					</div>
 
 					<div class="dash-tab hidden" id="tabCommunity" role="tabpanel">
-						<!-- announcements: the newest post wears the tendril border, the
-					     next few follow as plain rows, and the page holds the rest -->
+						<!-- announcements: only the newest post, wearing the tendril border;
+					     the page holds the rest. No heading — the card names itself. -->
 						<div class="card" id="annSec">
-							<h3 class="dash-h" style="margin-top: 0">📣 Announcements</h3>
 							<div class="card ann-card hidden" id="annCard"></div>
 							<div id="annMore"></div>
 							<p class="subtle" style="text-align: left; margin-top: 10px">
@@ -173,6 +172,20 @@
 						<div class="card">
 							<h3 class="dash-h" style="margin-top: 0">Writers</h3>
 							<input id="writerSearch" placeholder="Search writers…" style="margin-top: 10px" />
+							<div class="writer-filters">
+								<select id="writerWho" class="field-select" aria-label="Friends or everyone">
+									<option value="">Everyone</option>
+									<option value="friends">Friends</option>
+									<option value="others">Not friends yet</option>
+								</select>
+								<select id="writerWords" class="field-select" aria-label="Word count">
+									<option value="">Any word count</option>
+								</select>
+								<select id="writerRank" class="field-select" aria-label="Rank">
+									<option value="">Any rank</option>
+								</select>
+								<span class="subtle" id="writerCount" aria-live="polite"></span>
+							</div>
 							<div id="writersList"></div>
 						</div>
 

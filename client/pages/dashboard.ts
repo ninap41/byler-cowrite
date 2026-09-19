@@ -1,21 +1,24 @@
 import { api, setToken, getToken } from "/js/api.js"
 import { mountChrome, setUserChip } from "/js/chrome.js"
 import { requireAuth } from "/js/auth-guard.js"
-import { safeColor } from "/js/util.js"
+import { esc, safeColor } from "/js/util.js"
 import {
 	liveGameInfoHtml,
 	joinLiveRowsHtml,
 	badgeProgress,
+	filterWriters,
+	writerRanks,
+	WORD_BANDS,
 	myGameCardHtml,
 	myGameStatus,
 	recentRowHtml,
 	achievementsHtml,
 	streakRingHtml,
+	streakMetaHtml,
 	writerRowHtml,
 	friendRowHtml,
 	friendStatsTip,
 	latestAnnouncementHtml,
-	announcementRowHtml,
 } from "/js/dashboard-view.js"
 import { avatarHtml } from "/js/profile-view.js"
 import { showInviteToast } from "/js/turn-alert.js"
@@ -148,7 +151,7 @@ function renderMe() {
 	typeLastLine()
 	$("streakBox").innerHTML =
 		streakRingHtml(me.streak, Math.max(me.bestStreak, 1)) +
-		`<div class="streak-meta"><b>${me.streak} day${me.streak === 1 ? "" : "s"}</b> current streak<br>Best: ${me.bestStreak} day${me.bestStreak === 1 ? "" : "s"}</div>`
+		streakMetaHtml(me.streak, me.bestStreak)
 }
 
 // Your newest committed story line, typed out once per visit (renderMe
@@ -492,10 +495,16 @@ function renderRecent(games: DashRecent[]) {
 // ---- Writers directory (all accounts + online dots + search) ----
 let allWriters: WriterRow[] = []
 function renderWriters() {
-	const q = $<HTMLInputElement>("writerSearch").value.trim().toLowerCase()
 	const box = $("writersList")
 	box.innerHTML = ""
-	const hits = allWriters.filter((u) => !q || u.username.toLowerCase().includes(q))
+	const hits = filterWriters(allWriters, {
+		q: $<HTMLInputElement>("writerSearch").value,
+		words: $<HTMLSelectElement>("writerWords").value,
+		who: $<HTMLSelectElement>("writerWho").value,
+		rank: $<HTMLSelectElement>("writerRank").value,
+	})
+	$("writerCount").textContent =
+		hits.length === allWriters.length ? `${allWriters.length} writers` : `${hits.length} of ${allWriters.length} writers`
 	if (!hits.length) {
 		box.innerHTML = '<p class="subtle" style="text-align:left;margin:8px 0 0">No writers match.</p>'
 		return
@@ -509,6 +518,22 @@ function renderWriters() {
 	})
 }
 $("writerSearch").addEventListener("input", renderWriters)
+for (const id of ["writerWords", "writerWho", "writerRank"]) $(id).addEventListener("change", renderWriters)
+$<HTMLSelectElement>("writerWords").insertAdjacentHTML(
+	"beforeend",
+	WORD_BANDS.map((b) => `<option value="${b.id}">${b.label}</option>`).join(""),
+)
+// The rank list is whoever is in the directory right now, so it is rebuilt
+// on every poll — keeping the choice if that rank is still held by someone.
+function paintRankOptions() {
+	const sel = $<HTMLSelectElement>("writerRank")
+	const keep = sel.value
+	sel.innerHTML =
+		'<option value="">Any rank</option>' +
+		writerRanks(allWriters).map((r) => `<option value="${esc(r)}">${esc(r)}</option>`).join("") +
+		'<option value="none">No rank yet</option>'
+	sel.value = [...sel.options].some((o) => o.value === keep) ? keep : ""
+}
 // Add friend: the button sits inside the profile link, so the click
 // must not follow it; the row repaints as "requested" on an ok.
 $("writersList").addEventListener("click", async (e) => {
@@ -610,7 +635,6 @@ async function loadAnnouncement() {
 				'<p class="subtle" style="text-align:left;margin:4px 0 0">Nothing from the admins yet.</p>'
 			return
 		}
-		$("annMore").innerHTML = posts.slice(1, 4).map(announcementRowHtml).join("")
 		annPost = post
 		$("annCard").innerHTML = latestAnnouncementHtml(post)
 		$("annCard").classList.remove("hidden")
@@ -695,6 +719,7 @@ async function loadDashboard() {
 	}
 	me = { ...me, ...d.stats }
 	renderMe()
+	paintRankOptions()
 	renderWriters()
 	renderMyGames(d.myGames)
 	renderRecent(d.recentGames)

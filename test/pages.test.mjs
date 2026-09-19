@@ -590,6 +590,12 @@ test("the column under the profile is two tabs: Dashboard (mine) and Community (
   for (const id of ["annCard", "dashLive", "writersList", "helpCard"]) assert.ok(everyone.includes(`id="${id}"`), id + " is community");
   assert.ok(everyone.indexOf('id="annCard"') < everyone.indexOf('id="dashLive"'), "the announcement leads");
   assert.ok(everyone.includes('id="annSec"') && everyone.includes('id="annMore"') && everyone.includes('href="/announcements"'), "an Announcements section with the page linked");
+  const annSec = everyone.slice(everyone.indexOf('id="annSec"'), everyone.indexOf('href="/announcements"'));
+  assert.ok(!/<h3/.test(annSec), "the announcement card names itself: no heading over it");
+  assert.ok(!script.includes("announcementRowHtml") && !/posts\.slice\(1/.test(script), "only the newest post — the page holds the rest");
+  for (const id of ["writerWho", "writerWords", "writerRank", "writerCount"]) assert.ok(everyone.includes(`id="${id}"`), id + " filters the directory");
+  for (const id of ["writerWho", "writerWords", "writerRank"]) assert.ok(everyone.includes(`<select id="${id}" class="field-select"`), id + " is dressed like the text fields beside it");
+  assert.match((await page("/css/base.css")).body, /#inviteFriend,\s*\.field-select \{[^}]*background: var\(--panel-2\);[^}]*border: 1px solid var\(--line\)/, "one themed dropdown style, shared with the invite picker");
   // the rail stands left of the column on desktop, by grid placement
   const css = (await page("/css/dashboard.css")).body;
   assert.match(css, /\.dash-wrap \{[^}]*grid-template-columns: 280px minmax\(0, 1fr\)/, "rail column first");
