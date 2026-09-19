@@ -39,10 +39,27 @@ export interface CommentRow {
 	avatar?: string
 	avatarFit?: string
 	isAuthor?: boolean
+	declined?: boolean
+	edited?: boolean
+	replies?: ReplyRow[]
+}
+/** One reply in a comment's thread (DocReplyRow in shared/wire.ts). */
+export interface ReplyRow {
+	id: string
+	text: string
+	ts?: number
+	edited?: boolean
+	author: string
+	color?: string
+	avatar?: string
+	avatarFit?: string
+	isAuthor?: boolean
 }
 export interface CommentViewOpts {
 	isOwner?: boolean
 	meName?: string
+	/** the viewer may write on this document (author or invited beta reader) */
+	canReply?: boolean
 }
 /** A writer in the invite picker: a /api/users row plus whether they're a friend. */
 export interface InviteRow extends UserRef {
@@ -254,34 +271,88 @@ export const presenceHtml = (viewers: UserRef[] | null | undefined): string =>
 // underlined words and the underline can jump back. A comment carrying a
 // `suggestion` is a proposed rewrite: the AUTHOR gets Accept/Reject, everyone
 // else just sees what was proposed — the server enforces that either way.
-export function commentHtml(c: CommentRow, { isOwner = false, meName = "" }: CommentViewOpts = {}): string {
-	// Resolve/Delete are the server's rule made visible: only the comment's own
-	// author or the document's author may touch it. Showing those buttons to a
-	// beta reader on someone else's note would just be a click that does nothing.
-	const canManage = isOwner || (!!meName && c.author === meName)
+export function commentHtml(c: CommentRow, { isOwner = false, meName = "", canReply = false }: CommentViewOpts = {}): string {
+	// The buttons are the server's rules made visible: you edit only your own
+	// words, you delete your own (the document's author may delete anyone's),
+	// and only the comment's writer or the author may close a thread. Showing
+	// more would just be a click that does nothing.
+	const mine = !!meName && c.author === meName
+	const canManage = isOwner || mine
+	const replies = c.replies || []
 	const cls = ["doc-comment", c.resolved && "resolved", c.orphaned && "orphaned", c.suggestion != null && "suggested"]
-	const decided = c.resolved && c.suggestion != null
-	return (
-		`<li class="${cls.filter(Boolean).join(" ")}" data-id="${esc(c.id)}" data-cid="${esc(c.cid || "")}">` +
+	const state = !c.resolved
+		? ""
+		: c.suggestion != null
+			? c.accepted ? "✓ Accepted" : "Not taken"
+			: c.declined ? "✕ declined" : "✓ resolved"
+	const head =
 		`<span class="dc-who">${miniAvatar({ avatar: c.avatar, avatarFit: c.avatarFit, name: c.author, color: c.color })}` +
 		`<b style="color:${safeColor(c.color)}">${esc(c.author)}</b>` +
-		(c.isAuthor ? `<span class="dc-tag">author</span>` : "") +
-		`<span class="dc-when">${esc(fmtWhen(c.ts))}</span></span>` +
+		`<span class="dc-when">${esc(fmtWhen(c.ts))}${c.edited ? " · edited" : ""}</span>` +
+		(state ? `<span class="dc-state">${state}</span>` : voiceTag(c.isAuthor)) +
+		moreMenuHtml({ edit: mine && !c.resolved, del: canManage, reopen: canManage && !!c.resolved }) +
+		`</span>`
+	const body =
 		(c.suggestion != null
 			? `<p class="dc-suggest"><s>${esc(c.quote || "")}</s> <span class="dc-arrow">→</span> <ins>${esc(c.suggestion)}</ins></p>`
 			: c.quote
 				? `<p class="dc-quote">${esc(c.quote)}</p>`
+				: "") + (c.text ? `<p class="dc-text">${esc(c.text)}</p>` : "")
+	const thread = replies.length
+		? `<ul class="dc-replies">${replies.map((r) => replyHtml(r, { isOwner, meName, open: !c.resolved })).join("")}</ul>`
+		: ""
+	// A closed thread folds to one line; a click opens it to read, not to write.
+	const tail = c.resolved
+		? replies.length
+			? `<p class="dc-count">${replies.length} ${replies.length === 1 ? "reply" : "replies"}</p>`
+			: ""
+		: (canReply
+				? `<span class="dc-reply"><input class="dc-reply-input" type="text" maxlength="1000" placeholder="Reply…" aria-label="Reply" />` +
+					`<button class="dc-send" type="button" aria-label="Send reply"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button></span>`
 				: "") +
-		(c.text ? `<p class="dc-text">${esc(c.text)}</p>` : "") +
-		(decided ? `<p class="dc-verdict">${c.accepted ? "✓ Accepted" : "Not taken"}</p>` : "") +
-		`<span class="dc-actions">` +
-		(c.suggestion != null && !c.resolved && isOwner
-			? `<button class="linky dc-accept" type="button">Accept</button><button class="linky dc-reject" type="button">Reject</button>`
-			: canManage
-				? `<button class="linky dc-resolve" type="button">${c.resolved ? "Unresolve" : "Resolve"}</button>`
-				: "") +
-		(canManage ? `<button class="linky dc-del" type="button">Delete</button>` : "") +
+			(c.suggestion != null && isOwner
+				? `<span class="dc-actions"><button class="dc-accept" type="button">✓ Accept</button><button class="dc-reject" type="button">✕ Reject</button></span>`
+				: isOwner
+					? `<span class="dc-actions"><button class="dc-resolve" type="button">✓ Resolve</button><button class="dc-decline" type="button">✕ Reject</button></span>`
+					: mine
+						? `<span class="dc-actions"><button class="dc-resolve" type="button">✓ Resolve</button></span>`
+						: "")
+	return (
+		`<li class="${cls.filter(Boolean).join(" ")}" data-id="${esc(c.id)}" data-cid="${esc(c.cid || "")}">` +
+		head + body + thread + tail +
+		`</li>`
+	)
+}
+
+/** Every voice in a thread wears one: the document's author, or a beta reader. */
+const voiceTag = (isAuthor?: boolean): string =>
+	isAuthor ? `<span class="dc-tag author">author</span>` : `<span class="dc-tag beta">beta</span>`
+
+/** The ⋮ on a comment or a reply — drawn only when it would hold something. */
+function moreMenuHtml({ edit = false, del = false, reopen = false }: { edit?: boolean; del?: boolean; reopen?: boolean }): string {
+	if (!edit && !del && !reopen) return ""
+	return (
+		`<span class="dc-more-wrap"><button class="dc-more" type="button" aria-label="More" aria-haspopup="menu" aria-expanded="false">` +
+		`<i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i></button>` +
+		`<span class="dc-menu hidden" role="menu">` +
+		(reopen ? `<button class="more-item dc-reopen" type="button" role="menuitem">Reopen</button>` : "") +
+		(edit ? `<button class="more-item dc-edit" type="button" role="menuitem">Edit</button>` : "") +
+		(del ? `<button class="more-item dc-del" type="button" role="menuitem">Delete</button>` : "") +
+		`</span></span>`
+	)
+}
+
+export function replyHtml(r: ReplyRow, { isOwner = false, meName = "", open = true }: CommentViewOpts & { open?: boolean } = {}): string {
+	const mine = !!meName && r.author === meName
+	return (
+		`<li class="dc-reply-item" data-rid="${esc(r.id)}">` +
+		`<span class="dc-who">${miniAvatar({ avatar: r.avatar, avatarFit: r.avatarFit, name: r.author, color: r.color })}` +
+		`<b style="color:${safeColor(r.color)}">${esc(r.author)}</b>` +
+		voiceTag(r.isAuthor) +
+		`<span class="dc-when">${esc(fmtWhen(r.ts))}${r.edited ? " · edited" : ""}</span>` +
+		moreMenuHtml({ edit: mine && open, del: isOwner || mine }) +
 		`</span>` +
+		`<p class="dc-text">${esc(r.text)}</p>` +
 		`</li>`
 	)
 }
@@ -303,13 +374,13 @@ export function commentModeBannerHtml({ canExit = true, count = 0 }: { canExit?:
 	)
 }
 
-export function commentThreadHtml(comments: CommentRow[], { orphaned = false, isOwner = false, meName = "" }: CommentViewOpts & { orphaned?: boolean } = {}): string {
+export function commentThreadHtml(comments: CommentRow[], { orphaned = false, isOwner = false, meName = "", canReply = false }: CommentViewOpts & { orphaned?: boolean } = {}): string {
 	if (!comments.length) return ""
 	return (
 		(orphaned
 			? `<p class="dc-orphan-note">${comments.length === 1 ? "This comment was" : "These comments were"} left on text that has since changed:</p>`
 			: "") +
-		`<ul class="dc-list">${comments.map((c) => commentHtml(c, { isOwner, meName })).join("")}</ul>`
+		`<ul class="dc-list">${comments.map((c) => commentHtml(c, { isOwner, meName, canReply })).join("")}</ul>`
 	)
 }
 

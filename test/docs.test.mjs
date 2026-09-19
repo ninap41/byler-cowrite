@@ -1369,3 +1369,124 @@ test("a reader can still comment on prose full of quotes after the author has sa
   assert.ok(!after.html.includes("amp;"), after.html);
   B.close();
 });
+
+// ---- threads: replies, editing, the author's Reject ----
+async function threadedDoc(cid = "c0c0c0c0c0c0") {
+  const doc = await commentableDoc();
+  const A = await ctx.conn(), B = await ctx.conn();
+  A.emit("doc-open", { auth: alice.token, id: doc.id });
+  B.emit("doc-open", { auth: bob.token, id: doc.id });
+  await ctx.wait(150);
+  B.emit("doc-comment", { auth: bob.token, id: doc.id, cid, html: anchored(cid), text: "intentional?" });
+  await ctx.wait(200);
+  const [c] = (await docOf(doc.id)).comments;
+  return { doc, A, B, commentId: c.id };
+}
+const threadOf = async (id) => (await docOf(id)).comments[0];
+
+test("a comment stored before threads existed reads as a thread with no replies", async () => {
+  const { doc } = await threadedDoc();
+  const c = await threadOf(doc.id);
+  assert.deepEqual(c.replies, [], "no `replies` field on disk, an empty list on the wire");
+  assert.equal(c.declined, false);
+  assert.equal(c.edited, false);
+});
+
+test("the author and the beta reader can reply to each other; ids never ship", async () => {
+  const { doc, A, B, commentId } = await threadedDoc();
+  A.emit("doc-comment-reply", { auth: alice.token, id: doc.id, commentId, text: "the title is the <b>typo</b>" });
+  await ctx.wait(150);
+  B.emit("doc-comment-reply", { auth: bob.token, id: doc.id, commentId, text: "phew" });
+  await ctx.wait(150);
+  const c = await threadOf(doc.id);
+  assert.deepEqual(c.replies.map((r) => [r.author, r.text, r.isAuthor]), [
+    ["aliceauthor", "the title is the typo", true],
+    ["bobbeta", "phew", false],
+  ], "in order, tags stripped, the author marked");
+  assert.ok(c.replies.every((r) => !("userId" in r)), "account ids never reach the client");
+});
+
+test("a stranger, and a public reader, cannot reply", async () => {
+  const { doc, commentId } = await threadedDoc();
+  const C = await ctx.conn();
+  C.emit("doc-comment-reply", { auth: carol.token, id: doc.id, commentId, text: "let me in" });
+  await ctx.wait(150);
+  assert.equal((await threadOf(doc.id)).replies.length, 0);
+  await setVis(doc.id, "public");
+  C.emit("doc-comment-reply", { auth: carol.token, id: doc.id, commentId, text: "now I can read it" });
+  await ctx.wait(150);
+  assert.equal((await threadOf(doc.id)).replies.length, 0, "reading a public write is not an invitation to write on it");
+});
+
+test("an empty reply, or one on a closed thread, is dropped", async () => {
+  const { doc, A, B, commentId } = await threadedDoc();
+  B.emit("doc-comment-reply", { auth: bob.token, id: doc.id, commentId, text: "   " });
+  A.emit("doc-comment-resolve", { auth: alice.token, id: doc.id, commentId, resolved: true });
+  await ctx.wait(150);
+  B.emit("doc-comment-reply", { auth: bob.token, id: doc.id, commentId, text: "one more thing" });
+  await ctx.wait(150);
+  assert.equal((await threadOf(doc.id)).replies.length, 0);
+});
+
+test("you edit your own words; the author cannot rewrite a reader's, nor a reader the author's", async () => {
+  const { doc, A, B, commentId } = await threadedDoc();
+  A.emit("doc-comment-reply", { auth: alice.token, id: doc.id, commentId, text: "fixing" });
+  await ctx.wait(150);
+  const replyId = (await threadOf(doc.id)).replies[0].id;
+
+  A.emit("doc-comment-edit", { auth: alice.token, id: doc.id, commentId, text: "I LOVE my own writing" });
+  B.emit("doc-comment-edit", { auth: bob.token, id: doc.id, commentId, replyId, text: "I was wrong" });
+  await ctx.wait(150);
+  let c = await threadOf(doc.id);
+  assert.equal(c.text, "intentional?", "the author can delete a note, never put words in a reader's mouth");
+  assert.equal(c.replies[0].text, "fixing");
+
+  B.emit("doc-comment-edit", { auth: bob.token, id: doc.id, commentId, text: "intentional, or a typo?" });
+  A.emit("doc-comment-edit", { auth: alice.token, id: doc.id, commentId, replyId, text: "fixed" });
+  B.emit("doc-comment-edit", { auth: bob.token, id: doc.id, commentId, text: "" });
+  await ctx.wait(150);
+  c = await threadOf(doc.id);
+  assert.equal(c.text, "intentional, or a typo?");
+  assert.equal(c.edited, true);
+  assert.deepEqual([c.replies[0].text, c.replies[0].edited], ["fixed", true]);
+  assert.ok((await docOf(doc.id)).html.includes('data-cid="c0c0c0c0c0c0"'), "editing the note leaves its underline alone");
+});
+
+test("the author can delete any reply; a reader only their own; the note survives", async () => {
+  const { doc, A, B, commentId } = await threadedDoc();
+  A.emit("doc-comment-reply", { auth: alice.token, id: doc.id, commentId, text: "from the author" });
+  await ctx.wait(100);
+  B.emit("doc-comment-reply", { auth: bob.token, id: doc.id, commentId, text: "from the reader" });
+  await ctx.wait(150);
+  const [fromAlice, fromBob] = (await threadOf(doc.id)).replies;
+
+  B.emit("doc-comment-delete", { auth: bob.token, id: doc.id, commentId, replyId: fromAlice.id });
+  await ctx.wait(150);
+  assert.equal((await threadOf(doc.id)).replies.length, 2, "a normal reader can't remove the author's reply");
+
+  A.emit("doc-comment-delete", { auth: alice.token, id: doc.id, commentId, replyId: fromBob.id });
+  await ctx.wait(150);
+  const c = await threadOf(doc.id);
+  assert.deepEqual(c.replies.map((r) => r.text), ["from the author"]);
+  assert.equal(c.text, "intentional?", "deleting a reply never takes the note");
+});
+
+test("Reject is the author's verdict: a reader's 'declined' is just resolved, and reopening clears it", async () => {
+  const { doc, A, B, commentId } = await threadedDoc();
+  B.emit("doc-comment-resolve", { auth: bob.token, id: doc.id, commentId, resolved: true, declined: true });
+  await ctx.wait(150);
+  let c = await threadOf(doc.id);
+  assert.deepEqual([c.resolved, c.declined], [true, false]);
+
+  A.emit("doc-comment-resolve", { auth: alice.token, id: doc.id, commentId, resolved: false });
+  await ctx.wait(100);
+  A.emit("doc-comment-resolve", { auth: alice.token, id: doc.id, commentId, resolved: true, declined: true });
+  await ctx.wait(150);
+  c = await threadOf(doc.id);
+  assert.deepEqual([c.resolved, c.declined], [true, true]);
+
+  A.emit("doc-comment-resolve", { auth: alice.token, id: doc.id, commentId, resolved: false });
+  await ctx.wait(150);
+  c = await threadOf(doc.id);
+  assert.deepEqual([c.resolved, c.declined], [false, false]);
+});

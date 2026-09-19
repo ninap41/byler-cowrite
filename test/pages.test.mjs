@@ -284,14 +284,17 @@ test("a heading's size is the heading's: spans inside can't shrink it", async ()
   assert.ok(write.body.includes("The heading style sets this text's size"), "with a tooltip that says why");
 });
 
-test("comment actions are text buttons, not squashed pills", async () => {
+test("a thread's closing row is bordered buttons sharing the rail, and its menu can hide", async () => {
   const css = await page("/css/base.css");
   const block = css.body.slice(css.body.indexOf("\n.dc-actions button {"), css.body.indexOf("\n.dc-actions button:hover"));
-  assert.match(block, /border: 0/, "the global button pill is reset");
-  assert.match(block, /background: none/);
-  assert.match(block, /width: auto/, "and they don't stretch to fill the rail");
-  assert.match(css.body, /\.dc-actions \.dc-del,\n\.dc-actions \.dc-reject \{\s*color: var\(--accent\)/,
-    "the destructive ones read as destructive");
+  assert.match(block, /border: 1px solid var\(--line\)/);
+  assert.match(block, /background: none/, "the global button pill is reset");
+  assert.match(block, /flex: 1 1 0/, "Resolve and Reject split the row");
+  assert.match(block, /min-width: 0/, "and two of them fit without clipping");
+  assert.match(css.body, /\.dc-actions \.dc-decline,\n\.dc-actions \.dc-reject \{\s*color: var\(--accent\)/,
+    "the refusing ones read as refusing");
+  // .dc-menu sets display:grid, so its .hidden twin must come later
+  assert.ok(css.body.lastIndexOf(".dc-menu.hidden") > css.body.indexOf("\n.dc-menu {"));
 });
 
 test("the composer is pinned above the comments, which scroll under it", async () => {

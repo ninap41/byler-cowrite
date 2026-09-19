@@ -343,6 +343,22 @@ export interface DocCommentRow {
 	avatar?: string
 	avatarFit?: AvatarFit | string
 	isAuthor?: boolean
+	/** closed by the author's Reject rather than Resolve */
+	declined?: boolean
+	edited?: boolean
+	replies?: DocReplyRow[]
+}
+/** One reply in a comment's thread — identity for rendering, never an account id. */
+export interface DocReplyRow {
+	id: string
+	text: string
+	ts?: number
+	edited?: boolean
+	author: string
+	color?: HexColor | string
+	avatar?: string
+	avatarFit?: AvatarFit | string
+	isAuthor?: boolean
 }
 
 type AckFn<T = Record<never, never>> = (res: Ack<T>) => void
@@ -399,6 +415,8 @@ export interface ClientToServer {
 	"doc-saved": (p: { auth: string | null; id: string }) => void
 	"doc-comment": (p: { auth: string | null; id: string; cid: string; chapterId: string | null; html: string; text: string; suggestion: string | null }) => void
 	"doc-comment-decide": (p: { auth: string | null; id: string; commentId: string; accept: boolean }) => void
-	"doc-comment-resolve": (p: { auth: string | null; id: string; commentId: string; resolved: boolean }) => void
-	"doc-comment-delete": (p: { auth: string | null; id: string; commentId: string }) => void
+	"doc-comment-resolve": (p: { auth: string | null; id: string; commentId: string; resolved: boolean; declined?: boolean }) => void
+	"doc-comment-delete": (p: { auth: string | null; id: string; commentId: string; replyId?: string }) => void
+	"doc-comment-reply": (p: { auth: string | null; id: string; commentId: string; text: string }) => void
+	"doc-comment-edit": (p: { auth: string | null; id: string; commentId: string; replyId?: string; text: string }) => void
 }

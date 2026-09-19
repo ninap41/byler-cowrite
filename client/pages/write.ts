@@ -54,6 +54,7 @@ import {
 } from "/js/write-view.js"
 import { exportDocument, exportWork, exportChapterHtml, slugOf } from "/js/export.js"
 import { esc } from "/js/util.js"
+import { confirmDialog } from "/js/components/confirm-delete.js"
 import type { Socket } from "socket.io-client"
 import type { ServerToClient, ClientToServer } from "/js/shared/wire.js"
 import type { ChipUser } from "/js/chrome.js"
@@ -449,6 +450,111 @@ function pruneLocalAnchors() {
 	return changed
 }
 
+// ---- threads: replies, inline edit, the ⋮ menu ----
+// The author, or an invited beta reader. A public reader can read the thread
+// but not join it — the server refuses them either way.
+const canReplyHere = () => !!doc?.mine || !!doc?.readerRows?.some((r) => r.username === me?.username)
+
+// The one note or reply being rewritten, and the closed threads opened to read.
+let editing: { commentId: string; replyId: string | null; value: string } | null = null
+const expanded = new Set<string>()
+
+const threadTarget = (commentId: string, replyId: string | null): HTMLElement | null => {
+	const li = [...$("commentPane").querySelectorAll<HTMLElement>(".doc-comment")].find((el) => el.dataset.id === commentId)
+	if (!li || replyId == null) return li || null
+	return [...li.querySelectorAll<HTMLElement>(".dc-reply-item")].find((el) => el.dataset.rid === replyId) || null
+}
+
+function openEditBox({ focus = true } = {}) {
+	if (!editing) return
+	const host = threadTarget(editing.commentId, editing.replyId)
+	if (!host) return void (editing = null)
+	const p = host.querySelector<HTMLElement>(":scope > .dc-text")
+	p?.classList.add("hidden")
+	const box = document.createElement("span")
+	box.className = "dc-editbox"
+	box.innerHTML =
+		`<textarea class="dc-edit-input" maxlength="1000" rows="3" aria-label="Edit"></textarea>` +
+		`<span class="row"><button class="dc-edit-save" type="button">Save</button><button class="dc-edit-cancel" type="button">Cancel</button></span>`
+	const ta = box.querySelector("textarea")!
+	ta.value = editing.value
+	;(p || host.querySelector(":scope > .dc-who"))!.after(box)
+	if (focus) ta.focus()
+}
+
+function closeEditBox() {
+	editing = null
+	$("commentPane").querySelector(".dc-editbox")?.remove()
+	$("commentPane").querySelectorAll(".dc-text.hidden").forEach((el) => el.classList.remove("hidden"))
+}
+
+// Every `doc-comments` push rebuilds the rail, and a push arrives whenever
+// ANYONE replies — so what I'm in the middle of typing is lifted out first
+// and put back after, caret and all.
+interface ThreadDrafts {
+	drafts: Map<string, string>
+	focus: { edit: boolean; commentId: string; start: number | null; end: number | null } | null
+}
+function snapshotThreadDrafts(): ThreadDrafts {
+	const pane = $("commentPane")
+	const drafts = new Map<string, string>()
+	pane.querySelectorAll<HTMLInputElement>(".dc-reply-input").forEach((i) => {
+		const cid = i.closest<HTMLElement>(".doc-comment")?.dataset.id
+		if (cid && i.value) drafts.set(cid, i.value)
+	})
+	const box = pane.querySelector<HTMLTextAreaElement>(".dc-edit-input")
+	if (editing && box) editing.value = box.value
+	const a = document.activeElement
+	const typing = a instanceof HTMLInputElement || a instanceof HTMLTextAreaElement ? a : null
+	const focus =
+		typing && pane.contains(typing) && typing.matches(".dc-reply-input, .dc-edit-input")
+			? {
+					edit: typing.matches(".dc-edit-input"),
+					commentId: typing.closest<HTMLElement>(".doc-comment")?.dataset.id || "",
+					start: typing.selectionStart,
+					end: typing.selectionEnd,
+				}
+			: null
+	return { drafts, focus }
+}
+function restoreThreadDrafts({ drafts, focus }: ThreadDrafts) {
+	const pane = $("commentPane")
+	pane.querySelectorAll<HTMLElement>(".doc-comment.resolved").forEach((li) => li.classList.toggle("open", expanded.has(li.dataset.id || "")))
+	pane.querySelectorAll<HTMLInputElement>(".dc-reply-input").forEach((i) => {
+		const v = drafts.get(i.closest<HTMLElement>(".doc-comment")?.dataset.id || "")
+		if (v) i.value = v
+	})
+	openEditBox({ focus: false })
+	if (!focus) return
+	const li = threadTarget(focus.commentId, null)
+	const el = focus.edit ? pane.querySelector<HTMLTextAreaElement>(".dc-edit-input") : li?.querySelector<HTMLInputElement>(".dc-reply-input")
+	if (!el) return
+	el.focus()
+	if (focus.start != null) el.setSelectionRange(focus.start, focus.end ?? focus.start)
+}
+
+const closeThreadMenus = () =>
+	$("commentPane").querySelectorAll<HTMLElement>(".dc-menu:not(.hidden)").forEach((m) => {
+		m.classList.add("hidden")
+		m.previousElementSibling?.setAttribute("aria-expanded", "false")
+	})
+
+function sendReply(li: HTMLElement) {
+	const input = li.querySelector<HTMLInputElement>(".dc-reply-input")
+	const text = input?.value.trim() || ""
+	if (!input || !text) return
+	socket?.emit("doc-comment-reply", { auth: getToken(), id: docId, commentId: li.dataset.id || "", text })
+	input.value = ""
+}
+
+function saveEdit() {
+	const box = $("commentPane").querySelector<HTMLTextAreaElement>(".dc-edit-input")
+	if (!editing || !box) return
+	const { commentId, replyId } = editing
+	socket?.emit("doc-comment-edit", { auth: getToken(), id: docId, commentId, ...(replyId ? { replyId } : {}), text: box.value.trim() })
+	closeEditBox()
+}
+
 function renderComments() {
 	pruneLocalAnchors()
 	const order = anchorsInDoc().map((a) => a.dataset.cid || "")
@@ -469,13 +575,15 @@ function renderComments() {
 	const elsewhere = comments.filter((c) => !c.resolved && c.chapterId && c.chapterId !== openChapter()?.id).length
 	live.sort((a, b) => order.indexOf(a.cid!) - order.indexOf(b.cid!))
 	const isOwner = canEditDoc()
-	const opts = { isOwner, meName: me?.username || "" }
+	const opts = { isOwner, meName: me?.username || "", canReply: canReplyHere() }
+	const kept = snapshotThreadDrafts()
 	let html = live.map((c) => commentThreadHtml([c], opts)).join("")
 	if (orphans.length)
 		html += `<div class="dc-group orphan">${commentThreadHtml(orphans, { ...opts, orphaned: true })}</div>`
 	if (done.length)
 		html += `<div class="dc-group done"><p class="dc-orphan-note">Done (${done.length})</p>${commentThreadHtml(done, opts)}</div>`
 	$("commentPane").innerHTML = html || `<p class="subtle">No comments${elsewhere ? " in this chapter" : " yet"}.</p>`
+	restoreThreadDrafts(kept)
 	// The edge tab carries the WHOLE story's count, so closing the drawer
 	// hides the notes but never the fact that they exist; the heading
 	// counts only the open chapter's.
@@ -727,16 +835,62 @@ $("commentPane").addEventListener("click", (e) => {
 			accept,
 		)
 		socket?.emit("doc-comment-decide", { auth: getToken(), id: docId, commentId, accept })
-	} else if (t.closest(".dc-resolve"))
+	} else if (t.closest(".dc-more")) {
+		const btn = t.closest<HTMLElement>(".dc-more")!
+		const menu = btn.nextElementSibling as HTMLElement
+		const opening = menu.classList.contains("hidden")
+		closeThreadMenus()
+		menu.classList.toggle("hidden", !opening)
+		btn.setAttribute("aria-expanded", String(opening))
+	} else if (t.closest(".dc-resolve") || t.closest(".dc-decline") || t.closest(".dc-reopen"))
 		socket?.emit("doc-comment-resolve", {
 			auth: getToken(),
 			id: docId,
 			commentId,
-			resolved: !li.classList.contains("resolved"),
+			resolved: !t.closest(".dc-reopen"),
+			declined: !!t.closest(".dc-decline"),
 		})
-	else if (t.closest(".dc-del")) socket?.emit("doc-comment-delete", { auth: getToken(), id: docId, commentId })
-	// a plain click on the card jumps to the words it's about
-	else focusComment(li.dataset.cid || null, { scroll: "anchor" })
+	else if (t.closest(".dc-edit")) {
+		const reply = t.closest<HTMLElement>(".dc-reply-item")
+		const row = comments.find((c) => c.id === commentId)
+		const replyId = reply?.dataset.rid || null
+		closeThreadMenus()
+		closeEditBox()
+		editing = { commentId, replyId, value: (replyId ? row?.replies?.find((r) => r.id === replyId)?.text : row?.text) || "" }
+		openEditBox()
+	} else if (t.closest(".dc-del")) {
+		const replyId = t.closest<HTMLElement>(".dc-reply-item")?.dataset.rid
+		closeThreadMenus()
+		void confirmDialog({
+			title: replyId ? "Delete this reply?" : "Delete this comment?",
+			text: replyId ? "It leaves the thread for good." : "The whole thread goes with it, for good.",
+		}).then((ok) => {
+			if (ok) socket?.emit("doc-comment-delete", { auth: getToken(), id: docId, commentId, ...(replyId ? { replyId } : {}) })
+		})
+	} else if (t.closest(".dc-send")) sendReply(li)
+	else if (t.closest(".dc-edit-save")) saveEdit()
+	else if (t.closest(".dc-edit-cancel")) closeEditBox()
+	// typing in a thread is not a request to jump to its words
+	else if (t.closest(".dc-reply, .dc-editbox, .dc-menu")) return
+	// a closed thread unfolds to be read; an open one jumps to the words it's about
+	else if (li.classList.contains("resolved")) {
+		const open = li.classList.toggle("open")
+		if (open) expanded.add(commentId)
+		else expanded.delete(commentId)
+	} else focusComment(li.dataset.cid || null, { scroll: "anchor" })
+})
+$("commentPane").addEventListener("keydown", (e) => {
+	const t = e.target as HTMLElement
+	if (e.key === "Escape") {
+		closeThreadMenus()
+		if (t.matches(".dc-edit-input")) closeEditBox()
+	} else if (e.key === "Enter" && t.matches(".dc-reply-input")) {
+		e.preventDefault()
+		sendReply(t.closest<HTMLElement>(".doc-comment")!)
+	} else if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && t.matches(".dc-edit-input")) saveEdit()
+})
+document.addEventListener("click", (e) => {
+	if (!(e.target as HTMLElement).closest?.(".dc-more-wrap")) closeThreadMenus()
 })
 // ---- editing ----
 // Prefer real tags over <span style> for execCommand output.

@@ -119,3 +119,11 @@ test("write page css: the commenting editor wears a comment cursor and a ring, a
   const hidden = css.indexOf(".cm-banner.hidden,");
   assert.ok(own >= 0 && hidden > own, ".cm-banner.hidden is declared after .cm-banner's display");
 });
+
+test("the rail speaks the thread events, and keeps what you were typing across a re-render", () => {
+  for (const ev of ["doc-comment-reply", "doc-comment-edit"]) assert.ok(page.includes(`"${ev}"`), ev + " is emitted");
+  assert.match(page, /declined:/, "Reject rides the resolve event");
+  const render = page.slice(page.indexOf("function renderComments("), page.indexOf("function renderDoc("));
+  assert.ok(render.indexOf("snapshotThreadDrafts()") < render.indexOf(".innerHTML ="), "drafts are lifted out BEFORE the rebuild");
+  assert.ok(render.indexOf("restoreThreadDrafts(") > render.indexOf(".innerHTML ="), "and put back after it");
+});

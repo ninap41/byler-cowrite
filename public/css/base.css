@@ -7987,9 +7987,6 @@ body.resizing-side {
 .doc-comment.resolved {
 	opacity: 0.55;
 }
-.doc-comment.resolved .dc-text {
-	text-decoration: line-through;
-}
 .dc-who {
 	display: flex;
 	align-items: center;
@@ -8007,49 +8004,180 @@ body.resizing-side {
 	white-space: pre-wrap;
 	word-break: break-word;
 }
-/* Card actions. These are BUTTONS wearing .linky, so the global button rules
-   (pill background, min-width, form padding) were fighting the link styling
-   and winning — hence the squashed, half-clipped lozenges. Reset them into
-   plain text actions: no fill, no border, a hover tint, and Delete in the
-   danger colour so the destructive one reads as destructive. */
+/* The thread's closing row: bordered, full-width buttons side by side — the
+   author's Resolve | Reject (or Accept | Reject on a suggestion), a reader's
+   lone Resolve. The global button rules (pill fill, min-width, form padding)
+   are reset so two fit the rail without clipping. */
 .dc-actions {
 	display: flex;
-	flex-wrap: wrap; /* Accept + Reject + Delete must not widen the rail */
-	align-items: center;
-	gap: 4px;
+	gap: 6px;
 	margin-top: 8px;
 }
 .dc-actions button {
-	flex: 0 0 auto;
+	flex: 1 1 0;
 	min-width: 0;
 	width: auto;
-	padding: 4px 8px;
-	border: 0;
-	border-radius: 8px;
+	padding: 7px 8px;
+	border: 1px solid var(--line);
+	border-radius: var(--r-md);
 	background: none;
 	box-shadow: none;
-	color: var(--accent-2);
+	color: var(--ink);
 	font: inherit;
-	font-size: 0.78rem;
+	font-size: 0.8rem;
 	font-weight: 600;
 	line-height: 1.2;
-	text-decoration: none;
 	cursor: pointer;
 }
 .dc-actions button:hover {
 	background: var(--chip);
-	text-decoration: none;
 }
-.dc-actions .dc-accept {
+.dc-actions .dc-accept,
+.dc-actions .dc-resolve {
 	color: var(--good);
 }
-.dc-actions .dc-del,
+.dc-actions .dc-decline,
 .dc-actions .dc-reject {
 	color: var(--accent);
 }
-.dc-actions button:focus-visible {
+.dc-actions button:focus-visible,
+.dc-more:focus-visible,
+.dc-send:focus-visible {
 	outline: 2px solid var(--accent-2);
 	outline-offset: 1px;
+}
+
+/* replies hang under the note, behind a dashed rule */
+.dc-replies {
+	list-style: none;
+	margin: 8px 0 0;
+	padding: 8px 0 0 10px;
+	border-top: 1px dashed var(--line);
+	display: grid;
+	gap: 8px;
+}
+.dc-reply-item .dc-text {
+	margin: 4px 0 0;
+}
+.dc-reply {
+	display: flex;
+	gap: 6px;
+	margin-top: 8px;
+}
+.dc-reply-input {
+	flex: 1 1 auto;
+	min-width: 0;
+	padding: 7px 10px;
+	border: 1px solid var(--line);
+	border-radius: var(--r-md);
+	background: var(--panel);
+	color: var(--ink);
+	font: inherit;
+	font-size: 0.85rem;
+}
+.dc-send {
+	flex: 0 0 auto;
+	width: 34px;
+	min-width: 0;
+	padding: 0;
+	border: 0;
+	border-radius: var(--r-md);
+	background: linear-gradient(135deg, var(--accent), var(--accent-2));
+	color: var(--panel);
+	cursor: pointer;
+}
+
+/* ⋮ — edit / delete, on the note and on each reply */
+.dc-more-wrap {
+	position: relative;
+	flex: 0 0 auto;
+}
+.dc-more {
+	min-width: 0;
+	width: 22px;
+	padding: 2px 0;
+	border: 0;
+	border-radius: 6px;
+	background: none;
+	box-shadow: none;
+	color: var(--muted);
+	cursor: pointer;
+}
+.dc-more:hover {
+	background: var(--chip);
+	color: var(--ink);
+}
+.dc-menu {
+	position: absolute;
+	top: 100%;
+	right: 0;
+	z-index: 5;
+	display: grid;
+	min-width: 120px;
+	padding: 4px;
+	border: 1px solid var(--panel-brd);
+	border-radius: var(--r-md);
+	background: var(--panel);
+	box-shadow: var(--panel-glow);
+}
+.dc-menu .more-item {
+	padding: 6px 8px;
+	font-size: 0.82rem;
+}
+.dc-menu .dc-del {
+	color: var(--accent);
+}
+.dc-editbox {
+	display: grid;
+	gap: 6px;
+	margin: 6px 0;
+}
+.dc-editbox textarea {
+	width: 100%;
+	padding: 7px 10px;
+	border: 1px solid var(--line);
+	border-radius: var(--r-md);
+	background: var(--panel);
+	color: var(--ink);
+	font: inherit;
+	font-size: 0.85rem;
+	resize: vertical;
+}
+.dc-editbox .row {
+	display: flex;
+	gap: 6px;
+}
+.dc-editbox button {
+	min-width: 0;
+	padding: 5px 10px;
+	font-size: 0.78rem;
+}
+
+/* a closed thread folds to a line; a click unfolds it to read */
+.dc-state {
+	margin-left: auto;
+	color: var(--muted);
+	font-size: 0.75rem;
+	white-space: nowrap;
+}
+.dc-count {
+	margin: 0;
+	color: var(--muted);
+	font-size: 0.78rem;
+}
+.doc-comment.resolved:not(.open) .dc-when,
+.doc-comment.resolved:not(.open) .dc-quote,
+.doc-comment.resolved:not(.open) .dc-suggest,
+.doc-comment.resolved:not(.open) .dc-replies {
+	display: none;
+}
+.doc-comment.resolved:not(.open) > .dc-text {
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.doc-comment.resolved.open .dc-count {
+	display: none;
 }
 .dc-orphan-note {
 	font-size: 0.8rem;
@@ -8097,6 +8225,27 @@ body.resizing-side {
 	border: 1px solid var(--line);
 	border-radius: 6px;
 	padding: 0 4px;
+}
+/* the pill rides the right edge of a note's head; in a reply it follows the name */
+.doc-comment > .dc-who > .dc-tag {
+	margin-left: auto;
+}
+.doc-comment > .dc-who > .dc-when,
+.dc-reply-item .dc-when {
+	margin-left: 0;
+}
+.dc-tag.beta {
+	color: var(--accent);
+	border-color: var(--accent);
+	border-radius: 999px;
+	padding: 0 7px;
+	text-transform: none;
+}
+.dc-tag.author {
+	color: var(--good);
+	border-color: transparent;
+	background: var(--chip);
+	text-transform: none;
 }
 .doc-comment.orphaned {
 	border-style: dashed;
@@ -11268,7 +11417,8 @@ html.vcx-live[data-theme="vecna"] #vc-pend {
 .vcx-layer.hidden,
 .vcx-veil.hidden,
 .vcx-hud.hidden,
-.head-chip.hidden {
+.head-chip.hidden,
+.dc-menu.hidden {
 	display: none;
 }
 

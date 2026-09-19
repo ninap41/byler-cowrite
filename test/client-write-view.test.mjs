@@ -97,7 +97,8 @@ test("comments escape their text and author", () => {
 test("resolved comments are marked, and orphans explain themselves", () => {
   const c = { id: "c1", text: "hi", author: "a", color: "#e63946", ts: Date.now(), resolved: true };
   assert.ok(commentHtml(c).includes("resolved"));
-  assert.ok(commentHtml(c, { isOwner: true }).includes("Unresolve"));
+  assert.ok(commentHtml(c, { isOwner: true }).includes("dc-reopen"), "the ⋮ menu offers Reopen");
+  assert.ok(!commentHtml(c).includes("dc-reopen"), "but not to someone who can't");
   assert.equal(commentThreadHtml([]), "", "no comments, no markup");
   const orphan = commentThreadHtml([c], { orphaned: true });
   assert.ok(/has since changed/.test(orphan), "orphaned comments are surfaced, not dropped");
@@ -604,4 +605,58 @@ test("visOptionsHtml: three radio rows, the current one ticked; fontListHtml: a 
   assert.equal((f.match(/data-font="/g) || []).length, DOC_FONTS.length);
   assert.match(f, /font-opt on"[^>]*aria-checked="true" data-font="theme"/);
   assert.match(f, /style="font-family:/);
+});
+
+// ---- threads: replies, pills, the ⋮ menu, the closing row ----
+const REPLY = { id: "r1", text: "good catch", author: "nina", color: "#6c8cff", ts: Date.now(), isAuthor: true };
+const THREAD = { id: "c9", cid: "abcdef012345", text: "intentional?", author: "mike", color: "#e63946", ts: Date.now(), replies: [REPLY] };
+
+test("every voice wears a pill: beta on a reader, author on the writer", () => {
+  const html = commentHtml(THREAD);
+  assert.match(html, /dc-tag beta">beta</, "the reader's note");
+  assert.match(html, /data-rid="r1"[\s\S]*dc-tag author">author</, "the author's reply");
+});
+
+test("reply text is escaped", () => {
+  const html = commentHtml({ ...THREAD, replies: [{ ...REPLY, text: "<img src=x onerror=1>" }] });
+  assert.ok(!html.includes("<img"));
+  assert.ok(html.includes("&lt;img"));
+});
+
+test("the reply box is only for people who may write on the document", () => {
+  assert.ok(commentHtml(THREAD, { canReply: true }).includes("dc-reply-input"));
+  assert.ok(!commentHtml(THREAD).includes("dc-reply-input"), "a public reader just reads");
+  assert.ok(!commentHtml({ ...THREAD, resolved: true }, { canReply: true }).includes("dc-reply-input"), "a closed thread takes no replies");
+});
+
+test("the closing row: the author resolves or rejects, a reader only resolves their own", () => {
+  const owner = commentHtml(THREAD, { isOwner: true, meName: "nina" });
+  assert.ok(owner.includes("dc-resolve") && owner.includes("dc-decline"));
+  const own = commentHtml(THREAD, { meName: "mike" });
+  assert.ok(own.includes("dc-resolve") && !own.includes("dc-decline"), "Reject is the author's verdict");
+  assert.ok(!commentHtml(THREAD, { meName: "zed" }).includes("dc-actions"));
+});
+
+test("⋮ offers Edit on your own words only; the author may delete anyone's", () => {
+  const menus = (html) => [...html.matchAll(/<span class="dc-menu hidden" role="menu">(.*?)<\/span><\/span>/g)].map((m) => m[1]);
+  const [noteForOwner, replyForOwner] = menus(commentHtml(THREAD, { isOwner: true, meName: "nina" }));
+  assert.ok(noteForOwner.includes("dc-del") && !noteForOwner.includes("dc-edit"), "the author can't rewrite a reader's note");
+  assert.ok(replyForOwner.includes("dc-edit") && replyForOwner.includes("dc-del"));
+  const forMike = menus(commentHtml(THREAD, { meName: "mike" }));
+  assert.equal(forMike.length, 1, "no menu on the author's reply for a reader");
+  assert.ok(forMike[0].includes("dc-edit") && forMike[0].includes("dc-del"));
+  assert.equal(menus(commentHtml(THREAD, { meName: "zed" })).length, 0, "a bystander gets no ⋮ at all");
+});
+
+test("a closed thread says how it closed and how long it ran", () => {
+  const done = commentHtml({ ...THREAD, resolved: true, replies: [REPLY, { ...REPLY, id: "r2" }] });
+  assert.ok(done.includes("✓ resolved") && done.includes("2 replies"));
+  assert.ok(commentHtml({ ...THREAD, resolved: true, declined: true }).includes("✕ declined"));
+  assert.ok(commentHtml({ ...THREAD, resolved: true }).includes("1 reply"));
+});
+
+test("an edited note says so; a comment from before threads still renders", () => {
+  assert.ok(commentHtml({ ...THREAD, edited: true }).includes("· edited"));
+  const { replies, ...old } = THREAD;
+  assert.ok(!commentHtml(old).includes("dc-replies"));
 });

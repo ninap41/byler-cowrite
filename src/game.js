@@ -2281,13 +2281,16 @@ export function createGame(io) {
     const myComment = (doc, cid, uid) =>
       (doc.comments || []).find((c) => c.id === cid && (c.userId === uid || doc.ownerId === uid));
 
-    socket.on("doc-comment-resolve", ({ auth, id, commentId, resolved }) => {
+    socket.on("doc-comment-resolve", ({ auth, id, commentId, resolved, declined }) => {
       const u = userByToken(auth);
       const doc = readDoc(id);
       if (!u || !doc || !canView(doc, u.id)) return;
       const c = myComment(doc, commentId, u.id);
       if (!c) return;
       c.resolved = !!resolved;
+      // "Declined" is the AUTHOR's verdict on a note — a reader closing their
+      // own comment just resolves it. Reopening clears it either way.
+      c.declined = c.resolved && !!declined && canEdit(doc, u.id);
       // A resolved comment stops underlining its words; unresolving can't put
       // the anchor back (the words may have moved on), so it reads as orphaned.
       const chId = chapterOfCid(doc, c.cid)?.id;
@@ -2297,10 +2300,60 @@ export function createGame(io) {
       broadcastDocComments(doc);
     });
 
-    socket.on("doc-comment-delete", ({ auth, id, commentId }) => {
+    // A thread: anyone who may write on the document (the author, an invited
+    // beta reader — never a public reader) can answer an open comment. Replies
+    // are plain text and never touch the html.
+    const MAX_REPLIES = 50;
+    socket.on("doc-comment-reply", ({ auth, id, commentId, text }) => {
+      const u = userByToken(auth);
+      const doc = readDoc(id);
+      if (!u || !doc || !canComment(doc, u.id)) return;
+      const c = (doc.comments || []).find((x) => x.id === commentId);
+      if (!c || c.resolved) return; // a closed thread is reopened first
+      const body = stripTags(String(text ?? "")).trim().slice(0, 1000);
+      if (!body) return;
+      const replies = Array.isArray(c.replies) ? c.replies : [];
+      if (replies.length >= MAX_REPLIES) return;
+      c.replies = [...replies, { id: randomUUID(), userId: u.id, text: body, ts: Date.now() }];
+      writeDoc(doc);
+      broadcastDocComments(doc);
+    });
+
+    // Editing is for your OWN words only — the document's author may delete a
+    // reader's note but never rewrite it. A suggestion's proposed text is not
+    // editable: the author may already be weighing it.
+    socket.on("doc-comment-edit", ({ auth, id, commentId, replyId, text }) => {
       const u = userByToken(auth);
       const doc = readDoc(id);
       if (!u || !doc || !canView(doc, u.id)) return;
+      const c = (doc.comments || []).find((x) => x.id === commentId);
+      if (!c) return;
+      const target = replyId == null ? c : (c.replies || []).find((r) => r.id === replyId);
+      if (!target || target.userId !== u.id) return;
+      const body = stripTags(String(text ?? "")).trim().slice(0, 1000);
+      // a comment that only proposes a rewrite may have no text; a reply always says something
+      if (!body && (replyId != null || typeof c.suggestion !== "string")) return;
+      if (body === target.text) return;
+      target.text = body;
+      target.editedAt = Date.now();
+      writeDoc(doc);
+      broadcastDocComments(doc);
+    });
+
+    socket.on("doc-comment-delete", ({ auth, id, commentId, replyId }) => {
+      const u = userByToken(auth);
+      const doc = readDoc(id);
+      if (!u || !doc || !canView(doc, u.id)) return;
+      if (replyId != null) {
+        // one reply: its own writer, or the document's author
+        const t = (doc.comments || []).find((x) => x.id === commentId);
+        const r = (t?.replies || []).find((x) => x.id === replyId);
+        if (!r || (r.userId !== u.id && doc.ownerId !== u.id)) return;
+        t.replies = t.replies.filter((x) => x.id !== replyId);
+        writeDoc(doc);
+        broadcastDocComments(doc);
+        return;
+      }
       const c = myComment(doc, commentId, u.id);
       if (!c) return;
       const chId = chapterOfCid(doc, c.cid)?.id;
@@ -2358,9 +2411,18 @@ export function createGame(io) {
     io.to(docRoom(docId)).emit("doc-presence", { id: docId, viewers: docPresenceList(docId) });
 
   // Comments carry author identity for rendering — never account ids.
+  // Who wrote it, as the client draws it — shared by comments and replies so
+  // the two can't drift.
+  const voiceOf = (doc, userId) => {
+    const a = store.users.find((x) => x.id === userId);
+    return {
+      author: a?.username || "someone", color: cleanColor(a?.color),
+      avatar: a?.avatar || "", avatarFit: a?.avatarFit || "cover",
+      isAuthor: userId === doc.ownerId, // the author's own notes-to-self read differently
+    };
+  };
   const commentRows = (doc) =>
     (doc.comments || []).map((c) => {
-      const a = store.users.find((x) => x.id === c.userId);
       return {
         id: c.id, cid: c.cid || "", quote: c.quote || "", text: c.text,
         suggestion: typeof c.suggestion === "string" ? c.suggestion : null,
@@ -2369,9 +2431,12 @@ export function createGame(io) {
         // the client says so rather than silently showing a comment on nothing.
         orphaned: !!c.cid && !anchorCids(doc.html).includes(c.cid),
         chapterId: chapterOfCid(doc, c.cid)?.id || null, // which chapter holds its words
-        author: a?.username || "someone", color: cleanColor(a?.color),
-        avatar: a?.avatar || "", avatarFit: a?.avatarFit || "cover",
-        isAuthor: c.userId === doc.ownerId, // the author's own notes-to-self read differently
+        declined: !!c.resolved && !!c.declined, edited: !!c.editedAt,
+        // older comments have no `replies` field at all
+        replies: (Array.isArray(c.replies) ? c.replies : []).map((r) => ({
+          id: r.id, text: r.text, ts: r.ts, edited: !!r.editedAt, ...voiceOf(doc, r.userId),
+        })),
+        ...voiceOf(doc, c.userId),
       };
     });
   const broadcastDocComments = (doc) =>
