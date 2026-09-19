@@ -7253,6 +7253,11 @@ body.doc-page .topbar {
 	padding: 6px 11px;
 	font-size: 0.82rem;
 }
+/* Save stands right of the rich/HTML switch, at the toolbar's size. */
+.doc-toolbar-row .doc-save {
+	padding: 6px 14px;
+	font-size: 0.82rem;
+}
 
 /* ⋯ overflow */
 .more-menu {

@@ -85,10 +85,9 @@
 						</div>
 						<!-- The shared user chip, theme switch and hamburger are moved in
 						     here at runtime (they are position:fixed everywhere else), so
-						     the account controls sit beside Save instead of floating over
+						     the account controls sit in the head instead of floating over
 						     the sticky header. -->
 						<div class="doc-head-right" id="docHeadRight">
-							<button class="primary doc-save" id="saveBtn" type="button">Save</button>
 						</div>
 					</header>
 
@@ -194,6 +193,7 @@
 									HTML
 								</button>
 							</div>
+							<button class="primary doc-save" id="saveBtn" type="button">Save</button>
 						</div>
 					</div>
 					<!-- The editor's banners (components/doc-banner.js): the restore-draft
@@ -233,7 +233,7 @@
 						     arrow each side to turn the page (readers and author alike). -->
 						<div class="hint-bar" id="hintBar">
 							<p class="hint" id="editorHint">
-								Type <b>/</b> for action verbs, dialogue tags and more · Ctrl/⌘+S to save · autosaves every 30s
+								Type <b>/</b> for dialogue tags + more · Ctrl/⌘+S to save · autosaves 30s
 							</p>
 							<div id="chapNav"></div>
 						</div>

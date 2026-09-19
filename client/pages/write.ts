@@ -1219,7 +1219,7 @@ function setMode(toSource: boolean) {
 	finder?.refresh()
 	$("editorHint").innerHTML = toSource
 		? "Editing raw HTML: unsupported tags are stripped when you switch back or save."
-		: "Type <b>/</b> for action verbs, dialogue tags and more · Ctrl/⌘+S to save · autosaves every 30s"
+		: "Type <b>/</b> for dialogue tags + more · Ctrl/⌘+S to save · autosaves 30s"
 	if (!toSource) updateWords()
 	;(toSource ? $("docSource") : $("docEditor")).focus()
 	setDirty(true)
