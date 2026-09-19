@@ -1,6 +1,6 @@
 {
   "name": "byler-cowrite",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "A real-time, round-robin writing game and writing software for Stranger Things fanfiction",
   "type": "module",
   "main": "server.js",
