@@ -114,28 +114,81 @@ async function postgresBackend(dirs, pool) {
   const { rows } = await pool.query("SELECT kind, name, doc FROM cowrite_blobs");
   for (const r of rows) cache.get(r.kind)?.set(r.name, r.doc);
 
+  // A dropped idle connection makes the pool emit "error"; with no listener
+  // that is an uncaught exception and the whole process — and every write
+  // still queued in it — dies. Log it; the next query opens a fresh client.
+  pool.on?.("error", (e) => {
+    lastError = `${new Date().toISOString()} pool: ${e.message}`;
+    console.error("storage: pool error:", e.message);
+  });
+
   const chains = new Map(); // per-key promise chain: writes to one row land in order
   /** @type {string | null} */
   let lastError = null;
-  const enqueue = (kind, name, job) => {
+  // Rows the database has NOT taken yet: key → the retry that is waiting.
+  // The cache answers every read, so until a row lands its newest words live
+  // only in this process — a failed write is therefore retried until it
+  // lands (backing off to a minute), never just logged.
+  /** @type {Map<string, { kind: string, name: string, attempt: number, timer: ReturnType<typeof setTimeout> | null }>} */
+  const unlanded = new Map();
+  const RETRY_MS = (process.env.COWRITE_STORAGE_RETRY_MS || "250,1000,4000,15000,60000").split(",").map(Number).filter((n) => n >= 0);
+  // One job shape for put and del: make the row match the CACHE as it is when
+  // the job runs. A retry therefore always carries the newest words, and a
+  // write queued behind a failed one repairs it.
+  const syncRow = (kind, name) => () => {
+    const doc = cache.get(kind)?.get(name);
+    return doc == null
+      ? pool.query("DELETE FROM cowrite_blobs WHERE kind = $1 AND name = $2", [kind, name])
+      : pool.query(
+        `INSERT INTO cowrite_blobs (kind, name, doc, updated_at) VALUES ($1, $2, $3, now())
+         ON CONFLICT (kind, name) DO UPDATE SET doc = EXCLUDED.doc, updated_at = now()`,
+        [kind, name, doc]
+      );
+  };
+  // A job that has not STARTED yet will read the cache when it does, so a
+  // second write to the same row before then needs no job of its own — it
+  // shares the waiting one (and its outcome).
+  /** @type {Map<string, Promise<unknown>>} */
+  const waiting = new Map();
+  const enqueue = (kind, name) => {
     const key = kind + "/" + name;
-    const operation = (chains.get(key) ?? Promise.resolve()).then(job);
-    const tracked = operation.catch((e) => {
-      lastError = `${new Date().toISOString()} ${key}: ${e.message}`;
-      console.error("storage: query failed: ", key, e.message);
+    const shared = waiting.get(key);
+    if (shared) return shared;
+    const run = syncRow(kind, name);
+    const operation = (chains.get(key) ?? Promise.resolve()).then(() => {
+      waiting.delete(key);
+      return run();
     });
+    waiting.set(key, operation);
+    const tracked = operation.then(
+      () => {
+        // landed: whatever retry was waiting for this row is moot
+        const w = unlanded.get(key);
+        if (w?.timer) clearTimeout(w.timer);
+        unlanded.delete(key);
+      },
+      (e) => {
+        lastError = `${new Date().toISOString()} ${key}: ${e.message}`;
+        console.error("storage: query failed: ", key, e.message);
+        const attempt = (unlanded.get(key)?.attempt ?? 0) + 1;
+        const old = unlanded.get(key);
+        if (old?.timer) clearTimeout(old.timer);
+        const delay = RETRY_MS[Math.min(attempt - 1, RETRY_MS.length - 1)] ?? 60000;
+        const timer = setTimeout(() => {
+          const w = unlanded.get(key);
+          if (w) w.timer = null;
+          enqueue(kind, name).catch(() => {}); // its own failure re-arms the next retry
+        }, delay);
+        timer.unref?.(); // a pending retry must not keep a finished test or a stopping server alive
+        unlanded.set(key, { kind, name, attempt, timer });
+      },
+    );
     // Keep the queue alive after a failed write, while returning the original
     // operation so callers that await persistence can report the failure.
     chains.set(key, tracked);
     return operation;
   };
-  const upsert = (kind, name, doc) =>
-    enqueue(kind, name, () =>
-      pool.query(
-        `INSERT INTO cowrite_blobs (kind, name, doc, updated_at) VALUES ($1, $2, $3, now())
-         ON CONFLICT (kind, name) DO UPDATE SET doc = EXCLUDED.doc, updated_at = now()`,
-        [kind, name, doc]
-      ));
+  const upsert = (kind, name) => enqueue(kind, name);
 
   // Seed-once: a key the database doesn't hold yet is taken from disk.
   let seeded = 0;
@@ -143,7 +196,7 @@ async function postgresBackend(dirs, pool) {
     for (const { name, doc } of readDir(dir)) {
       if (cache.get(kind)?.has(name)) continue;
       cache.get(kind)?.set(name, doc);
-      upsert(kind, name, doc);
+      upsert(kind, name);
       seeded++;
     }
   };
@@ -152,7 +205,7 @@ async function postgresBackend(dirs, pool) {
     try {
       const doc = readFileSync(pathFor(dirs, kind, kind), "utf-8");
       cache.get(kind)?.set(kind, doc);
-      upsert(kind, kind, doc);
+      upsert(kind, kind);
       seeded++;
     } catch { /* no local file */ }
   }
@@ -171,15 +224,27 @@ async function postgresBackend(dirs, pool) {
     list: (kind) => [...(cache.get(kind)?.keys() ?? [])],
     put(kind, name, doc) {
       cache.get(kind)?.set(name, doc);
-      return upsert(kind, name, doc);
+      return upsert(kind, name);
     },
     del(kind, name) {
       cache.get(kind)?.delete(name);
-      return enqueue(kind, name, () => pool.query("DELETE FROM cowrite_blobs WHERE kind = $1 AND name = $2", [kind, name]));
+      return enqueue(kind, name);
     },
     counts: () => Object.fromEntries(KINDS.map((k) => [k, cache.get(k)?.size ?? 0])),
     get lastError() { return lastError; },
-    flush: () => Promise.all(chains.values()),
+    /** Rows whose newest value the database has not taken yet ("kind/name"). */
+    get unlanded() { return [...unlanded.keys()]; },
+    // Everything queued, plus one immediate attempt at every row still waiting
+    // on a retry timer — what a stopping server calls before it exits.
+    async flush() {
+      for (const [, w] of unlanded) {
+        if (!w.timer) continue;
+        clearTimeout(w.timer);
+        w.timer = null;
+        enqueue(w.kind, w.name).catch(() => {});
+      }
+      await Promise.all(chains.values());
+    },
     close: () => pool.end(),
   };
 }
@@ -208,6 +273,8 @@ export const storage = {
   get mode() { return ensure().mode; },
   get dirs() { ensure(); return dirs; },
   get lastError() { return ensure().lastError ?? null; },
+  /** postgres only: rows written to the cache that the database has not taken yet */
+  get unlanded() { return ensure().unlanded ?? []; },
   get seeded() { return ensure().seeded ?? 0; },
   get: (kind, name) => ensure().get(kind, name),
   has: (kind, name) => ensure().has(kind, name),

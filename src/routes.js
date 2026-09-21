@@ -12,7 +12,7 @@ import { WORD_TIERS, USAGE, USAGE_OPEN, getAchievements, setAchievements, badgeN
 import { GIMMICKS } from "../lib/gimmicks.js";
 import { cleanColor, stripTags, plainText, clip, httpUrl, sanitizeAbout, sanitizeDoc, DOC_MAX } from "./sanitize.js";
 import {
-  readDoc, writeDoc, createDoc, deleteDoc, listDocsFor, docSummary,
+  readDoc, writeDoc, docLanded, createDoc, deleteDoc, listDocsFor, docSummary,
   canView, canEdit, canComment, isReader, cleanTitle, cleanVisibility, publicDocs, docsOwnedBy,
   cleanChapterTitle, newChapterId, MAX_CHAPTERS,
 } from "./docs.js";
@@ -905,7 +905,7 @@ export function registerRoutes(app, game) {
 
   // Save. The body is rich text headed for other people's DOM — sanitizeDoc()
   // here is the trust boundary; the client's cleanHtml() is only convenience.
-  app.put("/api/docs/:id", (req, res) => {
+  app.put("/api/docs/:id", async (req, res) => {
     const u = authedUser(req);
     if (!u) return res.status(401).json({ error: "Sign in first." });
     const doc = readDoc(req.params.id);
@@ -948,6 +948,16 @@ export function registerRoutes(app, game) {
     }
     writeDoc(doc); // recomputes wordCount
     if (game.creditSoloWords(u, doc)) writeDoc(doc); // the high-water mark moved
+    // "Saved" has to mean the store took it. The server's memory already holds
+    // the new copy (and storage keeps retrying the write), but until it lands a
+    // restart would roll the story back — so the author's editor is told the
+    // truth: it stays unsaved, keeps its local draft, and saves again shortly.
+    // `rev` rides along because the copy in memory DID move: the retry names it.
+    try {
+      await docLanded(doc);
+    } catch {
+      return res.status(503).json({ error: "Couldn't reach the database just now. Your words are safe in this tab and saved in this browser. Trying again shortly.", unlanded: true, rev: readDoc(doc.id)?.rev || 0 }); // the rev a retry will meet: moved in a memory-first store, unmoved on plain files
+    }
     res.json({ doc: docPayload(doc, u), wordCount: u.wordCount });
   });
 
@@ -1228,7 +1238,7 @@ export function registerRoutes(app, game) {
   app.get("/api/admin/storage", (req, res) => {
     const u = authedUser(req);
     if (!isAdmin(u)) return res.status(403).json({ error: "Admins only." });
-    res.json({ mode: storage.mode, counts: storage.counts(), seeded: storage.seeded, lastError: storage.lastError, summary: describeStorage() });
+    res.json({ mode: storage.mode, counts: storage.counts(), seeded: storage.seeded, lastError: storage.lastError, unlanded: storage.unlanded, summary: describeStorage() });
   });
 
   // The badge catalogue editor: the whole achievements document in, the whole

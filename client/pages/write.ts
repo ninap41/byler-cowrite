@@ -1457,6 +1457,14 @@ async function save({ quiet = false, force = false }: { quiet?: boolean; force?:
 			banners.show("conflictBar")
 			return false
 		}
+		// The server has the words in memory but its database didn't take them
+		// (503 `unlanded`): not saved. Its copy DID move, so the retry must name
+		// that rev or it would read as a conflict with ourselves; and the words
+		// go to the local draft, the one place they are certainly on a disk.
+		if (e instanceof ApiError && e.data.unlanded) {
+			if (doc && typeof e.data.rev === "number") doc.rev = e.data.rev
+			saveDraft(docId, list, input("docTitle").value)
+		}
 		$("docErr").textContent = (e as Error).message
 		return false
 	} finally {

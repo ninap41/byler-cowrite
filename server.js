@@ -90,3 +90,30 @@ const PORT = process.env.PORT || 3000;
 httpServer.listen(PORT, () => {
   console.log(`${SITE.name} running on http://localhost:${PORT}`);
 });
+
+// A publish or a VM restart sends SIGTERM. Reads are served from memory and
+// database writes are queued behind them, so exiting on the spot can drop the
+// last words somebody saved: stop taking requests, give every queued and owed
+// write one more go, then leave. The timer is the floor under a database that
+// never answers — the platform would kill us anyway.
+let stopping = false;
+async function shutdown(signal) {
+  if (stopping) return;
+  stopping = true;
+  console.log(`${signal}: flushing storage before exit`);
+  const giveUp = setTimeout(() => {
+    console.error("storage: flush timed out; still owed:", storage.unlanded.join(", ") || "nothing known");
+    process.exit(1);
+  }, 8000);
+  giveUp.unref();
+  httpServer.close();
+  try {
+    await storage.flush();
+    if (storage.unlanded.length) console.error("storage: exiting with rows still owed:", storage.unlanded.join(", "));
+  } catch (e) {
+    console.error("storage: flush failed:", e.message);
+  }
+  process.exit(0);
+}
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));

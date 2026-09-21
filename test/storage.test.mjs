@@ -103,7 +103,9 @@ test("postgres: rows are the store, loaded at boot, read from memory, written in
     assert.equal(pool.rows.get("save/ABCD").doc, '{"code":"ABCD","v":2}', "last write wins, in order");
     assert.ok(!pool.rows.has("save/WXYZ"));
     const upserts = pool.log.filter((q) => q.text.startsWith("INSERT") && q.params[1] === "ABCD").map((q) => q.params[2]);
-    assert.deepEqual(upserts, ['{"code":"ABCD","v":1}', '{"code":"ABCD","v":2}']);
+    // a write always sends the row as it is NOW: two saves before the first query
+    // runs are one upsert of the newest, never an older value after a newer one
+    assert.deepEqual(upserts, ['{"code":"ABCD","v":2}']);
     // nothing was written to disk
     assert.ok(!existsSync(join(root, "saves")) || readdirSync(join(root, "saves")).length === 0, "saves/ untouched");
     assert.ok(!existsSync(join(root, "data", "users.json")), "users.json untouched");
@@ -174,6 +176,74 @@ test("postgres: a failed query is remembered and reported to an awaiting caller 
     assert.match(storage.lastError, /save\/BOOM: connection reset/);
     assert.equal(storage.get("save", "BOOM"), "{}", "the cache still holds it, the app keeps working");
     assert.ok(pool.rows.has("save/FINE"), "other writes are unaffected");
+  } finally {
+    storage._reset();
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("postgres: a write the database refused is retried until it lands — with the newest words, not the ones that failed", async () => {
+  delete process.env.DATABASE_URL;
+  process.env.COWRITE_STORAGE_RETRY_MS = "5,5,5";
+  const root = tmp();
+  const pool = fakePool();
+  const realQuery = pool.query.bind(pool);
+  let failures = 2;
+  pool.query = async (text, params) => {
+    if (text.startsWith("INSERT") && params[1] === "STORY" && failures-- > 0) throw new Error("connection terminated");
+    return realQuery(text, params);
+  };
+  try {
+    await storage.init({ ...dirsIn(root), pool });
+    await assert.rejects(storage.put("doc", "STORY", '{"v":1}'), /connection terminated/, "the caller that awaits is told");
+    assert.deepEqual(storage.unlanded, ["doc/STORY"], "and the row is known to be owed");
+    storage.put("doc", "STORY", '{"v":2}').catch(() => {}); // the writer kept typing; this one fails too
+    await new Promise((r) => setTimeout(r, 80));
+    assert.equal(pool.rows.get("doc/STORY")?.doc, '{"v":2}', "the retry carried the newest copy");
+    assert.deepEqual(storage.unlanded, [], "nothing owed once it lands");
+  } finally {
+    delete process.env.COWRITE_STORAGE_RETRY_MS;
+    storage._reset();
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("postgres: flush() makes one more attempt at every owed row at once — what a stopping server calls", async () => {
+  delete process.env.DATABASE_URL;
+  process.env.COWRITE_STORAGE_RETRY_MS = "60000"; // the timer alone would never fire in this test
+  const root = tmp();
+  const pool = fakePool();
+  const realQuery = pool.query.bind(pool);
+  let down = true;
+  pool.query = async (text, params) => {
+    if (down && text.startsWith("INSERT")) throw new Error("db asleep");
+    return realQuery(text, params);
+  };
+  try {
+    await storage.init({ ...dirsIn(root), pool });
+    await assert.rejects(storage.put("doc", "STORY", '{"v":1}'));
+    down = false;
+    await storage.flush();
+    assert.equal(pool.rows.get("doc/STORY")?.doc, '{"v":1}');
+    assert.deepEqual(storage.unlanded, []);
+  } finally {
+    delete process.env.COWRITE_STORAGE_RETRY_MS;
+    storage._reset();
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("postgres: a pool error (a dropped idle connection) is logged, never thrown", async () => {
+  delete process.env.DATABASE_URL;
+  const root = tmp();
+  const pool = fakePool();
+  const listeners = {};
+  pool.on = (ev, fn) => { listeners[ev] = fn; };
+  try {
+    await storage.init({ ...dirsIn(root), pool });
+    assert.equal(typeof listeners.error, "function", "without a listener the emit is an uncaught exception: the process dies with its queue");
+    assert.doesNotThrow(() => listeners.error(new Error("Connection terminated unexpectedly")));
+    assert.match(storage.lastError, /pool: Connection terminated unexpectedly/);
   } finally {
     storage._reset();
     rmSync(root, { recursive: true, force: true });

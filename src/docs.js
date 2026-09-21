@@ -200,12 +200,29 @@ export function writeDoc(doc) {
   // the comments are their own record (writeComments)
   const json = JSON.stringify({ ...doc, html: undefined, comments: undefined }, null, 1);
   try {
-    storage.put("doc", doc.id, json);
+    // The store answers reads from memory at once; whether the words reached
+    // the DISK/DATABASE is this promise. Most callers don't wait (storage
+    // retries a refused write by itself) — the author's save does, see docLanded.
+    const landed = Promise.resolve(storage.put("doc", doc.id, json));
+    landed.catch(() => {}); // storage logs it; an un-awaited write must not be an unhandled rejection
+    landings.set(doc, landed);
   } catch (e) {
     console.error("writeDoc failed:", e.message);
+    landings.set(doc, Promise.reject(e));
+    landings.get(doc)?.catch(() => {});
   }
   return doc;
 }
+
+/** @type {WeakMap<object, Promise<unknown>>} */
+const landings = new WeakMap();
+/**
+ * Resolves when the last writeDoc(doc) has actually been persisted, rejects
+ * when the store refused it. "Saved" on the author's screen means this
+ * resolved — the save route awaits it before answering.
+ * @param {Doc} doc
+ */
+export const docLanded = (doc) => landings.get(doc) ?? Promise.resolve();
 
 export function createDoc(ownerId, title) {
   const now = Date.now();

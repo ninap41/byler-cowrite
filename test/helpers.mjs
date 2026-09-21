@@ -92,10 +92,22 @@ export async function startServer(extraEnv = {}) {
     },
     emit: (s, ev, data) => new Promise((r) => s.emit(ev, data, r)),
     wait: (ms) => new Promise((r) => setTimeout(r, ms)),
+    // A polite stop (what a publish sends): resolves with the exit code and
+    // everything the server printed on the way out.
+    term: () => new Promise((resolve) => {
+      let out = "";
+      child.stdout.on("data", (d) => (out += d));
+      child.once("exit", (code) => resolve({ code, out }));
+      sockets.forEach((s) => s.disconnect());
+      child.kill("SIGTERM");
+    }),
     stop: async () => {
       sockets.forEach((s) => s.disconnect());
-      child.kill("SIGKILL");
-      await new Promise((r) => child.on("exit", r)).catch?.(() => {});
+      // already gone (a test that stopped it politely with term()): nothing to wait for
+      if (child.exitCode === null && child.signalCode === null) {
+        child.kill("SIGKILL");
+        await new Promise((r) => child.on("exit", r)).catch?.(() => {});
+      }
       rmSync(dataDir, { recursive: true, force: true });
       rmSync(saveDir, { recursive: true, force: true });
     },

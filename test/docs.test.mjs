@@ -1591,3 +1591,28 @@ test("Reject is the author's verdict: a reader's 'declined' is just resolved, an
   c = await threadOf(doc.id);
   assert.deepEqual([c.resolved, c.declined], [false, false]);
 });
+
+// ---- "Saved" means the store took it ----
+test("a save the store refuses answers 503 and says so; nothing reads as saved, and the retry goes through", async () => {
+  const { chmodSync } = await import("node:fs");
+  const { join } = await import("node:path");
+  const doc = await newDoc(alice.token, "Durable");
+  const first = await ctx.api("/api/docs/" + doc.id, { html: "<p>landed</p>" }, alice.token, "PUT");
+  assert.equal(first.status, 200);
+  const dir = join(ctx.dataDir, "docs");
+  chmodSync(dir, 0o555); // the disk says no — production's version of this is the database refusing the row
+  let refused;
+  try {
+    refused = await ctx.api("/api/docs/" + doc.id, { html: "<p>landed</p><p>three thousand more words</p>", baseRev: first.data.doc.rev }, alice.token, "PUT");
+  } finally {
+    chmodSync(dir, 0o755);
+  }
+  assert.equal(refused.status, 503);
+  assert.equal(refused.data.unlanded, true);
+  assert.match(refused.data.error, /safe in this tab/);
+  assert.ok(!("doc" in refused.data), "no document comes back: the editor must not paint itself clean");
+  // the editor retries naming the rev it was given, and is not told it conflicts with itself
+  const again = await ctx.api("/api/docs/" + doc.id, { html: "<p>landed</p><p>three thousand more words</p>", baseRev: refused.data.rev }, alice.token, "PUT");
+  assert.equal(again.status, 200);
+  assert.ok((await docOf(doc.id)).html.includes("three thousand more words"));
+});
