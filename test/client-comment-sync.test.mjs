@@ -126,9 +126,28 @@ test("write page: an author with unsaved typing keeps their own html and underli
   assert.match(merge, /c\.resolved \|\| c\.orphaned/, "only comments the server still has anchored");
 });
 
-test("write page: a quiet save names the SAVE it started from, never a timestamp", () => {
-  assert.match(page, /body\.baseRev = doc\.rev/);
+test("write page: every save names the SAVE it started from, never a timestamp; only the conflict bar forces", () => {
+  assert.match(page, /if \(!force && typeof doc\.rev === "number"\) body\.baseRev = doc\.rev/);
+  assert.ok(!/if \(quiet[^\n]*baseRev/.test(page), "the Save button and Ctrl+S are checked too — a stale tab must not overwrite newer words");
+  assert.equal((page.match(/save\(\{ force: true \}\)/g) || []).length, 1, "one way to overwrite");
+  assert.match(page, /id: "conflictSave"[^\n]*save\(\{ force: true \}\)/, "and it is the button that says so");
   assert.ok(!page.includes("baseUpdatedAt"));
+});
+
+test("write page: a tab that was away catches up before it can save a stale copy", () => {
+  const fn = handler("async function catchUp()", "\ndocument.addEventListener");
+  assert.match(fn, /r\.doc\.rev[\s\S]*doc\.rev/, "compares saves, not timestamps");
+  assert.match(fn, /if \(dirty\)[\s\S]*conflictBar[\s\S]*else location\.reload\(\)/, "unsaved typing is kept and warned; a clean tab follows");
+  assert.match(page, /if \(connectedOnce\) void catchUp\(\)/, "on reconnect");
+  assert.match(page, /visibilitychange[\s\S]{0,120}catchUp\(\)/, "and on coming back to the tab");
+});
+
+test("write page: reloading from the conflict bar keeps what was typed here as a draft", () => {
+  const bar = handler('id: "conflictReload"', 'id: "conflictSave"');
+  assert.match(bar, /if \(dirty\) saveDraft\(docId, allChapters\(\)/, "the words go to the crash-cache first");
+  assert.ok(bar.indexOf("saveDraft(") < bar.indexOf("location.reload()"), "before the page goes");
+  assert.match(bar, /setDirty\(false\)/, "through setDirty, so the label and the leave guard agree");
+  assert.ok(!/\bdirty = false/.test(bar));
 });
 
 test("write page: the HTML view is pruned with the editor, and decisions act on it there", () => {

@@ -1413,7 +1413,12 @@ let conflicted = false // an autosave was refused: another tab saved first
 // quiet: the 30s autosave — the server's sanitized copy is NOT painted
 // back into the editor (that would jump the caret and reset undo while
 // you type); the next save sends the editor's own copy again anyway.
-async function save({ quiet = false }: { quiet?: boolean } = {}) {
+// force: the conflict bar's "Save & overwrite" — the ONLY save that names no
+// base. Every other one (autosave, the Save button, Ctrl/⌘+S, save-and-leave)
+// says which save it started from, so a tab that slept through another tab's
+// or device's saves is refused instead of silently replacing newer words
+// with its old copy.
+async function save({ quiet = false, force = false }: { quiet?: boolean; force?: boolean } = {}) {
 	if (!doc?.mine) return true
 	if (saving) return false
 	saving = true
@@ -1421,10 +1426,10 @@ async function save({ quiet = false }: { quiet?: boolean } = {}) {
 	const list = allChapters()
 	const editedSince = lastEditAt
 	try {
-		// An autosave names the copy it started from and is refused (409) when
-		// another tab saved since; a deliberate Save carries no base and wins.
+		// A save names the copy it started from and is refused (409) when
+		// another tab saved since; only a forced one carries no base and wins.
 		const body: Record<string, unknown> = { title: input("docTitle").value, chapters: list }
-		if (quiet && typeof doc.rev === "number") body.baseRev = doc.rev
+		if (!force && typeof doc.rev === "number") body.baseRev = doc.rev
 		const r = await api<{ doc: DocPayload }>("/api/docs/" + encodeURIComponent(docId), body, "PUT")
 		conflicted = false
 		banners.hide("conflictBar")
@@ -1570,18 +1575,22 @@ banners.add({
 banners.add({
 	id: "conflictBar",
 	kind: "warn",
-	html: "<b>This story was changed in another tab.</b> Autosave is paused here so nothing is lost.",
+	html: "<b>This story was changed somewhere else.</b> Saving is paused here so nothing is overwritten. Reloading keeps what you typed here as a draft you can restore.",
 	actions: [
 		{
 			id: "conflictReload",
 			label: "Reload to see it",
 			primary: true,
 			onClick: () => {
-				dirty = false // the writer chose the other tab's copy; don't ask again on the way out
+				// The writer chose the other copy — but what they typed here is still
+				// theirs: it goes to the local draft first, so the reloaded page
+				// offers it back instead of it being gone for good.
+				if (dirty) saveDraft(docId, allChapters(), input("docTitle").value)
+				setDirty(false) // don't ask again on the way out
 				location.reload()
 			},
 		},
-		{ id: "conflictSave", label: "Save & overwrite", onClick: () => save() },
+		{ id: "conflictSave", label: "Save & overwrite", onClick: () => save({ force: true }) },
 	],
 })
 
@@ -2065,13 +2074,38 @@ $("exportWork").addEventListener("click", () => {
 	download(exportWork(d), `${slugOf(d.title)}.html`)
 })
 
+// A tab that was away asks what the story looks like now. A clean tab whose
+// copy is behind simply reloads onto the newer one; a tab with unsaved typing
+// keeps its words and is told (its next save would be refused anyway).
+async function catchUp() {
+	if (!doc?.mine || saving) return
+	try {
+		const r = await api<{ doc: DocPayload }>("/api/docs/" + encodeURIComponent(docId), null, "GET")
+		if (!doc || (r.doc.rev || 0) === (doc.rev || 0)) return
+		if (dirty) {
+			conflicted = true
+			banners.show("conflictBar")
+		} else location.reload()
+	} catch {
+		// offline again, or signed out: the save path says so when it matters
+	}
+}
+document.addEventListener("visibilitychange", () => {
+	if (document.visibilityState === "visible") void catchUp()
+})
+
 // ---- live presence + comments ----
 function connect() {
 	const s: Socket<ServerToClient, ClientToServer> = io()
 	socket = s
+	let connectedOnce = false
 	s.on("connect", () => {
 		s.emit("identify", { auth: getToken() })
 		s.emit("doc-open", { auth: getToken(), id: docId })
+		// A RE-connect means this tab was away (a closed lid, a backgrounded
+		// phone) and heard none of the saves made meanwhile.
+		if (connectedOnce) void catchUp()
+		connectedOnce = true
 	})
 	s.on("doc-presence", ({ id, viewers }) => {
 		if (id !== docId) return
