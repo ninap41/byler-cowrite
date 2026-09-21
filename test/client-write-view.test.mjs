@@ -7,7 +7,7 @@ import { installDom } from "./dom.mjs";
 import { readFileSync } from "node:fs";
 
 installDom(); // plainBlockHtml parses through a detached div
-import { docCardHtml, docListHtml, docShelfHtml, DOC_GROUPS, presenceHtml, soloRowHtml, soloListHtml, wireSoloDeletes, commentHtml, commentThreadHtml, readerChipsHtml, wordsLabel, formatSource, unformatSource, plainBlockHtml, visChipHtml, visMenuHtml, visLabel, VIS, scrollTargetFor, inviteOptions, inviteRowHtml, inviteListHtml, promptInsertHtml, insertAfterHeading, betaReadingHtml, commentModeBannerHtml, chapterListHtml, chapNavHtml, chapChipLabel, countWordsHtml } from "../public/js/write-view.js";
+import { docCardHtml, docListHtml, docShelfHtml, DOC_GROUPS, presenceHtml, soloRowHtml, soloListHtml, wireSoloDeletes, commentHtml, commentThreadHtml, replyBoxHtml, threadOrder, FOLD_AFTER, MAX_DEPTH, readerChipsHtml, wordsLabel, formatSource, unformatSource, plainBlockHtml, visChipHtml, visMenuHtml, visLabel, VIS, scrollTargetFor, inviteOptions, inviteRowHtml, inviteListHtml, promptInsertHtml, insertAfterHeading, betaReadingHtml, commentModeBannerHtml, chapterListHtml, chapNavHtml, chapChipLabel, countWordsHtml } from "../public/js/write-view.js";
 
 const DOC = {
   id: "abc", title: "The Upside Down", wordCount: 120, visibility: "private",
@@ -97,7 +97,7 @@ test("comments escape their text and author", () => {
 test("resolved comments are marked, and orphans explain themselves", () => {
   const c = { id: "c1", text: "hi", author: "a", color: "#e63946", ts: Date.now(), resolved: true };
   assert.ok(commentHtml(c).includes("resolved"));
-  assert.ok(commentHtml(c, { isOwner: true }).includes("dc-reopen"), "the ⋮ menu offers Reopen");
+  assert.ok(commentHtml(c, { isOwner: true }).includes("dc-reopen"), "the action row offers Reopen");
   assert.ok(!commentHtml(c).includes("dc-reopen"), "but not to someone who can't");
   assert.equal(commentThreadHtml([]), "", "no comments, no markup");
   const orphan = commentThreadHtml([c], { orphaned: true });
@@ -623,10 +623,58 @@ test("reply text is escaped", () => {
   assert.ok(html.includes("&lt;img"));
 });
 
-test("the reply box is only for people who may write on the document", () => {
-  assert.ok(commentHtml(THREAD, { canReply: true }).includes("dc-reply-input"));
-  assert.ok(!commentHtml(THREAD).includes("dc-reply-input"), "a public reader just reads");
-  assert.ok(!commentHtml({ ...THREAD, resolved: true }, { canReply: true }).includes("dc-reply-input"), "a closed thread takes no replies");
+test("Reply and the reaction smiley are only for people who may write on the document", () => {
+  const can = commentHtml(THREAD, { canReply: true });
+  assert.equal((can.match(/dc-reply-btn/g) || []).length, 2, "on the note and on the reply");
+  assert.equal((can.match(/class="react-add"/g) || []).length, 2);
+  assert.ok(!can.includes("dc-reply-input"), "the box opens under the message you answer, not on every card");
+  const cannot = commentHtml(THREAD);
+  assert.ok(!cannot.includes("dc-reply-btn") && !cannot.includes("react-add"), "a public reader just reads");
+  const closed = commentHtml({ ...THREAD, resolved: true }, { canReply: true });
+  assert.ok(!closed.includes("dc-reply-btn") && !closed.includes("react-add"), "a closed thread takes neither");
+});
+
+test("the reply box names who it answers, escaped", () => {
+  const box = replyBoxHtml('mike"><img>');
+  assert.ok(box.includes("dc-reply-input") && box.includes("dc-send"));
+  assert.ok(box.includes("Reply to mike&quot;&gt;&lt;img&gt;…") && !box.includes("<img"));
+});
+
+test("replies nest under what they answer, in reading order", () => {
+  const r = (id, parentId) => ({ ...REPLY, id, parentId });
+  // stored oldest-first: a, b, then answers arrive out of order
+  const replies = [r("a"), r("b"), r("a1", "a"), r("b1", "b"), r("a1x", "a1"), r("lost", "gone"), r("self", "self")];
+  assert.deepEqual(threadOrder(replies).map((x) => [x.reply.id, x.depth]),
+    [["a", 1], ["a1", 2], ["a1x", 3], ["b", 1], ["b1", 2], ["lost", 1], ["self", 1]]);
+  const html = commentHtml({ ...THREAD, replies }, { meName: "zed" });
+  assert.match(html, /data-rid="a1x"[^>]*style="--d:3"/);
+  // a loop never reaches the note: both still render, once
+  const loop = threadOrder([r("x", "y"), r("y", "x")]);
+  assert.deepEqual(loop.map((x) => x.reply.id).sort(), ["x", "y"]);
+  // the indent stops at MAX_DEPTH
+  const deep = Array.from({ length: 7 }, (_, i) => r("d" + i, i ? "d" + (i - 1) : null));
+  assert.equal(Math.max(...threadOrder(deep).map((x) => x.depth)), MAX_DEPTH);
+});
+
+test("a long thread folds past the first few behind Show more", () => {
+  const replies = Array.from({ length: 5 }, (_, i) => ({ ...REPLY, id: "r" + i }));
+  const html = commentHtml({ ...THREAD, replies });
+  assert.equal((html.match(/dc-reply-item extra/g) || []).length, 5 - FOLD_AFTER);
+  assert.ok(html.includes(`Show ${5 - FOLD_AFTER} more replies`));
+  const short = commentHtml({ ...THREAD, replies: replies.slice(0, FOLD_AFTER) });
+  assert.ok(!short.includes("dc-show-more") && !short.includes(" extra"));
+  assert.ok(commentHtml({ ...THREAD, replies: replies.slice(0, FOLD_AFTER + 1) }).includes("Show 1 more reply"));
+});
+
+test("reaction chips sit under the note and under a reply; mine is marked by username", () => {
+  const reactions = { "🔥": [{ key: "mike", name: "mike", color: "#e63946" }, { key: "nina", name: "nina" }] };
+  const html = commentHtml({ ...THREAD, reactions, replies: [{ ...REPLY, reactions: { "👀": [{ key: "zed", name: "zed" }] } }] }, { meName: "nina" });
+  assert.match(html, /class="react mine" data-react="🔥"[^>]*>.*?react-n">2</);
+  assert.match(html, /data-rid="r1"[\s\S]*class="react" data-react="👀"/);
+  // chips show to someone who can't react — they just get no smiley
+  assert.ok(!html.includes("react-add"));
+  // nothing to do and nothing to show: no row at all
+  assert.ok(!commentHtml({ ...THREAD, replies: [] }, { meName: "zed" }).includes("dc-acts"));
 });
 
 test("the closing row: the author resolves or rejects, a reader only resolves their own", () => {
@@ -637,15 +685,17 @@ test("the closing row: the author resolves or rejects, a reader only resolves th
   assert.ok(!commentHtml(THREAD, { meName: "zed" }).includes("dc-actions"));
 });
 
-test("⋮ offers Edit on your own words only; the author may delete anyone's", () => {
-  const menus = (html) => [...html.matchAll(/<span class="dc-menu hidden" role="menu">(.*?)<\/span><\/span>/g)].map((m) => m[1]);
-  const [noteForOwner, replyForOwner] = menus(commentHtml(THREAD, { isOwner: true, meName: "nina" }));
+test("the action row offers Edit on your own words only; the author may delete anyone's", () => {
+  // each row up to its chips: the buttons one message offers
+  const rows = (html) => [...html.matchAll(/<span class="dc-acts">(.*?)<span class="reacts">/g)].map((m) => m[1]);
+  const [noteForOwner, replyForOwner] = rows(commentHtml(THREAD, { isOwner: true, meName: "nina" }));
   assert.ok(noteForOwner.includes("dc-del") && !noteForOwner.includes("dc-edit"), "the author can't rewrite a reader's note");
   assert.ok(replyForOwner.includes("dc-edit") && replyForOwner.includes("dc-del"));
-  const forMike = menus(commentHtml(THREAD, { meName: "mike" }));
-  assert.equal(forMike.length, 1, "no menu on the author's reply for a reader");
+  const forMike = rows(commentHtml(THREAD, { meName: "mike" }));
+  assert.equal(forMike.length, 1, "no row on the author's reply for a reader");
   assert.ok(forMike[0].includes("dc-edit") && forMike[0].includes("dc-del"));
-  assert.equal(menus(commentHtml(THREAD, { meName: "zed" })).length, 0, "a bystander gets no ⋮ at all");
+  assert.equal(rows(commentHtml(THREAD, { meName: "zed" })).length, 0, "a bystander gets no row at all");
+  assert.ok(!commentHtml(THREAD, { isOwner: true, meName: "nina" }).includes("dc-menu"), "the ⋮ menu is gone");
 });
 
 test("a closed thread says how it closed and how long it ran", () => {

@@ -347,6 +347,8 @@ export interface DocCommentRow {
 	declined?: boolean
 	edited?: boolean
 	replies?: DocReplyRow[]
+	/** emoji reactions on the note itself — reactors keyed by username, never an account id */
+	reactions?: Reactions
 	/** where the words sat when the comment was made — absent on older comments */
 	pos?: DocCommentPos | null
 }
@@ -365,6 +367,8 @@ export interface DocCommentPos {
 /** One reply in a comment's thread — identity for rendering, never an account id. */
 export interface DocReplyRow {
 	id: string
+	/** the reply this one answers; null = it answers the note itself */
+	parentId?: string | null
 	text: string
 	ts?: number
 	edited?: boolean
@@ -373,6 +377,7 @@ export interface DocReplyRow {
 	avatar?: string
 	avatarFit?: AvatarFit | string
 	isAuthor?: boolean
+	reactions?: Reactions
 }
 
 type AckFn<T = Record<never, never>> = (res: Ack<T>) => void
@@ -431,6 +436,7 @@ export interface ClientToServer {
 	"doc-comment-decide": (p: { auth: string | null; id: string; commentId: string; accept: boolean }) => void
 	"doc-comment-resolve": (p: { auth: string | null; id: string; commentId: string; resolved: boolean; declined?: boolean }) => void
 	"doc-comment-delete": (p: { auth: string | null; id: string; commentId: string; replyId?: string }) => void
-	"doc-comment-reply": (p: { auth: string | null; id: string; commentId: string; text: string }) => void
+	"doc-comment-reply": (p: { auth: string | null; id: string; commentId: string; parentId?: string; text: string }) => void
+	"doc-comment-react": (p: { auth: string | null; id: string; commentId: string; replyId?: string; emoji: string }) => void
 	"doc-comment-edit": (p: { auth: string | null; id: string; commentId: string; replyId?: string; text: string }) => void
 }

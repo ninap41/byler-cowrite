@@ -12,7 +12,10 @@ import { stripTags, plainText } from "./sanitize.js";
  * must never look, to the author's editor, like somebody editing the story.
  *
  * @typedef {{ id: string, title: string, html: string, wordCount?: number }} DocChapter
- * @typedef {{ id: string, userId: string, text: string, ts: number, editedAt?: number }} DocReply
+ * Reactions are the chat's shape, keyed by ACCOUNT id here (commentRows ships usernames).
+ * @typedef {Record<string, { key: string, name: string, color?: string }[]>} DocReactions
+ * `parentId` names the reply this one answers (absent = the note itself).
+ * @typedef {{ id: string, userId: string, text: string, ts: number, editedAt?: number, parentId?: string, reactions?: DocReactions }} DocReply
  * Where a comment's words sat when it was made, in the chapter's plain text
  * (tags gone, entities decoded — what a DOM calls textContent), so an editor
  * that never received the anchor can put the underline back in place.
@@ -21,6 +24,7 @@ import { stripTags, plainText } from "./sanitize.js";
  *   id: string, cid: string, quote: string, userId: string, text: string,
  *   suggestion: string | null, ts: number, resolved: boolean, accepted: boolean,
  *   declined?: boolean, editedAt?: number, replies?: DocReply[], pos?: CommentPos,
+ *   reactions?: DocReactions,
  * }} DocComment
  * @typedef {{ docId: string, comments: DocComment[] }} CommentRecord
  * `html` and `comments` are ATTACHED on read and never persisted in the doc

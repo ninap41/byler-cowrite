@@ -2316,7 +2316,7 @@ export function createGame(io) {
     // beta reader — never a public reader) can answer an open comment. Replies
     // are plain text and never touch the html.
     const MAX_REPLIES = 50;
-    socket.on("doc-comment-reply", ({ auth, id, commentId, text }) => {
+    socket.on("doc-comment-reply", ({ auth, id, commentId, parentId, text }) => {
       const u = userByToken(auth);
       const doc = readDoc(id);
       if (!u || !doc || !canComment(doc, u.id)) return;
@@ -2326,8 +2326,30 @@ export function createGame(io) {
       if (!body) return;
       const replies = Array.isArray(c.replies) ? c.replies : [];
       if (replies.length >= MAX_REPLIES) return;
-      c.replies = [...replies, { id: randomUUID(), userId: u.id, text: body, ts: Date.now() }];
+      // A reply may answer another reply — but only one in THIS thread; anything
+      // else (a stale id, another thread's) answers the note itself.
+      const parent = typeof parentId === "string" && replies.some((r) => r.id === parentId) ? parentId : null;
+      c.replies = [...replies, { id: randomUUID(), userId: u.id, text: body, ts: Date.now(), ...(parent ? { parentId: parent } : {}) }];
       writeComments(doc); // words in the margin: the story's record is not touched
+      broadcastDocComments(doc);
+    });
+
+    // An emoji on a note or a reply — the chat's rules (`toggleReaction`: one
+    // tap toggles yours, nothing off the list), for the same people who may
+    // reply. Stored under the account id; `commentRows` ships usernames.
+    socket.on("doc-comment-react", ({ auth, id, commentId, replyId, emoji }) => {
+      const u = userByToken(auth);
+      const doc = readDoc(id);
+      if (!u || !doc || !canComment(doc, u.id)) return;
+      const c = (doc.comments || []).find((x) => x.id === commentId);
+      if (!c || c.resolved) return;
+      const target = replyId == null ? c : (c.replies || []).find((r) => r.id === replyId);
+      if (!target) return;
+      const box = { mid: target.id, reactions: target.reactions };
+      if (!toggleReaction(box, u.id, u.username, emoji)) return;
+      if (box.reactions) target.reactions = box.reactions;
+      else delete target.reactions;
+      writeComments(doc);
       broadcastDocComments(doc);
     });
 
@@ -2361,7 +2383,12 @@ export function createGame(io) {
         const t = (doc.comments || []).find((x) => x.id === commentId);
         const r = (t?.replies || []).find((x) => x.id === replyId);
         if (!t || !r || (r.userId !== u.id && doc.ownerId !== u.id)) return;
-        t.replies = (t.replies || []).filter((x) => x.id !== replyId);
+        // what answered it now answers what IT answered — the thread keeps its shape
+        t.replies = (t.replies || []).filter((x) => x.id !== replyId).map((x) => {
+          if (x.parentId !== replyId) return x;
+          const { parentId: _gone, ...rest } = x;
+          return r.parentId ? { ...rest, parentId: r.parentId } : rest;
+        });
         writeComments(doc);
         broadcastDocComments(doc);
         return;
@@ -2434,9 +2461,23 @@ export function createGame(io) {
       isAuthor: userId === doc.ownerId, // the author's own notes-to-self read differently
     };
   };
+  // Reactions are stored under account ids; what ships is keyed by username,
+  // in the reactor's current colour.
+  const reactionRows = (doc, reactions) => {
+    const out = {};
+    for (const [e, list] of Object.entries(reactions && typeof reactions === "object" ? reactions : {})) {
+      if (!Array.isArray(list) || !list.length) continue;
+      out[e] = list.map((r) => {
+        const v = voiceOf(doc, r.key);
+        return { key: v.author, name: v.author, color: v.color };
+      });
+    }
+    return out;
+  };
   const commentRows = (doc) =>
     (doc.comments || []).map((c) => {
       return {
+        reactions: reactionRows(doc, c.reactions),
         id: c.id, cid: c.cid || "", quote: c.quote || "", text: c.text,
         suggestion: typeof c.suggestion === "string" ? c.suggestion : null,
         ts: c.ts, resolved: !!c.resolved, accepted: !!c.accepted,
@@ -2448,7 +2489,8 @@ export function createGame(io) {
         pos: c.pos && typeof c.pos.start === "number" ? c.pos : null,
         // older comments have no `replies` field at all
         replies: (Array.isArray(c.replies) ? c.replies : []).map((r) => ({
-          id: r.id, text: r.text, ts: r.ts, edited: !!r.editedAt, ...voiceOf(doc, r.userId),
+          id: r.id, parentId: r.parentId || null, text: r.text, ts: r.ts, edited: !!r.editedAt,
+          reactions: reactionRows(doc, r.reactions), ...voiceOf(doc, r.userId),
         })),
         ...voiceOf(doc, c.userId),
       };
