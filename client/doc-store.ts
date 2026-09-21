@@ -23,6 +23,8 @@ export interface DraftChapter {
 	id: string | null
 	title: string
 	html: string
+	/** false = the drafting page never edited this chapter, so a restore takes the server's copy of it; absent on older drafts */
+	touched?: boolean
 }
 export interface Draft {
 	docId: string
@@ -48,7 +50,12 @@ export interface DraftDoc {
 const chapterList = (v: unknown): DraftChapter[] | null => {
 	const o = v as { chapters?: unknown; html?: unknown } | null
 	if (Array.isArray(o?.chapters))
-		return (o.chapters as Partial<DraftChapter>[]).map((c) => ({ id: c?.id ?? null, title: String(c?.title ?? ""), html: String(c?.html ?? "") }))
+		return (o.chapters as Partial<DraftChapter>[]).map((c) => ({
+			id: c?.id ?? null,
+			title: String(c?.title ?? ""),
+			html: String(c?.html ?? ""),
+			...(typeof c?.touched === "boolean" ? { touched: c.touched } : {}),
+		}))
 	return typeof o?.html === "string" ? [{ id: null, title: "", html: o.html }] : null
 }
 
@@ -85,7 +92,7 @@ export function saveDraft(
 ): boolean {
 	try {
 		const list = (Array.isArray(chapters) ? chapters : [{ id: null, title: "", html: String(chapters ?? "") }]).map(
-			({ id = null, title = "", html = "" }) => ({ id, title, html }),
+			({ id = null, title = "", html = "", touched }) => ({ id, title, html, ...(typeof touched === "boolean" ? { touched } : {}) }),
 		)
 		// newest first; whatever falls off the end is the story you drafted longest ago
 		const index = [docId, ...readIndex(storage).filter((id) => id !== docId)]
@@ -131,7 +138,9 @@ const shape = (chapters: Partial<DraftChapter>[] | null | undefined, doc: DraftD
 export const draftIsNewer = (draft: Partial<Draft> | null | undefined, doc: DraftDoc | null | undefined): boolean => {
 	if (!draft || !doc) return false
 	if (typeof draft.baseRev !== "number" && !((draft.savedAt ?? 0) > (doc.updatedAt || 0))) return false
-	const mine = draft.chapters || chapterList(draft)
+	// a chapter this page never edited isn't a difference: the restore takes the server's copy of it
+	const byId = new Map((doc.chapters || []).map((c) => [c.id, c]))
+	const mine = (draft.chapters || chapterList(draft) || []).map((c) => (c.touched === false && c.id && byId.has(c.id) ? { ...c, html: byId.get(c.id)!.html || "" } : c))
 	const theirs = Array.isArray(doc.chapters) && doc.chapters.length ? doc.chapters : [{ id: null, title: "", html: doc.html || "" }]
 	return shape(mine, { chapters: theirs }) !== shape(theirs, { chapters: theirs })
 }

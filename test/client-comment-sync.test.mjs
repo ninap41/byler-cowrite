@@ -144,7 +144,7 @@ test("write page: a tab that was away catches up before it can save a stale copy
 
 test("write page: reloading from the conflict bar keeps what was typed here as a draft", () => {
   const bar = handler('id: "conflictReload"', 'id: "conflictSave"');
-  assert.match(bar, /if \(dirty\) saveDraft\(docId, allChapters\(\)/, "the words go to the crash-cache first");
+  assert.match(bar, /if \(dirty\) saveDraft\(docId, draftChapters\(\)/, "the words go to the crash-cache first");
   assert.ok(bar.indexOf("saveDraft(") < bar.indexOf("location.reload()"), "before the page goes");
   assert.match(bar, /setDirty\(false\)/, "through setDirty, so the label and the leave guard agree");
   assert.ok(!/\bdirty = false/.test(bar));
@@ -224,12 +224,12 @@ test("write page: what changed while a save was out is kept — nothing is repla
 test("write page: a failed save, every autosave tick, and a hidden tab all write the browser's draft", () => {
   const fn = handler("async function save(", "\nconst SAVE_TIMEOUT_MS");
   const failed = fn.slice(fn.lastIndexOf("} catch (e) {"));
-  assert.match(failed, /saveDraft\(docId, list/, "offline, timed out, signed out, too large: the words stay somewhere");
+  assert.match(failed, /saveDraft\(docId, draftChapters\(\)/, "offline, timed out, signed out, too large: the words stay somewhere");
   const tick = /setInterval\(\(\) => \{\s*if \(!dirty \|\| !doc\?\.mine\) return;?([\s\S]*?)\}, AUTOSAVE_MS\)/.exec(page)?.[1] || "";
   assert.ok(tick.indexOf("saveDraft(") >= 0 && tick.indexOf("saveDraft(") < tick.indexOf("save({ quiet: true })"), "the draft first, whatever the save then does");
   assert.match(page, /visibilityState === "hidden"\) draftIfDirty\(\)/);
   assert.match(page, /addEventListener\("pagehide", draftIfDirty\)/);
-  assert.match(page, /saveDraft\(docId, allChapters\(\), input\("docTitle"\)\.value, void 0, doc\?\.rev\)|saveDraft\(docId, allChapters\(\), input\("docTitle"\)\.value, undefined, doc\?\.rev\)/, "naming the save it was working from");
+  assert.match(page, /saveDraft\(docId, draftChapters\(\), input\("docTitle"\)\.value, (void 0|undefined), doc\?\.rev\)/, "naming the save it was working from");
 });
 
 test("write page: a page replaced from outside forgets its undo history, and a draft restore asks before replacing new typing", () => {
@@ -246,4 +246,13 @@ test("write page: deleting a chapter with words in it asks first, by name — ne
   assert.match(del, /chapters\.indexOf\(ch\)/, "and deletes THAT chapter, even if the list moved while it asked");
   assert.ok(!page.includes("dataset.armed = \"1\";\n      b.textContent = \"Delete?\""), "the two-click arm is gone");
   assert.ok(!/chap-del[\s\S]{0,400}armed/.test(del));
+});
+
+test("write page: restoring a draft takes only the chapters its page edited; the rest stay as the server has them", () => {
+  assert.match(page, /touched\.add\(ch\)/, "an edit marks the open chapter");
+  assert.match(page, /touched: c\.id == null \|\| touched\.has\(/, "and the draft carries the mark (a never-saved chapter always counts)");
+  const restore = handler('id: "restoreYes"', 'id: "restoreNo"');
+  assert.match(restore, /c\.touched === false && c\.id \? stored\.get\(c\.id\)/);
+  assert.match(restore, /theirs \? theirs\.html : c\.html/);
+  assert.ok(!/saveDraft\(docId, allChapters\(\)/.test(page), "every draft write goes through draftChapters()");
 });

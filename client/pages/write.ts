@@ -141,6 +141,8 @@ const setDirty = (v: boolean) => {
 	if (v) {
 		lastEditAt = Date.now()
 		editSeq++
+		const ch = chapters[openIdx]
+		if (ch) touched.add(ch)
 	}
 	$("saveState").textContent = v ? "Unsaved" : "Saved"
 	$("saveState").classList.toggle("unsaved", v)
@@ -164,6 +166,13 @@ const allChapters = () => {
 	return chapters.map(({ id, title, html }) => ({ id: id ?? null, title: title ?? "", html: html ?? "" }))
 }
 const openChapter = () => chapters[openIdx] || null
+// Which chapters THIS page has edited since it last matched the server. A
+// draft holds every chapter, but restoring it must only bring back the ones
+// that were actually worked on here — the rest may have been saved from
+// somewhere else since, and an old copy of them would quietly undo that.
+// (A full save swaps in new chapter objects, which empties this by itself.)
+const touched = new WeakSet<object>()
+const draftChapters = () => allChapters().map((c, i) => ({ ...c, touched: c.id == null || touched.has(chapters[i]!) }))
 
 const updateWords = () => {
 	const text = $("docEditor").innerText || ""
@@ -1454,7 +1463,7 @@ async function save({ quiet = false, force = false }: { quiet?: boolean; force?:
 			sent.forEach((c, i) => {
 				if (c.id == null && rows[i]?.id) c.id = rows[i]!.id
 			})
-			saveDraft(docId, allChapters(), input("docTitle").value, undefined, doc?.rev)
+			saveDraft(docId, draftChapters(), input("docTitle").value, undefined, doc?.rev)
 			socket?.emit("doc-saved", { auth: getToken(), id: docId })
 			renderChapters()
 			return true
@@ -1486,11 +1495,11 @@ async function save({ quiet = false, force = false }: { quiet?: boolean; force?:
 		// go to the local draft, the one place they are certainly on a disk.
 		if (e instanceof ApiError && e.data.unlanded) {
 			if (doc && typeof e.data.rev === "number") doc.rev = e.data.rev
-			saveDraft(docId, list, input("docTitle").value, undefined, doc?.rev)
+			saveDraft(docId, draftChapters(), input("docTitle").value, undefined, doc?.rev)
 		}
 		// Any other failure — offline, timed out, signed out, too large: the
 		// server does not have these words, so the browser keeps them.
-		saveDraft(docId, list, input("docTitle").value, undefined, doc?.rev)
+		saveDraft(docId, draftChapters(), input("docTitle").value, undefined, doc?.rev)
 		$("docErr").textContent = (e as Error).message
 		return false
 	} finally {
@@ -1562,13 +1571,13 @@ setInterval(() => {
 	// conflict pauses saving, while a save is out, while you are mid-sentence.
 	// (It used to be written only in the mid-sentence case, so a stuck or
 	// failing save left the words nowhere but the page.)
-	saveDraft(docId, allChapters(), input("docTitle").value, undefined, doc?.rev)
+	saveDraft(docId, draftChapters(), input("docTitle").value, undefined, doc?.rev)
 	if (!conflicted && Date.now() - lastEditAt >= AUTOSAVE_IDLE_MS) void save({ quiet: true })
 }, AUTOSAVE_MS)
 // A phone that backgrounds the tab may never run another line of this page:
 // no beforeunload, no timer. Hidden is the last moment that is guaranteed.
 const draftIfDirty = () => {
-	if (dirty && doc?.mine) saveDraft(docId, allChapters(), input("docTitle").value, undefined, doc?.rev)
+	if (dirty && doc?.mine) saveDraft(docId, draftChapters(), input("docTitle").value, undefined, doc?.rev)
 }
 document.addEventListener("visibilitychange", () => {
 	if (document.visibilityState === "hidden") draftIfDirty()
@@ -1602,11 +1611,21 @@ banners.add({
 				if (d) {
 					// a draft chapter with no id (never saved, or a pre-chapter draft)
 					// takes the stored chapter's id at the same position, if any
-					chapters = d.chapters.map((c, i) => ({
-						id: c.id ?? doc?.chapters?.[i]?.id ?? null,
-						title: c.title || doc?.chapters?.[i]?.title || `Chapter ${i + 1}`,
-						html: c.html,
-					}))
+					// A chapter the drafting page never edited comes from the SERVER, not
+					// the draft: it may have been saved from another tab or device since,
+					// and the draft's old copy would undo that. (A draft from before
+					// chapters were marked has no flag and restores whole, as it did.)
+					const stored = new Map((doc?.chapters || []).map((c) => [c.id, c]))
+					chapters = d.chapters.map((c, i) => {
+						const theirs = c.touched === false && c.id ? stored.get(c.id) : undefined
+						return {
+							id: c.id ?? doc?.chapters?.[i]?.id ?? null,
+							title: c.title || doc?.chapters?.[i]?.title || `Chapter ${i + 1}`,
+							html: theirs ? theirs.html : c.html,
+						}
+					})
+					// what came back from the draft is unsaved work again
+					chapters.forEach((c, i) => d.chapters[i]?.touched !== false && touched.add(c))
 					openIdx = Math.min(openIdx, chapters.length - 1)
 					if (sourceMode) setMode(false)
 					$("docEditor").innerHTML = chapters[openIdx]?.html ?? ""
@@ -1643,7 +1662,7 @@ banners.add({
 				// The writer chose the other copy — but what they typed here is still
 				// theirs: it goes to the local draft first, so the reloaded page
 				// offers it back instead of it being gone for good.
-				if (dirty) saveDraft(docId, allChapters(), input("docTitle").value, undefined, doc?.rev)
+				if (dirty) saveDraft(docId, draftChapters(), input("docTitle").value, undefined, doc?.rev)
 				setDirty(false) // don't ask again on the way out
 				location.reload()
 			},
@@ -1717,7 +1736,7 @@ window.addEventListener("pagehide", () => stopSprint({ leaving: true }))
 // beforeunload covers reloads/closes; the styled modal covers in-app links.
 window.addEventListener("beforeunload", (e) => {
 	if (!dirty) return
-	saveDraft(docId, allChapters(), input("docTitle").value, undefined, doc?.rev)
+	saveDraft(docId, draftChapters(), input("docTitle").value, undefined, doc?.rev)
 	e.preventDefault()
 	e.returnValue = ""
 })
@@ -1741,7 +1760,7 @@ $("leaveCancel").addEventListener("click", () => {
 	leaveTo = null
 })
 $("leaveAnyway").addEventListener("click", () => {
-	saveDraft(docId, allChapters(), input("docTitle").value, undefined, doc?.rev)
+	saveDraft(docId, draftChapters(), input("docTitle").value, undefined, doc?.rev)
 	dirty = false
 	location.href = leaveTo || "/writes"
 })
@@ -2198,7 +2217,7 @@ $("historyList").addEventListener("click", async (e) => {
 		})
 		if (!ok) return
 		try {
-			if (dirty) saveDraft(docId, allChapters(), input("docTitle").value, undefined, doc?.rev)
+			if (dirty) saveDraft(docId, draftChapters(), input("docTitle").value, undefined, doc?.rev)
 			await api(url + "/restore", {})
 			setDirty(false)
 			location.reload()

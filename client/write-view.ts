@@ -411,7 +411,7 @@ export function versionListHtml(versions: VersionRow[] | null | undefined, nowWo
 				return (
 					`<li class="history-row${v.reason === "drop" ? " drop" : ""}" data-at="${Number(v.at)}">` +
 					`<span class="history-when"><b>${esc(when.toLocaleDateString(undefined, { month: "short", day: "numeric" }))}</b> ${esc(when.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }))}</span>` +
-					`<span class="history-what">${wordsLabel(v.words)} · ${esc(delta)}${v.chapters > 1 ? ` · ${v.chapters} chapters` : ""}` +
+					`<span class="history-what">${Number(v.words).toLocaleString()} word${v.words === 1 ? "" : "s"} · ${esc(delta)}${v.chapters > 1 ? ` · ${v.chapters} chapters` : ""}` +
 					(VERSION_WHY[v.reason] ? `<em class="history-why">${esc(VERSION_WHY[v.reason])}</em>` : "") +
 					`</span>` +
 					`<span class="history-acts"><button class="ghost history-get" type="button">Download</button><button class="primary history-restore" type="button">Restore</button></span>` +

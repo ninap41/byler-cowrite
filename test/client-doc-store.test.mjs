@@ -111,3 +111,14 @@ test("a pre-chapter draft ({html}) is read as one untitled chapter and compared 
   // and a legacy draft against a legacy-shaped doc (html only) still compares
   assert.equal(draftIsNewer({ html: "<p>x</p>", savedAt: 2000 }, { html: "<p>y</p>", updatedAt: 1 }), true);
 });
+
+test("a draft remembers which chapters its page edited; one it never touched is not a difference", () => {
+  const s = mem();
+  saveDraft("doc-1", [{ id: "c1", title: "One", html: "<p>mine, unsaved</p>", touched: true }, { id: "c2", title: "Two", html: "<p>old copy</p>", touched: false }], "T", s, 3);
+  const d = loadDraft("doc-1", s);
+  assert.deepEqual(d.chapters.map((c) => c.touched), [true, false]);
+  // chapter two was saved from another tab since; chapter one matches what the server has
+  const server = { rev: 4, chapters: [{ id: "c1", title: "One", html: "<p>mine, unsaved</p>" }, { id: "c2", title: "Two", html: "<p>saved elsewhere since</p>" }] };
+  assert.equal(draftIsNewer(d, server), false, "the only difference is a chapter this page never edited: nothing to offer");
+  assert.equal(draftIsNewer(d, { ...server, chapters: [{ id: "c1", title: "One", html: "<p>server</p>" }, server.chapters[1]] }), true, "the edited chapter differs: offered");
+});

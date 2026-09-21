@@ -666,7 +666,7 @@ test("the version list says when, how long, how it differs from the page, and wh
   const at = Date.UTC(2026, 8, 21, 17, 30);
   const html = versionListHtml([{ at, reason: "drop", words: 17000, chapters: 3 }, { at: at - 600000, reason: "time", words: 14000, chapters: 1 }], 14000);
   assert.match(html, /class="history-row drop" data-at="\d+"/);
-  assert.ok(html.includes("17000 words") && html.includes("3,000 more than now") && html.includes("3 chapters"));
+  assert.ok(html.includes("17,000 words") && html.includes("3,000 more than now") && html.includes("3 chapters"));
   assert.ok(html.includes("Kept because the next save was much shorter"));
   assert.ok(html.includes("same length as now"));
   assert.equal((html.match(/history-restore/g) || []).length, 2);
