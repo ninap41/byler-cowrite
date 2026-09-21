@@ -5,7 +5,8 @@ import { randomUUID, randomInt } from "crypto";
 import { bumpStreak } from "../lib/streak.js";
 import { badgeName, badgeDesc, usageMatches, awardWordBadges, rewardsForTiers, describeRewards, unlockedThemes, unlockedGimmicks, canUseGimmick } from "../lib/achievements.js";
 import { cleanGimmickId, rollOutcome, describeRoll, galagaOutcome, describeGalaga, GALAGA_MAX_SCORE, ROLL_COOLDOWN_MS, SPIN_MS, DIE_SIDES, PAINT_MAX_STROKES, PAINT_MAX_PTS, CURSE_MS, GIMMICK_IDS } from "../lib/gimmicks.js";
-import { PALETTE, cleanColor, cleanHex, sanitizeRich, stripTags, plainText, clip, httpUrl, sanitizeDoc, CID_RE } from "./sanitize.js";
+import { PALETTE, cleanColor, cleanHex, sanitizeRich, stripTags, plainText, clip, httpUrl, sanitizeDoc, CID_RE, DOC_MAX } from "./sanitize.js";
+import { keepBeforeOverwrite, snapshotOf } from "./dochist.js";
 import { store, saveStore, userByToken, makeMsg, isAdmin, isSecretUsageId } from "./store.js";
 import { storage, getJson } from "./storage.js";
 import { generateSimplePrompt, generateIntermediatePrompt, validateIntermediateData, EXPLICIT_LEVELS, MODES, MAX_KINKS } from "../lib/prompt-gen.js";
@@ -2204,7 +2205,7 @@ export function createGame(io) {
     // the stored html, byte for byte. Any smuggled edit fails that and is
     // dropped whole. `suggestion` (readers' edits, per comment mode) is the text
     // they propose for the anchored range; the author accepts or rejects it.
-    socket.on("doc-comment", ({ auth, id, cid, chapterId, html, text, suggestion }) => {
+    socket.on("doc-comment", ({ auth, id, cid, chapterId, html, text, suggestion, baseRev }) => {
       const u = userByToken(auth);
       const doc = readDoc(id);
       // canComment, not canView: a public document is READ by anyone signed in,
@@ -2220,6 +2221,18 @@ export function createGame(io) {
       const ch = chapterId != null ? chapterById(doc, chapterId) : doc.chapters.length === 1 ? doc.chapters[0] : null;
       if (!ch) return;
       if (anchorCids(doc.html).includes(cid)) return; // never reuse an anchor id — across every chapter
+      // Refuse, never cut: sanitizeDoc slices at DOC_MAX, and this path replaces
+      // a whole chapter — a silent slice here is the end of it gone for good
+      // (the save route has refused for the same reason all along).
+      if (String(html ?? "").length > DOC_MAX) return void socket.emit("doc-comment-refused", { id: doc.id, cid, reason: "long" });
+      // The AUTHOR's html is taken as it comes (they may have unsaved typing in
+      // it) — which makes a comment the one way to overwrite a chapter without
+      // the save route's version check. A tab that names an older save than the
+      // stored one is behind: its html would roll the chapter back. Not taken;
+      // the tab is told, and catches up. (No `baseRev`: an older client.)
+      if (canEdit(doc, u.id) && typeof baseRev === "number" && baseRev !== (doc.rev || 0))
+        return void socket.emit("doc-comment-refused", { id: doc.id, cid, reason: "stale" });
+      const before = snapshotOf(doc);
       const next = sanitizeDoc(String(html ?? ""));
       if (!anchorCids(next).includes(cid)) return; // the anchor has to be there
       // …and, for a BETA READER, the ONLY change may be that one anchor: no
@@ -2255,6 +2268,8 @@ export function createGame(io) {
       // Neither write moves `rev` — a comment is not an edit of the story.
       writeComments(doc);
       writeDoc(doc);
+      // the chapter was replaced: if that lost a lot of words, history keeps the copy before
+      void keepBeforeOverwrite(doc.id, before, doc);
       // Skip only the AUTHOR (a live editor whose caret a re-render would move);
       // a beta reader has no unsaved edits, so pushing the canonical html back
       // keeps their editor exactly in step with the store and their NEXT

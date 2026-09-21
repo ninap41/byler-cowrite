@@ -756,7 +756,7 @@ function sendComment() {
 		pendingRange.insertNode(span)
 	}
 	const html = cleanHtml($("docEditor"), { doc: true })
-	socket?.emit("doc-comment", { auth: getToken(), id: docId, cid, chapterId: openChapter()?.id ?? null, html, text, suggestion })
+	socket?.emit("doc-comment", { auth: getToken(), id: docId, cid, chapterId: openChapter()?.id ?? null, html, text, suggestion, ...(typeof doc?.rev === "number" ? { baseRev: doc.rev } : {}) })
 	// The author owns the html, so their copy is now dirty and must be
 	// saved; a reader's copy is only a local echo of what they proposed.
 	if (canEditDoc()) setDirty(true)
@@ -2234,6 +2234,17 @@ function connect() {
 		for (const cid of pendingCids) if (rows.some((c) => c.cid === cid)) pendingCids.delete(cid)
 		mergeArrivedAnchors()
 		renderComments()
+	})
+	// My comment wasn't taken. `stale`: this tab is behind the stored story —
+	// its html would have rolled the chapter back — so it gets the conflict
+	// bar like any refused save. Either way the underline it drew comes off.
+	s.on("doc-comment-refused", ({ id, cid, reason }) => {
+		if (id !== docId) return
+		pendingCids.delete(cid)
+		renderComments()
+		if (reason === "long") return void ($("docErr").textContent = "This chapter is too long to comment on. Split it into two chapters.")
+		conflicted = true
+		banners.show("conflictBar")
 	})
 	s.on("doc-updated", ({ id, html, title, chapters: rows, updatedAt, rev }) => {
 		if (id !== docId || !doc) return

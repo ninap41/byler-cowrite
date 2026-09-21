@@ -308,6 +308,8 @@ export interface ServerToClient {
 	// the solo editor (src/game.js doc-* handlers): presence, comments and pushes
 	"doc-presence": (p: { id: string; viewers: DocViewer[] }) => void
 	"doc-comments": (p: { id: string; comments: DocCommentRow[] }) => void
+	/** the sender's comment was not taken: `stale` = their copy of the story is behind the stored one; `long` = the chapter is past the size limit */
+	"doc-comment-refused": (p: { id: string; cid: string; reason: "stale" | "long" }) => void
 	"doc-updated": (p: { id: string; html: string; title: string; chapters: DocChapterRow[]; updatedAt?: number; rev?: number }) => void
 	"doc-html": (p: { id: string; chapterId: string | null; html: string; chapterWordCount?: number; wordCount?: number }) => void
 	"doc-access-lost": (p: { id: string }) => void
@@ -427,7 +429,8 @@ export interface ClientToServer {
 	"doc-open": (p: { auth: string | null; id: string }) => void
 	"doc-close": () => void
 	"doc-saved": (p: { auth: string | null; id: string }) => void
-	"doc-comment": (p: { auth: string | null; id: string; cid: string; chapterId: string | null; html: string; text: string; suggestion: string | null }) => void
+	/** `baseRev`: the save the sender's copy came from — the AUTHOR's html is taken only when it still matches the stored one */
+	"doc-comment": (p: { auth: string | null; id: string; cid: string; chapterId: string | null; html: string; text: string; suggestion: string | null; baseRev?: number }) => void
 	"doc-comment-decide": (p: { auth: string | null; id: string; commentId: string; accept: boolean }) => void
 	"doc-comment-resolve": (p: { auth: string | null; id: string; commentId: string; resolved: boolean; declined?: boolean }) => void
 	"doc-comment-delete": (p: { auth: string | null; id: string; commentId: string; replyId?: string }) => void

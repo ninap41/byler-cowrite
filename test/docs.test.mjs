@@ -1675,3 +1675,39 @@ test("history: the author's alone — a beta reader, a stranger and the signed-o
   assert.equal((await ctx.api(`/api/docs/${doc.id}/history/12345/restore`, {}, alice.token)).status, 404, "a version that isn't there");
   assert.equal((await docOf(doc.id)).html, "<p>cut</p>", "none of that changed the story");
 });
+
+// ---- the author's comment is the one write that skips the save route's version check ----
+test("an author's comment from a tab that is behind the stored story is refused, and the chapter is not rolled back", async () => {
+  const doc = await commentableDoc();
+  const stale = await docOf(doc.id); // what an old tab holds
+  const newer = BODY + "<p>three thousand words written on the other device</p>";
+  await ctx.api("/api/docs/" + doc.id, { html: newer }, alice.token, "PUT");
+  const A = await ctx.conn();
+  A.emit("doc-open", { auth: alice.token, id: doc.id });
+  await ctx.wait(100);
+  const refused = new Promise((r) => A.once("doc-comment-refused", r));
+  A.emit("doc-comment", { auth: alice.token, id: doc.id, cid: "dddddddddddd", html: anchored("dddddddddddd"), text: "note to self", baseRev: stale.rev });
+  assert.deepEqual(await refused, { id: doc.id, cid: "dddddddddddd", reason: "stale" });
+  const now = await docOf(doc.id);
+  assert.ok(now.html.includes("written on the other device"), "the newer chapter stands");
+  assert.equal(now.comments.length, 0);
+
+  // the same comment from a tab that is up to date — unsaved typing and all — lands as before
+  A.emit("doc-comment", { auth: alice.token, id: doc.id, cid: "eeeeeeeeeeee", html: newer.replace("striped shirt", '<span class="cmt" data-cid="eeeeeeeeeeee">striped shirt</span>') + "<p>still typing</p>", text: "note to self", baseRev: now.rev });
+  await ctx.wait(200);
+  const after = await docOf(doc.id);
+  assert.equal(after.comments.length, 1);
+  assert.ok(after.html.includes("still typing") && after.html.includes("written on the other device"));
+});
+
+test("a comment on a chapter past the size limit is refused, never sliced", async () => {
+  const doc = await commentableDoc();
+  const A = await ctx.conn();
+  A.emit("doc-open", { auth: alice.token, id: doc.id });
+  await ctx.wait(100);
+  const refused = new Promise((r) => A.once("doc-comment-refused", r));
+  const huge = anchored("ffffffffffff") + "<p>" + "x".repeat(200001) + "</p>";
+  A.emit("doc-comment", { auth: alice.token, id: doc.id, cid: "ffffffffffff", html: huge, text: "too long", baseRev: (await docOf(doc.id)).rev });
+  assert.equal((await refused).reason, "long");
+  assert.equal((await docOf(doc.id)).html, BODY, "nothing stored changed");
+});
