@@ -238,3 +238,12 @@ test("write page: a page replaced from outside forgets its undo history, and a d
   const restore = handler('id: "restoreYes"', 'id: "restoreNo"');
   assert.match(restore, /if \(d && dirty\)[\s\S]*confirmDialog/);
 });
+
+test("write page: deleting a chapter with words in it asks first, by name — never a double-click", () => {
+  const del = handler('b.classList.contains("chap-del")', '$("chapPanel").addEventListener("dblclick"');
+  assert.match(del, /confirmDialog\(/);
+  assert.match(del, /wordsLabel\(words\)/, "it says how much goes");
+  assert.match(del, /chapters\.indexOf\(ch\)/, "and deletes THAT chapter, even if the list moved while it asked");
+  assert.ok(!page.includes("dataset.armed = \"1\";\n      b.textContent = \"Delete?\""), "the two-click arm is gone");
+  assert.ok(!/chap-del[\s\S]{0,400}armed/.test(del));
+});

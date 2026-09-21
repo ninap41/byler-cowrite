@@ -2044,17 +2044,22 @@ $("chapPanel").addEventListener("click", (e) => {
 	if (b.classList.contains("chap-down")) return moveChapter(i, 1)
 	if (b.classList.contains("chap-rename")) return renameChapter(i)
 	if (b.classList.contains("chap-del")) {
-		// two clicks: the first arms it, the second deletes
-		if (b.dataset.armed !== "1") {
-			$("chapPanel").querySelectorAll<HTMLElement>(".chap-del[data-armed]").forEach((x) => {
-				delete x.dataset.armed
-				x.textContent = "✕"
-			})
-			b.dataset.armed = "1"
-			b.textContent = "Delete?"
-			return
-		}
-		deleteChapter(i)
+		// A chapter is thousands of words and undo can't bring it back, so it
+		// asks — by name, with the count. (It used to be two clicks on the ✕:
+		// an ordinary double-click, or a double-tap on a phone, deleted it.)
+		// An empty chapter has nothing to lose and just goes.
+		stashCurrent()
+		const ch = chapters[i]
+		const words = i === openIdx ? countNow() : (ch?.wordCount ?? countWordsHtml(ch?.html))
+		if (!ch || !words) return deleteChapter(i)
+		void confirmDialog({
+			title: `Delete “${ch.title || `Chapter ${i + 1}`}”?`,
+			text: `${wordsLabel(words)} go with it, and its comments lose their place. You can get it back from Version history after your next save.`,
+		}).then((ok) => {
+			// the list may have changed while the dialog was up: delete THAT chapter, or nothing
+			const at = chapters.indexOf(ch)
+			if (ok && at >= 0) deleteChapter(at)
+		})
 	}
 })
 $("chapPanel").addEventListener("dblclick", (e) => {
