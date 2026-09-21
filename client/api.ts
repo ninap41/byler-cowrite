@@ -27,15 +27,32 @@ export class ApiError extends Error {
 	}
 }
 
-export async function api<T = Record<string, unknown>>(path: string, body?: unknown, method = "POST"): Promise<T> {
-	const r = await fetch(path, {
-		method,
-		headers: {
-			"Content-Type": "application/json",
-			...(token ? { Authorization: "Bearer " + token } : {}),
-		},
-		body: body ? JSON.stringify(body) : undefined,
-	})
+/**
+ * `timeoutMs` gives up on a request that never answers (a closed lid, dead
+ * wifi): it rejects with an ApiError of status 0 instead of hanging forever —
+ * a caller that holds a "busy" flag across the await would otherwise never
+ * get to clear it.
+ */
+export async function api<T = Record<string, unknown>>(path: string, body?: unknown, method = "POST", { timeoutMs = 0 }: { timeoutMs?: number } = {}): Promise<T> {
+	const ctl = timeoutMs > 0 ? new AbortController() : null
+	const timer = ctl ? setTimeout(() => ctl.abort(), timeoutMs) : null
+	let r: Response
+	try {
+		r = await fetch(path, {
+			method,
+			headers: {
+				"Content-Type": "application/json",
+				...(token ? { Authorization: "Bearer " + token } : {}),
+			},
+			body: body ? JSON.stringify(body) : undefined,
+			signal: ctl?.signal,
+		})
+	} catch (e) {
+		if (ctl?.signal.aborted) throw new ApiError("That took too long and was given up on. Check your connection.", 0, { timeout: true })
+		throw e
+	} finally {
+		if (timer) clearTimeout(timer)
+	}
 	const d = (await r.json().catch(() => ({}))) as Record<string, unknown>
 	if (!r.ok) throw new ApiError(typeof d.error === "string" ? d.error : "Something went wrong.", r.status, d)
 	return d as T

@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { installLocalStorage } from "./client-storage.mjs";
 
 installLocalStorage();
-const { loadDraft, saveDraft, clearDraft, draftIsNewer } = await import("../public/js/doc-store.js");
+const { loadDraft, saveDraft, clearDraft, draftIsNewer, MAX_DRAFTS } = await import("../public/js/doc-store.js");
 
 const mem = () => {
   const store = new Map();
@@ -24,6 +24,36 @@ test("round-trips a draft for its own doc only", () => {
   assert.equal(d.title, "Title");
   assert.ok(d.savedAt > 0);
   assert.equal(loadDraft("doc-2", s), null, "another doc's draft is not offered");
+});
+
+test("every story has its own draft: typing in a second story no longer overwrites the first one's", () => {
+  const s = mem();
+  saveDraft("doc-1", [{ html: "<p>three thousand unsaved words</p>" }], "One", s, 7);
+  saveDraft("doc-2", [{ html: "<p>a note in another story</p>" }], "Two", s, 1);
+  assert.equal(loadDraft("doc-1", s).chapters[0].html, "<p>three thousand unsaved words</p>");
+  assert.equal(loadDraft("doc-1", s).baseRev, 7, "and remembers the save it was working from");
+  assert.equal(loadDraft("doc-2", s).title, "Two");
+  clearDraft("doc-2", s);
+  assert.ok(loadDraft("doc-1", s), "clearing one leaves the other");
+});
+
+test("drafts don't pile up forever: past MAX_DRAFTS the story drafted longest ago goes", () => {
+  const s = mem();
+  for (let i = 0; i <= MAX_DRAFTS; i++) saveDraft("doc-" + i, [{ html: "<p>x</p>" }], "T", s);
+  assert.equal(loadDraft("doc-0", s), null, "the oldest fell off");
+  assert.ok(loadDraft("doc-1", s) && loadDraft("doc-" + MAX_DRAFTS, s));
+  saveDraft("doc-1", [{ html: "<p>again</p>" }], "T", s); // touching one makes it the newest
+  saveDraft("doc-new", [{ html: "<p>y</p>" }], "T", s);
+  assert.ok(loadDraft("doc-1", s), "recently drafted survives");
+  assert.equal(loadDraft("doc-2", s), null);
+});
+
+test("a draft left in the old single slot is still found, and cleared with its story", () => {
+  const s = mem();
+  s.setItem("cowriteDocDraft", JSON.stringify({ docId: "doc-1", chapters: [{ id: null, title: "", html: "<p>from before</p>" }], title: "T", savedAt: 5 }));
+  assert.equal(loadDraft("doc-1", s).chapters[0].html, "<p>from before</p>");
+  clearDraft("doc-1", s);
+  assert.equal(loadDraft("doc-1", s), null);
 });
 
 test("clearing only drops the cache when it belongs to this doc", () => {
@@ -50,7 +80,15 @@ test("survives unreadable or absent storage", () => {
   assert.doesNotThrow(() => clearDraft("d", broken));
 });
 
-test("a draft is only worth restoring when newer AND different", () => {
+test("a draft that recorded its base is offered whenever it differs — a comment stamping the story can't hide it", () => {
+  // the incident shape: she crashed with unsaved words, then a beta reader commented (updatedAt moved past the draft)
+  const doc = { chapters: [{ id: "c1", title: "One", html: "<p>server</p>" }], updatedAt: 9000, rev: 4 };
+  const draft = { chapters: [{ id: "c1", title: "One", html: "<p>server</p><p>three thousand more</p>" }], savedAt: 2000, baseRev: 4 };
+  assert.equal(draftIsNewer(draft, doc), true, "older than updatedAt, and still hers to take back");
+  assert.equal(draftIsNewer({ ...draft, chapters: doc.chapters }, doc), false, "identical content is never offered");
+});
+
+test("a draft from before bases were recorded is only worth restoring when newer AND different", () => {
   const doc = { chapters: [{ id: "c1", title: "One", html: "<p>server</p>" }], html: "<p>server</p>", updatedAt: 1000 };
   const ch = (html, extra = {}) => [{ id: "c1", title: "One", html, ...extra }];
   assert.equal(draftIsNewer({ chapters: ch("<p>local</p>"), savedAt: 2000 }, doc), true);

@@ -202,3 +202,39 @@ test("the rail speaks the thread events, and keeps what you were typing across a
   assert.ok(render.indexOf("snapshotThreadDrafts()") < render.indexOf(".innerHTML ="), "drafts are lifted out BEFORE the rebuild");
   assert.ok(render.indexOf("restoreThreadDrafts(") > render.indexOf(".innerHTML ="), "and put back after it");
 });
+
+// ---- the save path can't strand words in the page ----
+test("write page: a save that never answers is given up on, so `saving` always clears", () => {
+  const fn = handler("async function save(", "\nconst SAVE_TIMEOUT_MS");
+  assert.match(fn, /timeoutMs: SAVE_TIMEOUT_MS/);
+  assert.match(fn, /finally \{\s*saving = false/);
+  assert.match(page, /const SAVE_TIMEOUT_MS = 2e4|const SAVE_TIMEOUT_MS = 20000/);
+});
+
+test("write page: what changed while a save was out is kept — nothing is replaced, repainted or cleared", () => {
+  const fn = handler("async function save(", "\nconst SAVE_TIMEOUT_MS");
+  const ahead = fn.slice(fn.indexOf("if (editSeq !== seqAtSend)"), fn.indexOf("chapters = (doc.chapters"));
+  assert.ok(ahead.length > 0, "the page-is-ahead branch comes before the wholesale replace");
+  assert.match(ahead, /c\.id == null && rows\[i\]\?\.id/, "sent chapters only learn their new ids");
+  assert.match(ahead, /saveDraft\(/);
+  assert.ok(!ahead.includes("clearDraft") && !ahead.includes("innerHTML") && !ahead.includes("setDirty(false)"));
+  assert.match(page, /editSeq\+\+/, "every edit counts, not just the clock's millisecond");
+});
+
+test("write page: a failed save, every autosave tick, and a hidden tab all write the browser's draft", () => {
+  const fn = handler("async function save(", "\nconst SAVE_TIMEOUT_MS");
+  const failed = fn.slice(fn.lastIndexOf("} catch (e) {"));
+  assert.match(failed, /saveDraft\(docId, list/, "offline, timed out, signed out, too large: the words stay somewhere");
+  const tick = /setInterval\(\(\) => \{\s*if \(!dirty \|\| !doc\?\.mine\) return;?([\s\S]*?)\}, AUTOSAVE_MS\)/.exec(page)?.[1] || "";
+  assert.ok(tick.indexOf("saveDraft(") >= 0 && tick.indexOf("saveDraft(") < tick.indexOf("save({ quiet: true })"), "the draft first, whatever the save then does");
+  assert.match(page, /visibilityState === "hidden"\) draftIfDirty\(\)/);
+  assert.match(page, /addEventListener\("pagehide", draftIfDirty\)/);
+  assert.match(page, /saveDraft\(docId, allChapters\(\), input\("docTitle"\)\.value, void 0, doc\?\.rev\)|saveDraft\(docId, allChapters\(\), input\("docTitle"\)\.value, undefined, doc\?\.rev\)/, "naming the save it was working from");
+});
+
+test("write page: a page replaced from outside forgets its undo history, and a draft restore asks before replacing new typing", () => {
+  const upd = handler('s.on("doc-updated"', 's.on("doc-html"');
+  assert.match(upd, /undoHistory\.reset\(\)/, "or Ctrl+Z pastes the old page over the new one");
+  const restore = handler('id: "restoreYes"', 'id: "restoreNo"');
+  assert.match(restore, /if \(d && dirty\)[\s\S]*confirmDialog/);
+});

@@ -171,3 +171,16 @@ test("newCid mints ids the sanitizer will accept", () => {
   ids.forEach((id) => assert.match(id, /^[0-9a-f]{12}$/));
   assert.equal(new Set(ids).size, 50);
 });
+
+// A "<" typed as prose is text. Emitted raw it re-parses as a tag on the next
+// paint (a chapter switch, a save's repaint) and the words inside it vanish.
+test("angle brackets typed as prose leave as characters, survive a repaint, and cleaning stays idempotent", () => {
+  const el = mount("<p></p>");
+  el.querySelector("p").textContent = "Sarah<Mike and the rest of the line> stays, & so does this";
+  const once = cleanHtml(el, { doc: true });
+  assert.ok(once.includes("Sarah&lt;Mike and the rest of the line&gt; stays"), once);
+  assert.ok(!once.includes("&amp;amp;"), "the ampersand is left to the server's escapeOnce");
+  const again = mount(once); // the repaint
+  assert.equal(again.textContent, "Sarah<Mike and the rest of the line> stays, & so does this", "every word is still there");
+  assert.equal(cleanHtml(again, { doc: true }).replace(/&amp;/g, "&"), once.replace(/&amp;/g, "&"), "and a second pass changes nothing");
+});

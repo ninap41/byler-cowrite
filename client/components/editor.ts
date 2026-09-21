@@ -79,7 +79,13 @@ export function cleanHtml(el: Node, { doc = false, urls = doc }: CleanHtmlOpts =
 		let out = ""
 		node.childNodes.forEach((child) => {
 			if (child.nodeType === 3) {
-				out += child.nodeValue
+				// A "<" typed as prose is a CHARACTER here, and must leave as one:
+				// emitted raw, `Sarah<Mike and the rest of the line` re-parses as a
+				// tag the next time this html is painted, and everything inside the
+				// "tag" is gone. Only the angle brackets — "&" is the server's
+				// escapeOnce()'s business, and doubling up on it is how apostrophes
+				// once turned into &amp;amp;#39;.
+				out += (child.nodeValue || "").replace(/</g, "&lt;").replace(/>/g, "&gt;")
 			} else if (child.nodeType === 1) {
 				const n = child as HTMLElement
 				const tag = n.nodeName

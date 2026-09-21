@@ -135,9 +135,13 @@ function setStatus(text: string) {
 
 // ---- dirty tracking ----
 let lastEditAt = 0 // for the autosave: never save mid-sentence
+let editSeq = 0 // every edit, exactly — what save() compares to know nothing moved while it was out
 const setDirty = (v: boolean) => {
 	dirty = v
-	if (v) lastEditAt = Date.now()
+	if (v) {
+		lastEditAt = Date.now()
+		editSeq++
+	}
 	$("saveState").textContent = v ? "Unsaved" : "Saved"
 	$("saveState").classList.toggle("unsaved", v)
 }
@@ -1426,25 +1430,42 @@ async function save({ quiet = false, force = false }: { quiet?: boolean; force?:
 	saving = true
 	$("docErr").textContent = ""
 	const list = allChapters()
-	const editedSince = lastEditAt
+	const sent = [...chapters] // the very objects `list` was made from, position for position
+	const seqAtSend = editSeq
 	try {
 		// A save names the copy it started from and is refused (409) when
 		// another tab saved since; only a forced one carries no base and wins.
 		const body: Record<string, unknown> = { title: input("docTitle").value, chapters: list }
 		if (!force && typeof doc.rev === "number") body.baseRev = doc.rev
-		const r = await api<{ doc: DocPayload }>("/api/docs/" + encodeURIComponent(docId), body, "PUT")
+		// A request that never answers must not hold `saving` forever: every
+		// later save would return at once, silently, and so would the draft.
+		const r = await api<{ doc: DocPayload }>("/api/docs/" + encodeURIComponent(docId), body, "PUT", { timeoutMs: SAVE_TIMEOUT_MS })
 		conflicted = false
 		banners.hide("conflictBar")
 		doc = r.doc
 		comments = doc.comments || []
+		if (editSeq !== seqAtSend) {
+			// Something changed while the request was out — typing, a new
+			// chapter, a rename, a reorder. The page is AHEAD of what the server
+			// just stored, so nothing here is replaced or repainted: the sent
+			// chapters only learn the ids the server minted for them, it all
+			// stays unsaved, and the draft is kept rather than cleared.
+			const rows = doc.chapters || []
+			sent.forEach((c, i) => {
+				if (c.id == null && rows[i]?.id) c.id = rows[i]!.id
+			})
+			saveDraft(docId, allChapters(), input("docTitle").value, undefined, doc?.rev)
+			socket?.emit("doc-saved", { auth: getToken(), id: docId })
+			renderChapters()
+			return true
+		}
 		// the server's copy is the truth now: ids for new chapters, sanitized
 		// html, counts — order is preserved, so the open index still holds
 		chapters = (doc.chapters || []).map((c) => ({ ...c }))
 		openIdx = Math.min(openIdx, chapters.length - 1)
 		// render the server's sanitized copy so what we see is what's stored
 		if (!sourceMode && !quiet) $("docEditor").innerHTML = chapters[openIdx]?.html || ""
-		// a keystroke that landed while the request was out keeps it dirty
-		if (lastEditAt === editedSince) setDirty(false)
+		setDirty(false)
 		clearDraft(docId)
 		socket?.emit("doc-saved", { auth: getToken(), id: docId })
 		renderComments()
@@ -1465,14 +1486,18 @@ async function save({ quiet = false, force = false }: { quiet?: boolean; force?:
 		// go to the local draft, the one place they are certainly on a disk.
 		if (e instanceof ApiError && e.data.unlanded) {
 			if (doc && typeof e.data.rev === "number") doc.rev = e.data.rev
-			saveDraft(docId, list, input("docTitle").value)
+			saveDraft(docId, list, input("docTitle").value, undefined, doc?.rev)
 		}
+		// Any other failure — offline, timed out, signed out, too large: the
+		// server does not have these words, so the browser keeps them.
+		saveDraft(docId, list, input("docTitle").value, undefined, doc?.rev)
 		$("docErr").textContent = (e as Error).message
 		return false
 	} finally {
 		saving = false
 	}
 }
+const SAVE_TIMEOUT_MS = 20000
 $("saveBtn").addEventListener("click", () => save())
 document.addEventListener("keydown", (e) => {
 	if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
@@ -1532,10 +1557,23 @@ $("docSource").addEventListener("input", () => findBar.refresh())
 const AUTOSAVE_MS = 30000
 const AUTOSAVE_IDLE_MS = 3000
 setInterval(() => {
-	if (!dirty || !doc?.mine || conflicted) return
-	if (Date.now() - lastEditAt >= AUTOSAVE_IDLE_MS) save({ quiet: true })
-	else saveDraft(docId, allChapters(), input("docTitle").value)
+	if (!dirty || !doc?.mine) return
+	// The browser's copy first, every tick, whatever happens next: while a
+	// conflict pauses saving, while a save is out, while you are mid-sentence.
+	// (It used to be written only in the mid-sentence case, so a stuck or
+	// failing save left the words nowhere but the page.)
+	saveDraft(docId, allChapters(), input("docTitle").value, undefined, doc?.rev)
+	if (!conflicted && Date.now() - lastEditAt >= AUTOSAVE_IDLE_MS) void save({ quiet: true })
 }, AUTOSAVE_MS)
+// A phone that backgrounds the tab may never run another line of this page:
+// no beforeunload, no timer. Hidden is the last moment that is guaranteed.
+const draftIfDirty = () => {
+	if (dirty && doc?.mine) saveDraft(docId, allChapters(), input("docTitle").value, undefined, doc?.rev)
+}
+document.addEventListener("visibilitychange", () => {
+	if (document.visibilityState === "hidden") draftIfDirty()
+})
+window.addEventListener("pagehide", draftIfDirty)
 
 // The banners under the toolbar: unsaved work from a previous session, and an
 // autosave refused because another tab saved first. Both are decisions, so
@@ -1549,8 +1587,18 @@ banners.add({
 			id: "restoreYes",
 			label: "Restore them",
 			primary: true,
-			onClick: () => {
+			onClick: async () => {
 				const d = loadDraft(docId)
+				// Restoring replaces the page. Words typed since it opened are in
+				// neither the draft nor the server — ask before they go.
+				if (d && dirty) {
+					const ok = await confirmDialog({
+						title: "Replace what you've typed?",
+						text: "You've written on this page since opening it. Restoring the earlier draft replaces that.",
+						confirmLabel: "Restore the draft",
+					})
+					if (!ok) return
+				}
 				if (d) {
 					// a draft chapter with no id (never saved, or a pre-chapter draft)
 					// takes the stored chapter's id at the same position, if any
@@ -1595,7 +1643,7 @@ banners.add({
 				// The writer chose the other copy — but what they typed here is still
 				// theirs: it goes to the local draft first, so the reloaded page
 				// offers it back instead of it being gone for good.
-				if (dirty) saveDraft(docId, allChapters(), input("docTitle").value)
+				if (dirty) saveDraft(docId, allChapters(), input("docTitle").value, undefined, doc?.rev)
 				setDirty(false) // don't ask again on the way out
 				location.reload()
 			},
@@ -1669,7 +1717,7 @@ window.addEventListener("pagehide", () => stopSprint({ leaving: true }))
 // beforeunload covers reloads/closes; the styled modal covers in-app links.
 window.addEventListener("beforeunload", (e) => {
 	if (!dirty) return
-	saveDraft(docId, allChapters(), input("docTitle").value)
+	saveDraft(docId, allChapters(), input("docTitle").value, undefined, doc?.rev)
 	e.preventDefault()
 	e.returnValue = ""
 })
@@ -1693,7 +1741,7 @@ $("leaveCancel").addEventListener("click", () => {
 	leaveTo = null
 })
 $("leaveAnyway").addEventListener("click", () => {
-	saveDraft(docId, allChapters(), input("docTitle").value)
+	saveDraft(docId, allChapters(), input("docTitle").value, undefined, doc?.rev)
 	dirty = false
 	location.href = leaveTo || "/writes"
 })
@@ -2145,7 +2193,7 @@ $("historyList").addEventListener("click", async (e) => {
 		})
 		if (!ok) return
 		try {
-			if (dirty) saveDraft(docId, allChapters(), input("docTitle").value)
+			if (dirty) saveDraft(docId, allChapters(), input("docTitle").value, undefined, doc?.rev)
 			await api(url + "/restore", {})
 			setDirty(false)
 			location.reload()
@@ -2200,8 +2248,13 @@ function connect() {
 		const wasId = openChapter()?.id
 		chapters = (Array.isArray(rows) && rows.length ? rows : [{ id: null, title: "Chapter 1", html: html || "" }]).map((c) => ({ ...c }))
 		doc.chapters = chapters
-		openIdx = Math.max(0, chapters.findIndex((c) => c.id === wasId))
+		const at = chapters.findIndex((c) => c.id === wasId)
+		openIdx = Math.max(0, at)
 		$("docEditor").innerHTML = chapters[openIdx]?.html || ""
+		// The undo stack remembers the OLD page. Left alone, one Ctrl+Z would
+		// paste that html — possibly another chapter's — over this one.
+		undoHistory.reset()
+		if (at < 0 && wasId) setStatus("That chapter was removed")
 		renderDoc()
 		updateWords()
 		renderChapters()
