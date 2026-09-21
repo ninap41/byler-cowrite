@@ -35,6 +35,11 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, "..");
 
 export const KINDS = ["users", "announcements", "save", "doc", "comment", "content", "reference"];
+// COLD kinds are never loaded into memory and never listed at boot: they are
+// read and written straight through (async), because they are big and rarely
+// wanted — `dochist` is up to a few dozen whole copies of every story. The
+// hot kinds above stay what `counts()`/`describeStorage()` report.
+export const COLD_KINDS = ["dochist"];
 // Kinds that are ONE document rather than a directory of them.
 const SINGLE = new Set(["users", "announcements"]);
 
@@ -45,6 +50,7 @@ export function defaultDirs() {
     saveDir: process.env.COWRITE_SAVE_DIR || join(ROOT, "saves"),
     docDir: process.env.COWRITE_DOC_DIR || join(dataDir, "docs"),
     commentDir: process.env.COWRITE_COMMENT_DIR || join(dataDir, "comments"),
+    histDir: process.env.COWRITE_HIST_DIR || join(dataDir, "dochist"),
     contentDir: process.env.COWRITE_CONTENT_DIR || join(ROOT, "content"),
     refDir: process.env.COWRITE_REF_DIR || join(ROOT, "writers-reference"),
   };
@@ -54,6 +60,7 @@ const dirFor = (dirs, kind) =>
   SINGLE.has(kind) ? dirs.dataDir
     : kind === "doc" ? dirs.docDir
       : kind === "comment" ? dirs.commentDir
+      : kind === "dochist" ? (dirs.histDir || join(dirs.dataDir, "dochist"))
       : kind === "content" ? dirs.contentDir
         : kind === "reference" ? dirs.refDir
           : dirs.saveDir;
@@ -93,6 +100,25 @@ function fileBackend(dirs) {
       try { unlinkSync(pathFor(dirs, kind, name)); } catch { /* already gone */ }
     },
     counts: () => Object.fromEntries(KINDS.map((k) => [k, SINGLE.has(k) ? (existsSync(pathFor(dirs, k, k)) ? 1 : 0) : readDir(dirFor(dirs, k)).length])),
+    cold: {
+      async get(kind, name) {
+        try { return readFileSync(pathFor(dirs, kind, name), "utf-8"); } catch { return null; }
+      },
+      async list(kind, prefix = "") {
+        try {
+          return readdirSync(dirFor(dirs, kind)).filter((f) => f.endsWith(".json") && f.startsWith(prefix)).map((f) => f.slice(0, -5)).sort();
+        } catch { return []; }
+      },
+      async put(kind, name, doc) {
+        mkdirSync(dirFor(dirs, kind), { recursive: true });
+        const p = pathFor(dirs, kind, name);
+        writeFileSync(p + ".tmp", doc);
+        renameSync(p + ".tmp", p);
+      },
+      async del(kind, name) {
+        try { unlinkSync(pathFor(dirs, kind, name)); } catch { /* already gone */ }
+      },
+    },
     async close() {},
   };
 }
@@ -111,7 +137,8 @@ async function postgresBackend(dirs, pool) {
        PRIMARY KEY (kind, name))`
   );
   const cache = new Map(KINDS.map((k) => [k, new Map()]));
-  const { rows } = await pool.query("SELECT kind, name, doc FROM cowrite_blobs");
+  // cold kinds stay in the table: never in memory (see COLD_KINDS)
+  const { rows } = await pool.query("SELECT kind, name, doc FROM cowrite_blobs WHERE kind <> ALL($1)", [COLD_KINDS]);
   for (const r of rows) cache.get(r.kind)?.set(r.name, r.doc);
 
   // A dropped idle connection makes the pool emit "error"; with no listener
@@ -232,6 +259,25 @@ async function postgresBackend(dirs, pool) {
     },
     counts: () => Object.fromEntries(KINDS.map((k) => [k, cache.get(k)?.size ?? 0])),
     get lastError() { return lastError; },
+    // Straight through, no cache, no retry queue: a history copy that fails to
+    // write is reported to its caller, and losing one is not losing the story.
+    cold: {
+      async get(kind, name) {
+        const r = await pool.query("SELECT doc FROM cowrite_blobs WHERE kind = $1 AND name = $2", [kind, name]);
+        return r.rows[0]?.doc ?? null;
+      },
+      async list(kind, prefix = "") {
+        const r = await pool.query("SELECT name FROM cowrite_blobs WHERE kind = $1 AND left(name, $3) = $2 ORDER BY name", [kind, prefix, prefix.length]);
+        return r.rows.map((x) => x.name);
+      },
+      put: (kind, name, doc) =>
+        pool.query(
+          `INSERT INTO cowrite_blobs (kind, name, doc, updated_at) VALUES ($1, $2, $3, now())
+           ON CONFLICT (kind, name) DO UPDATE SET doc = EXCLUDED.doc, updated_at = now()`,
+          [kind, name, doc]
+        ),
+      del: (kind, name) => pool.query("DELETE FROM cowrite_blobs WHERE kind = $1 AND name = $2", [kind, name]),
+    },
     /** Rows whose newest value the database has not taken yet ("kind/name"). */
     get unlanded() { return [...unlanded.keys()]; },
     // Everything queued, plus one immediate attempt at every row still waiting
@@ -282,6 +328,8 @@ export const storage = {
   put: (kind, name, doc) => ensure().put(kind, name, doc),
   del: (kind, name) => ensure().del(kind, name),
   counts: () => ensure().counts(),
+  /** The cold kinds (COLD_KINDS): async, uncached. `list(kind, prefix)` is sorted by name. */
+  get cold() { return ensure().cold; },
   flush: () => ensure().flush?.() ?? Promise.resolve(),
   close: () => ensure().close(),
   // tests only: forget the backend so the next call re-reads the environment

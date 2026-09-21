@@ -8191,6 +8191,77 @@ body.resizing-side {
 	margin: 0 0 6px;
 }
 
+/* ---- version history (the Document menu's dialog) ---- */
+.history-card {
+	width: min(560px, calc(100vw - 32px));
+	max-height: min(80vh, 640px);
+	display: flex;
+	flex-direction: column;
+	text-align: left;
+}
+.history-list {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-y: auto;
+	margin: 8px 0 12px;
+}
+.history-rows {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: grid;
+	gap: 6px;
+}
+.history-row {
+	display: grid;
+	grid-template-columns: 1fr auto;
+	gap: 2px 10px;
+	align-items: center;
+	padding: 8px 10px;
+	border: 1px solid var(--line);
+	border-radius: var(--r-md);
+	background: var(--panel-2);
+}
+.history-row.drop {
+	border-color: var(--accent-2);
+}
+.history-when {
+	font-size: 0.88rem;
+}
+.history-what {
+	grid-column: 1;
+	font-size: 0.8rem;
+	color: var(--muted);
+}
+.history-why {
+	display: block;
+	font-style: normal;
+	color: var(--accent-2);
+}
+.history-acts {
+	grid-column: 2;
+	grid-row: 1 / span 2;
+	display: flex;
+	gap: 6px;
+}
+.history-acts button {
+	flex: none;
+	min-width: 0;
+	width: auto;
+	padding: 6px 10px;
+	font-size: 0.8rem;
+}
+@media (max-width: 520px) {
+	.history-row {
+		grid-template-columns: 1fr;
+	}
+	.history-acts {
+		grid-column: 1;
+		grid-row: auto;
+		margin-top: 4px;
+	}
+}
+
 /* a proposed rewrite: what it says now, what it would say */
 .dc-suggest {
 	margin: 6px 0;

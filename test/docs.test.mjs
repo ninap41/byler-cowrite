@@ -1616,3 +1616,62 @@ test("a save the store refuses answers 503 and says so; nothing reads as saved, 
   assert.equal(again.status, 200);
   assert.ok((await docOf(doc.id)).html.includes("three thousand more words"));
 });
+
+// ---- version history ----
+const longHtml = (n, word = "word") => "<p>" + Array.from({ length: n }, () => word).join(" ") + "</p>";
+const historyOf = async (id, token = alice.token) => ctx.api("/api/docs/" + id + "/history", null, token, "GET");
+
+test("history: a save that loses a lot of words keeps the copy before it, and Restore brings it back — undoably", async () => {
+  const doc = await newDoc(alice.token, "Seventeen thousand");
+  const full = longHtml(3000, "letters");
+  await ctx.api("/api/docs/" + doc.id, { html: full }, alice.token, "PUT");
+  assert.deepEqual((await historyOf(doc.id)).data.versions, [], "nothing to go back to yet: the first save replaced an empty story");
+
+  // thirty seconds later an ordinary autosave: no copy (history is spaced by time, not per save)
+  await ctx.api("/api/docs/" + doc.id, { html: full + "<p>and a little more</p>" }, alice.token, "PUT");
+  assert.equal((await historyOf(doc.id)).data.versions.filter((v) => v.reason === "time").length <= 1, true);
+
+  // the accident: most of it gone in one save
+  await ctx.api("/api/docs/" + doc.id, { html: longHtml(100, "letters") }, alice.token, "PUT");
+  const { versions } = (await historyOf(doc.id)).data;
+  const kept = versions.find((v) => v.reason === "drop");
+  assert.ok(kept, "the copy from before the drop is kept whatever the spacing");
+  assert.ok(kept.words >= 3000);
+
+  const one = await ctx.api(`/api/docs/${doc.id}/history/${kept.at}`, null, alice.token, "GET");
+  assert.ok(one.data.version.chapters[0].html.includes("and a little more"));
+
+  const revBefore = (await docOf(doc.id)).rev;
+  const back = await ctx.api(`/api/docs/${doc.id}/history/${kept.at}/restore`, {}, alice.token);
+  assert.equal(back.status, 200);
+  assert.ok(back.data.doc.wordCount >= 3000);
+  assert.equal(back.data.doc.rev, revBefore + 1, "a restore is a save: an open editor's next save meets it");
+  assert.ok((await docOf(doc.id)).html.includes("and a little more"));
+  const after = (await historyOf(doc.id)).data.versions;
+  assert.ok(after.some((v) => v.reason === "restore" && v.words <= 110), "and the copy the restore replaced is kept too");
+});
+
+test("history: removing a chapter keeps the copy that still had it", async () => {
+  const doc = await newDoc(alice.token, "Two then one");
+  const two = await ctx.api("/api/docs/" + doc.id, { chapters: [{ id: doc.chapters[0].id, title: "One", html: "<p>first chapter stays</p>" }, { title: "Two", html: "<p>second chapter goes</p>" }] }, alice.token, "PUT");
+  await ctx.api("/api/docs/" + doc.id, { chapters: [two.data.doc.chapters[0]] }, alice.token, "PUT");
+  const kept = (await historyOf(doc.id)).data.versions.find((v) => v.reason === "drop");
+  assert.equal(kept?.chapters, 2);
+  const copy = await ctx.api(`/api/docs/${doc.id}/history/${kept.at}`, null, alice.token, "GET");
+  assert.ok(copy.data.version.chapters[1].html.includes("second chapter goes"));
+});
+
+test("history: the author's alone — a beta reader, a stranger and the signed-out can neither read nor restore it", async () => {
+  const doc = await commentableDoc();
+  await ctx.api("/api/docs/" + doc.id, { html: longHtml(400) }, alice.token, "PUT");
+  await ctx.api("/api/docs/" + doc.id, { html: "<p>cut</p>" }, alice.token, "PUT");
+  const at = (await historyOf(doc.id)).data.versions[0].at;
+  for (const token of [bob.token, carol.token]) {
+    assert.equal((await historyOf(doc.id, token)).status, 403);
+    assert.equal((await ctx.api(`/api/docs/${doc.id}/history/${at}`, null, token, "GET")).status, 403);
+    assert.equal((await ctx.api(`/api/docs/${doc.id}/history/${at}/restore`, {}, token)).status, 403);
+  }
+  assert.equal((await historyOf(doc.id, null)).status, 401);
+  assert.equal((await ctx.api(`/api/docs/${doc.id}/history/12345/restore`, {}, alice.token)).status, 404, "a version that isn't there");
+  assert.equal((await docOf(doc.id)).html, "<p>cut</p>", "none of that changed the story");
+});

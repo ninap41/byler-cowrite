@@ -25,7 +25,9 @@ function fakePool(seedRows = []) {
     async query(text, params = []) {
       log.push({ text: text.replace(/\s+/g, " ").trim(), params });
       if (text.startsWith("CREATE TABLE")) return { rows: [] };
-      if (text.startsWith("SELECT")) return { rows: [...rows.values()] };
+      if (text.startsWith("SELECT doc FROM")) { const r = rows.get(params[0] + "/" + params[1]); return { rows: r ? [{ doc: r.doc }] : [] }; }
+      if (text.startsWith("SELECT name FROM")) return { rows: [...rows.values()].filter((r) => r.kind === params[0] && r.name.startsWith(params[1])).map((r) => ({ name: r.name })).sort((a, b) => (a.name < b.name ? -1 : 1)) };
+      if (text.startsWith("SELECT")) return { rows: [...rows.values()].filter((r) => !(params[0] || []).includes(r.kind)) }; // the boot load skips the cold kinds
       if (text.startsWith("INSERT")) { rows.set(params[0] + "/" + params[1], { kind: params[0], name: params[1], doc: params[2] }); return { rows: [] }; }
       if (text.startsWith("DELETE")) { rows.delete(params[0] + "/" + params[1]); return { rows: [] }; }
       throw new Error("unexpected query " + text);
@@ -366,5 +368,29 @@ test("postgres: a story from before chapters AND before the comment split keeps 
   } finally {
     storage._reset();
     rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("cold kinds: never loaded at boot, never counted, read and written straight through — on both backends", async () => {
+  delete process.env.DATABASE_URL;
+  for (const mode of ["postgres", "files"]) {
+    const root = tmp();
+    const pool = fakePool([{ kind: "dochist", name: "aaa_1", doc: '{"big":1}' }, { kind: "doc", name: "aaa", doc: "{}" }]);
+    try {
+      await storage.init(mode === "postgres" ? { ...dirsIn(root), pool } : dirsIn(root));
+      if (mode === "files") await storage.cold.put("dochist", "aaa_1", '{"big":1}');
+      assert.ok(!("dochist" in storage.counts()), "not a hot kind");
+      if (mode === "postgres") assert.equal(storage.get("dochist", "aaa_1"), null, "never loaded into memory");
+      assert.equal(await storage.cold.get("dochist", "aaa_1"), '{"big":1}');
+      await storage.cold.put("dochist", "aaa_2", '{"big":2}');
+      await storage.cold.put("dochist", "bbb_1", '{"other":1}');
+      assert.deepEqual(await storage.cold.list("dochist", "aaa_"), ["aaa_1", "aaa_2"], "by prefix, in order");
+      await storage.cold.del("dochist", "aaa_1");
+      assert.deepEqual(await storage.cold.list("dochist", "aaa_"), ["aaa_2"]);
+      assert.equal(await storage.cold.get("dochist", "nope"), null);
+    } finally {
+      storage._reset();
+      rmSync(root, { recursive: true, force: true });
+    }
   }
 });

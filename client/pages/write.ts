@@ -33,6 +33,7 @@ import { placeAnchor, pruneSource, stripAnchorInSource, applySuggestionInSource 
 import {
 	presenceHtml,
 	commentThreadHtml,
+	versionListHtml,
 	commentModeBannerHtml,
 	readerChipsHtml,
 	wordsLabel,
@@ -58,7 +59,7 @@ import { confirmDialog } from "/js/components/confirm-delete.js"
 import type { Socket } from "socket.io-client"
 import type { ServerToClient, ClientToServer } from "/js/shared/wire.js"
 import type { ChipUser } from "/js/chrome.js"
-import type { CommentRow, Chapter, InviteOptionsInput } from "/js/write-view.js"
+import type { CommentRow, Chapter, InviteOptionsInput, VersionRow } from "/js/write-view.js"
 import type { PromptMenus } from "/js/shared/wire.js"
 import type { Sprint } from "/js/write-view.js"
 import type { SlashPalette, RefBundle } from "/js/components/slash-palette.js"
@@ -193,6 +194,7 @@ async function load() {
 	input("docTitle").disabled = !canEdit
 	$("sprintBtn").classList.toggle("hidden", !canEdit)
 	$("promptBtn").classList.toggle("hidden", !canEdit)
+	$("historyBtn").classList.toggle("hidden", !canEdit)
 	if (!canEdit) {
 		// Beta readers read the SAME editor element — that's what makes the
 		// underlines and the click-to-jump identical for both sides — but
@@ -2100,6 +2102,57 @@ async function catchUp() {
 }
 document.addEventListener("visibilitychange", () => {
 	if (document.visibilityState === "visible") void catchUp()
+})
+
+// ---- version history ----
+// The copies the server kept (lib/doc-history.js says which). Download reads
+// one without touching the story; Restore is a save on the server, so this
+// page reloads onto it — after putting any unsaved words in the local draft.
+async function openHistory() {
+	$("historyModal").classList.remove("hidden")
+	$("historyList").innerHTML = `<p class="subtle">Looking…</p>`
+	try {
+		const r = await api<{ versions: VersionRow[] }>(`/api/docs/${encodeURIComponent(docId)}/history`, null, "GET")
+		$("historyList").innerHTML = versionListHtml(r.versions, chapters.reduce((n, c, i) => n + (i === openIdx ? countNow() : c.wordCount || 0), 0))
+	} catch (e) {
+		$("historyList").innerHTML = `<p class="err">${esc((e as Error).message)}</p>`
+	}
+}
+const closeHistory = () => $("historyModal").classList.add("hidden")
+$("historyBtn").addEventListener("click", () => void openHistory())
+$("historyClose").addEventListener("click", closeHistory)
+$("historyModal").addEventListener("click", (e) => {
+	if (e.target === $("historyModal")) closeHistory()
+})
+document.addEventListener("keydown", (e) => {
+	if (e.key === "Escape" && !$("historyModal").classList.contains("hidden")) closeHistory()
+})
+$("historyList").addEventListener("click", async (e) => {
+	const t = e.target as HTMLElement
+	const at = t.closest<HTMLElement>(".history-row")?.dataset.at
+	if (!at) return
+	const url = `/api/docs/${encodeURIComponent(docId)}/history/${at}`
+	if (t.closest(".history-get")) {
+		const r = await api<{ version: { title: string; chapters: Chapter[] } }>(url, null, "GET")
+		const d = { title: r.version.title || doc?.title, chapters: r.version.chapters }
+		download(exportWork(d), `${slugOf(d.title)}-${new Date(Number(at)).toISOString().slice(0, 16).replace(/[:T]/g, "-")}.html`)
+	} else if (t.closest(".history-restore")) {
+		const ok = await confirmDialog({
+			title: "Restore this version?",
+			confirmLabel: "Restore",
+			danger: false,
+			text: "The story goes back to this copy. What is on the page now is kept in the history too, so you can undo this.",
+		})
+		if (!ok) return
+		try {
+			if (dirty) saveDraft(docId, allChapters(), input("docTitle").value)
+			await api(url + "/restore", {})
+			setDirty(false)
+			location.reload()
+		} catch (err) {
+			$("historyList").insertAdjacentHTML("afterbegin", `<p class="err">${esc((err as Error).message)}</p>`)
+		}
+	}
 })
 
 // ---- live presence + comments ----

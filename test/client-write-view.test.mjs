@@ -7,7 +7,7 @@ import { installDom } from "./dom.mjs";
 import { readFileSync } from "node:fs";
 
 installDom(); // plainBlockHtml parses through a detached div
-import { docCardHtml, docListHtml, docShelfHtml, DOC_GROUPS, presenceHtml, soloRowHtml, soloListHtml, wireSoloDeletes, commentHtml, commentThreadHtml, readerChipsHtml, wordsLabel, formatSource, unformatSource, plainBlockHtml, visChipHtml, visMenuHtml, visLabel, VIS, scrollTargetFor, inviteOptions, inviteRowHtml, inviteListHtml, promptInsertHtml, insertAfterHeading, betaReadingHtml, commentModeBannerHtml, chapterListHtml, chapNavHtml, chapChipLabel, countWordsHtml } from "../public/js/write-view.js";
+import { docCardHtml, docListHtml, docShelfHtml, DOC_GROUPS, presenceHtml, soloRowHtml, soloListHtml, wireSoloDeletes, commentHtml, commentThreadHtml, versionListHtml, readerChipsHtml, wordsLabel, formatSource, unformatSource, plainBlockHtml, visChipHtml, visMenuHtml, visLabel, VIS, scrollTargetFor, inviteOptions, inviteRowHtml, inviteListHtml, promptInsertHtml, insertAfterHeading, betaReadingHtml, commentModeBannerHtml, chapterListHtml, chapNavHtml, chapChipLabel, countWordsHtml } from "../public/js/write-view.js";
 
 const DOC = {
   id: "abc", title: "The Upside Down", wordCount: 120, visibility: "private",
@@ -659,4 +659,18 @@ test("an edited note says so; a comment from before threads still renders", () =
   assert.ok(commentHtml({ ...THREAD, edited: true }).includes("· edited"));
   const { replies, ...old } = THREAD;
   assert.ok(!commentHtml(old).includes("dc-replies"));
+});
+
+// ---- version history ----
+test("the version list says when, how long, how it differs from the page, and why a copy was kept", () => {
+  const at = Date.UTC(2026, 8, 21, 17, 30);
+  const html = versionListHtml([{ at, reason: "drop", words: 17000, chapters: 3 }, { at: at - 600000, reason: "time", words: 14000, chapters: 1 }], 14000);
+  assert.match(html, /class="history-row drop" data-at="\d+"/);
+  assert.ok(html.includes("17000 words") && html.includes("3,000 more than now") && html.includes("3 chapters"));
+  assert.ok(html.includes("Kept because the next save was much shorter"));
+  assert.ok(html.includes("same length as now"));
+  assert.equal((html.match(/history-restore/g) || []).length, 2);
+  assert.equal((html.match(/history-get/g) || []).length, 2);
+  assert.ok(versionListHtml([]).includes("No earlier copies yet"));
+  assert.ok(!versionListHtml([{ at, reason: '"><img>', words: 1, chapters: 1 }]).includes("<img"));
 });

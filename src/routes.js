@@ -16,6 +16,7 @@ import {
   canView, canEdit, canComment, isReader, cleanTitle, cleanVisibility, publicDocs, docsOwnedBy,
   cleanChapterTitle, newChapterId, MAX_CHAPTERS,
 } from "./docs.js";
+import { listHistory, readHistory, keepBeforeOverwrite, snapshotOf } from "./dochist.js";
 import { getReference, setReferenceGroup } from "./reference.js";
 import { hashPassword, checkPassword } from "./passwords.js";
 import {
@@ -920,6 +921,7 @@ export function registerRoutes(app, game) {
     const base = req.body?.baseRev;
     if (typeof base === "number" && (doc.rev || 0) !== base)
       return res.status(409).json({ error: "This story was changed elsewhere — in another tab, perhaps. Reload to see it, or Save to overwrite.", conflict: true, rev: doc.rev || 0 });
+    const before = snapshotOf(doc); // what this save replaces — history may want it
     doc.rev = (doc.rev || 0) + 1;
     if (typeof req.body?.title === "string") doc.title = cleanTitle(req.body.title);
     const chapters = req.body?.chapters;
@@ -953,12 +955,64 @@ export function registerRoutes(app, game) {
     // restart would roll the story back — so the author's editor is told the
     // truth: it stays unsaved, keeps its local draft, and saves again shortly.
     // `rev` rides along because the copy in memory DID move: the retry names it.
+    // The copy this save replaced is kept when enough time has passed, or when
+    // the save lost a lot of words or a chapter (lib/doc-history.js) — so the
+    // next accident is two clicks to undo, not a database restore.
+    await keepBeforeOverwrite(doc.id, before, doc);
     try {
       await docLanded(doc);
     } catch {
       return res.status(503).json({ error: "Couldn't reach the database just now. Your words are safe in this tab and saved in this browser. Trying again shortly.", unlanded: true, rev: readDoc(doc.id)?.rev || 0 }); // the rev a retry will meet: moved in a memory-first store, unmoved on plain files
     }
     res.json({ doc: docPayload(doc, u), wordCount: u.wordCount });
+  });
+
+  // ---- version history: the author's alone ----
+  // A story's kept copies (when, why, how long); one copy in full; and Restore,
+  // which is itself a save — it keeps the copy it replaces, so it can be undone.
+  const ownDoc = (req, res) => {
+    const u = authedUser(req);
+    if (!u) return void res.status(401).json({ error: "Sign in first." });
+    const doc = readDoc(req.params.id);
+    if (!doc) return void res.status(404).json({ error: "No such document." });
+    if (!canEdit(doc, u.id)) return void res.status(403).json({ error: "Only the author can see a story's history." });
+    return { u, doc };
+  };
+  app.get("/api/docs/:id/history", async (req, res) => {
+    const own = ownDoc(req, res);
+    if (!own) return;
+    const versions = (await listHistory(own.doc.id)).map(({ at, reason, words, chapters }) => ({ at, reason, words, chapters }));
+    res.json({ versions });
+  });
+  app.get("/api/docs/:id/history/:at", async (req, res) => {
+    const own = ownDoc(req, res);
+    if (!own) return;
+    const copy = await readHistory(own.doc.id, req.params.at);
+    if (!copy) return res.status(404).json({ error: "That version is gone." });
+    res.json({ version: { at: Number(req.params.at), title: copy.title, words: copy.words, chapters: copy.chapters } });
+  });
+  app.post("/api/docs/:id/history/:at/restore", async (req, res) => {
+    const own = ownDoc(req, res);
+    if (!own) return;
+    const { u, doc } = own;
+    const copy = await readHistory(doc.id, req.params.at);
+    if (!copy || !Array.isArray(copy.chapters) || !copy.chapters.length) return res.status(404).json({ error: "That version is gone." });
+    const before = snapshotOf(doc);
+    doc.rev = (doc.rev || 0) + 1; // a restore is a save: every open editor's next save meets it
+    const used = new Set();
+    doc.chapters = copy.chapters.slice(0, MAX_CHAPTERS).map((c, i) => {
+      const id = typeof c?.id === "string" && !used.has(c.id) ? c.id : newChapterId();
+      used.add(id);
+      return { id, title: cleanChapterTitle(c?.title, i + 1), html: sanitizeDoc(String(c?.html ?? "")) };
+    });
+    writeDoc(doc);
+    await keepBeforeOverwrite(doc.id, before, doc, { force: "restore" });
+    try {
+      await docLanded(doc);
+    } catch {
+      return res.status(503).json({ error: "Couldn't reach the database just now. Nothing was lost. Try the restore again in a moment.", unlanded: true });
+    }
+    res.json({ doc: docPayload(readDoc(doc.id), u) });
   });
 
   app.delete("/api/docs/:id", (req, res) => {

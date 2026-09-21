@@ -385,6 +385,44 @@ export function commentThreadHtml(comments: CommentRow[], { orphaned = false, is
 	)
 }
 
+// ---- version history ----
+/** One kept copy as GET /api/docs/:id/history lists it. */
+export interface VersionRow {
+	at: number
+	reason: "time" | "drop" | "restore" | string
+	words: number
+	chapters: number
+}
+const VERSION_WHY: Record<string, string> = {
+	drop: "Kept because the next save was much shorter",
+	restore: "What a restore replaced",
+}
+/** The list in the Version history dialog, newest first; `nowWords` lets each row say how it differs from the page. */
+export function versionListHtml(versions: VersionRow[] | null | undefined, nowWords = 0): string {
+	if (!versions || !versions.length)
+		return `<p class="subtle">No earlier copies yet. They start appearing once you have been writing here for a little while.</p>`
+	return (
+		`<ul class="history-rows">` +
+		versions
+			.map((v) => {
+				const diff = v.words - nowWords
+				const delta = diff === 0 ? "same length as now" : `${Math.abs(diff).toLocaleString()} ${diff > 0 ? "more" : "fewer"} than now`
+				const when = new Date(v.at)
+				return (
+					`<li class="history-row${v.reason === "drop" ? " drop" : ""}" data-at="${Number(v.at)}">` +
+					`<span class="history-when"><b>${esc(when.toLocaleDateString(undefined, { month: "short", day: "numeric" }))}</b> ${esc(when.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }))}</span>` +
+					`<span class="history-what">${wordsLabel(v.words)} · ${esc(delta)}${v.chapters > 1 ? ` · ${v.chapters} chapters` : ""}` +
+					(VERSION_WHY[v.reason] ? `<em class="history-why">${esc(VERSION_WHY[v.reason])}</em>` : "") +
+					`</span>` +
+					`<span class="history-acts"><button class="ghost history-get" type="button">Download</button><button class="primary history-restore" type="button">Restore</button></span>` +
+					`</li>`
+				)
+			})
+			.join("") +
+		`</ul>`
+	)
+}
+
 // ---- inviting a beta reader ----
 // The picker lists EVERY writer, because you shouldn't have to remember how a
 // username is spelled to find it. Friends come first and wear a chip, since
