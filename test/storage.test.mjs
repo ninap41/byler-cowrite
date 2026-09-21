@@ -346,3 +346,25 @@ test("files: the same carry-over on disk, and a blob met by a plain read migrate
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+test("postgres: a story from before chapters AND before the comment split keeps every word through the boot migration", async () => {
+  delete process.env.DATABASE_URL;
+  const root = tmp();
+  const prose = "<p>the whole story, written before chapters existed</p>";
+  const legacy = { id: DOC_ID, ownerId: "u1", title: "Untouched since August", html: prose, betaReaders: [], visibility: "private", comments: [], wordCount: 8, createdAt: 1, updatedAt: 2 };
+  const pool = fakePool([{ kind: "doc", name: DOC_ID, doc: JSON.stringify(legacy) }]);
+  try {
+    await storage.init({ ...dirsIn(root), pool });
+    const { migrateDocComments, readDoc } = await import("../src/docs.js");
+    migrateDocComments();
+    await storage.flush();
+    const stored = JSON.parse(pool.rows.get("doc/" + DOC_ID).doc);
+    assert.equal(stored.chapters?.length, 1, "it became one chapter");
+    assert.equal(stored.chapters[0].html, prose, "holding every word");
+    assert.ok(!("html" in stored) && !("comments" in stored));
+    assert.equal(readDoc(DOC_ID).html, prose);
+  } finally {
+    storage._reset();
+    rmSync(root, { recursive: true, force: true });
+  }
+});

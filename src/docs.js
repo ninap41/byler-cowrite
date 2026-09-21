@@ -178,7 +178,14 @@ export function migrateDocComments() {
     const raw = getJson("doc", id);
     if (!raw || !("comments" in raw) || !ID_RE.test(String(raw.id || ""))) continue;
     const moved = splitComments(raw);
-    storage.put("doc", raw.id, JSON.stringify({ ...raw, html: undefined }, null, 1));
+    // A blob from before CHAPTERS keeps its whole story in `html`. Chapters
+    // first, THEN drop the derived field — stripping `html` from a blob that
+    // has no chapters yet would write the story out of existence.
+    // An already-chaptered blob is written back exactly as it was, minus its
+    // comments: a migration is not an edit.
+    const legacy = !Array.isArray(raw.chapters) || !raw.chapters.length;
+    const doc = legacy ? ensureChapters(raw) : raw;
+    storage.put("doc", doc.id, JSON.stringify({ ...doc, html: undefined }, null, 1));
     if (moved) { docs++; comments += moved; }
   }
   if (docs) console.log(`comments: migrated ${comments} comment${comments === 1 ? "" : "s"} out of ${docs} document${docs === 1 ? "" : "s"}`);
