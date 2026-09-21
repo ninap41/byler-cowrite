@@ -1,6 +1,6 @@
 # Solo editor: save cleanup plan
 
-Status: **plan only — nothing here is implemented yet.**
+Status: **partly done (2026-09-21, after a writer lost words — see `docs/notes/SOLO_EDITOR.md`, "The save path can't strand words in the page").** Done: step 4 (the draft is written on every tick without a confirmed save, on any failed save, on hidden/pagehide), the per-story draft key from step 7, plus things this plan never had — every save carries `baseRev`, a 20s save timeout, edits made mid-flight are kept, the server only answers 200 once the store took the write, and version history. Still open: 1 (debounce), 2 (the button), 3 (leave = flush), 5 (backoff retry of failed saves — today the next 30s tick retries), 6 (send only what changed).
 
 ## Why
 

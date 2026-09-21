@@ -21,6 +21,12 @@ storage: postgres (...)
 If it reports `storage: files`, `DATABASE_URL` is not reaching the process and
 data will not survive a redeploy.
 
+## Saving, restarts and getting words back
+
+- **A restart is safe only once the log says so.** On SIGTERM (every publish) the server prints `SIGTERM: flushing storage before exit`, gives every queued and owed database write one more go, then exits. `storage: exiting with rows still owed: …` or `storage: flush timed out` names rows the database never took — those stories roll back to their last landed copy on boot. Before publishing, `/api/admin/storage` (admin) should show `"unlanded": []` and no recent `lastError`.
+- **A writer lost words — in order:** (1) in the editor, Document → 🕘 Version history: the copy from just before a big drop is always kept (14 days), plus one every ~10 minutes of writing and one a day; Restore is undoable. (2) Their browser's draft: reopening the story offers "You have unsaved changes from a previous session" whenever the draft differs from what is stored. (3) Only then the database: Replit's Postgres keeps point-in-time history — restore a COPY to a moment before the loss and take the one row (`SELECT doc FROM cowrite_blobs WHERE kind='doc' AND name='<story id>'`); history copies are rows of `kind='dochist'` whose `name` starts with the story id. Don't restore over live: everyone else's work since that moment goes with it.
+- Words typed but never saved exist only in that browser. The head row's Saved/Unsaved is the truth: "Saved" now means the database took it (a refused write answers 503 and the page stays Unsaved).
+
 ## Announcements (admin blog)
 
 `/announcements` is the admins' blog. Its posts are ONE document,
