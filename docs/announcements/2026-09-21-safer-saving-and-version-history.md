@@ -19,6 +19,15 @@ One of you lost a few thousand words from a solo write this week. We got most of
 - When your browser offers back a draft, restoring it brings back only the chapters you were working on in that tab. A chapter you added, renamed, rewrote or deleted from another tab or device in the meantime stays as it is.
 - The Save button now tells the truth: it is greyed out when there is nothing to save, reads "Saving…" while a save is on its way, and stays off while saving is paused.
 
+## When you and a beta reader are on the story at the same time
+
+- A note a reader leaves while you are saving now stays: it shows up in your comments, its underline stays on the words, and your next save keeps it. It used to be able to lose its place for good.
+- If a reader comments on words you just changed, they are told the story moved under them and get their note back, ready to send again on the new words. It used to vanish without a word.
+- A reader who has a half-written note when you save keeps it.
+- A reader who comes back to the tab after a while now sees the current story straight away.
+- A reply or reaction on a thread that was just resolved says so, instead of doing nothing.
+- Deleting a chapter tells you how many open comments go with it.
+
 ## Smaller things
 
 - Deleting a chapter now asks first, and tells you how many words would go. A double-click can't do it any more.

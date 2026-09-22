@@ -309,7 +309,13 @@ export interface ServerToClient {
 	"doc-presence": (p: { id: string; viewers: DocViewer[] }) => void
 	"doc-comments": (p: { id: string; comments: DocCommentRow[] }) => void
 	/** the sender's comment was not taken: `stale` = their copy of the story is behind the stored one; `long` = the chapter is past the size limit */
-	"doc-comment-refused": (p: { id: string; cid: string; reason: "stale" | "long" }) => void
+	/**
+	 * stale: an author's tab behind the stored story; long: over DOC_MAX;
+	 * moved: a reader's note met a chapter the author (or another reader) had
+	 * changed since their page last saw it; closed: a reply/reaction on a thread
+	 * that was resolved or deleted first. For `closed`, `cid` is the comment id.
+	 */
+	"doc-comment-refused": (p: { id: string; cid: string; reason: "stale" | "long" | "moved" | "closed" }) => void
 	"doc-updated": (p: { id: string; html: string; title: string; chapters: DocChapterRow[]; updatedAt?: number; rev?: number }) => void
 	"doc-html": (p: { id: string; chapterId: string | null; html: string; chapterWordCount?: number; wordCount?: number }) => void
 	"doc-access-lost": (p: { id: string }) => void

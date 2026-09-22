@@ -964,7 +964,11 @@ export function registerRoutes(app, game) {
     } catch {
       return res.status(503).json({ error: "Couldn't reach the database just now. Your words are safe in this tab and saved in this browser. Trying again shortly.", unlanded: true, rev: readDoc(doc.id)?.rev || 0 }); // the rev a retry will meet: moved in a memory-first store, unmoved on plain files
     }
-    res.json({ doc: docPayload(doc, u), wordCount: u.wordCount });
+    // Answer from a fresh read, not the snapshot taken at the top: a comment
+    // that arrived while this request was awaiting the store has already put
+    // its anchor in the chapter and its thread in the record, and the
+    // snapshot would hand the editor a page and a rail from before it.
+    res.json({ doc: docPayload(readDoc(doc.id) || doc, u), wordCount: u.wordCount });
   });
 
   // ---- version history: the author's alone ----

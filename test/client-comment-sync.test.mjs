@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { installDom, mount } from "./dom.mjs";
 installDom();
-const { anchorCids, stripAnchorInSource, applySuggestionInSource, pruneSource, placeAnchor, locateText } = await import("../public/js/components/comment-sync.js");
+const { anchorCids, stripAnchorInSource, applySuggestionInSource, pruneSource, placeAnchor, locateText, rangeOfText } = await import("../public/js/components/comment-sync.js");
 
 const A = "aaaaaaaaaaaa", B = "bbbbbbbbbbbb";
 const span = (cid, inner, cls = "cmt") => `<span class="${cls}" data-cid="${cid}">${inner}</span>`;
@@ -122,8 +122,10 @@ test("write page: an author with unsaved typing keeps their own html and underli
   const rows = handler('s.on("doc-comments"', "s.on(");
   assert.ok(rows.indexOf("mergeArrivedAnchors()") > 0 && rows.indexOf("mergeArrivedAnchors()") < rows.indexOf("renderComments()"), "placed before the rail prunes and renders");
   const merge = handler("function mergeArrivedAnchors()", "\nfunction ");
-  assert.match(merge, /placeAnchor\(\$\("docEditor"\), c\.cid, c\.pos\)/);
-  assert.match(merge, /c\.resolved \|\| c\.orphaned/, "only comments the server still has anchored");
+  assert.match(merge, /if \(!canEditDoc\(\) \|\| !dirty\) return;\s*placeArrivedAnchors\(\)/, "the dirty gate, then the shared loop");
+  const loop = handler("function placeArrivedAnchors()", "\nfunction ");
+  assert.match(loop, /placeAnchor\(\$\("docEditor"\), c\.cid, c\.pos\)/);
+  assert.match(loop, /c\.resolved \|\| c\.orphaned/, "only comments the server still has anchored");
 });
 
 test("write page: every save names the SAVE it started from, never a timestamp; only the conflict bar forces", () => {
@@ -234,7 +236,9 @@ test("write page: a failed save, every autosave tick, and a hidden tab all write
 
 test("write page: a page replaced from outside forgets its undo history, and a draft restore asks before replacing new typing", () => {
   const upd = handler('s.on("doc-updated"', 's.on("doc-html"');
-  assert.match(upd, /undoHistory\.reset\(\)/, "or Ctrl+Z pastes the old page over the new one");
+  assert.match(upd, /applyServerCopy\(/, "the whole-copy path is shared with catchUp");
+  const apply = handler("function applyServerCopy(", "\nasync function catchUp");
+  assert.match(apply, /undoHistory\.reset\(\)/, "or Ctrl+Z pastes the old page over the new one");
   const restore = handler('id: "restoreYes"', 'id: "restoreNo"');
   assert.match(restore, /if \(d && dirty\)[\s\S]*confirmDialog/);
 });
@@ -280,4 +284,64 @@ test("write page: the save request never carries the draft's touched flag, and t
   assert.match(saveFn, /chapters: list \}/, "the PUT body is built from it");
   assert.ok(!/body\.chapters = draftChapters|chapters: draftChapters/.test(saveFn), "never from the draft shape");
   assert.match(page, /\$\("saveBtn"\)\.classList\.add\("hidden"\)/, "a beta reader has no Save at all");
+});
+
+// ---- the author writes while a reader comments ----
+
+test("rangeOfText finds a note's words again in a repainted page, across inline tags; gone words give null", () => {
+  const root = mount('<p>his <i>striped</i> shirt hangs</p><p>and <b>the quarry</b> at night</p>');
+  const r = rangeOfText(root, "striped shirt");
+  assert.ok(r, "found across the </i>");
+  assert.equal(r.toString(), "striped shirt");
+  assert.equal(rangeOfText(root, "  the quarry ").toString(), "the quarry", "trimmed");
+  assert.equal(rangeOfText(root, "checked shirt"), null, "words that changed");
+  assert.equal(rangeOfText(root, "   "), null);
+});
+
+test("write page: a save's answer never takes back a thread or an underline the page already has", () => {
+  const saveFn = page.slice(page.indexOf("async function save("), page.indexOf("const SAVE_TIMEOUT_MS"));
+  assert.match(saveFn, /const commentsAtSend = commentsSeq/, "the rail's version when the request left");
+  assert.match(saveFn, /if \(commentsSeq === commentsAtSend\) comments = doc\.comments \|\| \[\]/, "the answer's threads are taken only if nothing arrived meanwhile");
+  assert.match(saveFn, /replaceMissingAnchors\(\);\s*renderComments\(\)/, "underlines the answer didn't carry go back BEFORE the rail prunes");
+  const rows = handler('s.on("doc-comments"', "s.on(");
+  assert.match(rows, /commentsSeq\+\+/);
+  const fn = handler("function replaceMissingAnchors()", "\nfunction ");
+  assert.match(fn, /if \(placeArrivedAnchors\(\)\) setDirty\(true\)/, "a put-back underline is unsaved work");
+  const restore = handler('id: "restoreYes"', 'id: "restoreNo"');
+  assert.match(restore, /replaceMissingAnchors\(\)/, "a restored draft predates any note made since");
+  const mode = handler("function setMode(", "\nfunction ");
+  assert.match(mode, /if \(!toSource\) replaceMissingAnchors\(\)/, "leaving the HTML view too, dirty or not");
+});
+
+test("write page: a reader keeps their half-written note when the story moves under them, and is told", () => {
+  const send = handler("function sendComment()", "\nfunction ");
+  assert.match(send, /sentNotes\.set\(cid, \{ quote: [^}]*text, suggestion \}\)/, "the words wait until the server takes them");
+  const rows = handler('s.on("doc-comments"', "s.on(");
+  assert.match(rows, /sentNotes\.delete\(cid\)/, "taken: forgotten");
+  const refused = handler('s.on("doc-comment-refused"', "s.on(");
+  assert.match(refused, /reason === "moved"[\s\S]*restoreComposer\(note, /, "moved: the note goes back on its words");
+  assert.ok(refused.indexOf('reason === "moved"') < refused.indexOf("conflicted = true"), "and never raises the conflict bar — a reader has no save to force");
+  assert.match(refused, /reason === "closed"/, "a reply on a thread that closed first is explained");
+  const apply = handler("function applyServerCopy(", "\nasync function catchUp");
+  assert.match(apply, /const keep = snapshotComposer\(\)[\s\S]*innerHTML[\s\S]*if \(keep\) restoreComposer\(keep, /, "an open composer survives the author's save");
+  const push = handler('s.on("doc-html"', "s.on(");
+  assert.match(push, /const keep = snapshotComposer\(\)[\s\S]*if \(keep\) restoreComposer\(keep, /, "and another reader's note");
+  const composer = handler("function renderComposer()", "\nfunction ");
+  assert.match(composer, /const prefill = composerDraft/, "the next composer opens with the kept words");
+  const restore = handler("function restoreComposer(", "\nfunction ");
+  assert.match(restore, /rangeOfText\(\$\("docEditor"\), d\.quote\)/, "found again by the quoted words");
+  assert.match(restore, /select the words again/, "or waits for a new selection");
+});
+
+test("write page: a reader that was away catches up too", () => {
+  const fn = handler("async function catchUp()", "\ndocument.addEventListener");
+  assert.ok(!/!doc\?\.mine \|\| saving/.test(fn), "no longer the author's alone");
+  assert.match(fn, /if \(!doc\.mine\) \{[\s\S]*applyServerCopy\(r\.doc\)/, "a reader takes the newer copy in place");
+  assert.match(fn, /if \(dirty\) \{[\s\S]*conflicted = true/, "an author's dirty tab still gets the bar");
+});
+
+test("write page: deleting a chapter names the open comments in it", () => {
+  const del = handler('b.classList.contains("chap-del")', '$("chapPanel").addEventListener("dblclick"');
+  assert.match(del, /const notes = comments\.filter\(\(c\) => !c\.resolved/);
+  assert.match(del, /open comment\$\{notes === 1 \? "" : "s"\}/);
 });

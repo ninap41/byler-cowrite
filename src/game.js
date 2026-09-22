@@ -2219,7 +2219,13 @@ export function createGame(io) {
       // The comment lands in ONE chapter: the one named, or — for a client
       // that sends none — the only chapter a single-chapter document has.
       const ch = chapterId != null ? chapterById(doc, chapterId) : doc.chapters.length === 1 ? doc.chapters[0] : null;
-      if (!ch) return;
+      // A reader is TOLD when their note can't land — the chapter went, or
+      // its words moved under them since their page last saw it (an author's
+      // save, another reader's note). They get the fresh copy on the same
+      // socket, and their words back on the page. A silent drop here was a
+      // typed note gone with nothing to say why.
+      const moved = () => void socket.emit("doc-comment-refused", { id: doc.id, cid, reason: "moved" });
+      if (!ch) return moved();
       if (anchorCids(doc.html).includes(cid)) return; // never reuse an anchor id — across every chapter
       // Refuse, never cut: sanitizeDoc slices at DOC_MAX, and this path replaces
       // a whole chapter — a silent slice here is the end of it gone for good
@@ -2234,7 +2240,7 @@ export function createGame(io) {
         return void socket.emit("doc-comment-refused", { id: doc.id, cid, reason: "stale" });
       const before = snapshotOf(doc);
       const next = sanitizeDoc(String(html ?? ""));
-      if (!anchorCids(next).includes(cid)) return; // the anchor has to be there
+      if (!anchorCids(next).includes(cid)) return moved(); // the anchor has to be there (a detached selection sends none)
       // …and, for a BETA READER, the ONLY change may be that one anchor: no
       // words touched, no other underline added, moved or removed. We check the
       // invariant instead of a byte-for-byte echo of the stored html, because a
@@ -2248,10 +2254,10 @@ export function createGame(io) {
       if (!canEdit(doc, u.id)) {
         const want = [...anchorCids(ch.html), cid].sort().join(",");
         const got = [...anchorCids(next)].sort().join(",");
-        if (want !== got) return; // an anchor was added, moved or removed beyond this one
+        if (want !== got) return moved(); // an anchor was added, moved or removed beyond this one
         // words/markup changed — but a split inline run (from wrapping an anchor
         // inside <i>/<b>/… ) is not a change, so compare the rejoined baseline
-        if (commentBaseline(next) !== commentBaseline(ch.html)) return;
+        if (commentBaseline(next) !== commentBaseline(ch.html)) return moved();
       }
       ch.html = next;
       const at = anchorPos(next, cid);
@@ -2336,7 +2342,9 @@ export function createGame(io) {
       const doc = readDoc(id);
       if (!u || !doc || !canComment(doc, u.id)) return;
       const c = (doc.comments || []).find((x) => x.id === commentId);
-      if (!c || c.resolved) return; // a closed thread is reopened first
+      // a closed thread is reopened first — and the replier is told, since it may
+      // have been resolved or deleted while they typed
+      if (!c || c.resolved) return void socket.emit("doc-comment-refused", { id: doc.id, cid: String(commentId ?? ""), reason: "closed" });
       const body = stripTags(String(text ?? "")).trim().slice(0, 1000);
       if (!body) return;
       const replies = Array.isArray(c.replies) ? c.replies : [];
@@ -2357,7 +2365,7 @@ export function createGame(io) {
       const doc = readDoc(id);
       if (!u || !doc || !canComment(doc, u.id)) return;
       const c = (doc.comments || []).find((x) => x.id === commentId);
-      if (!c || c.resolved) return;
+      if (!c || c.resolved) return void socket.emit("doc-comment-refused", { id: doc.id, cid: String(commentId ?? ""), reason: "closed" });
       const target = replyId == null ? c : (c.replies || []).find((r) => r.id === replyId);
       if (!target) return;
       const box = { mid: target.id, reactions: target.reactions };
