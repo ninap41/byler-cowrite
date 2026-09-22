@@ -294,8 +294,9 @@ export function commentHtml(c: CommentRow, { isOwner = false, meName = "", canRe
 			: c.declined ? "✕ declined" : "✓ resolved"
 	const head =
 		`<span class="dc-who">${miniAvatar({ avatar: c.avatar, avatarFit: c.avatarFit, name: c.author, color: c.color })}` +
-		`<b style="color:${safeColor(c.color)}">${esc(c.author)}</b>` +
-		(state ? `<span class="dc-state">${state}</span>` : voiceTag(c.isAuthor)) +
+		`<b style="color:${safeColor(c.color)}" data-tip="${roleTip(c.isAuthor)}">${esc(c.author)}</b>` +
+		(c.orphaned ? orphanFlag() : "") +
+		(state ? `<span class="dc-state">${state}</span>` : "") +
 		`<span class="dc-when">${esc(fmtWhen(c.ts))}${c.edited ? " · edited" : ""}</span>` +
 		`</span>`
 	const open = !c.resolved
@@ -375,9 +376,11 @@ export const replyBoxHtml = (name: string): string =>
 	`<span class="dc-reply"><input class="dc-reply-input" type="text" maxlength="1000" placeholder="Reply to ${esc(name)}…" aria-label="Reply to ${esc(name)}" />` +
 	`<button class="dc-send" type="button" aria-label="Send reply"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button></span>`
 
-/** Every voice in a thread wears one: the document's author, or a beta reader. */
-const voiceTag = (isAuthor?: boolean): string =>
-	isAuthor ? `<span class="dc-tag author">author</span>` : `<span class="dc-tag beta">beta</span>`
+/** Who is speaking rides the NAME as a tooltip — the author, or a beta reader — not a pill beside it. */
+const roleTip = (isAuthor?: boolean): string => (isAuthor ? "The author" : "Beta reader")
+/** A comment whose words are gone wears a small ! with the explanation in its tooltip. */
+const orphanFlag = (): string =>
+	`<span class="dc-flag" data-tip="This comment was left on text that has since changed" role="img" aria-label="Left on text that has since changed">!</span>`
 
 /**
  * What you can do to one message, in a row under it — Reply · Edit · Delete
@@ -407,8 +410,7 @@ export function replyHtml(
 	return (
 		`<li class="dc-reply-item${extra ? " extra" : ""}" data-rid="${esc(r.id)}" data-author="${esc(r.author)}" style="--d:${Math.max(1, Math.min(MAX_DEPTH, depth | 0))}">` +
 		`<span class="dc-who">${miniAvatar({ avatar: r.avatar, avatarFit: r.avatarFit, name: r.author, color: r.color })}` +
-		`<b style="color:${safeColor(r.color)}">${esc(r.author)}</b>` +
-		voiceTag(r.isAuthor) +
+		`<b style="color:${safeColor(r.color)}" data-tip="${roleTip(r.isAuthor)}">${esc(r.author)}</b>` +
 		`<span class="dc-when">${esc(fmtWhen(r.ts))}${r.edited ? " · edited" : ""}</span>` +
 		`</span>` +
 		`<p class="dc-text">${esc(r.text)}</p>` +
@@ -436,12 +438,9 @@ export function commentModeBannerHtml({ canExit = true, count = 0 }: { canExit?:
 
 export function commentThreadHtml(comments: CommentRow[], { orphaned = false, isOwner = false, meName = "", canReply = false }: CommentViewOpts & { orphaned?: boolean } = {}): string {
 	if (!comments.length) return ""
-	return (
-		(orphaned
-			? `<p class="dc-orphan-note">${comments.length === 1 ? "This comment was" : "These comments were"} left on text that has since changed:</p>`
-			: "") +
-		`<ul class="dc-list">${comments.map((c) => commentHtml(c, { isOwner, meName, canReply })).join("")}</ul>`
-	)
+	// an orphaned card says so itself (the ! in its head); the group needs no heading
+	void orphaned
+	return `<ul class="dc-list">${comments.map((c) => commentHtml(c, { isOwner, meName, canReply })).join("")}</ul>`
 }
 
 // ---- version history ----

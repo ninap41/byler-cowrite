@@ -100,8 +100,9 @@ test("resolved comments are marked, and orphans explain themselves", () => {
   assert.ok(commentHtml(c, { isOwner: true }).includes("dc-reopen"), "the action row offers Reopen");
   assert.ok(!commentHtml(c).includes("dc-reopen"), "but not to someone who can't");
   assert.equal(commentThreadHtml([]), "", "no comments, no markup");
-  const orphan = commentThreadHtml([c], { orphaned: true });
-  assert.ok(/has since changed/.test(orphan), "orphaned comments are surfaced, not dropped");
+  const orphan = commentHtml({ ...c, resolved: false, orphaned: true });
+  assert.match(orphan, /class="dc-flag" data-tip="This comment was left on text that has since changed"/, "an orphan wears the ! with the reason in its tooltip");
+  assert.ok(!commentThreadHtml([c], { orphaned: true }).includes("has since changed"), "and the group has no heading saying it again");
 });
 
 test("reader chips escape names and only offer removal to the author", () => {
@@ -237,8 +238,9 @@ test("an orphaned comment is marked, not silently dropped", () => {
   assert.ok(commentHtml({ ...CMT, orphaned: true }).includes("orphaned"));
 });
 
-test("the author's own notes are tagged as theirs", () => {
-  assert.ok(commentHtml({ ...CMT, isAuthor: true }).includes("dc-tag"));
+test("the author's own notes say so on hover, not in a pill", () => {
+  assert.match(commentHtml({ ...CMT, isAuthor: true }), /<b style="[^"]*" data-tip="The author">/);
+  assert.ok(!commentHtml({ ...CMT, isAuthor: true }).includes("dc-tag"));
 });
 
 test("comment cards escape the quote, the note and the suggestion", () => {
@@ -611,10 +613,11 @@ test("visOptionsHtml: three radio rows, the current one ticked; fontListHtml: a 
 const REPLY = { id: "r1", text: "good catch", author: "nina", color: "#6c8cff", ts: Date.now(), isAuthor: true };
 const THREAD = { id: "c9", cid: "abcdef012345", text: "intentional?", author: "mike", color: "#e63946", ts: Date.now(), replies: [REPLY] };
 
-test("every voice wears a pill: beta on a reader, author on the writer", () => {
+test("every voice says who it is on hover: beta reader on a reader, the author on the writer", () => {
   const html = commentHtml(THREAD);
-  assert.match(html, /dc-tag beta">beta</, "the reader's note");
-  assert.match(html, /data-rid="r1"[\s\S]*dc-tag author">author</, "the author's reply");
+  assert.match(html, /data-tip="Beta reader">mike</, "the reader's note");
+  assert.match(html, /data-rid="r1"[\s\S]*data-tip="The author">/, "the author's reply");
+  assert.ok(!html.includes("dc-tag"), "no pills");
 });
 
 test("reply text is escaped", () => {
