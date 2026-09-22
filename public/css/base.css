@@ -946,6 +946,13 @@ a.solo-title:hover {
 	position: relative;
 	perspective: 700px;
 }
+/* `perspective` makes the switch a stacking context, so the menu's own
+   z-index only orders it INSIDE the switch — against later siblings (the
+   write page's toolbar row, say) the switch itself counted as level 0 and
+   the menu opened underneath them. The open switch carries the z-index. */
+.theme-switch.open {
+	z-index: 120;
+}
 .theme-switch button {
 	flex: 0 0 auto;
 	min-width: auto;

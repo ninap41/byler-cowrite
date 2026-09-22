@@ -868,3 +868,9 @@ test("the write page's sticky shell rises above the chapter panel and the commen
   assert.match(css, /\.doc-chapters \{[^}]*z-index: 70;/);
   assert.match(css, /\.doc-side \{[^}]*z-index: 60;/);
 });
+
+test("the theme picker's open switch carries the z-index — its perspective makes it a stacking context, so the menu's own can't reach past it", () => {
+  const css = readFileSync("public/css/base.css", "utf8");
+  assert.match(css, /\.theme-switch \{\s*position: relative;\s*perspective: 700px;\s*\}/);
+  assert.match(css, /\n\.theme-switch\.open \{\s*z-index: 120;\s*\}/);
+});
