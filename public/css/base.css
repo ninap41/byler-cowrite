@@ -7120,7 +7120,8 @@ body.doc-page .topbar {
 }
 .doc-save {
 	flex: 0 0 auto;
-	min-width: 0;
+	/* wide enough for "Saving…", so Save ⇄ Saving… never shoves the row */
+	min-width: 6.2em;
 	padding: 10px 22px;
 	font-size: 1rem;
 }
@@ -8204,6 +8205,12 @@ body.resizing-side {
 	min-height: 0;
 	overflow-y: auto;
 	margin: 8px 0 12px;
+}
+.history-now {
+	margin: 0 0 8px;
+	font-size: 0.9rem;
+	color: var(--muted);
+	text-align: left;
 }
 .history-rows {
 	list-style: none;

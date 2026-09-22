@@ -257,3 +257,17 @@ test("write page: restoring a draft takes only the chapters its page edited; the
   assert.ok(!/d\.chapters\.map\(/.test(restore), "the draft alone never decides the chapter list");
   assert.ok(!/saveDraft\(docId, allChapters\(\)/.test(page), "every draft write goes through draftChapters()");
 });
+
+test("write page: the Save button is disabled when there is nothing to save, while a save is out, and behind the conflict bar", () => {
+  const fn = page.slice(page.indexOf("const refreshSaveBtn = "), page.indexOf("};", page.indexOf("const refreshSaveBtn = ")));
+  assert.match(fn, /b\.disabled = !dirty \|\| saving \|\| conflicted/);
+  assert.match(fn, /saving \? "Saving…" : "Save"/, "and says when one is out");
+  const setDirtyFn = page.slice(page.indexOf("const setDirty = "), page.indexOf("const refreshSaveBtn = "));
+  assert.match(setDirtyFn, /refreshSaveBtn\(\)/, "every dirty change refreshes it");
+  const saveFn = page.slice(page.indexOf("async function save("), page.indexOf("const SAVE_TIMEOUT_MS"));
+  assert.match(saveFn, /saving = true;\s*refreshSaveBtn\(\)/, "a save going out disables it");
+  assert.match(saveFn, /finally \{\s*saving = false;\s*refreshSaveBtn\(\)/, "and coming back re-enables it");
+  const sets = page.match(/(?<!let )conflicted = (?:true|false);/g) || [];
+  const followed = page.match(/conflicted = (?:true|false);\s*refreshSaveBtn\(\)/g) || [];
+  assert.ok(sets.length >= 4 && followed.length === sets.length, "every conflicted change refreshes it");
+});

@@ -146,6 +146,16 @@ const setDirty = (v: boolean) => {
 	}
 	$("saveState").textContent = v ? "Unsaved" : "Saved"
 	$("saveState").classList.toggle("unsaved", v)
+	refreshSaveBtn()
+}
+// The Save button tells the truth: nothing to save, a save already out, or
+// saving paused behind the conflict bar all disable it. (It used to be live
+// always — a click on a clean page re-sent the whole story and moved `rev`.)
+const refreshSaveBtn = () => {
+	const b = $("saveBtn") as HTMLButtonElement
+	b.disabled = !dirty || saving || conflicted
+	b.textContent = saving ? "Saving…" : "Save"
+	b.title = conflicted ? "Saving is paused: see the notice above" : !dirty ? "Nothing to save" : ""
 }
 
 // The HTML view is pretty-printed (formatSource, one block per line); srcHtml()
@@ -1437,6 +1447,7 @@ async function save({ quiet = false, force = false }: { quiet?: boolean; force?:
 	if (!doc?.mine) return true
 	if (saving) return false
 	saving = true
+	refreshSaveBtn()
 	$("docErr").textContent = ""
 	const list = allChapters()
 	const sent = [...chapters] // the very objects `list` was made from, position for position
@@ -1450,6 +1461,7 @@ async function save({ quiet = false, force = false }: { quiet?: boolean; force?:
 		// later save would return at once, silently, and so would the draft.
 		const r = await api<{ doc: DocPayload }>("/api/docs/" + encodeURIComponent(docId), body, "PUT", { timeoutMs: SAVE_TIMEOUT_MS })
 		conflicted = false
+		refreshSaveBtn()
 		banners.hide("conflictBar")
 		doc = r.doc
 		comments = doc.comments || []
@@ -1486,6 +1498,7 @@ async function save({ quiet = false, force = false }: { quiet?: boolean; force?:
 		// every 30s over whatever you typed); Save still goes through.
 		if (e instanceof ApiError && e.status === 409) {
 			conflicted = true
+			refreshSaveBtn()
 			banners.show("conflictBar")
 			return false
 		}
@@ -1504,6 +1517,7 @@ async function save({ quiet = false, force = false }: { quiet?: boolean; force?:
 		return false
 	} finally {
 		saving = false
+		refreshSaveBtn()
 	}
 }
 const SAVE_TIMEOUT_MS = 20000
@@ -2157,6 +2171,7 @@ async function catchUp() {
 		if (!doc || (r.doc.rev || 0) === (doc.rev || 0)) return
 		if (dirty) {
 			conflicted = true
+			refreshSaveBtn()
 			banners.show("conflictBar")
 		} else location.reload()
 	} catch {
@@ -2176,7 +2191,11 @@ async function openHistory() {
 	$("historyList").innerHTML = `<p class="subtle">Looking…</p>`
 	try {
 		const r = await api<{ versions: VersionRow[] }>(`/api/docs/${encodeURIComponent(docId)}/history`, null, "GET")
-		$("historyList").innerHTML = versionListHtml(r.versions, chapters.reduce((n, c, i) => n + (i === openIdx ? countNow() : c.wordCount || 0), 0))
+		$("historyList").innerHTML = versionListHtml(
+			r.versions,
+			chapters.reduce((n, c, i) => n + (i === openIdx ? countNow() : c.wordCount || 0), 0),
+			chapters.length,
+		)
 	} catch (e) {
 		$("historyList").innerHTML = `<p class="err">${esc((e as Error).message)}</p>`
 	}
@@ -2254,6 +2273,7 @@ function connect() {
 		renderComments()
 		if (reason === "long") return void ($("docErr").textContent = "This chapter is too long to comment on. Split it into two chapters.")
 		conflicted = true
+		refreshSaveBtn()
 		banners.show("conflictBar")
 	})
 	s.on("doc-updated", ({ id, html, title, chapters: rows, updatedAt, rev }) => {

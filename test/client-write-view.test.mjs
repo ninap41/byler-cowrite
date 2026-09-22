@@ -664,8 +664,10 @@ test("an edited note says so; a comment from before threads still renders", () =
 // ---- version history ----
 test("the version list says when, how long, how it differs from the page, and why a copy was kept", () => {
   const at = Date.UTC(2026, 8, 21, 17, 30);
-  const html = versionListHtml([{ at, reason: "drop", words: 17000, chapters: 3 }, { at: at - 600000, reason: "time", words: 14000, chapters: 1 }], 14000);
+  const html = versionListHtml([{ at, reason: "drop", words: 17000, chapters: 3 }, { at: at - 600000, reason: "time", words: 14000, chapters: 1 }], 14000, 2);
   assert.match(html, /class="history-row drop" data-at="\d+"/);
+  assert.ok(html.includes('class="history-now">Now: <b>14,000 words</b> · 2 chapters'), "the figure every row is measured against is on screen too");
+  assert.ok(!versionListHtml([{ at, reason: "time", words: 1, chapters: 1 }], 1, 1).includes("chapters"), "one chapter goes unsaid");
   assert.ok(html.includes("17,000 words") && html.includes("3,000 more than now") && html.includes("3 chapters"));
   assert.ok(html.includes("Kept because the next save was much shorter"));
   assert.ok(html.includes("same length as now"));

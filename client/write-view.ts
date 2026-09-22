@@ -398,10 +398,13 @@ const VERSION_WHY: Record<string, string> = {
 	restore: "What a restore replaced",
 }
 /** The list in the Version history dialog, newest first; `nowWords` lets each row say how it differs from the page. */
-export function versionListHtml(versions: VersionRow[] | null | undefined, nowWords = 0): string {
+export function versionListHtml(versions: VersionRow[] | null | undefined, nowWords = 0, nowChapters = 0): string {
 	if (!versions || !versions.length)
 		return `<p class="subtle">No earlier copies yet. They start appearing once you have been writing here for a little while.</p>`
+	// The figure every row is measured against, so "more than now" is checkable.
+	const now = `<p class="history-now">Now: <b>${Number(nowWords).toLocaleString()} word${nowWords === 1 ? "" : "s"}</b>${nowChapters > 1 ? ` · ${nowChapters} chapters` : ""}</p>`
 	return (
+		now +
 		`<ul class="history-rows">` +
 		versions
 			.map((v) => {
