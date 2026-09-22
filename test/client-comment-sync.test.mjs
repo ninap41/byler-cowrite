@@ -252,7 +252,8 @@ test("write page: restoring a draft takes only the chapters its page edited; the
   assert.match(page, /touched\.add\(ch\)/, "an edit marks the open chapter");
   assert.match(page, /touched: c\.id == null \|\| touched\.has\(/, "and the draft carries the mark (a never-saved chapter always counts)");
   const restore = handler('id: "restoreYes"', 'id: "restoreNo"');
-  assert.match(restore, /c\.touched === false && c\.id \? stored\.get\(c\.id\)/);
-  assert.match(restore, /theirs \? theirs\.html : c\.html/);
+  assert.match(restore, /const merged = mergeDraft\(d, doc\)/, "the restore is laid over the server's chapter list (a chapter added, deleted or renamed elsewhere survives)");
+  assert.match(restore, /merged\[i\]\.touched && touched\.add\(c\)/, "only what came from the draft is unsaved work again");
+  assert.ok(!/d\.chapters\.map\(/.test(restore), "the draft alone never decides the chapter list");
   assert.ok(!/saveDraft\(docId, allChapters\(\)/.test(page), "every draft write goes through draftChapters()");
 });

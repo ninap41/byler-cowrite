@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { installLocalStorage } from "./client-storage.mjs";
 
 installLocalStorage();
-const { loadDraft, saveDraft, clearDraft, draftIsNewer, MAX_DRAFTS } = await import("../public/js/doc-store.js");
+const { loadDraft, saveDraft, clearDraft, draftIsNewer, mergeDraft, MAX_DRAFTS } = await import("../public/js/doc-store.js");
 
 const mem = () => {
   const store = new Map();
@@ -121,4 +121,45 @@ test("a draft remembers which chapters its page edited; one it never touched is 
   const server = { rev: 4, chapters: [{ id: "c1", title: "One", html: "<p>mine, unsaved</p>" }, { id: "c2", title: "Two", html: "<p>saved elsewhere since</p>" }] };
   assert.equal(draftIsNewer(d, server), false, "the only difference is a chapter this page never edited: nothing to offer");
   assert.equal(draftIsNewer(d, { ...server, chapters: [{ id: "c1", title: "One", html: "<p>server</p>" }, server.chapters[1]] }), true, "the edited chapter differs: offered");
+});
+
+// A marked draft is laid over the server's chapter LIST, not just its text:
+// what another tab did to the list since (add, delete, rename) must survive
+// a restore, or the next save quietly undoes it.
+const ch1 = { id: "c1", title: "One", html: "<p>mine, unsaved</p>", touched: true };
+const ch2old = { id: "c2", title: "Two", html: "<p>old copy</p>", touched: false };
+
+test("mergeDraft: a chapter added elsewhere since the draft survives the restore", () => {
+  const server = { rev: 5, chapters: [{ id: "c1", title: "One", html: "<p>server</p>" }, { id: "c2", title: "Two", html: "<p>two</p>" }, { id: "c3", title: "Three", html: "<p>added in tab B</p>" }] };
+  const out = mergeDraft({ chapters: [ch1, ch2old], baseRev: 3 }, server);
+  assert.deepEqual(out.map((c) => [c.id, c.html, c.touched]), [["c1", "<p>mine, unsaved</p>", true], ["c2", "<p>two</p>", false], ["c3", "<p>added in tab B</p>", false]]);
+  assert.equal(draftIsNewer({ chapters: [ch1, ch2old], baseRev: 3 }, server), true, "chapter one still differs: offered");
+  assert.equal(draftIsNewer({ chapters: [{ ...ch1, html: "<p>server</p>" }, ch2old], baseRev: 3 }, server), false, "a chapter that only exists on the server is not a difference");
+});
+
+test("mergeDraft: a chapter deleted elsewhere stays deleted unless this page edited it", () => {
+  const server = { rev: 5, chapters: [{ id: "c1", title: "One", html: "<p>server</p>" }] };
+  assert.deepEqual(mergeDraft({ chapters: [ch1, ch2old], baseRev: 3 }, server).map((c) => c.id), ["c1"], "untouched and gone there: gone");
+  const edited = mergeDraft({ chapters: [ch1, { ...ch2old, html: "<p>typed here</p>", touched: true }], baseRev: 3 }, server);
+  assert.deepEqual(edited.map((c) => [c.id, c.html]), [["c1", "<p>mine, unsaved</p>"], ["c2", "<p>typed here</p>"]], "edited here and deleted there: the words come back");
+  assert.equal(draftIsNewer({ chapters: [{ ...ch1, html: "<p>server</p>" }, ch2old], baseRev: 3 }, server), false, "only an untouched deleted chapter differs: nothing to offer");
+});
+
+test("mergeDraft: a rename elsewhere is kept; a rename here wins for an edited chapter", () => {
+  const server = { rev: 5, chapters: [{ id: "c1", title: "One", html: "<p>mine, unsaved</p>" }, { id: "c2", title: "Renamed in B", html: "<p>old copy</p>" }] };
+  const out = mergeDraft({ chapters: [{ ...ch1, title: "Renamed here" }, ch2old], baseRev: 3 }, server);
+  assert.deepEqual(out.map((c) => c.title), ["Renamed here", "Renamed in B"]);
+  assert.equal(draftIsNewer({ chapters: [ch1, ch2old], baseRev: 3 }, server), false, "the other tab's rename alone is no difference");
+});
+
+test("mergeDraft: a chapter created here and never saved keeps its place; server order is the frame", () => {
+  const server = { rev: 5, chapters: [{ id: "c2", title: "Two", html: "<p>two</p>" }, { id: "c1", title: "One", html: "<p>one</p>" }] };
+  const out = mergeDraft({ chapters: [ch1, { id: null, title: "New", html: "<p>new</p>", touched: true }, ch2old], baseRev: 3 }, server);
+  assert.deepEqual(out.map((c) => [c.id, c.touched]), [["c2", false], [null, true], ["c1", true]], "server order, the new chapter at its draft index");
+});
+
+test("mergeDraft: a draft from before chapters were marked restores whole, by position", () => {
+  const server = { rev: 5, chapters: [{ id: "c1", title: "One", html: "<p>server</p>" }, { id: "c2", title: "Two", html: "<p>two</p>" }, { id: "c3", title: "Three", html: "" }] };
+  const out = mergeDraft({ chapters: [{ id: null, title: "", html: "<p>old</p>" }, { id: "c2", title: "Two", html: "<p>mine</p>" }], savedAt: 9 }, server);
+  assert.deepEqual(out.map((c) => [c.id, c.title, c.html, c.touched]), [["c1", "One", "<p>old</p>", true], ["c2", "Two", "<p>mine</p>", true]]);
 });

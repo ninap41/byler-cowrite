@@ -25,7 +25,7 @@ import {
 import { mountSlashPalette } from "/js/components/slash-palette.js"
 import { mountPromptModes } from "/js/components/prompt-modes.js"
 import { promptHtml } from "/js/util.js"
-import { loadDraft, saveDraft, clearDraft, draftIsNewer } from "/js/doc-store.js"
+import { loadDraft, saveDraft, clearDraft, draftIsNewer, mergeDraft } from "/js/doc-store.js"
 import { createHistory } from "/js/components/history.js"
 import { mountDocBanners } from "/js/components/doc-banner.js"
 import { mountFindReplace, type FindReplaceApi } from "/js/components/find-replace.js"
@@ -1609,23 +1609,14 @@ banners.add({
 					if (!ok) return
 				}
 				if (d) {
-					// a draft chapter with no id (never saved, or a pre-chapter draft)
-					// takes the stored chapter's id at the same position, if any
-					// A chapter the drafting page never edited comes from the SERVER, not
-					// the draft: it may have been saved from another tab or device since,
-					// and the draft's old copy would undo that. (A draft from before
-					// chapters were marked has no flag and restores whole, as it did.)
-					const stored = new Map((doc?.chapters || []).map((c) => [c.id, c]))
-					chapters = d.chapters.map((c, i) => {
-						const theirs = c.touched === false && c.id ? stored.get(c.id) : undefined
-						return {
-							id: c.id ?? doc?.chapters?.[i]?.id ?? null,
-							title: c.title || doc?.chapters?.[i]?.title || `Chapter ${i + 1}`,
-							html: theirs ? theirs.html : c.html,
-						}
-					})
+					// The draft is laid over the SERVER's chapter list (mergeDraft): only
+					// the chapters this page edited come back from it; one added,
+					// renamed, rewritten or deleted from another tab or device since
+					// stays as the server has it, so the next save can't undo that.
+					const merged = mergeDraft(d, doc)
+					chapters = merged.map((c, i) => ({ id: c.id, title: c.title || `Chapter ${i + 1}`, html: c.html }))
 					// what came back from the draft is unsaved work again
-					chapters.forEach((c, i) => d.chapters[i]?.touched !== false && touched.add(c))
+					chapters.forEach((c, i) => merged[i]!.touched && touched.add(c))
 					openIdx = Math.min(openIdx, chapters.length - 1)
 					if (sourceMode) setMode(false)
 					$("docEditor").innerHTML = chapters[openIdx]?.html ?? ""

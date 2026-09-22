@@ -138,9 +138,58 @@ const shape = (chapters: Partial<DraftChapter>[] | null | undefined, doc: DraftD
 export const draftIsNewer = (draft: Partial<Draft> | null | undefined, doc: DraftDoc | null | undefined): boolean => {
 	if (!draft || !doc) return false
 	if (typeof draft.baseRev !== "number" && !((draft.savedAt ?? 0) > (doc.updatedAt || 0))) return false
-	// a chapter this page never edited isn't a difference: the restore takes the server's copy of it
-	const byId = new Map((doc.chapters || []).map((c) => [c.id, c]))
-	const mine = (draft.chapters || chapterList(draft) || []).map((c) => (c.touched === false && c.id && byId.has(c.id) ? { ...c, html: byId.get(c.id)!.html || "" } : c))
 	const theirs = Array.isArray(doc.chapters) && doc.chapters.length ? doc.chapters : [{ id: null, title: "", html: doc.html || "" }]
-	return shape(mine, { chapters: theirs }) !== shape(theirs, { chapters: theirs })
+	return shape(mergeDraft(draft, doc), { chapters: theirs }) !== shape(theirs, { chapters: theirs })
+}
+
+/** A chapter as a restore puts it on the page: `touched` says whether it is unsaved work again. */
+export interface MergedChapter {
+	id: string | null
+	title: string
+	html: string
+	touched: boolean
+}
+
+// The chapter list a restore puts on the page. A draft holds EVERY chapter,
+// but the page that wrote it only worked on some of them; anything else may
+// have changed on the server since — from another tab or device — and the
+// draft's old copy of it would quietly undo that on the next save. So a
+// marked draft is laid over the SERVER's list, not the other way round:
+//   - the server's chapters, in the server's order, are the frame;
+//   - a chapter this page edited (`touched`) replaces the server's copy of it
+//     (title and words);
+//   - a chapter this page never edited stays exactly as the server has it —
+//     renamed, rewritten, or deleted elsewhere, it stays that way;
+//   - a chapter the page created and never saved (no id) goes in at the
+//     place it had in the draft;
+//   - a chapter this page edited that was deleted elsewhere comes back:
+//     losing the writer's words is worse than reviving a chapter.
+// A draft from before chapters were marked (no flags) restores whole, by
+// position, as it always did.
+export function mergeDraft(draft: Partial<Draft> | null | undefined, doc: DraftDoc | null | undefined): MergedChapter[] {
+	const mine = draft?.chapters || chapterList(draft) || []
+	const server = (Array.isArray(doc?.chapters) ? doc!.chapters : []).map((c) => ({ id: c.id ?? null, title: c.title || "", html: c.html || "" }))
+	const marked = mine.some((c) => typeof c.touched === "boolean")
+	if (!marked) {
+		// a draft chapter with no id (never saved, or a pre-chapter draft)
+		// takes the stored chapter's id at the same position, if any
+		return mine.map((c, i) => ({
+			id: c.id ?? server[i]?.id ?? null,
+			title: c.title || server[i]?.title || "",
+			html: c.html,
+			touched: true,
+		}))
+	}
+	const edited = new Map(mine.filter((c) => c.touched !== false && c.id).map((c) => [c.id, c]))
+	const out: MergedChapter[] = server.map((s) => {
+		const m = edited.get(s.id)
+		return m ? { id: s.id, title: m.title || s.title, html: m.html, touched: true } : { ...s, touched: false }
+	})
+	const have = new Set(server.map((s) => s.id))
+	// new-here chapters keep their place; edited-here-but-deleted-there ones return where they were
+	mine.forEach((c, i) => {
+		if (c.touched === false || (c.id && have.has(c.id))) return
+		out.splice(Math.min(i, out.length), 0, { id: c.id ?? null, title: c.title || "", html: c.html, touched: true })
+	})
+	return out
 }
