@@ -855,3 +855,8 @@ test("no page declares a `history` of its own (it would shadow window.history)",
     assert.ok(!/\b(function|const|let|var)\s+history\b/.test(src), f + " shadows window.history");
   }
 });
+
+test("a reader's Appearance menu hangs from the chip's left edge, so it isn't cut off by the screen", () => {
+  const css = readFileSync("public/css/base.css", "utf8");
+  assert.match(css, /#docToolbar\.hidden \+ \.doc-view-prefs \.view-menu \{\s*left: 0;\s*right: auto;/);
+});

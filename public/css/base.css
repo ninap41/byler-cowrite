@@ -7165,6 +7165,13 @@ body.doc-page .topbar {
 #docToolbar.hidden + .doc-view-prefs {
 	margin-right: auto;
 }
+/* …and its menu hangs from the chip's LEFT edge there: right-anchored (as it
+   is for the author, whose chip sits at the row's end) it opened half off
+   the left of the screen. */
+#docToolbar.hidden + .doc-view-prefs .view-menu {
+	left: 0;
+	right: auto;
+}
 .doc-toolbar-row .toolbar {
 	flex: 1 1 auto;
 	margin: 0;
