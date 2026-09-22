@@ -396,9 +396,9 @@ function actsHtml(reactions: Reactions | undefined, meName: string, { reply = fa
 		(reopen ? `<button class="dc-act dc-reopen" type="button">Reopen</button>` : "") +
 		(reply ? `<button class="dc-act dc-reply-btn" type="button">Reply</button>` : "")
 	const items =
-		(edit ? `<button class="dc-act dc-edit" type="button" role="menuitem">Edit</button>` : "") +
-		(del ? `<button class="dc-act dc-del" type="button" role="menuitem">Delete</button>` : "") +
-		(react ? `<button class="dc-act react-add" type="button" role="menuitem"><i class="fa-regular fa-face-smile" aria-hidden="true"></i> Add reaction</button>` : "")
+		(edit ? `<button class="dc-act dc-edit" type="button" role="menuitem"><i class="fa-solid fa-pen" aria-hidden="true"></i>Edit</button>` : "") +
+		(react ? `<button class="dc-act react-add" type="button" role="menuitem"><i class="fa-regular fa-face-smile" aria-hidden="true"></i>Add reaction</button>` : "") +
+		(del ? `<button class="dc-act dc-del" type="button" role="menuitem"><i class="fa-regular fa-trash-can" aria-hidden="true"></i>Delete</button>` : "")
 	const more = items
 		? `<span class="dc-more"><button class="dc-more-btn" type="button" aria-label="More" aria-haspopup="menu" aria-expanded="false">⋯</button><span class="dc-menu" role="menu">${items}</span></span>`
 		: ""

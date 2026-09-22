@@ -27,7 +27,7 @@ One of you lost a few thousand words from a solo write this week. We got most of
 - A reader who comes back to the tab after a while now sees the current story straight away.
 - A reply or reaction on a thread that was just resolved says so, instead of doing nothing.
 - Deleting a chapter tells you how many open comments go with it.
-- Under each comment and reply: Reply, then the reactions, then a ⋯ that holds Edit, Delete and Add reaction.
+- Under each comment and reply: Reply, then the reactions, then a ⋯ that holds Edit, Add reaction and Delete.
 - Comment cards are tidier: hover a name to see whether it's the author or a beta reader, and a comment whose words have since changed shows a small amber ! you can hover for the explanation.
 
 ## Smaller things

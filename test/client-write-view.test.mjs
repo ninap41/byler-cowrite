@@ -731,3 +731,10 @@ test("the version list says when, how long, how it differs from the page, and wh
   assert.ok(versionListHtml([]).includes("No earlier copies yet"));
   assert.ok(!versionListHtml([{ at, reason: '"><img>', words: 1, chapters: 1 }]).includes("<img"));
 });
+
+test("the ⋯ menu lists Edit, Add reaction, Delete — in that order", () => {
+  const [row] = [...commentHtml({ ...THREAD, replies: [] }, { meName: "mike", canReply: true }).matchAll(/<span class="dc-menu" role="menu">(.*?)<\/span>/g)].map((m) => m[1]);
+  const at = (cls) => row.indexOf(cls);
+  assert.ok(at("dc-edit") >= 0 && at("dc-edit") < at("react-add") && at("react-add") < at("dc-del"));
+  assert.equal((row.match(/<i class="fa-[a-z]+ fa-[a-z-]+" aria-hidden="true"><\/i>/g) || []).length, 3, "each item leads with an icon, so the words line up");
+});
