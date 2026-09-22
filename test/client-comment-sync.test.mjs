@@ -154,7 +154,7 @@ test("write page: reloading from the conflict bar keeps what was typed here as a
 
 test("write page: the HTML view is pruned with the editor, and decisions act on it there", () => {
   const prune = handler("function pruneLocalAnchors()", "\nfunction renderComments()");
-  assert.match(prune, /if \(sourceMode\)[\s\S]*pruneSource\(src, \[\.\.\.live, \.\.\.pendingCids\]\)/);
+  assert.match(prune, /if \(sourceMode\)[\s\S]*pruneSource\(src, \[\.\.\.live, \.\.\.pendingCids, \.\.\.arrivedCids\]\)/);
   const decide = handler("function decideLocally(", "\n}");
   assert.match(decide, /if \(sourceMode\)[\s\S]*applySuggestionInSource\(src, c\.cid, c\.suggestion\)[\s\S]*stripAnchorInSource\(src, c\.cid\)/);
 });
@@ -306,7 +306,7 @@ test("write page: a save's answer never takes back a thread or an underline the 
   const rows = handler('s.on("doc-comments"', "s.on(");
   assert.match(rows, /commentsSeq\+\+/);
   const fn = handler("function replaceMissingAnchors()", "\nfunction ");
-  assert.match(fn, /if \(placeArrivedAnchors\(\)\) setDirty\(true\)/, "a put-back underline is unsaved work");
+  assert.match(fn, /if \(placeArrivedAnchors\(\)\) \{\s*setDirty\(true\);\s*renderComments\(\)/, "a put-back underline is unsaved work, and its note is a card");
   const restore = handler('id: "restoreYes"', 'id: "restoreNo"');
   assert.match(restore, /replaceMissingAnchors\(\)/, "a restored draft predates any note made since");
   const mode = handler("function setMode(", "\nfunction ");
@@ -344,4 +344,22 @@ test("write page: deleting a chapter names the open comments in it", () => {
   const del = handler('b.classList.contains("chap-del")', '$("chapPanel").addEventListener("dblclick"');
   assert.match(del, /const notes = comments\.filter\(\(c\) => !c\.resolved/);
   assert.match(del, /open comment\$\{notes === 1 \? "" : "s"\}/);
+});
+
+test("write page: a reply being typed when its thread closes is kept, and prefills the box after a reopen", () => {
+  const open = handler("function openReplyBox(", "\nfunction ");
+  assert.match(open, /if \(replying\.value\.trim\(\)\) \{\s*lostReply = \{ \.\.\.replying \}/, "the words are kept, not dropped with the box");
+  assert.match(open, /closed while you were typing/);
+  const click = handler('replying = { commentId, parentId, value: back }', "\n");
+  assert.ok(click, "the next box on that thread opens with them");
+  assert.match(page, /const back = lostReply\?\.commentId === commentId \? lostReply\.value : ""/);
+});
+
+test("write page: an underline that arrives in a server html push is never pruned before its comment list lands", () => {
+  const push = handler('s.on("doc-html"', "s.on(");
+  assert.match(push, /for \(const cid of anchorCids\(html \|\| ""\)\) arrivedCids\.add\(cid\)/, "the pushed anchors are protected…");
+  const rows = handler('s.on("doc-comments"', "s.on(");
+  assert.match(rows, /arrivedCids\.clear\(\)/, "…until the list they belong to is here");
+  const prune = handler("function pruneLocalAnchors()", "\nfunction ");
+  assert.match(prune, /live\.has\(cid\) \|\| pendingCids\.has\(cid\) \|\| arrivedCids\.has\(cid\)/);
 });

@@ -1906,3 +1906,20 @@ test("a reply or a reaction on a thread that closed first is refused with a word
   await ctx.wait(150);
   assert.equal(heard, false);
 });
+
+test("a reader's note reaches the author as the thread first, then the chapter that wears its anchor", async () => {
+  const doc = await commentableDoc();
+  const A = await ctx.conn(), B = await ctx.conn();
+  A.emit("doc-open", { auth: alice.token, id: doc.id });
+  B.emit("doc-open", { auth: bob.token, id: doc.id });
+  await ctx.wait(150);
+  // An idle author's editor takes the pushed html as it comes and prunes any
+  // anchor whose comment it doesn't know — so the comment has to be known
+  // first, or the underline is stripped on arrival and the next save
+  // orphans the note (found in the browser, 2026-09-22).
+  const order = [];
+  A.onAny((ev) => (ev === "doc-comments" || ev === "doc-html") && order.push(ev));
+  B.emit("doc-comment", { auth: bob.token, id: doc.id, cid: "0d0d0d0d0d0d", html: anchored("0d0d0d0d0d0d"), text: "order matters" });
+  await ctx.wait(250);
+  assert.deepEqual(order, ["doc-comments", "doc-html"]);
+});

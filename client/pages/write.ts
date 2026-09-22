@@ -29,7 +29,7 @@ import { loadDraft, saveDraft, clearDraft, draftIsNewer, mergeDraft } from "/js/
 import { createHistory } from "/js/components/history.js"
 import { mountDocBanners } from "/js/components/doc-banner.js"
 import { mountFindReplace, type FindReplaceApi } from "/js/components/find-replace.js"
-import { placeAnchor, pruneSource, stripAnchorInSource, applySuggestionInSource, rangeOfText } from "/js/components/comment-sync.js"
+import { anchorCids, placeAnchor, pruneSource, stripAnchorInSource, applySuggestionInSource, rangeOfText } from "/js/components/comment-sync.js"
 import {
 	presenceHtml,
 	commentThreadHtml,
@@ -440,6 +440,11 @@ $("docEditor").addEventListener("click", (e) => {
 // without this the prune below would strip a brand-new comment's
 // underline in the moment between sending it and hearing about it.
 const pendingCids = new Set<string>()
+// Anchors that arrived IN a server html push. Their comment may not be in
+// `comments` yet (the pushes are two messages), and pruneLocalAnchors must
+// not take them for stray anchors in that gap. Cleared on the next
+// `doc-comments`, which is the list they belong to.
+const arrivedCids = new Set<string>()
 
 // The editor's mirror of writeDoc's rule: an underline is only legal
 // while a live, unresolved comment stands behind it. Resolving,
@@ -473,7 +478,7 @@ function pruneLocalAnchors() {
 	}
 	for (const a of anchorsInDoc()) {
 		const cid = a.dataset.cid || ""
-		if (live.has(cid) || pendingCids.has(cid)) continue
+		if (live.has(cid) || pendingCids.has(cid) || arrivedCids.has(cid)) continue
 		a.replaceWith(...a.childNodes)
 		changed = true
 	}
@@ -484,7 +489,7 @@ function pruneLocalAnchors() {
 	// and, since the textarea is what's read on the way back, comes back.
 	if (sourceMode) {
 		const src = textarea("docSource").value
-		const pruned = pruneSource(src, [...live, ...pendingCids])
+		const pruned = pruneSource(src, [...live, ...pendingCids, ...arrivedCids])
 		if (pruned !== src) { textarea("docSource").value = pruned; changed = true }
 	}
 	return changed
@@ -530,7 +535,10 @@ function placeArrivedAnchors(): boolean {
 // underline put back this way is unsaved work: it makes the page dirty.
 function replaceMissingAnchors() {
 	if (!canEditDoc()) return
-	if (placeArrivedAnchors()) setDirty(true)
+	if (placeArrivedAnchors()) {
+		setDirty(true)
+		renderComments() // the note whose underline just came back is a card now
+	}
 }
 
 // ---- threads: nested replies, inline edit, reactions ----
@@ -544,6 +552,10 @@ const expanded = new Set<string>()
 // The one reply being written (`parentId` null = it answers the note), and
 // the long threads unfolded past "Show N more".
 let replying: { commentId: string; parentId: string | null; value: string } | null = null
+// A reply that couldn't land — its thread closed or went while it was being
+// typed, or the server refused it for that reason: its words prefill the
+// next reply box opened on that thread (after a reopen).
+let lostReply: { commentId: string; parentId: string | null; value: string } | null = null
 const unfolded = new Set<string>()
 
 const threadTarget = (commentId: string, replyId: string | null): HTMLElement | null => {
@@ -582,8 +594,16 @@ function openReplyBox({ focus = true } = {}) {
 	const host = threadTarget(commentId, parentId)
 	const row = comments.find((c) => c.id === commentId)
 	const to = parentId ? row?.replies?.find((r) => r.id === parentId) : row
-	// the message (or the whole thread) went while I was typing, or it closed
-	if (!host || !to || row?.resolved) return void (replying = null)
+	// the message (or the whole thread) went while I was typing, or it closed:
+	// the words wait for the thread to be reopened, and the writer is told
+	if (!host || !to || row?.resolved) {
+		if (replying.value.trim()) {
+			lostReply = { ...replying }
+			setStatus(row?.resolved ? "That thread was closed while you were typing — reopen it to answer" : "That thread went while you were typing")
+		}
+		replying = null
+		return
+	}
 	const box = document.createElement("span")
 	box.innerHTML = replyBoxHtml(to.author)
 	const el = box.firstElementChild as HTMLElement
@@ -645,9 +665,7 @@ function sendReply() {
 	unfolded.add(commentId) // my own reply is never folded away from me
 	closeReplyBox()
 }
-// A reply the server refused because its thread closed first: its words
-// prefill the next reply box opened on that thread (after a reopen).
-let lostReply: { commentId: string; parentId: string | null; value: string } | null = null
+
 
 const myName = () => me?.username || ""
 const reactTo = (key: string, emoji: string) => {
@@ -730,7 +748,11 @@ function clearComposer() {
 	pendingRange = null
 	const box = $("commentComposer").firstElementChild
 	const g = anim()
-	const drop = () => $("commentComposer").replaceChildren()
+	// Only THIS box goes. The fade ends late in a background tab (the ticker
+	// is throttled), and by then a newer composer may be open here — a note
+	// the server handed back, or one kept across a repaint — which the old
+	// "empty the container" swept away with it.
+	const drop = () => (box ? box.remove() : $("commentComposer").replaceChildren())
 	if (box && g) {
 		g.killTweensOf(box)
 		g.to(box, { opacity: 0, y: -6, duration: 0.15, ease: "power2.in", onComplete: drop })
@@ -772,6 +794,12 @@ function renderComposer() {
 	// A note has to be visible to be written: opening the composer opens
 	// the drawer, whatever state it was left in.
 	if (!prefs.sideOpen) setSideOpen(true)
+	// The rail is rebuilt on every push — anyone's reply, anyone's reaction —
+	// and this runs at the end of each rebuild. What is already typed in the
+	// box comes with it, or a half-written note vanished on someone else's
+	// emoji. A note handed back by the server (composerDraft) comes first.
+	const prefill = composerDraft ?? snapshotComposer()
+	composerDraft = null
 	const quote = pendingRange.toString().trim()
 	const box = document.createElement("div")
 	box.className = "dc-new"
@@ -785,10 +813,7 @@ function renderComposer() {
 		`<div class="row"><button class="ghost" id="newCancel" type="button">Cancel</button>` +
 		`<button class="primary" id="newSend" type="button">Comment</button></div>`
 	$("commentComposer").replaceChildren(box)
-	// words typed before the page moved under this composer come back into it
-	const prefill = composerDraft
-	composerDraft = null
-	if (prefill) {
+	if (prefill && (prefill.text || prefill.suggestion)) {
 		textarea("newComment").value = prefill.text
 		if (prefill.suggestion != null) {
 			input("suggestOn").checked = true
@@ -2445,6 +2470,7 @@ function connect() {
 		if (id !== docId) return
 		comments = rows
 		commentsSeq++
+		arrivedCids.clear() // the list these anchors belong to is here
 		// the server has spoken: nothing is "just sent" any more, so any
 		// anchor it doesn't know about is fair game for the prune
 		for (const cid of pendingCids) if (rows.some((c) => c.cid === cid)) pendingCids.delete(cid)
@@ -2498,6 +2524,7 @@ function connect() {
 		const ch = chapters.find((c) => c.id === chapterId)
 		if (!ch) return
 		if (dirty && doc?.mine) return
+		for (const cid of anchorCids(html || "")) arrivedCids.add(cid)
 		ch.html = html
 		if (typeof chapterWordCount === "number") ch.wordCount = chapterWordCount
 		if (ch !== openChapter()) return renderChapters()

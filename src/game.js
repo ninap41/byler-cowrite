@@ -2281,8 +2281,11 @@ export function createGame(io) {
       // keeps their editor exactly in step with the store and their NEXT
       // comment builds on the same bytes the server holds — no drift to
       // accumulate across several comments.
-      broadcastDocHtml(doc, canEdit(doc, u.id) ? socket : null, ch.id);
+      // The thread first, THEN the chapter that wears its anchor: an editor
+      // that met the html first pruned the new underline as an anchor with
+      // no live comment, and the author's next save orphaned the note.
       broadcastDocComments(doc);
+      broadcastDocHtml(doc, canEdit(doc, u.id) ? socket : null, ch.id);
     });
 
     // Accept / reject a suggestion — the author's call alone, since either way
