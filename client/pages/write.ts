@@ -34,6 +34,7 @@ import {
 	presenceHtml,
 	commentThreadHtml,
 	versionListHtml,
+	replyBoxHtml,
 	commentModeBannerHtml,
 	readerChipsHtml,
 	wordsLabel,
@@ -56,6 +57,7 @@ import {
 import { exportDocument, exportWork, exportChapterHtml, slugOf } from "/js/export.js"
 import { esc } from "/js/util.js"
 import { confirmDialog } from "/js/components/confirm-delete.js"
+import { createReactionPicker } from "/js/components/reaction-picker.js"
 import type { Socket } from "socket.io-client"
 import type { ServerToClient, ClientToServer } from "/js/shared/wire.js"
 import type { ChipUser } from "/js/chrome.js"
@@ -499,7 +501,7 @@ function mergeArrivedAnchors() {
 	}
 }
 
-// ---- threads: replies, inline edit, the ⋮ menu ----
+// ---- threads: nested replies, inline edit, reactions ----
 // The author, or an invited beta reader. A public reader can read the thread
 // but not join it — the server refuses them either way.
 const canReplyHere = () => !!doc?.mine || !!doc?.readerRows?.some((r) => r.username === me?.username)
@@ -507,6 +509,10 @@ const canReplyHere = () => !!doc?.mine || !!doc?.readerRows?.some((r) => r.usern
 // The one note or reply being rewritten, and the closed threads opened to read.
 let editing: { commentId: string; replyId: string | null; value: string } | null = null
 const expanded = new Set<string>()
+// The one reply being written (`parentId` null = it answers the note), and
+// the long threads unfolded past "Show N more".
+let replying: { commentId: string; parentId: string | null; value: string } | null = null
+const unfolded = new Set<string>()
 
 const threadTarget = (commentId: string, replyId: string | null): HTMLElement | null => {
 	const li = [...$("commentPane").querySelectorAll<HTMLElement>(".doc-comment")].find((el) => el.dataset.id === commentId)
@@ -537,64 +543,91 @@ function closeEditBox() {
 	$("commentPane").querySelectorAll(".dc-text.hidden").forEach((el) => el.classList.remove("hidden"))
 }
 
+// The reply box opens under the message being answered — one at a time.
+function openReplyBox({ focus = true } = {}) {
+	if (!replying) return
+	const { commentId, parentId } = replying
+	const host = threadTarget(commentId, parentId)
+	const row = comments.find((c) => c.id === commentId)
+	const to = parentId ? row?.replies?.find((r) => r.id === parentId) : row
+	// the message (or the whole thread) went while I was typing, or it closed
+	if (!host || !to || row?.resolved) return void (replying = null)
+	const box = document.createElement("span")
+	box.innerHTML = replyBoxHtml(to.author)
+	const el = box.firstElementChild as HTMLElement
+	;(host.querySelector(":scope > .dc-acts") || host.querySelector(":scope > .dc-text") || host.querySelector(":scope > .dc-who"))!.after(el)
+	const input = el.querySelector<HTMLInputElement>(".dc-reply-input")!
+	input.value = replying.value
+	if (focus) input.focus()
+}
+
+function closeReplyBox() {
+	replying = null
+	$("commentPane").querySelector(".dc-reply")?.remove()
+}
+
 // Every `doc-comments` push rebuilds the rail, and a push arrives whenever
-// ANYONE replies — so what I'm in the middle of typing is lifted out first
-// and put back after, caret and all.
+// ANYONE replies or reacts — so what I'm in the middle of typing is lifted
+// out first and put back after, caret and all.
 interface ThreadDrafts {
-	drafts: Map<string, string>
-	focus: { edit: boolean; commentId: string; start: number | null; end: number | null } | null
+	focus: { edit: boolean; start: number | null; end: number | null } | null
 }
 function snapshotThreadDrafts(): ThreadDrafts {
 	const pane = $("commentPane")
-	const drafts = new Map<string, string>()
-	pane.querySelectorAll<HTMLInputElement>(".dc-reply-input").forEach((i) => {
-		const cid = i.closest<HTMLElement>(".doc-comment")?.dataset.id
-		if (cid && i.value) drafts.set(cid, i.value)
-	})
+	const draft = pane.querySelector<HTMLInputElement>(".dc-reply-input")
+	if (replying && draft) replying.value = draft.value
 	const box = pane.querySelector<HTMLTextAreaElement>(".dc-edit-input")
 	if (editing && box) editing.value = box.value
 	const a = document.activeElement
 	const typing = a instanceof HTMLInputElement || a instanceof HTMLTextAreaElement ? a : null
 	const focus =
 		typing && pane.contains(typing) && typing.matches(".dc-reply-input, .dc-edit-input")
-			? {
-					edit: typing.matches(".dc-edit-input"),
-					commentId: typing.closest<HTMLElement>(".doc-comment")?.dataset.id || "",
-					start: typing.selectionStart,
-					end: typing.selectionEnd,
-				}
+			? { edit: typing.matches(".dc-edit-input"), start: typing.selectionStart, end: typing.selectionEnd }
 			: null
-	return { drafts, focus }
+	return { focus }
 }
-function restoreThreadDrafts({ drafts, focus }: ThreadDrafts) {
+function restoreThreadDrafts({ focus }: ThreadDrafts) {
 	const pane = $("commentPane")
-	pane.querySelectorAll<HTMLElement>(".doc-comment.resolved").forEach((li) => li.classList.toggle("open", expanded.has(li.dataset.id || "")))
-	pane.querySelectorAll<HTMLInputElement>(".dc-reply-input").forEach((i) => {
-		const v = drafts.get(i.closest<HTMLElement>(".doc-comment")?.dataset.id || "")
-		if (v) i.value = v
+	pane.querySelectorAll<HTMLElement>(".doc-comment").forEach((li) => {
+		const id = li.dataset.id || ""
+		if (li.classList.contains("resolved")) li.classList.toggle("open", expanded.has(id))
+		// the thread I'm answering in stays unfolded, or my reply box would hide
+		li.classList.toggle("all", unfolded.has(id) || replying?.commentId === id || editing?.commentId === id)
 	})
 	openEditBox({ focus: false })
+	openReplyBox({ focus: false })
 	if (!focus) return
-	const li = threadTarget(focus.commentId, null)
-	const el = focus.edit ? pane.querySelector<HTMLTextAreaElement>(".dc-edit-input") : li?.querySelector<HTMLInputElement>(".dc-reply-input")
+	const el = pane.querySelector<HTMLInputElement | HTMLTextAreaElement>(focus.edit ? ".dc-edit-input" : ".dc-reply-input")
 	if (!el) return
 	el.focus()
 	if (focus.start != null) el.setSelectionRange(focus.start, focus.end ?? focus.start)
 }
 
-const closeThreadMenus = () =>
-	$("commentPane").querySelectorAll<HTMLElement>(".dc-menu:not(.hidden)").forEach((m) => {
-		m.classList.add("hidden")
-		m.previousElementSibling?.setAttribute("aria-expanded", "false")
-	})
-
-function sendReply(li: HTMLElement) {
-	const input = li.querySelector<HTMLInputElement>(".dc-reply-input")
+function sendReply() {
+	const input = $("commentPane").querySelector<HTMLInputElement>(".dc-reply-input")
 	const text = input?.value.trim() || ""
-	if (!input || !text) return
-	socket?.emit("doc-comment-reply", { auth: getToken(), id: docId, commentId: li.dataset.id || "", text })
-	input.value = ""
+	if (!replying || !text) return
+	const { commentId, parentId } = replying
+	socket?.emit("doc-comment-reply", { auth: getToken(), id: docId, commentId, ...(parentId ? { parentId } : {}), text })
+	unfolded.add(commentId) // my own reply is never folded away from me
+	closeReplyBox()
 }
+
+const myName = () => me?.username || ""
+const reactTo = (key: string, emoji: string) => {
+	const [commentId = "", replyId] = key.split("/")
+	socket?.emit("doc-comment-react", { auth: getToken(), id: docId, commentId, ...(replyId ? { replyId } : {}), emoji })
+}
+// the same floating picker as the game chat; a target is "commentId" or "commentId/replyId"
+const reactPicker = createReactionPicker({
+	reactionsOf: (key) => {
+		const [commentId, replyId] = key.split("/")
+		const row = comments.find((c) => c.id === commentId)
+		return replyId ? row?.replies?.find((r) => r.id === replyId)?.reactions : row?.reactions
+	},
+	myKey: myName,
+	onPick: reactTo,
+})
 
 function saveEdit() {
 	const box = $("commentPane").querySelector<HTMLTextAreaElement>(".dc-edit-input")
@@ -884,13 +917,26 @@ $("commentPane").addEventListener("click", (e) => {
 			accept,
 		)
 		socket?.emit("doc-comment-decide", { auth: getToken(), id: docId, commentId, accept })
-	} else if (t.closest(".dc-more")) {
-		const btn = t.closest<HTMLElement>(".dc-more")!
-		const menu = btn.nextElementSibling as HTMLElement
-		const opening = menu.classList.contains("hidden")
-		closeThreadMenus()
-		menu.classList.toggle("hidden", !opening)
-		btn.setAttribute("aria-expanded", String(opening))
+	} else if (t.closest("[data-react], .react-add")) {
+		// a chip toggles mine; the smiley opens the picker for THIS message
+		const rid = t.closest<HTMLElement>(".dc-reply-item")?.dataset.rid
+		const key = rid ? `${commentId}/${rid}` : commentId
+		const chip = t.closest<HTMLElement>("[data-react]")
+		if (chip) reactTo(key, chip.dataset.react || "")
+		else reactPicker.toggle(t.closest<HTMLElement>(".react-add")!, key)
+	} else if (t.closest(".dc-reply-btn")) {
+		const parentId = t.closest<HTMLElement>(".dc-reply-item")?.dataset.rid || null
+		// the same Reply again puts the box away
+		const again = replying?.commentId === commentId && replying.parentId === parentId
+		closeReplyBox()
+		closeEditBox()
+		if (!again) {
+			replying = { commentId, parentId, value: "" }
+			openReplyBox()
+		}
+	} else if (t.closest(".dc-show-more")) {
+		unfolded.add(commentId)
+		li.classList.add("all")
 	} else if (t.closest(".dc-resolve") || t.closest(".dc-decline") || t.closest(".dc-reopen"))
 		socket?.emit("doc-comment-resolve", {
 			auth: getToken(),
@@ -903,24 +949,23 @@ $("commentPane").addEventListener("click", (e) => {
 		const reply = t.closest<HTMLElement>(".dc-reply-item")
 		const row = comments.find((c) => c.id === commentId)
 		const replyId = reply?.dataset.rid || null
-		closeThreadMenus()
+		closeReplyBox()
 		closeEditBox()
 		editing = { commentId, replyId, value: (replyId ? row?.replies?.find((r) => r.id === replyId)?.text : row?.text) || "" }
 		openEditBox()
 	} else if (t.closest(".dc-del")) {
 		const replyId = t.closest<HTMLElement>(".dc-reply-item")?.dataset.rid
-		closeThreadMenus()
 		void confirmDialog({
 			title: replyId ? "Delete this reply?" : "Delete this comment?",
 			text: replyId ? "It leaves the thread for good." : "The whole thread goes with it, for good.",
 		}).then((ok) => {
 			if (ok) socket?.emit("doc-comment-delete", { auth: getToken(), id: docId, commentId, ...(replyId ? { replyId } : {}) })
 		})
-	} else if (t.closest(".dc-send")) sendReply(li)
+	} else if (t.closest(".dc-send")) sendReply()
 	else if (t.closest(".dc-edit-save")) saveEdit()
 	else if (t.closest(".dc-edit-cancel")) closeEditBox()
 	// typing in a thread is not a request to jump to its words
-	else if (t.closest(".dc-reply, .dc-editbox, .dc-menu")) return
+	else if (t.closest(".dc-reply, .dc-editbox, .dc-acts")) return
 	// a closed thread unfolds to be read; an open one jumps to the words it's about
 	else if (li.classList.contains("resolved")) {
 		const open = li.classList.toggle("open")
@@ -931,15 +976,12 @@ $("commentPane").addEventListener("click", (e) => {
 $("commentPane").addEventListener("keydown", (e) => {
 	const t = e.target as HTMLElement
 	if (e.key === "Escape") {
-		closeThreadMenus()
 		if (t.matches(".dc-edit-input")) closeEditBox()
+		else if (t.matches(".dc-reply-input")) closeReplyBox()
 	} else if (e.key === "Enter" && t.matches(".dc-reply-input")) {
 		e.preventDefault()
-		sendReply(t.closest<HTMLElement>(".doc-comment")!)
+		sendReply()
 	} else if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && t.matches(".dc-edit-input")) saveEdit()
-})
-document.addEventListener("click", (e) => {
-	if (!(e.target as HTMLElement).closest?.(".dc-more-wrap")) closeThreadMenus()
 })
 // ---- editing ----
 // Prefer real tags over <span style> for execCommand output.

@@ -284,7 +284,7 @@ test("a heading's size is the heading's: spans inside can't shrink it", async ()
   assert.ok(write.body.includes("The heading style sets this text's size"), "with a tooltip that says why");
 });
 
-test("a thread's closing row is bordered buttons sharing the rail, and its menu can hide", async () => {
+test("a thread's closing row is bordered buttons sharing the rail; replies nest and long threads fold", async () => {
   const css = await page("/css/base.css");
   const block = css.body.slice(css.body.indexOf("\n.dc-actions button {"), css.body.indexOf("\n.dc-actions button:hover"));
   assert.match(block, /border: 1px solid var\(--line\)/);
@@ -293,8 +293,12 @@ test("a thread's closing row is bordered buttons sharing the rail, and its menu 
   assert.match(block, /min-width: 0/, "and two of them fit without clipping");
   assert.match(css.body, /\.dc-actions \.dc-decline,\n\.dc-actions \.dc-reject \{\s*color: var\(--accent\)/,
     "the refusing ones read as refusing");
-  // .dc-menu sets display:grid, so its .hidden twin must come later
-  assert.ok(css.body.lastIndexOf(".dc-menu.hidden") > css.body.indexOf("\n.dc-menu {"));
+  // the ⋮ menu is gone: actions sit in a row under each message
+  assert.ok(!css.body.includes(".dc-menu") && !css.body.includes(".dc-more"));
+  assert.match(css.body, /\n\.dc-reply-item \{\s*margin-left: calc\(\(var\(--d, 1\) - 1\) \* 9px\)/, "a step in per level");
+  assert.match(css.body, /\.doc-comment:not\(\.all\) \.dc-reply-item\.extra \{\s*display: none/, "past the fold until Show more");
+  // the rail wears the chat's reaction chips
+  assert.match(css.body, /\.chat-log \.react,\n\.doc-comment \.react,/);
 });
 
 test("the composer is pinned above the comments, which scroll under it", async () => {

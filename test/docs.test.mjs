@@ -1711,3 +1711,91 @@ test("a comment on a chapter past the size limit is refused, never sliced", asyn
   assert.equal((await refused).reason, "long");
   assert.equal((await docOf(doc.id)).html, BODY, "nothing stored changed");
 });
+
+// ---- threads: nested replies ----
+test("a reply can answer a reply in its own thread; a parent from anywhere else answers the note", async () => {
+  const { doc, A, B, commentId } = await threadedDoc();
+  A.emit("doc-comment-reply", { auth: alice.token, id: doc.id, commentId, text: "yes, on purpose" });
+  await ctx.wait(150);
+  const first = (await threadOf(doc.id)).replies[0].id;
+  B.emit("doc-comment-reply", { auth: bob.token, id: doc.id, commentId, parentId: first, text: "then seed it earlier" });
+  B.emit("doc-comment-reply", { auth: bob.token, id: doc.id, commentId, parentId: "no-such-reply", text: "stale parent" });
+  B.emit("doc-comment-reply", { auth: bob.token, id: doc.id, commentId, parentId: { $ne: null }, text: "not even a string" });
+  await ctx.wait(200);
+  const c = await threadOf(doc.id);
+  assert.deepEqual(c.replies.map((r) => [r.text, r.parentId]), [
+    ["yes, on purpose", null],
+    ["then seed it earlier", first],
+    ["stale parent", null],
+    ["not even a string", null],
+  ]);
+});
+
+test("deleting a reply hands its answers to what it answered", async () => {
+  const { doc, A, B, commentId } = await threadedDoc();
+  const say = async (S, who, text, parentId) => {
+    S.emit("doc-comment-reply", { auth: who.token, id: doc.id, commentId, text, ...(parentId ? { parentId } : {}) });
+    await ctx.wait(120);
+    return (await threadOf(doc.id)).replies.find((r) => r.text === text).id;
+  };
+  const top = await say(A, alice, "top");
+  const mid = await say(B, bob, "mid", top);
+  await say(A, alice, "leaf", mid);
+  B.emit("doc-comment-delete", { auth: bob.token, id: doc.id, commentId, replyId: mid });
+  await ctx.wait(150);
+  let c = await threadOf(doc.id);
+  assert.deepEqual(c.replies.map((r) => [r.text, r.parentId]), [["top", null], ["leaf", top]]);
+  A.emit("doc-comment-delete", { auth: alice.token, id: doc.id, commentId, replyId: top });
+  await ctx.wait(150);
+  c = await threadOf(doc.id);
+  assert.deepEqual(c.replies.map((r) => [r.text, r.parentId]), [["leaf", null]], "and up to the note when that goes too");
+});
+
+// ---- reactions on notes and replies ----
+test("the author and a beta reader react to a note and to a reply; a second tap takes it back", async () => {
+  const { doc, A, B, commentId } = await threadedDoc();
+  const before = await docOf(doc.id);
+  A.emit("doc-comment-reply", { auth: alice.token, id: doc.id, commentId, text: "good eye" });
+  await ctx.wait(150);
+  const replyId = (await threadOf(doc.id)).replies[0].id;
+  A.emit("doc-comment-react", { auth: alice.token, id: doc.id, commentId, emoji: "🔥" });
+  B.emit("doc-comment-react", { auth: bob.token, id: doc.id, commentId, emoji: "🔥" });
+  B.emit("doc-comment-react", { auth: bob.token, id: doc.id, commentId, replyId, emoji: "👀" });
+  await ctx.wait(200);
+  let c = await threadOf(doc.id);
+  assert.deepEqual(c.reactions["🔥"].map((r) => r.name).sort(), ["aliceauthor", "bobbeta"]);
+  assert.deepEqual(c.replies[0].reactions["👀"].map((r) => [r.key, r.name]), [["bobbeta", "bobbeta"]]);
+  // keyed by username on the wire — never the account id it is stored under
+  const wire = JSON.stringify(c);
+  assert.ok(alice.user.id && bob.user.id, "the fixture knows the ids it is looking for");
+  assert.ok(!wire.includes(alice.user.id) && !wire.includes(bob.user.id));
+  B.emit("doc-comment-react", { auth: bob.token, id: doc.id, commentId, emoji: "🔥" });
+  B.emit("doc-comment-react", { auth: bob.token, id: doc.id, commentId, replyId, emoji: "👀" });
+  await ctx.wait(200);
+  c = await threadOf(doc.id);
+  assert.deepEqual(c.reactions["🔥"].map((r) => r.name), ["aliceauthor"]);
+  assert.deepEqual(c.replies[0].reactions, {}, "the last one off leaves nothing behind");
+  // a reaction is words in the margin: the story and its rev never move
+  const after = await docOf(doc.id);
+  assert.equal(after.rev, before.rev);
+  assert.equal(after.html, before.html);
+});
+
+test("no reaction from off the list, from a stranger or public reader, on a closed thread or a missing reply", async () => {
+  const { doc, A, B, commentId } = await threadedDoc();
+  const C = await ctx.conn();
+  B.emit("doc-comment-react", { auth: bob.token, id: doc.id, commentId, emoji: "<img src=x>" });
+  B.emit("doc-comment-react", { auth: bob.token, id: doc.id, commentId, emoji: "🦖" });
+  B.emit("doc-comment-react", { auth: bob.token, id: doc.id, commentId, replyId: "nope", emoji: "🔥" });
+  C.emit("doc-comment-react", { auth: carol.token, id: doc.id, commentId, emoji: "🔥" });
+  await ctx.wait(150);
+  await setVis(doc.id, "public");
+  C.emit("doc-comment-react", { auth: carol.token, id: doc.id, commentId, emoji: "🔥" });
+  await ctx.wait(150);
+  assert.deepEqual((await threadOf(doc.id)).reactions, {}, "reading a public write is not an invitation to react on it");
+  A.emit("doc-comment-resolve", { auth: alice.token, id: doc.id, commentId, resolved: true });
+  await ctx.wait(150);
+  B.emit("doc-comment-react", { auth: bob.token, id: doc.id, commentId, emoji: "🔥" });
+  await ctx.wait(150);
+  assert.deepEqual((await threadOf(doc.id)).reactions, {});
+});
