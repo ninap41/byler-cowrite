@@ -630,7 +630,7 @@ test("Reply and Add reaction are only for people who may write on the document",
   const can = commentHtml(THREAD, { canReply: true });
   assert.equal((can.match(/dc-reply-btn/g) || []).length, 2, "on the note and on the reply");
   assert.equal((can.match(/class="dc-act react-add"/g) || []).length, 2, "Add reaction, inside each ⋯ menu");
-  assert.match(can, /<span class="dc-acts"><button class="dc-act dc-reply-btn"[^>]*>Reply<\/button><span class="reacts">[\s\S]*?<\/span><span class="dc-more"><button class="dc-more-btn"/, "Reply, then the chips, then the ⋯");
+  assert.match(can, /<span class="dc-acts"><span class="reacts">[\s\S]*?<\/span><span class="dc-more"><button class="dc-more-btn"[^>]*>⋯<\/button><span class="dc-menu" role="menu"><button class="dc-act dc-reply-btn"/, "the chips, then the ⋯, with Reply first inside it");
   assert.ok(!can.includes("dc-reply-input"), "the box opens under the message you answer, not on every card");
   const cannot = commentHtml(THREAD);
   assert.ok(!cannot.includes("dc-reply-btn") && !cannot.includes("react-add"), "a public reader just reads");
@@ -732,9 +732,11 @@ test("the version list says when, how long, how it differs from the page, and wh
   assert.ok(!versionListHtml([{ at, reason: '"><img>', words: 1, chapters: 1 }]).includes("<img"));
 });
 
-test("the ⋯ menu lists Edit, Add reaction, Delete — in that order", () => {
+test("the ⋯ menu lists Reply, Edit, Add reaction, Delete — in that order", () => {
   const [row] = [...commentHtml({ ...THREAD, replies: [] }, { meName: "mike", canReply: true }).matchAll(/<span class="dc-menu" role="menu">(.*?)<\/span>/g)].map((m) => m[1]);
   const at = (cls) => row.indexOf(cls);
-  assert.ok(at("dc-edit") >= 0 && at("dc-edit") < at("react-add") && at("react-add") < at("dc-del"));
-  assert.equal((row.match(/<i class="fa-[a-z]+ fa-[a-z-]+" aria-hidden="true"><\/i>/g) || []).length, 3, "each item leads with an icon, so the words line up");
+  assert.ok(at("dc-reply-btn") >= 0 && at("dc-reply-btn") < at("dc-edit") && at("dc-edit") < at("react-add") && at("react-add") < at("dc-del"));
+  assert.equal((row.match(/<i class="fa-[a-z]+ fa-[a-z-]+" aria-hidden="true"><\/i>/g) || []).length, 4, "each item leads with an icon, so the words line up");
+  const closed = commentHtml({ ...THREAD, resolved: true, replies: [] }, { isOwner: true, meName: "nina" });
+  assert.match(closed, /<span class="dc-acts"><button class="dc-act dc-reopen"/, "Reopen alone still leads the row on a closed note");
 });

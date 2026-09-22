@@ -389,13 +389,12 @@ const orphanFlag = (): string =>
  */
 interface Acts { reply?: boolean; react?: boolean; edit?: boolean; del?: boolean; reopen?: boolean }
 function actsHtml(reactions: Reactions | undefined, meName: string, { reply = false, react = false, edit = false, del = false, reopen = false }: Acts): string {
-	// Reply (or Reopen) leads, the reaction chips follow, and the rest —
-	// Edit · Delete · Add reaction — waits behind a ⋯ so the row stays one
-	// short line even on a busy note.
-	const lead =
-		(reopen ? `<button class="dc-act dc-reopen" type="button">Reopen</button>` : "") +
-		(reply ? `<button class="dc-act dc-reply-btn" type="button">Reply</button>` : "")
+	// The reaction chips sit in the row; everything you can DO — Reply · Edit ·
+	// Add reaction · Delete — waits behind a ⋯ so the row stays one short
+	// line even on a busy note. Reopen alone leads the row on a closed note.
+	const lead = reopen ? `<button class="dc-act dc-reopen" type="button">Reopen</button>` : ""
 	const items =
+		(reply ? `<button class="dc-act dc-reply-btn" type="button" role="menuitem"><i class="fa-solid fa-reply" aria-hidden="true"></i>Reply</button>` : "") +
 		(edit ? `<button class="dc-act dc-edit" type="button" role="menuitem"><i class="fa-solid fa-pen" aria-hidden="true"></i>Edit</button>` : "") +
 		(react ? `<button class="dc-act react-add" type="button" role="menuitem"><i class="fa-regular fa-face-smile" aria-hidden="true"></i>Add reaction</button>` : "") +
 		(del ? `<button class="dc-act dc-del" type="button" role="menuitem"><i class="fa-regular fa-trash-can" aria-hidden="true"></i>Delete</button>` : "")

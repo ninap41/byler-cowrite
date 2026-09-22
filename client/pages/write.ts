@@ -1057,6 +1057,7 @@ $("commentPane").addEventListener("click", (e) => {
 			reactPicker.toggle(anchor, key)
 		}
 	} else if (t.closest(".dc-reply-btn")) {
+		closeThreadMenus()
 		const parentId = t.closest<HTMLElement>(".dc-reply-item")?.dataset.rid || null
 		// the same Reply again puts the box away
 		const again = replying?.commentId === commentId && replying.parentId === parentId
