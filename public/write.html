@@ -73,6 +73,8 @@
 										<button type="button" class="vis-opt menu-row hidden" id="promptBtn" role="menuitem">🎲 Roll a prompt…</button>
 										<!-- author only: a habit tool, not a reader's -->
 										<button type="button" class="vis-opt menu-row hidden" id="sprintBtn" role="menuitem" aria-pressed="false" aria-label="Sprint">⏱ Start a sprint</button>
+										<!-- author only: the copies this story can be taken back to -->
+										<button type="button" class="vis-opt menu-row hidden" id="historyBtn" role="menuitem">🕘 Version history…</button>
 										<div class="menu-rule"></div>
 										<div class="menu-cap">⬇ Download as .html</div>
 										<button type="button" class="vis-opt" id="exportChapter" role="menuitem"><span class="vis-opt-label">This chapter</span><span class="vis-opt-blurb">The open chapter, headed with the story's title</span></button>
@@ -341,6 +343,15 @@
 		</div>
 
 		<!-- unsaved-changes guard for in-app navigation -->
+		<div class="confirm-modal hidden" id="historyModal" role="dialog" aria-modal="true" aria-labelledby="historyTitle">
+			<div class="confirm-card history-card">
+				<h3 id="historyTitle">Version history</h3>
+				<p class="subtle" style="text-align: left">Earlier copies of this story, kept as you write: one every ten minutes or so, one a day after that, and always the one from just before a lot of words went missing. Restoring keeps the copy you replace, so you can change your mind.</p>
+				<div class="history-list" id="historyList"></div>
+				<div class="row"><button class="ghost" id="historyClose" type="button">Close</button></div>
+			</div>
+		</div>
+
 		<div class="confirm-modal hidden" id="leaveModal">
 			<div class="confirm-card">
 				<h3>You have unsaved changes</h3>

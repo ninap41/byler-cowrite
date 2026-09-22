@@ -263,6 +263,7 @@ test("reactions: the tooltip is one row per reactor in their own colour, shown b
   assert.equal(reactionTipHtml([{ key: "a", name: "" }]), "", "no names, no tooltip");
   // the CSS shows it on hover/focus with no transition delay
   const css = (await import("node:fs")).readFileSync(new URL("../public/css/base.css", import.meta.url), "utf-8");
-  assert.match(css, /\.chat-log \.react:hover \.react-tip,\s*\.chat-log \.react:focus-visible \.react-tip \{\s*display: flex;/);
-  assert.match(css, /\.chat-log \.react-tip \{[^}]*flex-direction: column;/, "one name per row");
+  // the chat and the solo editor's comment rail share these rules, selector for selector
+  assert.match(css, /\.chat-log \.react:hover \.react-tip,\s*\.doc-comment \.react:hover \.react-tip,\s*\.chat-log \.react:focus-visible \.react-tip,\s*\.doc-comment \.react:focus-visible \.react-tip \{\s*display: flex;/);
+  assert.match(css, /\.chat-log \.react-tip,\s*\.doc-comment \.react-tip \{[^}]*flex-direction: column;/, "one name per row");
 });

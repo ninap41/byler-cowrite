@@ -5,7 +5,8 @@ import { randomUUID, randomInt } from "crypto";
 import { bumpStreak } from "../lib/streak.js";
 import { badgeName, badgeDesc, usageMatches, awardWordBadges, rewardsForTiers, describeRewards, unlockedThemes, unlockedGimmicks, canUseGimmick } from "../lib/achievements.js";
 import { cleanGimmickId, rollOutcome, describeRoll, galagaOutcome, describeGalaga, GALAGA_MAX_SCORE, ROLL_COOLDOWN_MS, SPIN_MS, DIE_SIDES, PAINT_MAX_STROKES, PAINT_MAX_PTS, CURSE_MS, GIMMICK_IDS } from "../lib/gimmicks.js";
-import { PALETTE, cleanColor, cleanHex, sanitizeRich, stripTags, plainText, clip, httpUrl, sanitizeDoc, CID_RE } from "./sanitize.js";
+import { PALETTE, cleanColor, cleanHex, sanitizeRich, stripTags, plainText, clip, httpUrl, sanitizeDoc, CID_RE, DOC_MAX } from "./sanitize.js";
+import { keepBeforeOverwrite, snapshotOf } from "./dochist.js";
 import { store, saveStore, userByToken, makeMsg, isAdmin, isSecretUsageId } from "./store.js";
 import { storage, getJson } from "./storage.js";
 import { generateSimplePrompt, generateIntermediatePrompt, validateIntermediateData, EXPLICIT_LEVELS, MODES, MAX_KINKS } from "../lib/prompt-gen.js";
@@ -2204,7 +2205,7 @@ export function createGame(io) {
     // the stored html, byte for byte. Any smuggled edit fails that and is
     // dropped whole. `suggestion` (readers' edits, per comment mode) is the text
     // they propose for the anchored range; the author accepts or rejects it.
-    socket.on("doc-comment", ({ auth, id, cid, chapterId, html, text, suggestion }) => {
+    socket.on("doc-comment", ({ auth, id, cid, chapterId, html, text, suggestion, baseRev }) => {
       const u = userByToken(auth);
       const doc = readDoc(id);
       // canComment, not canView: a public document is READ by anyone signed in,
@@ -2218,10 +2219,28 @@ export function createGame(io) {
       // The comment lands in ONE chapter: the one named, or — for a client
       // that sends none — the only chapter a single-chapter document has.
       const ch = chapterId != null ? chapterById(doc, chapterId) : doc.chapters.length === 1 ? doc.chapters[0] : null;
-      if (!ch) return;
+      // A reader is TOLD when their note can't land — the chapter went, or
+      // its words moved under them since their page last saw it (an author's
+      // save, another reader's note). They get the fresh copy on the same
+      // socket, and their words back on the page. A silent drop here was a
+      // typed note gone with nothing to say why.
+      const moved = () => void socket.emit("doc-comment-refused", { id: doc.id, cid, reason: "moved" });
+      if (!ch) return moved();
       if (anchorCids(doc.html).includes(cid)) return; // never reuse an anchor id — across every chapter
+      // Refuse, never cut: sanitizeDoc slices at DOC_MAX, and this path replaces
+      // a whole chapter — a silent slice here is the end of it gone for good
+      // (the save route has refused for the same reason all along).
+      if (String(html ?? "").length > DOC_MAX) return void socket.emit("doc-comment-refused", { id: doc.id, cid, reason: "long" });
+      // The AUTHOR's html is taken as it comes (they may have unsaved typing in
+      // it) — which makes a comment the one way to overwrite a chapter without
+      // the save route's version check. A tab that names an older save than the
+      // stored one is behind: its html would roll the chapter back. Not taken;
+      // the tab is told, and catches up. (No `baseRev`: an older client.)
+      if (canEdit(doc, u.id) && typeof baseRev === "number" && baseRev !== (doc.rev || 0))
+        return void socket.emit("doc-comment-refused", { id: doc.id, cid, reason: "stale" });
+      const before = snapshotOf(doc);
       const next = sanitizeDoc(String(html ?? ""));
-      if (!anchorCids(next).includes(cid)) return; // the anchor has to be there
+      if (!anchorCids(next).includes(cid)) return moved(); // the anchor has to be there (a detached selection sends none)
       // …and, for a BETA READER, the ONLY change may be that one anchor: no
       // words touched, no other underline added, moved or removed. We check the
       // invariant instead of a byte-for-byte echo of the stored html, because a
@@ -2235,10 +2254,10 @@ export function createGame(io) {
       if (!canEdit(doc, u.id)) {
         const want = [...anchorCids(ch.html), cid].sort().join(",");
         const got = [...anchorCids(next)].sort().join(",");
-        if (want !== got) return; // an anchor was added, moved or removed beyond this one
+        if (want !== got) return moved(); // an anchor was added, moved or removed beyond this one
         // words/markup changed — but a split inline run (from wrapping an anchor
         // inside <i>/<b>/… ) is not a change, so compare the rejoined baseline
-        if (commentBaseline(next) !== commentBaseline(ch.html)) return;
+        if (commentBaseline(next) !== commentBaseline(ch.html)) return moved();
       }
       ch.html = next;
       const at = anchorPos(next, cid);
@@ -2255,13 +2274,18 @@ export function createGame(io) {
       // Neither write moves `rev` — a comment is not an edit of the story.
       writeComments(doc);
       writeDoc(doc);
+      // the chapter was replaced: if that lost a lot of words, history keeps the copy before
+      void keepBeforeOverwrite(doc.id, before, doc);
       // Skip only the AUTHOR (a live editor whose caret a re-render would move);
       // a beta reader has no unsaved edits, so pushing the canonical html back
       // keeps their editor exactly in step with the store and their NEXT
       // comment builds on the same bytes the server holds — no drift to
       // accumulate across several comments.
-      broadcastDocHtml(doc, canEdit(doc, u.id) ? socket : null, ch.id);
+      // The thread first, THEN the chapter that wears its anchor: an editor
+      // that met the html first pruned the new underline as an anchor with
+      // no live comment, and the author's next save orphaned the note.
       broadcastDocComments(doc);
+      broadcastDocHtml(doc, canEdit(doc, u.id) ? socket : null, ch.id);
     });
 
     // Accept / reject a suggestion — the author's call alone, since either way
@@ -2316,18 +2340,42 @@ export function createGame(io) {
     // beta reader — never a public reader) can answer an open comment. Replies
     // are plain text and never touch the html.
     const MAX_REPLIES = 50;
-    socket.on("doc-comment-reply", ({ auth, id, commentId, text }) => {
+    socket.on("doc-comment-reply", ({ auth, id, commentId, parentId, text }) => {
       const u = userByToken(auth);
       const doc = readDoc(id);
       if (!u || !doc || !canComment(doc, u.id)) return;
       const c = (doc.comments || []).find((x) => x.id === commentId);
-      if (!c || c.resolved) return; // a closed thread is reopened first
+      // a closed thread is reopened first — and the replier is told, since it may
+      // have been resolved or deleted while they typed
+      if (!c || c.resolved) return void socket.emit("doc-comment-refused", { id: doc.id, cid: String(commentId ?? ""), reason: "closed" });
       const body = stripTags(String(text ?? "")).trim().slice(0, 1000);
       if (!body) return;
       const replies = Array.isArray(c.replies) ? c.replies : [];
       if (replies.length >= MAX_REPLIES) return;
-      c.replies = [...replies, { id: randomUUID(), userId: u.id, text: body, ts: Date.now() }];
+      // A reply may answer another reply — but only one in THIS thread; anything
+      // else (a stale id, another thread's) answers the note itself.
+      const parent = typeof parentId === "string" && replies.some((r) => r.id === parentId) ? parentId : null;
+      c.replies = [...replies, { id: randomUUID(), userId: u.id, text: body, ts: Date.now(), ...(parent ? { parentId: parent } : {}) }];
       writeComments(doc); // words in the margin: the story's record is not touched
+      broadcastDocComments(doc);
+    });
+
+    // An emoji on a note or a reply — the chat's rules (`toggleReaction`: one
+    // tap toggles yours, nothing off the list), for the same people who may
+    // reply. Stored under the account id; `commentRows` ships usernames.
+    socket.on("doc-comment-react", ({ auth, id, commentId, replyId, emoji }) => {
+      const u = userByToken(auth);
+      const doc = readDoc(id);
+      if (!u || !doc || !canComment(doc, u.id)) return;
+      const c = (doc.comments || []).find((x) => x.id === commentId);
+      if (!c || c.resolved) return void socket.emit("doc-comment-refused", { id: doc.id, cid: String(commentId ?? ""), reason: "closed" });
+      const target = replyId == null ? c : (c.replies || []).find((r) => r.id === replyId);
+      if (!target) return;
+      const box = { mid: target.id, reactions: target.reactions };
+      if (!toggleReaction(box, u.id, u.username, emoji)) return;
+      if (box.reactions) target.reactions = box.reactions;
+      else delete target.reactions;
+      writeComments(doc);
       broadcastDocComments(doc);
     });
 
@@ -2361,7 +2409,12 @@ export function createGame(io) {
         const t = (doc.comments || []).find((x) => x.id === commentId);
         const r = (t?.replies || []).find((x) => x.id === replyId);
         if (!t || !r || (r.userId !== u.id && doc.ownerId !== u.id)) return;
-        t.replies = (t.replies || []).filter((x) => x.id !== replyId);
+        // what answered it now answers what IT answered — the thread keeps its shape
+        t.replies = (t.replies || []).filter((x) => x.id !== replyId).map((x) => {
+          if (x.parentId !== replyId) return x;
+          const { parentId: _gone, ...rest } = x;
+          return r.parentId ? { ...rest, parentId: r.parentId } : rest;
+        });
         writeComments(doc);
         broadcastDocComments(doc);
         return;
@@ -2434,9 +2487,23 @@ export function createGame(io) {
       isAuthor: userId === doc.ownerId, // the author's own notes-to-self read differently
     };
   };
+  // Reactions are stored under account ids; what ships is keyed by username,
+  // in the reactor's current colour.
+  const reactionRows = (doc, reactions) => {
+    const out = {};
+    for (const [e, list] of Object.entries(reactions && typeof reactions === "object" ? reactions : {})) {
+      if (!Array.isArray(list) || !list.length) continue;
+      out[e] = list.map((r) => {
+        const v = voiceOf(doc, r.key);
+        return { key: v.author, name: v.author, color: v.color };
+      });
+    }
+    return out;
+  };
   const commentRows = (doc) =>
     (doc.comments || []).map((c) => {
       return {
+        reactions: reactionRows(doc, c.reactions),
         id: c.id, cid: c.cid || "", quote: c.quote || "", text: c.text,
         suggestion: typeof c.suggestion === "string" ? c.suggestion : null,
         ts: c.ts, resolved: !!c.resolved, accepted: !!c.accepted,
@@ -2448,7 +2515,8 @@ export function createGame(io) {
         pos: c.pos && typeof c.pos.start === "number" ? c.pos : null,
         // older comments have no `replies` field at all
         replies: (Array.isArray(c.replies) ? c.replies : []).map((r) => ({
-          id: r.id, text: r.text, ts: r.ts, edited: !!r.editedAt, ...voiceOf(doc, r.userId),
+          id: r.id, parentId: r.parentId || null, text: r.text, ts: r.ts, edited: !!r.editedAt,
+          reactions: reactionRows(doc, r.reactions), ...voiceOf(doc, r.userId),
         })),
         ...voiceOf(doc, c.userId),
       };

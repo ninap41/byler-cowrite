@@ -4,6 +4,8 @@
 // injected as-is by design; every name/title/comment is esc()'d here.
 import { esc, safeColor, miniAvatar } from "./util.js"
 import type { UserRef } from "./dashboard-view.js"
+import { reactionsHtml } from "./shared/reactions.js"
+import type { Reactions } from "./shared/reactions.js"
 
 // ---- the shapes the solo-write pages render ----
 /** A document as a shelf lists it (docSummary + mine/viewable, src/docs.js). */
@@ -42,11 +44,15 @@ export interface CommentRow {
 	declined?: boolean
 	edited?: boolean
 	replies?: ReplyRow[]
+	reactions?: Reactions
 	pos?: { chapterId: string; start: number; text: string; before: string; after: string } | null
 }
 /** One reply in a comment's thread (DocReplyRow in shared/wire.ts). */
 export interface ReplyRow {
 	id: string
+	/** the reply this one answers; null/absent = the note itself */
+	parentId?: string | null
+	reactions?: Reactions
 	text: string
 	ts?: number
 	edited?: boolean
@@ -288,30 +294,37 @@ export function commentHtml(c: CommentRow, { isOwner = false, meName = "", canRe
 			: c.declined ? "✕ declined" : "✓ resolved"
 	const head =
 		`<span class="dc-who">${miniAvatar({ avatar: c.avatar, avatarFit: c.avatarFit, name: c.author, color: c.color })}` +
-		`<b style="color:${safeColor(c.color)}">${esc(c.author)}</b>` +
+		`<b style="color:${safeColor(c.color)}" data-tip="${roleTip(c.isAuthor)}">${esc(c.author)}</b>` +
+		(c.orphaned ? orphanFlag() : "") +
+		(state ? `<span class="dc-state">${state}</span>` : "") +
 		`<span class="dc-when">${esc(fmtWhen(c.ts))}${c.edited ? " · edited" : ""}</span>` +
-		(state ? `<span class="dc-state">${state}</span>` : voiceTag(c.isAuthor)) +
-		moreMenuHtml({ edit: mine && !c.resolved, del: canManage, reopen: canManage && !!c.resolved }) +
 		`</span>`
+	const open = !c.resolved
+	const acts = actsHtml(c.reactions, meName, {
+		reply: canReply && open, react: canReply && open, edit: mine && open, del: canManage, reopen: canManage && !open,
+	})
 	const body =
 		(c.suggestion != null
 			? `<p class="dc-suggest"><s>${esc(c.quote || "")}</s> <span class="dc-arrow">→</span> <ins>${esc(c.suggestion)}</ins></p>`
 			: c.quote
 				? `<p class="dc-quote">${esc(c.quote)}</p>`
 				: "") + (c.text ? `<p class="dc-text">${esc(c.text)}</p>` : "")
-	const thread = replies.length
-		? `<ul class="dc-replies">${replies.map((r) => replyHtml(r, { isOwner, meName, open: !c.resolved })).join("")}</ul>`
+	// Replies in reading order (each under what it answers); a long thread
+	// folds everything past the first few behind "Show N more".
+	const ordered = threadOrder(replies)
+	const hidden = ordered.length > FOLD_AFTER ? ordered.length - FOLD_AFTER : 0
+	const thread = ordered.length
+		? `<ul class="dc-replies">${ordered
+				.map(({ reply, depth }, i) => replyHtml(reply, { isOwner, meName, canReply, open, depth, extra: hidden > 0 && i >= FOLD_AFTER }))
+				.join("")}</ul>` +
+			(hidden ? `<button class="dc-show-more" type="button">▾ Show ${hidden} more ${hidden === 1 ? "reply" : "replies"}</button>` : "")
 		: ""
 	// A closed thread folds to one line; a click opens it to read, not to write.
 	const tail = c.resolved
 		? replies.length
 			? `<p class="dc-count">${replies.length} ${replies.length === 1 ? "reply" : "replies"}</p>`
 			: ""
-		: (canReply
-				? `<span class="dc-reply"><input class="dc-reply-input" type="text" maxlength="1000" placeholder="Reply…" aria-label="Reply" />` +
-					`<button class="dc-send" type="button" aria-label="Send reply"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button></span>`
-				: "") +
-			(c.suggestion != null && isOwner
+		: (c.suggestion != null && isOwner
 				? `<span class="dc-actions"><button class="dc-accept" type="button">✓ Accept</button><button class="dc-reject" type="button">✕ Reject</button></span>`
 				: isOwner
 					? `<span class="dc-actions"><button class="dc-resolve" type="button">✓ Resolve</button><button class="dc-decline" type="button">✕ Reject</button></span>`
@@ -320,40 +333,92 @@ export function commentHtml(c: CommentRow, { isOwner = false, meName = "", canRe
 						: "")
 	return (
 		`<li class="${cls.filter(Boolean).join(" ")}" data-id="${esc(c.id)}" data-cid="${esc(c.cid || "")}">` +
-		head + body + thread + tail +
+		head + body + acts + thread + tail +
 		`</li>`
 	)
 }
 
-/** Every voice in a thread wears one: the document's author, or a beta reader. */
-const voiceTag = (isAuthor?: boolean): string =>
-	isAuthor ? `<span class="dc-tag author">author</span>` : `<span class="dc-tag beta">beta</span>`
+/** How many replies a thread shows before the rest fold away. */
+export const FOLD_AFTER = 3
+/** Indent stops here — the rail is narrow; deeper replies stay at this level. */
+export const MAX_DEPTH = 4
 
-/** The ⋮ on a comment or a reply — drawn only when it would hold something. */
-function moreMenuHtml({ edit = false, del = false, reopen = false }: { edit?: boolean; del?: boolean; reopen?: boolean }): string {
-	if (!edit && !del && !reopen) return ""
-	return (
-		`<span class="dc-more-wrap"><button class="dc-more" type="button" aria-label="More" aria-haspopup="menu" aria-expanded="false">` +
-		`<i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i></button>` +
-		`<span class="dc-menu hidden" role="menu">` +
-		(reopen ? `<button class="more-item dc-reopen" type="button" role="menuitem">Reopen</button>` : "") +
-		(edit ? `<button class="more-item dc-edit" type="button" role="menuitem">Edit</button>` : "") +
-		(del ? `<button class="more-item dc-del" type="button" role="menuitem">Delete</button>` : "") +
-		`</span></span>`
-	)
+/**
+ * A thread in reading order: every reply followed by what answers it, oldest
+ * first at each level. A reply whose parent is gone (or that names itself in
+ * a loop) answers the note. Depth 1 = answers the note.
+ */
+export function threadOrder(replies: ReplyRow[]): { reply: ReplyRow; depth: number }[] {
+	const ids = new Set(replies.map((r) => r.id))
+	const kids = new Map<string, ReplyRow[]>()
+	for (const r of replies) {
+		const p = r.parentId && r.parentId !== r.id && ids.has(r.parentId) ? r.parentId : ""
+		kids.set(p, [...(kids.get(p) || []), r])
+	}
+	const out: { reply: ReplyRow; depth: number }[] = []
+	const seen = new Set<string>()
+	const walk = (parent: string, depth: number) => {
+		for (const r of kids.get(parent) || []) {
+			if (seen.has(r.id)) continue
+			seen.add(r.id)
+			out.push({ reply: r, depth: Math.min(depth, MAX_DEPTH) })
+			walk(r.id, depth + 1)
+		}
+	}
+	walk("", 1)
+	// a parent loop never reaches the root: those still show, under the note
+	for (const r of replies) if (!seen.has(r.id)) out.push({ reply: r, depth: 1 })
+	return out
 }
 
-export function replyHtml(r: ReplyRow, { isOwner = false, meName = "", open = true }: CommentViewOpts & { open?: boolean } = {}): string {
+/** The one reply box, opened under the message being answered. */
+export const replyBoxHtml = (name: string): string =>
+	`<span class="dc-reply"><input class="dc-reply-input" type="text" maxlength="1000" placeholder="Reply to ${esc(name)}…" aria-label="Reply to ${esc(name)}" />` +
+	`<button class="dc-send" type="button" aria-label="Send reply"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button></span>`
+
+/** Who is speaking rides the NAME as a tooltip — the author, or a beta reader — not a pill beside it. */
+const roleTip = (isAuthor?: boolean): string => (isAuthor ? "The author" : "Beta reader")
+/** A comment whose words are gone wears a small ! with the explanation in its tooltip. */
+const orphanFlag = (): string =>
+	`<span class="dc-flag" data-tip="This comment was left on text that has since changed" role="img" aria-label="Left on text that has since changed">!</span>`
+
+/**
+ * What you can do to one message, in a row under it — Reply · Edit · Delete
+ * (Reopen on a closed note), the reaction smiley, then the reaction chips.
+ * Only what the viewer may actually do is drawn; chips always show.
+ */
+interface Acts { reply?: boolean; react?: boolean; edit?: boolean; del?: boolean; reopen?: boolean }
+function actsHtml(reactions: Reactions | undefined, meName: string, { reply = false, react = false, edit = false, del = false, reopen = false }: Acts): string {
+	// The reaction chips sit in the row; everything you can DO — Reply · Edit ·
+	// Add reaction · Delete — waits behind a ⋯ so the row stays one short
+	// line even on a busy note. Reopen alone leads the row on a closed note.
+	const lead = reopen ? `<button class="dc-act dc-reopen" type="button">Reopen</button>` : ""
+	const items =
+		(reply ? `<button class="dc-act dc-reply-btn" type="button" role="menuitem"><i class="fa-solid fa-reply" aria-hidden="true"></i>Reply</button>` : "") +
+		(edit ? `<button class="dc-act dc-edit" type="button" role="menuitem"><i class="fa-solid fa-pen" aria-hidden="true"></i>Edit</button>` : "") +
+		(react ? `<button class="dc-act react-add" type="button" role="menuitem"><i class="fa-regular fa-face-smile" aria-hidden="true"></i>Add reaction</button>` : "") +
+		(del ? `<button class="dc-act dc-del" type="button" role="menuitem"><i class="fa-regular fa-trash-can" aria-hidden="true"></i>Delete</button>` : "")
+	const more = items
+		? `<span class="dc-more"><button class="dc-more-btn" type="button" aria-label="More" aria-haspopup="menu" aria-expanded="false">⋯</button><span class="dc-menu" role="menu">${items}</span></span>`
+		: ""
+	const chips = reactionsHtml(reactions, meName || null)
+	if (!lead && !more && !chips) return ""
+	return `<span class="dc-acts">${lead}<span class="reacts">${chips}</span>${more}</span>`
+}
+
+export function replyHtml(
+	r: ReplyRow,
+	{ isOwner = false, meName = "", canReply = false, open = true, depth = 1, extra = false }: CommentViewOpts & { open?: boolean; depth?: number; extra?: boolean } = {},
+): string {
 	const mine = !!meName && r.author === meName
 	return (
-		`<li class="dc-reply-item" data-rid="${esc(r.id)}">` +
+		`<li class="dc-reply-item${extra ? " extra" : ""}" data-rid="${esc(r.id)}" data-author="${esc(r.author)}" style="--d:${Math.max(1, Math.min(MAX_DEPTH, depth | 0))}">` +
 		`<span class="dc-who">${miniAvatar({ avatar: r.avatar, avatarFit: r.avatarFit, name: r.author, color: r.color })}` +
-		`<b style="color:${safeColor(r.color)}">${esc(r.author)}</b>` +
-		voiceTag(r.isAuthor) +
+		`<b style="color:${safeColor(r.color)}" data-tip="${roleTip(r.isAuthor)}">${esc(r.author)}</b>` +
 		`<span class="dc-when">${esc(fmtWhen(r.ts))}${r.edited ? " · edited" : ""}</span>` +
-		moreMenuHtml({ edit: mine && open, del: isOwner || mine }) +
 		`</span>` +
 		`<p class="dc-text">${esc(r.text)}</p>` +
+		actsHtml(r.reactions, meName, { reply: canReply && open, react: canReply && open, edit: mine && open, del: isOwner || mine }) +
 		`</li>`
 	)
 }
@@ -377,11 +442,49 @@ export function commentModeBannerHtml({ canExit = true, count = 0 }: { canExit?:
 
 export function commentThreadHtml(comments: CommentRow[], { orphaned = false, isOwner = false, meName = "", canReply = false }: CommentViewOpts & { orphaned?: boolean } = {}): string {
 	if (!comments.length) return ""
+	// an orphaned card says so itself (the ! in its head); the group needs no heading
+	void orphaned
+	return `<ul class="dc-list">${comments.map((c) => commentHtml(c, { isOwner, meName, canReply })).join("")}</ul>`
+}
+
+// ---- version history ----
+/** One kept copy as GET /api/docs/:id/history lists it. */
+export interface VersionRow {
+	at: number
+	reason: "time" | "drop" | "restore" | string
+	words: number
+	chapters: number
+}
+const VERSION_WHY: Record<string, string> = {
+	drop: "Kept because the next save was much shorter",
+	restore: "What a restore replaced",
+}
+/** The list in the Version history dialog, newest first; `nowWords` lets each row say how it differs from the page. */
+export function versionListHtml(versions: VersionRow[] | null | undefined, nowWords = 0, nowChapters = 0): string {
+	if (!versions || !versions.length)
+		return `<p class="subtle">No earlier copies yet. They start appearing once you have been writing here for a little while.</p>`
+	// The figure every row is measured against, so "more than now" is checkable.
+	const now = `<p class="history-now">Now: <b>${Number(nowWords).toLocaleString()} word${nowWords === 1 ? "" : "s"}</b>${nowChapters > 1 ? ` · ${nowChapters} chapters` : ""}</p>`
 	return (
-		(orphaned
-			? `<p class="dc-orphan-note">${comments.length === 1 ? "This comment was" : "These comments were"} left on text that has since changed:</p>`
-			: "") +
-		`<ul class="dc-list">${comments.map((c) => commentHtml(c, { isOwner, meName, canReply })).join("")}</ul>`
+		now +
+		`<ul class="history-rows">` +
+		versions
+			.map((v) => {
+				const diff = v.words - nowWords
+				const delta = diff === 0 ? "same length as now" : `${Math.abs(diff).toLocaleString()} ${diff > 0 ? "more" : "fewer"} than now`
+				const when = new Date(v.at)
+				return (
+					`<li class="history-row${v.reason === "drop" ? " drop" : ""}" data-at="${Number(v.at)}">` +
+					`<span class="history-when"><b>${esc(when.toLocaleDateString(undefined, { month: "short", day: "numeric" }))}</b> ${esc(when.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }))}</span>` +
+					`<span class="history-what">${Number(v.words).toLocaleString()} word${v.words === 1 ? "" : "s"} · ${esc(delta)}${v.chapters > 1 ? ` · ${v.chapters} chapters` : ""}` +
+					(VERSION_WHY[v.reason] ? `<em class="history-why">${esc(VERSION_WHY[v.reason])}</em>` : "") +
+					`</span>` +
+					`<span class="history-acts"><button class="ghost history-get" type="button">Download</button><button class="primary history-restore" type="button">Restore</button></span>` +
+					`</li>`
+				)
+			})
+			.join("") +
+		`</ul>`
 	)
 }
 

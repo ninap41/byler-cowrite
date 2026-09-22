@@ -1591,3 +1591,335 @@ test("Reject is the author's verdict: a reader's 'declined' is just resolved, an
   c = await threadOf(doc.id);
   assert.deepEqual([c.resolved, c.declined], [false, false]);
 });
+
+// ---- "Saved" means the store took it ----
+test("a save the store refuses answers 503 and says so; nothing reads as saved, and the retry goes through", async () => {
+  const { chmodSync } = await import("node:fs");
+  const { join } = await import("node:path");
+  const doc = await newDoc(alice.token, "Durable");
+  const first = await ctx.api("/api/docs/" + doc.id, { html: "<p>landed</p>" }, alice.token, "PUT");
+  assert.equal(first.status, 200);
+  const dir = join(ctx.dataDir, "docs");
+  chmodSync(dir, 0o555); // the disk says no — production's version of this is the database refusing the row
+  let refused;
+  try {
+    refused = await ctx.api("/api/docs/" + doc.id, { html: "<p>landed</p><p>three thousand more words</p>", baseRev: first.data.doc.rev }, alice.token, "PUT");
+  } finally {
+    chmodSync(dir, 0o755);
+  }
+  assert.equal(refused.status, 503);
+  assert.equal(refused.data.unlanded, true);
+  assert.match(refused.data.error, /safe in this tab/);
+  assert.ok(!("doc" in refused.data), "no document comes back: the editor must not paint itself clean");
+  // the editor retries naming the rev it was given, and is not told it conflicts with itself
+  const again = await ctx.api("/api/docs/" + doc.id, { html: "<p>landed</p><p>three thousand more words</p>", baseRev: refused.data.rev }, alice.token, "PUT");
+  assert.equal(again.status, 200);
+  assert.ok((await docOf(doc.id)).html.includes("three thousand more words"));
+});
+
+// ---- version history ----
+const longHtml = (n, word = "word") => "<p>" + Array.from({ length: n }, () => word).join(" ") + "</p>";
+const historyOf = async (id, token = alice.token) => ctx.api("/api/docs/" + id + "/history", null, token, "GET");
+
+test("history: a save that loses a lot of words keeps the copy before it, and Restore brings it back — undoably", async () => {
+  const doc = await newDoc(alice.token, "Seventeen thousand");
+  const full = longHtml(3000, "letters");
+  await ctx.api("/api/docs/" + doc.id, { html: full }, alice.token, "PUT");
+  assert.deepEqual((await historyOf(doc.id)).data.versions, [], "nothing to go back to yet: the first save replaced an empty story");
+
+  // thirty seconds later an ordinary autosave: no copy (history is spaced by time, not per save)
+  await ctx.api("/api/docs/" + doc.id, { html: full + "<p>and a little more</p>" }, alice.token, "PUT");
+  assert.equal((await historyOf(doc.id)).data.versions.filter((v) => v.reason === "time").length <= 1, true);
+
+  // the accident: most of it gone in one save
+  await ctx.api("/api/docs/" + doc.id, { html: longHtml(100, "letters") }, alice.token, "PUT");
+  const { versions } = (await historyOf(doc.id)).data;
+  const kept = versions.find((v) => v.reason === "drop");
+  assert.ok(kept, "the copy from before the drop is kept whatever the spacing");
+  assert.ok(kept.words >= 3000);
+
+  const one = await ctx.api(`/api/docs/${doc.id}/history/${kept.at}`, null, alice.token, "GET");
+  assert.ok(one.data.version.chapters[0].html.includes("and a little more"));
+
+  const revBefore = (await docOf(doc.id)).rev;
+  const back = await ctx.api(`/api/docs/${doc.id}/history/${kept.at}/restore`, {}, alice.token);
+  assert.equal(back.status, 200);
+  assert.ok(back.data.doc.wordCount >= 3000);
+  assert.equal(back.data.doc.rev, revBefore + 1, "a restore is a save: an open editor's next save meets it");
+  assert.ok((await docOf(doc.id)).html.includes("and a little more"));
+  const after = (await historyOf(doc.id)).data.versions;
+  assert.ok(after.some((v) => v.reason === "restore" && v.words <= 110), "and the copy the restore replaced is kept too");
+});
+
+test("history: removing a chapter keeps the copy that still had it", async () => {
+  const doc = await newDoc(alice.token, "Two then one");
+  const two = await ctx.api("/api/docs/" + doc.id, { chapters: [{ id: doc.chapters[0].id, title: "One", html: "<p>first chapter stays</p>" }, { title: "Two", html: "<p>second chapter goes</p>" }] }, alice.token, "PUT");
+  await ctx.api("/api/docs/" + doc.id, { chapters: [two.data.doc.chapters[0]] }, alice.token, "PUT");
+  const kept = (await historyOf(doc.id)).data.versions.find((v) => v.reason === "drop");
+  assert.equal(kept?.chapters, 2);
+  const copy = await ctx.api(`/api/docs/${doc.id}/history/${kept.at}`, null, alice.token, "GET");
+  assert.ok(copy.data.version.chapters[1].html.includes("second chapter goes"));
+});
+
+test("history: the author's alone — a beta reader, a stranger and the signed-out can neither read nor restore it", async () => {
+  const doc = await commentableDoc();
+  await ctx.api("/api/docs/" + doc.id, { html: longHtml(400) }, alice.token, "PUT");
+  await ctx.api("/api/docs/" + doc.id, { html: "<p>cut</p>" }, alice.token, "PUT");
+  const at = (await historyOf(doc.id)).data.versions[0].at;
+  for (const token of [bob.token, carol.token]) {
+    assert.equal((await historyOf(doc.id, token)).status, 403);
+    assert.equal((await ctx.api(`/api/docs/${doc.id}/history/${at}`, null, token, "GET")).status, 403);
+    assert.equal((await ctx.api(`/api/docs/${doc.id}/history/${at}/restore`, {}, token)).status, 403);
+  }
+  assert.equal((await historyOf(doc.id, null)).status, 401);
+  assert.equal((await ctx.api(`/api/docs/${doc.id}/history/12345/restore`, {}, alice.token)).status, 404, "a version that isn't there");
+  assert.equal((await docOf(doc.id)).html, "<p>cut</p>", "none of that changed the story");
+});
+
+// ---- the author's comment is the one write that skips the save route's version check ----
+test("an author's comment from a tab that is behind the stored story is refused, and the chapter is not rolled back", async () => {
+  const doc = await commentableDoc();
+  const stale = await docOf(doc.id); // what an old tab holds
+  const newer = BODY + "<p>three thousand words written on the other device</p>";
+  await ctx.api("/api/docs/" + doc.id, { html: newer }, alice.token, "PUT");
+  const A = await ctx.conn();
+  A.emit("doc-open", { auth: alice.token, id: doc.id });
+  await ctx.wait(100);
+  const refused = new Promise((r) => A.once("doc-comment-refused", r));
+  A.emit("doc-comment", { auth: alice.token, id: doc.id, cid: "dddddddddddd", html: anchored("dddddddddddd"), text: "note to self", baseRev: stale.rev });
+  assert.deepEqual(await refused, { id: doc.id, cid: "dddddddddddd", reason: "stale" });
+  const now = await docOf(doc.id);
+  assert.ok(now.html.includes("written on the other device"), "the newer chapter stands");
+  assert.equal(now.comments.length, 0);
+
+  // the same comment from a tab that is up to date — unsaved typing and all — lands as before
+  A.emit("doc-comment", { auth: alice.token, id: doc.id, cid: "eeeeeeeeeeee", html: newer.replace("striped shirt", '<span class="cmt" data-cid="eeeeeeeeeeee">striped shirt</span>') + "<p>still typing</p>", text: "note to self", baseRev: now.rev });
+  await ctx.wait(200);
+  const after = await docOf(doc.id);
+  assert.equal(after.comments.length, 1);
+  assert.ok(after.html.includes("still typing") && after.html.includes("written on the other device"));
+});
+
+test("a comment on a chapter past the size limit is refused, never sliced", async () => {
+  const doc = await commentableDoc();
+  const A = await ctx.conn();
+  A.emit("doc-open", { auth: alice.token, id: doc.id });
+  await ctx.wait(100);
+  const refused = new Promise((r) => A.once("doc-comment-refused", r));
+  const huge = anchored("ffffffffffff") + "<p>" + "x".repeat(200001) + "</p>";
+  A.emit("doc-comment", { auth: alice.token, id: doc.id, cid: "ffffffffffff", html: huge, text: "too long", baseRev: (await docOf(doc.id)).rev });
+  assert.equal((await refused).reason, "long");
+  assert.equal((await docOf(doc.id)).html, BODY, "nothing stored changed");
+});
+
+// ---- threads: nested replies ----
+test("a reply can answer a reply in its own thread; a parent from anywhere else answers the note", async () => {
+  const { doc, A, B, commentId } = await threadedDoc();
+  A.emit("doc-comment-reply", { auth: alice.token, id: doc.id, commentId, text: "yes, on purpose" });
+  await ctx.wait(150);
+  const first = (await threadOf(doc.id)).replies[0].id;
+  B.emit("doc-comment-reply", { auth: bob.token, id: doc.id, commentId, parentId: first, text: "then seed it earlier" });
+  B.emit("doc-comment-reply", { auth: bob.token, id: doc.id, commentId, parentId: "no-such-reply", text: "stale parent" });
+  B.emit("doc-comment-reply", { auth: bob.token, id: doc.id, commentId, parentId: { $ne: null }, text: "not even a string" });
+  await ctx.wait(200);
+  const c = await threadOf(doc.id);
+  assert.deepEqual(c.replies.map((r) => [r.text, r.parentId]), [
+    ["yes, on purpose", null],
+    ["then seed it earlier", first],
+    ["stale parent", null],
+    ["not even a string", null],
+  ]);
+});
+
+test("deleting a reply hands its answers to what it answered", async () => {
+  const { doc, A, B, commentId } = await threadedDoc();
+  const say = async (S, who, text, parentId) => {
+    S.emit("doc-comment-reply", { auth: who.token, id: doc.id, commentId, text, ...(parentId ? { parentId } : {}) });
+    await ctx.wait(120);
+    return (await threadOf(doc.id)).replies.find((r) => r.text === text).id;
+  };
+  const top = await say(A, alice, "top");
+  const mid = await say(B, bob, "mid", top);
+  await say(A, alice, "leaf", mid);
+  B.emit("doc-comment-delete", { auth: bob.token, id: doc.id, commentId, replyId: mid });
+  await ctx.wait(150);
+  let c = await threadOf(doc.id);
+  assert.deepEqual(c.replies.map((r) => [r.text, r.parentId]), [["top", null], ["leaf", top]]);
+  A.emit("doc-comment-delete", { auth: alice.token, id: doc.id, commentId, replyId: top });
+  await ctx.wait(150);
+  c = await threadOf(doc.id);
+  assert.deepEqual(c.replies.map((r) => [r.text, r.parentId]), [["leaf", null]], "and up to the note when that goes too");
+});
+
+// ---- reactions on notes and replies ----
+test("the author and a beta reader react to a note and to a reply; a second tap takes it back", async () => {
+  const { doc, A, B, commentId } = await threadedDoc();
+  const before = await docOf(doc.id);
+  A.emit("doc-comment-reply", { auth: alice.token, id: doc.id, commentId, text: "good eye" });
+  await ctx.wait(150);
+  const replyId = (await threadOf(doc.id)).replies[0].id;
+  A.emit("doc-comment-react", { auth: alice.token, id: doc.id, commentId, emoji: "🔥" });
+  B.emit("doc-comment-react", { auth: bob.token, id: doc.id, commentId, emoji: "🔥" });
+  B.emit("doc-comment-react", { auth: bob.token, id: doc.id, commentId, replyId, emoji: "👀" });
+  await ctx.wait(200);
+  let c = await threadOf(doc.id);
+  assert.deepEqual(c.reactions["🔥"].map((r) => r.name).sort(), ["aliceauthor", "bobbeta"]);
+  assert.deepEqual(c.replies[0].reactions["👀"].map((r) => [r.key, r.name]), [["bobbeta", "bobbeta"]]);
+  // keyed by username on the wire — never the account id it is stored under
+  const wire = JSON.stringify(c);
+  assert.ok(alice.user.id && bob.user.id, "the fixture knows the ids it is looking for");
+  assert.ok(!wire.includes(alice.user.id) && !wire.includes(bob.user.id));
+  B.emit("doc-comment-react", { auth: bob.token, id: doc.id, commentId, emoji: "🔥" });
+  B.emit("doc-comment-react", { auth: bob.token, id: doc.id, commentId, replyId, emoji: "👀" });
+  await ctx.wait(200);
+  c = await threadOf(doc.id);
+  assert.deepEqual(c.reactions["🔥"].map((r) => r.name), ["aliceauthor"]);
+  assert.deepEqual(c.replies[0].reactions, {}, "the last one off leaves nothing behind");
+  // a reaction is words in the margin: the story and its rev never move
+  const after = await docOf(doc.id);
+  assert.equal(after.rev, before.rev);
+  assert.equal(after.html, before.html);
+});
+
+test("no reaction from off the list, from a stranger or public reader, on a closed thread or a missing reply", async () => {
+  const { doc, A, B, commentId } = await threadedDoc();
+  const C = await ctx.conn();
+  B.emit("doc-comment-react", { auth: bob.token, id: doc.id, commentId, emoji: "<img src=x>" });
+  B.emit("doc-comment-react", { auth: bob.token, id: doc.id, commentId, emoji: "🦖" });
+  B.emit("doc-comment-react", { auth: bob.token, id: doc.id, commentId, replyId: "nope", emoji: "🔥" });
+  C.emit("doc-comment-react", { auth: carol.token, id: doc.id, commentId, emoji: "🔥" });
+  await ctx.wait(150);
+  await setVis(doc.id, "public");
+  C.emit("doc-comment-react", { auth: carol.token, id: doc.id, commentId, emoji: "🔥" });
+  await ctx.wait(150);
+  assert.deepEqual((await threadOf(doc.id)).reactions, {}, "reading a public write is not an invitation to react on it");
+  A.emit("doc-comment-resolve", { auth: alice.token, id: doc.id, commentId, resolved: true });
+  await ctx.wait(150);
+  B.emit("doc-comment-react", { auth: bob.token, id: doc.id, commentId, emoji: "🔥" });
+  await ctx.wait(150);
+  assert.deepEqual((await threadOf(doc.id)).reactions, {});
+});
+
+// ---- the author writes while a reader comments ----
+// The two roles act on the same story at the same moment. The server can't
+// order them for the writer, but it can answer truthfully and say when a
+// note didn't land.
+
+test("a save answers with the story as the store holds it when it answers, not as the request found it", async () => {
+  const doc = await commentableDoc();
+  const B = await ctx.conn();
+  B.emit("doc-open", { auth: bob.token, id: doc.id });
+  await ctx.wait(150);
+  // the note and the save leave at the same moment; whichever the server
+  // meets first, the save's answer must carry the note — an editor that took
+  // the answer as the truth used to lose the note off its rail (and, with
+  // it, the underline it had just placed, orphaning the note for good)
+  B.emit("doc-comment", { auth: bob.token, id: doc.id, cid: "a1a1a1a1a1a1", html: anchored("a1a1a1a1a1a1"), text: "at the same moment" });
+  const saved = await ctx.api("/api/docs/" + doc.id, { html: BODY + "<p>more</p>", baseRev: (await docOf(doc.id)).rev }, alice.token, "PUT");
+  await ctx.wait(200);
+  assert.equal(saved.status, 200);
+  const now = await docOf(doc.id);
+  assert.equal(now.comments.length, 1, "the note landed");
+  assert.deepEqual(saved.data.doc.comments.map((c) => c.id), now.comments.map((c) => c.id), "and the save's answer already knew it");
+});
+
+test("a reader whose page is behind is told their note didn't land, and the story is untouched", async () => {
+  const doc = await commentableDoc();
+  const B = await ctx.conn();
+  B.emit("doc-open", { auth: bob.token, id: doc.id });
+  await ctx.wait(150);
+  // the author saves under bob; bob's page still holds the old words
+  await ctx.api("/api/docs/" + doc.id, { html: BODY.replace("striped", "checked"), baseRev: (await docOf(doc.id)).rev }, alice.token, "PUT");
+  await ctx.wait(100);
+  const refused = new Promise((r) => B.once("doc-comment-refused", r));
+  B.emit("doc-comment", { auth: bob.token, id: doc.id, cid: "b2b2b2b2b2b2", html: anchored("b2b2b2b2b2b2"), text: "on the old words" });
+  assert.deepEqual(await refused, { id: doc.id, cid: "b2b2b2b2b2b2", reason: "moved" });
+  const now = await docOf(doc.id);
+  assert.equal(now.comments.length, 0, "not taken");
+  assert.ok(now.html.includes("checked shirt") && !now.html.includes("data-cid"), "the author's save stands, no stray anchor");
+
+  // a note that names a chapter that is gone, and one whose selection came
+  // off the page (no anchor in the html): told the same way, never silent
+  const gone = new Promise((r) => B.once("doc-comment-refused", r));
+  B.emit("doc-comment", { auth: bob.token, id: doc.id, cid: "b3b3b3b3b3b3", chapterId: "nosuchchapter", html: anchored("b3b3b3b3b3b3"), text: "?" });
+  assert.equal((await gone).reason, "moved");
+  const detached = new Promise((r) => B.once("doc-comment-refused", r));
+  B.emit("doc-comment", { auth: bob.token, id: doc.id, cid: "b4b4b4b4b4b4", html: now.html, text: "my selection was on nodes that are gone" });
+  assert.equal((await detached).reason, "moved");
+
+  // on the fresh copy the same note lands — a reader who was told can try again
+  B.emit("doc-comment", { auth: bob.token, id: doc.id, cid: "b5b5b5b5b5b5", html: now.html.replace("checked shirt", '<span class="cmt" data-cid="b5b5b5b5b5b5">checked shirt</span>'), text: "on the new words" });
+  await ctx.wait(200);
+  assert.equal((await docOf(doc.id)).comments.length, 1);
+});
+
+test("two readers on the same chapter: the second is told when the first's note got there first, never dropped silently", async () => {
+  const doc = await commentableDoc();
+  // a second beta reader: dana, befriended for this
+  const dana = await signup(ctx, "danabeta", "dana@byers.com");
+  await ctx.api("/api/friends/request", { username: "danabeta" }, alice.token);
+  const inbox = await ctx.api("/api/inbox", null, dana.token, "GET");
+  await ctx.api("/api/friends/respond", { id: inbox.data.messages.find((m) => m.type === "friend-request").id, accept: true }, dana.token);
+  await ctx.api("/api/docs/" + doc.id + "/readers", { username: "danabeta" }, alice.token);
+  const B = await ctx.conn(), C = await ctx.conn();
+  B.emit("doc-open", { auth: bob.token, id: doc.id });
+  C.emit("doc-open", { auth: dana.token, id: doc.id });
+  await ctx.wait(150);
+  B.emit("doc-comment", { auth: bob.token, id: doc.id, cid: "c1c1c1c1c1c1", html: anchored("c1c1c1c1c1c1"), text: "bob" });
+  await ctx.wait(200);
+  // dana's page never took bob's anchor: her html is the pre-bob copy plus hers
+  const refused = new Promise((r) => C.once("doc-comment-refused", r));
+  C.emit("doc-comment", { auth: dana.token, id: doc.id, cid: "c2c2c2c2c2c2", html: anchored("c2c2c2c2c2c2", "first"), text: "dana" });
+  assert.equal((await refused).reason, "moved");
+  assert.equal((await docOf(doc.id)).comments.length, 1);
+  // with bob's anchor in her copy, hers is the only change: taken
+  const fresh = (await docOf(doc.id)).html;
+  C.emit("doc-comment", { auth: dana.token, id: doc.id, cid: "c3c3c3c3c3c3", html: fresh.replace("<p>first</p>", '<p><span class="cmt" data-cid="c3c3c3c3c3c3">first</span></p>'), text: "dana again" });
+  await ctx.wait(200);
+  assert.equal((await docOf(doc.id)).comments.length, 2);
+});
+
+test("a reply or a reaction on a thread that closed first is refused with a word, not silence", async () => {
+  const { doc, A, B, commentId } = await threadedDoc();
+  A.emit("doc-comment-resolve", { auth: alice.token, id: doc.id, commentId, resolved: true });
+  await ctx.wait(150);
+  const r1 = new Promise((r) => B.once("doc-comment-refused", r));
+  B.emit("doc-comment-reply", { auth: bob.token, id: doc.id, commentId, text: "too late" });
+  assert.deepEqual(await r1, { id: doc.id, cid: commentId, reason: "closed" });
+  const r2 = new Promise((r) => B.once("doc-comment-refused", r));
+  B.emit("doc-comment-react", { auth: bob.token, id: doc.id, commentId, emoji: "🔥" });
+  assert.deepEqual(await r2, { id: doc.id, cid: commentId, reason: "closed" });
+  const t = await threadOf(doc.id);
+  assert.equal((t.replies || []).length, 0);
+  assert.deepEqual(t.reactions, {});
+  // reopened, the same reply lands
+  A.emit("doc-comment-resolve", { auth: alice.token, id: doc.id, commentId, resolved: false });
+  await ctx.wait(150);
+  B.emit("doc-comment-reply", { auth: bob.token, id: doc.id, commentId, text: "too late" });
+  await ctx.wait(150);
+  assert.equal((await threadOf(doc.id)).replies.length, 1);
+  // a public reader gets nothing back at all — refusal events are for people who may write
+  const D = await ctx.conn();
+  let heard = false;
+  D.once("doc-comment-refused", () => (heard = true));
+  D.emit("doc-comment-reply", { auth: null, id: doc.id, commentId, text: "?" });
+  await ctx.wait(150);
+  assert.equal(heard, false);
+});
+
+test("a reader's note reaches the author as the thread first, then the chapter that wears its anchor", async () => {
+  const doc = await commentableDoc();
+  const A = await ctx.conn(), B = await ctx.conn();
+  A.emit("doc-open", { auth: alice.token, id: doc.id });
+  B.emit("doc-open", { auth: bob.token, id: doc.id });
+  await ctx.wait(150);
+  // An idle author's editor takes the pushed html as it comes and prunes any
+  // anchor whose comment it doesn't know — so the comment has to be known
+  // first, or the underline is stripped on arrival and the next save
+  // orphans the note (found in the browser, 2026-09-22).
+  const order = [];
+  A.onAny((ev) => (ev === "doc-comments" || ev === "doc-html") && order.push(ev));
+  B.emit("doc-comment", { auth: bob.token, id: doc.id, cid: "0d0d0d0d0d0d", html: anchored("0d0d0d0d0d0d"), text: "order matters" });
+  await ctx.wait(250);
+  assert.deepEqual(order, ["doc-comments", "doc-html"]);
+});

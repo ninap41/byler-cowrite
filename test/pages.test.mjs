@@ -284,7 +284,7 @@ test("a heading's size is the heading's: spans inside can't shrink it", async ()
   assert.ok(write.body.includes("The heading style sets this text's size"), "with a tooltip that says why");
 });
 
-test("a thread's closing row is bordered buttons sharing the rail, and its menu can hide", async () => {
+test("a thread's closing row is bordered buttons sharing the rail; replies nest and long threads fold", async () => {
   const css = await page("/css/base.css");
   const block = css.body.slice(css.body.indexOf("\n.dc-actions button {"), css.body.indexOf("\n.dc-actions button:hover"));
   assert.match(block, /border: 1px solid var\(--line\)/);
@@ -293,8 +293,13 @@ test("a thread's closing row is bordered buttons sharing the rail, and its menu 
   assert.match(block, /min-width: 0/, "and two of them fit without clipping");
   assert.match(css.body, /\.dc-actions \.dc-decline,\n\.dc-actions \.dc-reject \{\s*color: var\(--accent\)/,
     "the refusing ones read as refusing");
-  // .dc-menu sets display:grid, so its .hidden twin must come later
-  assert.ok(css.body.lastIndexOf(".dc-menu.hidden") > css.body.indexOf("\n.dc-menu {"));
+  // Reply and the chips sit in the row; Edit · Delete · Add reaction wait behind a ⋯ popover
+  assert.match(css.body, /\.dc-menu \{\s*display: none;\s*position: absolute/, "the menu is a class-toggled popover, not a .hidden twin");
+  assert.match(css.body, /\.dc-more\.open \.dc-menu \{\s*display: flex/);
+  assert.match(css.body, /\n\.dc-reply-item \{\s*margin-left: calc\(\(var\(--d, 1\) - 1\) \* 9px\)/, "a step in per level");
+  assert.match(css.body, /\.doc-comment:not\(\.all\) \.dc-reply-item\.extra \{\s*display: none/, "past the fold until Show more");
+  // the rail wears the chat's reaction chips
+  assert.match(css.body, /\.chat-log \.react,\n\.doc-comment \.react,/);
 });
 
 test("the composer is pinned above the comments, which scroll under it", async () => {
@@ -849,4 +854,23 @@ test("no page declares a `history` of its own (it would shadow window.history)",
     const src = readFileSync(new URL("../public/" + f, import.meta.url), "utf-8");
     assert.ok(!/\b(function|const|let|var)\s+history\b/.test(src), f + " shadows window.history");
   }
+});
+
+test("a reader's Appearance menu hangs from the chip's left edge, so it isn't cut off by the screen", () => {
+  const css = readFileSync("public/css/base.css", "utf8");
+  assert.match(css, /#docToolbar\.hidden \+ \.doc-view-prefs \.view-menu \{\s*left: 0;\s*right: auto;/);
+});
+
+test("the write page's sticky shell rises above the chapter panel and the comments sheet while one of its menus is open", () => {
+  const css = readFileSync("public/css/base.css", "utf8");
+  assert.match(css, /\n\.doc-shell:has\(\.vis-menu\.open, \.theme-switch\.open, \.xp-menu\.open, \.more-menu:not\(\.hidden\)\) \{\s*z-index: 80;/);
+  // the layers it has to clear
+  assert.match(css, /\.doc-chapters \{[^}]*z-index: 70;/);
+  assert.match(css, /\.doc-side \{[^}]*z-index: 60;/);
+});
+
+test("the theme picker's open switch carries the z-index — its perspective makes it a stacking context, so the menu's own can't reach past it", () => {
+  const css = readFileSync("public/css/base.css", "utf8");
+  assert.match(css, /\.theme-switch \{\s*position: relative;\s*perspective: 700px;\s*\}/);
+  assert.match(css, /\n\.theme-switch\.open \{\s*z-index: 120;\s*\}/);
 });

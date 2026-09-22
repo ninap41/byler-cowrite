@@ -25,14 +25,16 @@ import {
 import { mountSlashPalette } from "/js/components/slash-palette.js"
 import { mountPromptModes } from "/js/components/prompt-modes.js"
 import { promptHtml } from "/js/util.js"
-import { loadDraft, saveDraft, clearDraft, draftIsNewer } from "/js/doc-store.js"
+import { loadDraft, saveDraft, clearDraft, draftIsNewer, mergeDraft } from "/js/doc-store.js"
 import { createHistory } from "/js/components/history.js"
 import { mountDocBanners } from "/js/components/doc-banner.js"
 import { mountFindReplace, type FindReplaceApi } from "/js/components/find-replace.js"
-import { placeAnchor, pruneSource, stripAnchorInSource, applySuggestionInSource } from "/js/components/comment-sync.js"
+import { anchorCids, placeAnchor, pruneSource, stripAnchorInSource, applySuggestionInSource, rangeOfText } from "/js/components/comment-sync.js"
 import {
 	presenceHtml,
 	commentThreadHtml,
+	versionListHtml,
+	replyBoxHtml,
 	commentModeBannerHtml,
 	readerChipsHtml,
 	wordsLabel,
@@ -55,10 +57,11 @@ import {
 import { exportDocument, exportWork, exportChapterHtml, slugOf } from "/js/export.js"
 import { esc } from "/js/util.js"
 import { confirmDialog } from "/js/components/confirm-delete.js"
+import { createReactionPicker } from "/js/components/reaction-picker.js"
 import type { Socket } from "socket.io-client"
 import type { ServerToClient, ClientToServer } from "/js/shared/wire.js"
 import type { ChipUser } from "/js/chrome.js"
-import type { CommentRow, Chapter, InviteOptionsInput } from "/js/write-view.js"
+import type { CommentRow, Chapter, InviteOptionsInput, VersionRow } from "/js/write-view.js"
 import type { PromptMenus } from "/js/shared/wire.js"
 import type { Sprint } from "/js/write-view.js"
 import type { SlashPalette, RefBundle } from "/js/components/slash-palette.js"
@@ -120,6 +123,17 @@ let comments: CommentRow[] = []
 let commentMode = false
 let activeCid: string | null = null // the comment whose words are highlighted
 let pendingRange: Range | null = null // the selection the composer is about to anchor
+// A note that is typed but not yet landed. `composerDraft` prefills the next
+// composer (the page was repainted under an open one, or the server sent the
+// note back); `sentNotes` holds each sent note until the server takes it, so
+// a refusal can hand the words back instead of them being gone.
+interface ComposerDraft {
+	quote: string
+	text: string
+	suggestion: string | null
+}
+let composerDraft: ComposerDraft | null = null
+const sentNotes = new Map<string, ComposerDraft>()
 let composerTimer: ReturnType<typeof setTimeout> | undefined
 let socket: Socket<ServerToClient, ClientToServer> | null = null
 
@@ -134,11 +148,27 @@ function setStatus(text: string) {
 
 // ---- dirty tracking ----
 let lastEditAt = 0 // for the autosave: never save mid-sentence
+let editSeq = 0 // every edit, exactly — what save() compares to know nothing moved while it was out
 const setDirty = (v: boolean) => {
 	dirty = v
-	if (v) lastEditAt = Date.now()
+	if (v) {
+		lastEditAt = Date.now()
+		editSeq++
+		const ch = chapters[openIdx]
+		if (ch) touched.add(ch)
+	}
 	$("saveState").textContent = v ? "Unsaved" : "Saved"
 	$("saveState").classList.toggle("unsaved", v)
+	refreshSaveBtn()
+}
+// The Save button tells the truth: nothing to save, a save already out, or
+// saving paused behind the conflict bar all disable it. (It used to be live
+// always — a click on a clean page re-sent the whole story and moved `rev`.)
+const refreshSaveBtn = () => {
+	const b = $("saveBtn") as HTMLButtonElement
+	b.disabled = !dirty || saving || conflicted
+	b.textContent = saving ? "Saving…" : "Save"
+	b.title = conflicted ? "Saving is paused: see the notice above" : !dirty ? "Nothing to save" : ""
 }
 
 // The HTML view is pretty-printed (formatSource, one block per line); srcHtml()
@@ -159,6 +189,13 @@ const allChapters = () => {
 	return chapters.map(({ id, title, html }) => ({ id: id ?? null, title: title ?? "", html: html ?? "" }))
 }
 const openChapter = () => chapters[openIdx] || null
+// Which chapters THIS page has edited since it last matched the server. A
+// draft holds every chapter, but restoring it must only bring back the ones
+// that were actually worked on here — the rest may have been saved from
+// somewhere else since, and an old copy of them would quietly undo that.
+// (A full save swaps in new chapter objects, which empties this by itself.)
+const touched = new WeakSet<object>()
+const draftChapters = () => allChapters().map((c, i) => ({ ...c, touched: c.id == null || touched.has(chapters[i]!) }))
 
 const updateWords = () => {
 	const text = $("docEditor").innerText || ""
@@ -193,6 +230,7 @@ async function load() {
 	input("docTitle").disabled = !canEdit
 	$("sprintBtn").classList.toggle("hidden", !canEdit)
 	$("promptBtn").classList.toggle("hidden", !canEdit)
+	$("historyBtn").classList.toggle("hidden", !canEdit)
 	if (!canEdit) {
 		// Beta readers read the SAME editor element — that's what makes the
 		// underlines and the click-to-jump identical for both sides — but
@@ -402,6 +440,11 @@ $("docEditor").addEventListener("click", (e) => {
 // without this the prune below would strip a brand-new comment's
 // underline in the moment between sending it and hearing about it.
 const pendingCids = new Set<string>()
+// Anchors that arrived IN a server html push. Their comment may not be in
+// `comments` yet (the pushes are two messages), and pruneLocalAnchors must
+// not take them for stray anchors in that gap. Cleared on the next
+// `doc-comments`, which is the list they belong to.
+const arrivedCids = new Set<string>()
 
 // The editor's mirror of writeDoc's rule: an underline is only legal
 // while a live, unresolved comment stands behind it. Resolving,
@@ -435,7 +478,7 @@ function pruneLocalAnchors() {
 	}
 	for (const a of anchorsInDoc()) {
 		const cid = a.dataset.cid || ""
-		if (live.has(cid) || pendingCids.has(cid)) continue
+		if (live.has(cid) || pendingCids.has(cid) || arrivedCids.has(cid)) continue
 		a.replaceWith(...a.childNodes)
 		changed = true
 	}
@@ -446,7 +489,7 @@ function pruneLocalAnchors() {
 	// and, since the textarea is what's read on the way back, comes back.
 	if (sourceMode) {
 		const src = textarea("docSource").value
-		const pruned = pruneSource(src, [...live, ...pendingCids])
+		const pruned = pruneSource(src, [...live, ...pendingCids, ...arrivedCids])
 		if (pruned !== src) { textarea("docSource").value = pruned; changed = true }
 	}
 	return changed
@@ -459,22 +502,46 @@ function pruneLocalAnchors() {
 // state — a reader has no unsaved words and simply takes the push.
 function mergeArrivedAnchors() {
 	if (!canEditDoc() || !dirty) return
+	placeArrivedAnchors()
+}
+// Put every live comment's underline where its words are, in the open
+// chapter's DOM or a closed chapter's html. Returns whether anything was
+// newly placed — the caller decides what that means for `dirty`.
+function placeArrivedAnchors(): boolean {
+	let placed = false
 	for (const c of comments) {
 		if (c.resolved || c.orphaned || !c.cid || !c.pos) continue
 		const ch = chapters.find((x) => x.id === c.pos!.chapterId)
 		if (!ch) continue
 		if (ch === openChapter()) {
-			if (!sourceMode) placeAnchor($("docEditor"), c.cid, c.pos)
+			if (sourceMode || $("docEditor").querySelector(`span.cmt[data-cid="${c.cid}"]`)) continue
+			if (placeAnchor($("docEditor"), c.cid, c.pos)) placed = true
 			continue
 		}
 		if ((ch.html || "").includes(`data-cid="${c.cid}"`)) continue
 		const box = document.createElement("div")
 		box.innerHTML = ch.html || ""
-		if (placeAnchor(box, c.cid, c.pos)) ch.html = cleanHtml(box, { doc: true })
+		if (placeAnchor(box, c.cid, c.pos)) {
+			ch.html = cleanHtml(box, { doc: true })
+			placed = true
+		}
+	}
+	return placed
+}
+// After the page was repainted from a copy that may predate a comment — a
+// save's response, a draft restore, leaving the HTML view — the author's copy
+// must carry every underline the server knows about, or the next save
+// (which sends the page's html, whole) would silently orphan the note. An
+// underline put back this way is unsaved work: it makes the page dirty.
+function replaceMissingAnchors() {
+	if (!canEditDoc()) return
+	if (placeArrivedAnchors()) {
+		setDirty(true)
+		renderComments() // the note whose underline just came back is a card now
 	}
 }
 
-// ---- threads: replies, inline edit, the ⋮ menu ----
+// ---- threads: nested replies, inline edit, reactions ----
 // The author, or an invited beta reader. A public reader can read the thread
 // but not join it — the server refuses them either way.
 const canReplyHere = () => !!doc?.mine || !!doc?.readerRows?.some((r) => r.username === me?.username)
@@ -482,6 +549,14 @@ const canReplyHere = () => !!doc?.mine || !!doc?.readerRows?.some((r) => r.usern
 // The one note or reply being rewritten, and the closed threads opened to read.
 let editing: { commentId: string; replyId: string | null; value: string } | null = null
 const expanded = new Set<string>()
+// The one reply being written (`parentId` null = it answers the note), and
+// the long threads unfolded past "Show N more".
+let replying: { commentId: string; parentId: string | null; value: string } | null = null
+// A reply that couldn't land — its thread closed or went while it was being
+// typed, or the server refused it for that reason: its words prefill the
+// next reply box opened on that thread (after a reopen).
+let lostReply: { commentId: string; parentId: string | null; value: string } | null = null
+const unfolded = new Set<string>()
 
 const threadTarget = (commentId: string, replyId: string | null): HTMLElement | null => {
 	const li = [...$("commentPane").querySelectorAll<HTMLElement>(".doc-comment")].find((el) => el.dataset.id === commentId)
@@ -512,64 +587,101 @@ function closeEditBox() {
 	$("commentPane").querySelectorAll(".dc-text.hidden").forEach((el) => el.classList.remove("hidden"))
 }
 
+// The reply box opens under the message being answered — one at a time.
+function openReplyBox({ focus = true } = {}) {
+	if (!replying) return
+	const { commentId, parentId } = replying
+	const host = threadTarget(commentId, parentId)
+	const row = comments.find((c) => c.id === commentId)
+	const to = parentId ? row?.replies?.find((r) => r.id === parentId) : row
+	// the message (or the whole thread) went while I was typing, or it closed:
+	// the words wait for the thread to be reopened, and the writer is told
+	if (!host || !to || row?.resolved) {
+		if (replying.value.trim()) {
+			lostReply = { ...replying }
+			setStatus(row?.resolved ? "That thread was closed while you were typing — reopen it to answer" : "That thread went while you were typing")
+		}
+		replying = null
+		return
+	}
+	const box = document.createElement("span")
+	box.innerHTML = replyBoxHtml(to.author)
+	const el = box.firstElementChild as HTMLElement
+	;(host.querySelector(":scope > .dc-acts") || host.querySelector(":scope > .dc-text") || host.querySelector(":scope > .dc-who"))!.after(el)
+	const input = el.querySelector<HTMLInputElement>(".dc-reply-input")!
+	input.value = replying.value
+	if (focus) input.focus()
+}
+
+function closeReplyBox() {
+	replying = null
+	$("commentPane").querySelector(".dc-reply")?.remove()
+}
+
 // Every `doc-comments` push rebuilds the rail, and a push arrives whenever
-// ANYONE replies — so what I'm in the middle of typing is lifted out first
-// and put back after, caret and all.
+// ANYONE replies or reacts — so what I'm in the middle of typing is lifted
+// out first and put back after, caret and all.
 interface ThreadDrafts {
-	drafts: Map<string, string>
-	focus: { edit: boolean; commentId: string; start: number | null; end: number | null } | null
+	focus: { edit: boolean; start: number | null; end: number | null } | null
 }
 function snapshotThreadDrafts(): ThreadDrafts {
 	const pane = $("commentPane")
-	const drafts = new Map<string, string>()
-	pane.querySelectorAll<HTMLInputElement>(".dc-reply-input").forEach((i) => {
-		const cid = i.closest<HTMLElement>(".doc-comment")?.dataset.id
-		if (cid && i.value) drafts.set(cid, i.value)
-	})
+	const draft = pane.querySelector<HTMLInputElement>(".dc-reply-input")
+	if (replying && draft) replying.value = draft.value
 	const box = pane.querySelector<HTMLTextAreaElement>(".dc-edit-input")
 	if (editing && box) editing.value = box.value
 	const a = document.activeElement
 	const typing = a instanceof HTMLInputElement || a instanceof HTMLTextAreaElement ? a : null
 	const focus =
 		typing && pane.contains(typing) && typing.matches(".dc-reply-input, .dc-edit-input")
-			? {
-					edit: typing.matches(".dc-edit-input"),
-					commentId: typing.closest<HTMLElement>(".doc-comment")?.dataset.id || "",
-					start: typing.selectionStart,
-					end: typing.selectionEnd,
-				}
+			? { edit: typing.matches(".dc-edit-input"), start: typing.selectionStart, end: typing.selectionEnd }
 			: null
-	return { drafts, focus }
+	return { focus }
 }
-function restoreThreadDrafts({ drafts, focus }: ThreadDrafts) {
+function restoreThreadDrafts({ focus }: ThreadDrafts) {
 	const pane = $("commentPane")
-	pane.querySelectorAll<HTMLElement>(".doc-comment.resolved").forEach((li) => li.classList.toggle("open", expanded.has(li.dataset.id || "")))
-	pane.querySelectorAll<HTMLInputElement>(".dc-reply-input").forEach((i) => {
-		const v = drafts.get(i.closest<HTMLElement>(".doc-comment")?.dataset.id || "")
-		if (v) i.value = v
+	pane.querySelectorAll<HTMLElement>(".doc-comment").forEach((li) => {
+		const id = li.dataset.id || ""
+		if (li.classList.contains("resolved")) li.classList.toggle("open", expanded.has(id))
+		// the thread I'm answering in stays unfolded, or my reply box would hide
+		li.classList.toggle("all", unfolded.has(id) || replying?.commentId === id || editing?.commentId === id)
 	})
 	openEditBox({ focus: false })
+	openReplyBox({ focus: false })
 	if (!focus) return
-	const li = threadTarget(focus.commentId, null)
-	const el = focus.edit ? pane.querySelector<HTMLTextAreaElement>(".dc-edit-input") : li?.querySelector<HTMLInputElement>(".dc-reply-input")
+	const el = pane.querySelector<HTMLInputElement | HTMLTextAreaElement>(focus.edit ? ".dc-edit-input" : ".dc-reply-input")
 	if (!el) return
 	el.focus()
 	if (focus.start != null) el.setSelectionRange(focus.start, focus.end ?? focus.start)
 }
 
-const closeThreadMenus = () =>
-	$("commentPane").querySelectorAll<HTMLElement>(".dc-menu:not(.hidden)").forEach((m) => {
-		m.classList.add("hidden")
-		m.previousElementSibling?.setAttribute("aria-expanded", "false")
-	})
-
-function sendReply(li: HTMLElement) {
-	const input = li.querySelector<HTMLInputElement>(".dc-reply-input")
+function sendReply() {
+	const input = $("commentPane").querySelector<HTMLInputElement>(".dc-reply-input")
 	const text = input?.value.trim() || ""
-	if (!input || !text) return
-	socket?.emit("doc-comment-reply", { auth: getToken(), id: docId, commentId: li.dataset.id || "", text })
-	input.value = ""
+	if (!replying || !text) return
+	const { commentId, parentId } = replying
+	socket?.emit("doc-comment-reply", { auth: getToken(), id: docId, commentId, ...(parentId ? { parentId } : {}), text })
+	lostReply = { commentId, parentId, value: text } // until the server takes it
+	unfolded.add(commentId) // my own reply is never folded away from me
+	closeReplyBox()
 }
+
+
+const myName = () => me?.username || ""
+const reactTo = (key: string, emoji: string) => {
+	const [commentId = "", replyId] = key.split("/")
+	socket?.emit("doc-comment-react", { auth: getToken(), id: docId, commentId, ...(replyId ? { replyId } : {}), emoji })
+}
+// the same floating picker as the game chat; a target is "commentId" or "commentId/replyId"
+const reactPicker = createReactionPicker({
+	reactionsOf: (key) => {
+		const [commentId, replyId] = key.split("/")
+		const row = comments.find((c) => c.id === commentId)
+		return replyId ? row?.replies?.find((r) => r.id === replyId)?.reactions : row?.reactions
+	},
+	myKey: myName,
+	onPick: reactTo,
+})
 
 function saveEdit() {
 	const box = $("commentPane").querySelector<HTMLTextAreaElement>(".dc-edit-input")
@@ -636,7 +748,11 @@ function clearComposer() {
 	pendingRange = null
 	const box = $("commentComposer").firstElementChild
 	const g = anim()
-	const drop = () => $("commentComposer").replaceChildren()
+	// Only THIS box goes. The fade ends late in a background tab (the ticker
+	// is throttled), and by then a newer composer may be open here — a note
+	// the server handed back, or one kept across a repaint — which the old
+	// "empty the container" swept away with it.
+	const drop = () => (box ? box.remove() : $("commentComposer").replaceChildren())
 	if (box && g) {
 		g.killTweensOf(box)
 		g.to(box, { opacity: 0, y: -6, duration: 0.15, ease: "power2.in", onComplete: drop })
@@ -644,11 +760,46 @@ function clearComposer() {
 	} else drop()
 }
 
+// What an open composer holds, so a repaint of the page can't empty it.
+function snapshotComposer(): ComposerDraft | null {
+	const note = document.getElementById("newComment") as HTMLTextAreaElement | null
+	if (!note || !pendingRange) return null
+	const suggesting = (document.getElementById("suggestOn") as HTMLInputElement | null)?.checked
+	return {
+		quote: pendingRange.toString().trim(),
+		text: note.value,
+		suggestion: suggesting ? (document.getElementById("newSuggestion") as HTMLTextAreaElement | null)?.value ?? "" : null,
+	}
+}
+// Put a note back on its words after the page changed under it: the words
+// are found again in the chapter as it is now and the composer reopens with
+// the text; if they are gone, the text waits for the next selection.
+function restoreComposer(d: ComposerDraft | null, why: string) {
+	if (!d || !(d.text || d.suggestion)) return
+	composerDraft = d
+	const r = rangeOfText($("docEditor"), d.quote)
+	if (r) {
+		pendingRange = clampToBlock(r)
+		renderComposer()
+		setStatus(why)
+	} else {
+		pendingRange = null
+		clearComposer()
+		setStatus(`${why} — select the words again`)
+	}
+}
+
 function renderComposer() {
 	if (!pendingRange) return
 	// A note has to be visible to be written: opening the composer opens
 	// the drawer, whatever state it was left in.
 	if (!prefs.sideOpen) setSideOpen(true)
+	// The rail is rebuilt on every push — anyone's reply, anyone's reaction —
+	// and this runs at the end of each rebuild. What is already typed in the
+	// box comes with it, or a half-written note vanished on someone else's
+	// emoji. A note handed back by the server (composerDraft) comes first.
+	const prefill = composerDraft ?? snapshotComposer()
+	composerDraft = null
 	const quote = pendingRange.toString().trim()
 	const box = document.createElement("div")
 	box.className = "dc-new"
@@ -662,6 +813,16 @@ function renderComposer() {
 		`<div class="row"><button class="ghost" id="newCancel" type="button">Cancel</button>` +
 		`<button class="primary" id="newSend" type="button">Comment</button></div>`
 	$("commentComposer").replaceChildren(box)
+	if (prefill && (prefill.text || prefill.suggestion)) {
+		textarea("newComment").value = prefill.text
+		if (prefill.suggestion != null) {
+			input("suggestOn").checked = true
+			$("newComment").classList.add("hidden")
+			$("newSuggestion").classList.remove("hidden")
+			textarea("newSuggestion").value = prefill.suggestion
+			$("newSend").textContent = "Suggest"
+		}
+	}
 	anim()?.from(box, { opacity: 0, y: -8, duration: 0.22, ease: "power2.out" })
 	// Suggesting swaps the note out for the rewrite: the proposed words
 	// ARE the message, and two boxes at once crowd a narrow rail.
@@ -750,11 +911,12 @@ function sendComment() {
 		pendingRange.insertNode(span)
 	}
 	const html = cleanHtml($("docEditor"), { doc: true })
-	socket?.emit("doc-comment", { auth: getToken(), id: docId, cid, chapterId: openChapter()?.id ?? null, html, text, suggestion })
+	socket?.emit("doc-comment", { auth: getToken(), id: docId, cid, chapterId: openChapter()?.id ?? null, html, text, suggestion, ...(typeof doc?.rev === "number" ? { baseRev: doc.rev } : {}) })
 	// The author owns the html, so their copy is now dirty and must be
 	// saved; a reader's copy is only a local echo of what they proposed.
 	if (canEditDoc()) setDirty(true)
 	pendingCids.add(cid)
+	sentNotes.set(cid, { quote: pendingRange.toString().trim(), text, suggestion })
 	clearComposer()
 	window.getSelection()?.removeAllRanges()
 	activeCid = cid
@@ -840,6 +1002,19 @@ $("promptInsert").addEventListener("click", () => {
 	closePromptModal()
 })
 
+// One ⋯ menu open at a time; it closes on a click anywhere else or Escape.
+function closeThreadMenus() {
+	for (const m of $("commentPane").querySelectorAll<HTMLElement>(".dc-more.open")) {
+		m.classList.remove("open")
+		m.querySelector(".dc-more-btn")?.setAttribute("aria-expanded", "false")
+	}
+}
+document.addEventListener("click", (e) => {
+	if (!(e.target as HTMLElement).closest?.(".dc-more")) closeThreadMenus()
+})
+document.addEventListener("keydown", (e) => {
+	if (e.key === "Escape") closeThreadMenus()
+})
 $("commentPane").addEventListener("click", (e) => {
 	const t = e.target as HTMLElement
 	const li = t.closest<HTMLElement>(".doc-comment")
@@ -859,13 +1034,45 @@ $("commentPane").addEventListener("click", (e) => {
 			accept,
 		)
 		socket?.emit("doc-comment-decide", { auth: getToken(), id: docId, commentId, accept })
-	} else if (t.closest(".dc-more")) {
-		const btn = t.closest<HTMLElement>(".dc-more")!
-		const menu = btn.nextElementSibling as HTMLElement
-		const opening = menu.classList.contains("hidden")
+	} else if (t.closest(".dc-more-btn")) {
+		// the ⋯ opens this message's menu (Edit · Delete · Add reaction) and closes any other
+		const more = t.closest<HTMLElement>(".dc-more")!
+		const open = !more.classList.contains("open")
 		closeThreadMenus()
-		menu.classList.toggle("hidden", !opening)
-		btn.setAttribute("aria-expanded", String(opening))
+		if (open) {
+			more.classList.add("open")
+			more.querySelector(".dc-more-btn")?.setAttribute("aria-expanded", "true")
+		}
+	} else if (t.closest("[data-react], .react-add")) {
+		// a chip toggles mine; "Add reaction" opens the picker for THIS message,
+		// anchored to the ⋯ its menu hangs from (the menu itself closes)
+		const rid = t.closest<HTMLElement>(".dc-reply-item")?.dataset.rid
+		const key = rid ? `${commentId}/${rid}` : commentId
+		const chip = t.closest<HTMLElement>("[data-react]")
+		if (chip) reactTo(key, chip.dataset.react || "")
+		else {
+			const add = t.closest<HTMLElement>(".react-add")!
+			const anchor = add.closest<HTMLElement>(".dc-more")?.querySelector<HTMLElement>(".dc-more-btn") || add
+			closeThreadMenus()
+			reactPicker.toggle(anchor, key)
+		}
+	} else if (t.closest(".dc-reply-btn")) {
+		closeThreadMenus()
+		const parentId = t.closest<HTMLElement>(".dc-reply-item")?.dataset.rid || null
+		// the same Reply again puts the box away
+		const again = replying?.commentId === commentId && replying.parentId === parentId
+		closeReplyBox()
+		closeEditBox()
+		if (!again) {
+			// a reply that was refused because this thread had closed comes back
+			const back = lostReply?.commentId === commentId ? lostReply.value : ""
+			if (back) lostReply = null
+			replying = { commentId, parentId, value: back }
+			openReplyBox()
+		}
+	} else if (t.closest(".dc-show-more")) {
+		unfolded.add(commentId)
+		li.classList.add("all")
 	} else if (t.closest(".dc-resolve") || t.closest(".dc-decline") || t.closest(".dc-reopen"))
 		socket?.emit("doc-comment-resolve", {
 			auth: getToken(),
@@ -875,27 +1082,28 @@ $("commentPane").addEventListener("click", (e) => {
 			declined: !!t.closest(".dc-decline"),
 		})
 	else if (t.closest(".dc-edit")) {
+		closeThreadMenus()
 		const reply = t.closest<HTMLElement>(".dc-reply-item")
 		const row = comments.find((c) => c.id === commentId)
 		const replyId = reply?.dataset.rid || null
-		closeThreadMenus()
+		closeReplyBox()
 		closeEditBox()
 		editing = { commentId, replyId, value: (replyId ? row?.replies?.find((r) => r.id === replyId)?.text : row?.text) || "" }
 		openEditBox()
 	} else if (t.closest(".dc-del")) {
-		const replyId = t.closest<HTMLElement>(".dc-reply-item")?.dataset.rid
 		closeThreadMenus()
+		const replyId = t.closest<HTMLElement>(".dc-reply-item")?.dataset.rid
 		void confirmDialog({
 			title: replyId ? "Delete this reply?" : "Delete this comment?",
 			text: replyId ? "It leaves the thread for good." : "The whole thread goes with it, for good.",
 		}).then((ok) => {
 			if (ok) socket?.emit("doc-comment-delete", { auth: getToken(), id: docId, commentId, ...(replyId ? { replyId } : {}) })
 		})
-	} else if (t.closest(".dc-send")) sendReply(li)
+	} else if (t.closest(".dc-send")) sendReply()
 	else if (t.closest(".dc-edit-save")) saveEdit()
 	else if (t.closest(".dc-edit-cancel")) closeEditBox()
 	// typing in a thread is not a request to jump to its words
-	else if (t.closest(".dc-reply, .dc-editbox, .dc-menu")) return
+	else if (t.closest(".dc-reply, .dc-editbox, .dc-acts")) return
 	// a closed thread unfolds to be read; an open one jumps to the words it's about
 	else if (li.classList.contains("resolved")) {
 		const open = li.classList.toggle("open")
@@ -906,15 +1114,12 @@ $("commentPane").addEventListener("click", (e) => {
 $("commentPane").addEventListener("keydown", (e) => {
 	const t = e.target as HTMLElement
 	if (e.key === "Escape") {
-		closeThreadMenus()
 		if (t.matches(".dc-edit-input")) closeEditBox()
+		else if (t.matches(".dc-reply-input")) closeReplyBox()
 	} else if (e.key === "Enter" && t.matches(".dc-reply-input")) {
 		e.preventDefault()
-		sendReply(t.closest<HTMLElement>(".doc-comment")!)
+		sendReply()
 	} else if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && t.matches(".dc-edit-input")) saveEdit()
-})
-document.addEventListener("click", (e) => {
-	if (!(e.target as HTMLElement).closest?.(".dc-more-wrap")) closeThreadMenus()
 })
 // ---- editing ----
 // Prefer real tags over <span style> for execCommand output.
@@ -1386,7 +1591,7 @@ function setMode(toSource: boolean) {
 		$("docEditor").innerHTML = cleanHtml($("docEditor"), { doc: true })
 	}
 	sourceMode = toSource
-	if (!toSource) mergeArrivedAnchors() // comments that arrived while the words were raw text
+	if (!toSource) replaceMissingAnchors() // comments that arrived while the words were raw text
 	$("docEditor").classList.toggle("hidden", toSource)
 	$("docSource").classList.toggle("hidden", !toSource)
 	$("docToolbar").classList.toggle("dimmed", toSource)
@@ -1409,37 +1614,73 @@ $("docSource").addEventListener("input", () => setDirty(true))
 
 // ---- saving ----
 let saving = false
-let conflicted = false // an autosave was refused: another tab saved first
+let conflicted = false
+// every `doc-comments` push, so a save can tell whether the rail moved while
+// its request was out — the response's comment list is from BEFORE the save
+let commentsSeq = 0 // an autosave was refused: another tab saved first
 // quiet: the 30s autosave — the server's sanitized copy is NOT painted
 // back into the editor (that would jump the caret and reset undo while
 // you type); the next save sends the editor's own copy again anyway.
-async function save({ quiet = false }: { quiet?: boolean } = {}) {
+// force: the conflict bar's "Save & overwrite" — the ONLY save that names no
+// base. Every other one (autosave, the Save button, Ctrl/⌘+S, save-and-leave)
+// says which save it started from, so a tab that slept through another tab's
+// or device's saves is refused instead of silently replacing newer words
+// with its old copy.
+async function save({ quiet = false, force = false }: { quiet?: boolean; force?: boolean } = {}) {
 	if (!doc?.mine) return true
 	if (saving) return false
 	saving = true
+	refreshSaveBtn()
 	$("docErr").textContent = ""
 	const list = allChapters()
-	const editedSince = lastEditAt
+	const sent = [...chapters] // the very objects `list` was made from, position for position
+	const seqAtSend = editSeq
+	const commentsAtSend = commentsSeq
 	try {
-		// An autosave names the copy it started from and is refused (409) when
-		// another tab saved since; a deliberate Save carries no base and wins.
+		// A save names the copy it started from and is refused (409) when
+		// another tab saved since; only a forced one carries no base and wins.
 		const body: Record<string, unknown> = { title: input("docTitle").value, chapters: list }
-		if (quiet && typeof doc.rev === "number") body.baseRev = doc.rev
-		const r = await api<{ doc: DocPayload }>("/api/docs/" + encodeURIComponent(docId), body, "PUT")
+		if (!force && typeof doc.rev === "number") body.baseRev = doc.rev
+		// A request that never answers must not hold `saving` forever: every
+		// later save would return at once, silently, and so would the draft.
+		const r = await api<{ doc: DocPayload }>("/api/docs/" + encodeURIComponent(docId), body, "PUT", { timeoutMs: SAVE_TIMEOUT_MS })
 		conflicted = false
+		refreshSaveBtn()
 		banners.hide("conflictBar")
 		doc = r.doc
-		comments = doc.comments || []
+		// The response's threads are a snapshot from when the request began. A
+		// reply, a reaction or a whole new comment that arrived while it was
+		// out has already been pushed to this page — the snapshot would
+		// silently take it back off the rail (and, for a new comment, prune
+		// the underline the page had just placed, orphaning it for good).
+		if (commentsSeq === commentsAtSend) comments = doc.comments || []
+		if (editSeq !== seqAtSend) {
+			// Something changed while the request was out — typing, a new
+			// chapter, a rename, a reorder. The page is AHEAD of what the server
+			// just stored, so nothing here is replaced or repainted: the sent
+			// chapters only learn the ids the server minted for them, it all
+			// stays unsaved, and the draft is kept rather than cleared.
+			const rows = doc.chapters || []
+			sent.forEach((c, i) => {
+				if (c.id == null && rows[i]?.id) c.id = rows[i]!.id
+			})
+			saveDraft(docId, draftChapters(), input("docTitle").value, undefined, doc?.rev)
+			socket?.emit("doc-saved", { auth: getToken(), id: docId })
+			renderChapters()
+			return true
+		}
 		// the server's copy is the truth now: ids for new chapters, sanitized
 		// html, counts — order is preserved, so the open index still holds
 		chapters = (doc.chapters || []).map((c) => ({ ...c }))
 		openIdx = Math.min(openIdx, chapters.length - 1)
 		// render the server's sanitized copy so what we see is what's stored
 		if (!sourceMode && !quiet) $("docEditor").innerHTML = chapters[openIdx]?.html || ""
-		// a keystroke that landed while the request was out keeps it dirty
-		if (lastEditAt === editedSince) setDirty(false)
+		setDirty(false)
 		clearDraft(docId)
 		socket?.emit("doc-saved", { auth: getToken(), id: docId })
+		// a comment that landed while the save was out isn't in the copy just
+		// painted — put its underline back, and the next save carries it
+		replaceMissingAnchors()
 		renderComments()
 		updateWords()
 		renderChapters()
@@ -1449,15 +1690,29 @@ async function save({ quiet = false }: { quiet?: boolean } = {}) {
 		// every 30s over whatever you typed); Save still goes through.
 		if (e instanceof ApiError && e.status === 409) {
 			conflicted = true
+			refreshSaveBtn()
 			banners.show("conflictBar")
 			return false
 		}
+		// The server has the words in memory but its database didn't take them
+		// (503 `unlanded`): not saved. Its copy DID move, so the retry must name
+		// that rev or it would read as a conflict with ourselves; and the words
+		// go to the local draft, the one place they are certainly on a disk.
+		if (e instanceof ApiError && e.data.unlanded) {
+			if (doc && typeof e.data.rev === "number") doc.rev = e.data.rev
+			saveDraft(docId, draftChapters(), input("docTitle").value, undefined, doc?.rev)
+		}
+		// Any other failure — offline, timed out, signed out, too large: the
+		// server does not have these words, so the browser keeps them.
+		saveDraft(docId, draftChapters(), input("docTitle").value, undefined, doc?.rev)
 		$("docErr").textContent = (e as Error).message
 		return false
 	} finally {
 		saving = false
+		refreshSaveBtn()
 	}
 }
+const SAVE_TIMEOUT_MS = 20000
 $("saveBtn").addEventListener("click", () => save())
 document.addEventListener("keydown", (e) => {
 	if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
@@ -1517,10 +1772,23 @@ $("docSource").addEventListener("input", () => findBar.refresh())
 const AUTOSAVE_MS = 30000
 const AUTOSAVE_IDLE_MS = 3000
 setInterval(() => {
-	if (!dirty || !doc?.mine || conflicted) return
-	if (Date.now() - lastEditAt >= AUTOSAVE_IDLE_MS) save({ quiet: true })
-	else saveDraft(docId, allChapters(), input("docTitle").value)
+	if (!dirty || !doc?.mine) return
+	// The browser's copy first, every tick, whatever happens next: while a
+	// conflict pauses saving, while a save is out, while you are mid-sentence.
+	// (It used to be written only in the mid-sentence case, so a stuck or
+	// failing save left the words nowhere but the page.)
+	saveDraft(docId, draftChapters(), input("docTitle").value, undefined, doc?.rev)
+	if (!conflicted && Date.now() - lastEditAt >= AUTOSAVE_IDLE_MS) void save({ quiet: true })
 }, AUTOSAVE_MS)
+// A phone that backgrounds the tab may never run another line of this page:
+// no beforeunload, no timer. Hidden is the last moment that is guaranteed.
+const draftIfDirty = () => {
+	if (dirty && doc?.mine) saveDraft(docId, draftChapters(), input("docTitle").value, undefined, doc?.rev)
+}
+document.addEventListener("visibilitychange", () => {
+	if (document.visibilityState === "hidden") draftIfDirty()
+})
+window.addEventListener("pagehide", draftIfDirty)
 
 // The banners under the toolbar: unsaved work from a previous session, and an
 // autosave refused because another tab saved first. Both are decisions, so
@@ -1534,22 +1802,35 @@ banners.add({
 			id: "restoreYes",
 			label: "Restore them",
 			primary: true,
-			onClick: () => {
+			onClick: async () => {
 				const d = loadDraft(docId)
+				// Restoring replaces the page. Words typed since it opened are in
+				// neither the draft nor the server — ask before they go.
+				if (d && dirty) {
+					const ok = await confirmDialog({
+						title: "Replace what you've typed?",
+						text: "You've written on this page since opening it. Restoring the earlier draft replaces that.",
+						confirmLabel: "Restore the draft",
+					})
+					if (!ok) return
+				}
 				if (d) {
-					// a draft chapter with no id (never saved, or a pre-chapter draft)
-					// takes the stored chapter's id at the same position, if any
-					chapters = d.chapters.map((c, i) => ({
-						id: c.id ?? doc?.chapters?.[i]?.id ?? null,
-						title: c.title || doc?.chapters?.[i]?.title || `Chapter ${i + 1}`,
-						html: c.html,
-					}))
+					// The draft is laid over the SERVER's chapter list (mergeDraft): only
+					// the chapters this page edited come back from it; one added,
+					// renamed, rewritten or deleted from another tab or device since
+					// stays as the server has it, so the next save can't undo that.
+					const merged = mergeDraft(d, doc)
+					chapters = merged.map((c, i) => ({ id: c.id, title: c.title || `Chapter ${i + 1}`, html: c.html }))
+					// what came back from the draft is unsaved work again
+					chapters.forEach((c, i) => merged[i]!.touched && touched.add(c))
 					openIdx = Math.min(openIdx, chapters.length - 1)
 					if (sourceMode) setMode(false)
 					$("docEditor").innerHTML = chapters[openIdx]?.html ?? ""
 					if (d.title) input("docTitle").value = d.title
 					undoHistory.reset()
 					setDirty(true)
+					// the draft predates any comment made since it was written
+					replaceMissingAnchors()
 					renderComments()
 					updateWords()
 					renderChapters()
@@ -1570,18 +1851,22 @@ banners.add({
 banners.add({
 	id: "conflictBar",
 	kind: "warn",
-	html: "<b>This story was changed in another tab.</b> Autosave is paused here so nothing is lost.",
+	html: "<b>This story was changed somewhere else.</b> Saving is paused here so nothing is overwritten. Reloading keeps what you typed here as a draft you can restore.",
 	actions: [
 		{
 			id: "conflictReload",
 			label: "Reload to see it",
 			primary: true,
 			onClick: () => {
-				dirty = false // the writer chose the other tab's copy; don't ask again on the way out
+				// The writer chose the other copy — but what they typed here is still
+				// theirs: it goes to the local draft first, so the reloaded page
+				// offers it back instead of it being gone for good.
+				if (dirty) saveDraft(docId, draftChapters(), input("docTitle").value, undefined, doc?.rev)
+				setDirty(false) // don't ask again on the way out
 				location.reload()
 			},
 		},
-		{ id: "conflictSave", label: "Save & overwrite", onClick: () => save() },
+		{ id: "conflictSave", label: "Save & overwrite", onClick: () => save({ force: true }) },
 	],
 })
 
@@ -1650,7 +1935,7 @@ window.addEventListener("pagehide", () => stopSprint({ leaving: true }))
 // beforeunload covers reloads/closes; the styled modal covers in-app links.
 window.addEventListener("beforeunload", (e) => {
 	if (!dirty) return
-	saveDraft(docId, allChapters(), input("docTitle").value)
+	saveDraft(docId, draftChapters(), input("docTitle").value, undefined, doc?.rev)
 	e.preventDefault()
 	e.returnValue = ""
 })
@@ -1674,7 +1959,7 @@ $("leaveCancel").addEventListener("click", () => {
 	leaveTo = null
 })
 $("leaveAnyway").addEventListener("click", () => {
-	saveDraft(docId, allChapters(), input("docTitle").value)
+	saveDraft(docId, draftChapters(), input("docTitle").value, undefined, doc?.rev)
 	dirty = false
 	location.href = leaveTo || "/writes"
 })
@@ -1977,17 +2262,24 @@ $("chapPanel").addEventListener("click", (e) => {
 	if (b.classList.contains("chap-down")) return moveChapter(i, 1)
 	if (b.classList.contains("chap-rename")) return renameChapter(i)
 	if (b.classList.contains("chap-del")) {
-		// two clicks: the first arms it, the second deletes
-		if (b.dataset.armed !== "1") {
-			$("chapPanel").querySelectorAll<HTMLElement>(".chap-del[data-armed]").forEach((x) => {
-				delete x.dataset.armed
-				x.textContent = "✕"
-			})
-			b.dataset.armed = "1"
-			b.textContent = "Delete?"
-			return
-		}
-		deleteChapter(i)
+		// A chapter is thousands of words and undo can't bring it back, so it
+		// asks — by name, with the count. (It used to be two clicks on the ✕:
+		// an ordinary double-click, or a double-tap on a phone, deleted it.)
+		// An empty chapter has nothing to lose and just goes.
+		stashCurrent()
+		const ch = chapters[i]
+		const words = i === openIdx ? countNow() : (ch?.wordCount ?? countWordsHtml(ch?.html))
+		if (!ch || !words) return deleteChapter(i)
+		// open notes in it are named too: one may have arrived a moment ago
+		const notes = comments.filter((c) => !c.resolved && (c.chapterId === ch.id || c.pos?.chapterId === ch.id)).length
+		void confirmDialog({
+			title: `Delete “${ch.title || `Chapter ${i + 1}`}”?`,
+			text: `${wordsLabel(words)}${notes ? ` and ${notes} open comment${notes === 1 ? "" : "s"}` : ""} go with it${notes ? "" : ", and its comments lose their place"}. You can get it back from Version history after your next save.`,
+		}).then((ok) => {
+			// the list may have changed while the dialog was up: delete THAT chapter, or nothing
+			const at = chapters.indexOf(ch)
+			if (ok && at >= 0) deleteChapter(at)
+		})
 	}
 })
 $("chapPanel").addEventListener("dblclick", (e) => {
@@ -2065,13 +2357,140 @@ $("exportWork").addEventListener("click", () => {
 	download(exportWork(d), `${slugOf(d.title)}.html`)
 })
 
+// A tab that was away asks what the story looks like now. A clean tab whose
+// copy is behind simply reloads onto the newer one; a tab with unsaved typing
+// keeps its words and is told (its next save would be refused anyway).
+// Take the server's whole copy — the author's other tab saved (doc-updated),
+// or this page was away and is catching up. My own other tab: a clean tab
+// follows it, so it is never stale; a tab with unsaved typing keeps its
+// words and lets the version check on its next autosave say so.
+function applyServerCopy({ html, title, chapters: rows, updatedAt, rev }: Pick<DocPayload, "html" | "title" | "chapters" | "updatedAt" | "rev">) {
+	if (!doc) return
+	if (doc.mine) {
+		// the stale rev stays on a dirty tab, so its next autosave is refused
+		if (dirty || saving) return
+		if (typeof updatedAt === "number") doc.updatedAt = updatedAt
+	}
+	// a reader's rev is only ever a label, but keeping it current is what
+	// lets catchUp tell "moved on" from "same"
+	if (typeof rev === "number") doc.rev = rev
+	doc.html = html
+	doc.title = title
+	input("docTitle").value = title
+	// keep the chapter I'm reading, by id; it may have been deleted
+	const wasId = openChapter()?.id
+	// a reader's half-written note survives the repaint and goes back on its words
+	const keep = snapshotComposer()
+	chapters = (Array.isArray(rows) && rows.length ? rows : [{ id: null, title: "Chapter 1", html: html || "" }]).map((c) => ({ ...c }))
+	doc.chapters = chapters
+	const at = chapters.findIndex((c) => c.id === wasId)
+	openIdx = Math.max(0, at)
+	$("docEditor").innerHTML = chapters[openIdx]?.html || ""
+	// The undo stack remembers the OLD page. Left alone, one Ctrl+Z would
+	// paste that html — possibly another chapter's — over this one.
+	undoHistory.reset()
+	if (at < 0 && wasId) setStatus("That chapter was removed")
+	renderDoc()
+	updateWords()
+	renderChapters()
+	if (keep) restoreComposer(keep, "The story changed under you")
+}
+// Back from being away (a hidden tab, a dropped socket): is the server ahead?
+// The author's clean tab reloads onto the newer copy, a dirty one gets the
+// conflict bar. A READER just takes the copy — with no such check they kept
+// whatever html they had, and every note they made after coming back met a
+// chapter that had moved on.
+async function catchUp() {
+	if (!doc || saving) return
+	try {
+		const r = await api<{ doc: DocPayload }>("/api/docs/" + encodeURIComponent(docId), null, "GET")
+		if (!doc || (r.doc.rev || 0) === (doc.rev || 0)) return
+		if (!doc.mine) {
+			comments = r.doc.comments || comments
+			applyServerCopy(r.doc)
+			renderComments()
+			return
+		}
+		if (dirty) {
+			conflicted = true
+			refreshSaveBtn()
+			banners.show("conflictBar")
+		} else location.reload()
+	} catch {
+		// offline again, or signed out: the save path says so when it matters
+	}
+}
+document.addEventListener("visibilitychange", () => {
+	if (document.visibilityState === "visible") void catchUp()
+})
+
+// ---- version history ----
+// The copies the server kept (lib/doc-history.js says which). Download reads
+// one without touching the story; Restore is a save on the server, so this
+// page reloads onto it — after putting any unsaved words in the local draft.
+async function openHistory() {
+	$("historyModal").classList.remove("hidden")
+	$("historyList").innerHTML = `<p class="subtle">Looking…</p>`
+	try {
+		const r = await api<{ versions: VersionRow[] }>(`/api/docs/${encodeURIComponent(docId)}/history`, null, "GET")
+		$("historyList").innerHTML = versionListHtml(
+			r.versions,
+			chapters.reduce((n, c, i) => n + (i === openIdx ? countNow() : c.wordCount || 0), 0),
+			chapters.length,
+		)
+	} catch (e) {
+		$("historyList").innerHTML = `<p class="err">${esc((e as Error).message)}</p>`
+	}
+}
+const closeHistory = () => $("historyModal").classList.add("hidden")
+$("historyBtn").addEventListener("click", () => void openHistory())
+$("historyClose").addEventListener("click", closeHistory)
+$("historyModal").addEventListener("click", (e) => {
+	if (e.target === $("historyModal")) closeHistory()
+})
+document.addEventListener("keydown", (e) => {
+	if (e.key === "Escape" && !$("historyModal").classList.contains("hidden")) closeHistory()
+})
+$("historyList").addEventListener("click", async (e) => {
+	const t = e.target as HTMLElement
+	const at = t.closest<HTMLElement>(".history-row")?.dataset.at
+	if (!at) return
+	const url = `/api/docs/${encodeURIComponent(docId)}/history/${at}`
+	if (t.closest(".history-get")) {
+		const r = await api<{ version: { title: string; chapters: Chapter[] } }>(url, null, "GET")
+		const d = { title: r.version.title || doc?.title, chapters: r.version.chapters }
+		download(exportWork(d), `${slugOf(d.title)}-${new Date(Number(at)).toISOString().slice(0, 16).replace(/[:T]/g, "-")}.html`)
+	} else if (t.closest(".history-restore")) {
+		const ok = await confirmDialog({
+			title: "Restore this version?",
+			confirmLabel: "Restore",
+			danger: false,
+			text: "The story goes back to this copy. What is on the page now is kept in the history too, so you can undo this.",
+		})
+		if (!ok) return
+		try {
+			if (dirty) saveDraft(docId, draftChapters(), input("docTitle").value, undefined, doc?.rev)
+			await api(url + "/restore", {})
+			setDirty(false)
+			location.reload()
+		} catch (err) {
+			$("historyList").insertAdjacentHTML("afterbegin", `<p class="err">${esc((err as Error).message)}</p>`)
+		}
+	}
+})
+
 // ---- live presence + comments ----
 function connect() {
 	const s: Socket<ServerToClient, ClientToServer> = io()
 	socket = s
+	let connectedOnce = false
 	s.on("connect", () => {
 		s.emit("identify", { auth: getToken() })
 		s.emit("doc-open", { auth: getToken(), id: docId })
+		// A RE-connect means this tab was away (a closed lid, a backgrounded
+		// phone) and heard none of the saves made meanwhile.
+		if (connectedOnce) void catchUp()
+		connectedOnce = true
 	})
 	s.on("doc-presence", ({ id, viewers }) => {
 		if (id !== docId) return
@@ -2081,35 +2500,47 @@ function connect() {
 	s.on("doc-comments", ({ id, comments: rows }) => {
 		if (id !== docId) return
 		comments = rows
+		commentsSeq++
+		arrivedCids.clear() // the list these anchors belong to is here
 		// the server has spoken: nothing is "just sent" any more, so any
 		// anchor it doesn't know about is fair game for the prune
 		for (const cid of pendingCids) if (rows.some((c) => c.cid === cid)) pendingCids.delete(cid)
+		for (const cid of sentNotes.keys()) if (rows.some((c) => c.cid === cid)) sentNotes.delete(cid)
+		if (lostReply && rows.find((c) => c.id === lostReply!.commentId)?.replies?.some((r) => r.text === lostReply!.value && r.author === me?.username)) lostReply = null
 		mergeArrivedAnchors()
 		renderComments()
 	})
+	// My comment wasn't taken. `stale`: this tab is behind the stored story —
+	// its html would have rolled the chapter back — so it gets the conflict
+	// bar like any refused save. Either way the underline it drew comes off.
+	s.on("doc-comment-refused", ({ id, cid, reason }) => {
+		if (id !== docId) return
+		if (reason === "closed") {
+			// a reply or reaction on a thread that was resolved or deleted first;
+			// a reply's words wait for the thread to be reopened
+			const t = lostReply?.commentId === cid ? lostReply : null
+			setStatus(t ? "That thread was closed before your reply landed — reopen it to answer" : "That thread was closed")
+			return
+		}
+		pendingCids.delete(cid)
+		const note = sentNotes.get(cid) || null
+		sentNotes.delete(cid)
+		renderComments()
+		if (reason === "long") return void ($("docErr").textContent = "This chapter is too long to comment on. Split it into two chapters.")
+		if (reason === "moved") {
+			// The words changed under this page (the author saved, another reader
+			// commented). The fresh chapter arrived on this socket just before;
+			// the note goes back on its words, or waits for a new selection.
+			restoreComposer(note, "The story changed under you — check the words and send again")
+			return
+		}
+		conflicted = true
+		refreshSaveBtn()
+		banners.show("conflictBar")
+	})
 	s.on("doc-updated", ({ id, html, title, chapters: rows, updatedAt, rev }) => {
 		if (id !== docId || !doc) return
-		// My own other tab saved. A clean tab follows it, so it is never stale;
-		// a tab with unsaved typing keeps its words and lets the version check
-		// on its next autosave say so.
-		if (doc.mine) {
-			// the stale rev stays on a dirty tab, so its next autosave is refused
-			if (dirty || saving) return
-			if (typeof updatedAt === "number") doc.updatedAt = updatedAt
-			if (typeof rev === "number") doc.rev = rev
-		}
-		doc.html = html
-		doc.title = title
-		input("docTitle").value = title
-		// keep the chapter I'm reading, by id; it may have been deleted
-		const wasId = openChapter()?.id
-		chapters = (Array.isArray(rows) && rows.length ? rows : [{ id: null, title: "Chapter 1", html: html || "" }]).map((c) => ({ ...c }))
-		doc.chapters = chapters
-		openIdx = Math.max(0, chapters.findIndex((c) => c.id === wasId))
-		$("docEditor").innerHTML = chapters[openIdx]?.html || ""
-		renderDoc()
-		updateWords()
-		renderChapters()
+		applyServerCopy({ html, title, chapters: rows, updatedAt, rev })
 	})
 	// The html itself changed: someone anchored a comment, or a suggestion
 	// was accepted. An author with unsaved edits keeps their OWN copy of every
@@ -2124,12 +2555,17 @@ function connect() {
 		const ch = chapters.find((c) => c.id === chapterId)
 		if (!ch) return
 		if (dirty && doc?.mine) return
+		for (const cid of anchorCids(html || "")) arrivedCids.add(cid)
 		ch.html = html
 		if (typeof chapterWordCount === "number") ch.wordCount = chapterWordCount
 		if (ch !== openChapter()) return renderChapters()
+		// a reader's half-written note survives the repaint (another reader's
+		// comment, an accepted suggestion) and goes back on its words
+		const keep = snapshotComposer()
 		$("docEditor").innerHTML = html || ""
 		undoHistory.reset()
 		renderDoc()
+		if (keep) restoreComposer(keep, "The story changed under you")
 		updateWords()
 		renderChapters()
 	})

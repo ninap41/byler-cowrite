@@ -308,6 +308,14 @@ export interface ServerToClient {
 	// the solo editor (src/game.js doc-* handlers): presence, comments and pushes
 	"doc-presence": (p: { id: string; viewers: DocViewer[] }) => void
 	"doc-comments": (p: { id: string; comments: DocCommentRow[] }) => void
+	/** the sender's comment was not taken: `stale` = their copy of the story is behind the stored one; `long` = the chapter is past the size limit */
+	/**
+	 * stale: an author's tab behind the stored story; long: over DOC_MAX;
+	 * moved: a reader's note met a chapter the author (or another reader) had
+	 * changed since their page last saw it; closed: a reply/reaction on a thread
+	 * that was resolved or deleted first. For `closed`, `cid` is the comment id.
+	 */
+	"doc-comment-refused": (p: { id: string; cid: string; reason: "stale" | "long" | "moved" | "closed" }) => void
 	"doc-updated": (p: { id: string; html: string; title: string; chapters: DocChapterRow[]; updatedAt?: number; rev?: number }) => void
 	"doc-html": (p: { id: string; chapterId: string | null; html: string; chapterWordCount?: number; wordCount?: number }) => void
 	"doc-access-lost": (p: { id: string }) => void
@@ -347,6 +355,8 @@ export interface DocCommentRow {
 	declined?: boolean
 	edited?: boolean
 	replies?: DocReplyRow[]
+	/** emoji reactions on the note itself — reactors keyed by username, never an account id */
+	reactions?: Reactions
 	/** where the words sat when the comment was made — absent on older comments */
 	pos?: DocCommentPos | null
 }
@@ -365,6 +375,8 @@ export interface DocCommentPos {
 /** One reply in a comment's thread — identity for rendering, never an account id. */
 export interface DocReplyRow {
 	id: string
+	/** the reply this one answers; null = it answers the note itself */
+	parentId?: string | null
 	text: string
 	ts?: number
 	edited?: boolean
@@ -373,6 +385,7 @@ export interface DocReplyRow {
 	avatar?: string
 	avatarFit?: AvatarFit | string
 	isAuthor?: boolean
+	reactions?: Reactions
 }
 
 type AckFn<T = Record<never, never>> = (res: Ack<T>) => void
@@ -427,10 +440,12 @@ export interface ClientToServer {
 	"doc-open": (p: { auth: string | null; id: string }) => void
 	"doc-close": () => void
 	"doc-saved": (p: { auth: string | null; id: string }) => void
-	"doc-comment": (p: { auth: string | null; id: string; cid: string; chapterId: string | null; html: string; text: string; suggestion: string | null }) => void
+	/** `baseRev`: the save the sender's copy came from — the AUTHOR's html is taken only when it still matches the stored one */
+	"doc-comment": (p: { auth: string | null; id: string; cid: string; chapterId: string | null; html: string; text: string; suggestion: string | null; baseRev?: number }) => void
 	"doc-comment-decide": (p: { auth: string | null; id: string; commentId: string; accept: boolean }) => void
 	"doc-comment-resolve": (p: { auth: string | null; id: string; commentId: string; resolved: boolean; declined?: boolean }) => void
 	"doc-comment-delete": (p: { auth: string | null; id: string; commentId: string; replyId?: string }) => void
-	"doc-comment-reply": (p: { auth: string | null; id: string; commentId: string; text: string }) => void
+	"doc-comment-reply": (p: { auth: string | null; id: string; commentId: string; parentId?: string; text: string }) => void
+	"doc-comment-react": (p: { auth: string | null; id: string; commentId: string; replyId?: string; emoji: string }) => void
 	"doc-comment-edit": (p: { auth: string | null; id: string; commentId: string; replyId?: string; text: string }) => void
 }

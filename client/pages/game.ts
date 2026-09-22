@@ -18,7 +18,8 @@ import { toolbarHtml, mountRichToolbar } from "/js/components/rich-toolbar.js"
 import { storyHtml, livePreviewHtml } from "/js/components/story-feed.js"
 import { mountPromptModes, optionChipsHtml } from "/js/components/prompt-modes.js"
 import { chatMessageHtml } from "/js/components/chat-view.js"
-import { reactionsHtml, reactionPickerHtml, reactionGridHtml } from "/js/components/reactions.js"
+import { reactionsHtml } from "/js/components/reactions.js"
+import { createReactionPicker } from "/js/components/reaction-picker.js"
 import { confirmDialog } from "/js/components/confirm-delete.js"
 import { getSpectatorName } from "/js/spectator-names.js"
 import { countdownView } from "/js/components/countdown.js"
@@ -1447,55 +1448,16 @@ function react(mid: string, emoji: string) {
 		if (r?.ok) paintReactions(mid, r.reactions)
 	})
 }
-const picker = document.createElement("div")
-picker.className = "react-pick hidden"
-document.body.appendChild(picker)
-let pickerMid: string | null = null
-function closePicker() {
-	picker.classList.add("hidden")
-	pickerMid = null
-}
-function openPicker(btn: HTMLElement, mid: string) {
-	pickerMid = mid
-	picker.innerHTML = reactionPickerHtml(rowReactions.get(mid), myReactKey())
-	picker.classList.remove("hidden")
-	const search = picker.querySelector<HTMLInputElement>(".react-search")!
-	search.addEventListener("input", () => {
-		picker.querySelector(".react-grid")!.innerHTML = reactionGridHtml(rowReactions.get(mid), myReactKey(), search.value)
-	})
-	search.addEventListener("keydown", (e) => {
-		// Enter picks the first match
-		if (e.key !== "Enter") return
-		const first = picker.querySelector<HTMLElement>("[data-react]")
-		if (first && pickerMid) {
-			react(pickerMid, first.dataset.react || "")
-			closePicker()
-		}
-	})
-	if (!matchMedia("(hover: none)").matches) search.focus()
-	const r = btn.getBoundingClientRect(), pw = picker.offsetWidth || 300
-	picker.style.left = Math.max(8, Math.min(window.innerWidth - pw - 8, r.left)) + "px"
-	picker.style.top = (r.top - picker.offsetHeight - 6 > 8 ? r.top - picker.offsetHeight - 6 : r.bottom + 6) + "px"
-}
+// the floating picker is shared with the solo editor's comment threads
+const picker = createReactionPicker({ reactionsOf: (mid) => rowReactions.get(mid), myKey: myReactKey, onPick: react })
 $("chatLog").addEventListener("click", (e) => {
 	const t = e.target as HTMLElement
 	const chip = t.closest?.<HTMLElement>("[data-react]")
 	const row = t.closest?.<HTMLElement>("[data-mid]")
 	if (chip && row) return react(row.dataset.mid || "", chip.dataset.react || "")
 	const add = t.closest?.<HTMLElement>(".react-add")
-	if (add && row) return pickerMid === row.dataset.mid ? closePicker() : openPicker(add, row.dataset.mid || "")
+	if (add && row) return picker.toggle(add, row.dataset.mid || "")
 })
-picker.addEventListener("click", (e) => {
-	const opt = (e.target as HTMLElement).closest?.<HTMLElement>("[data-react]")
-	if (!opt || !pickerMid) return
-	react(pickerMid, opt.dataset.react || "")
-	closePicker()
-})
-document.addEventListener("click", (e) => {
-	const t = e.target as HTMLElement
-	if (pickerMid && !picker.contains(t) && !t.closest?.(".react-add")) closePicker()
-})
-document.addEventListener("keydown", (e) => e.key === "Escape" && pickerMid && closePicker())
 socket.on("chat-history", (msgs) => {
 	$("chatLog").innerHTML = ""
 	rowReactions.clear()

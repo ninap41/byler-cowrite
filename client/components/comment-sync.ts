@@ -170,3 +170,30 @@ export function placeAnchor(root: Element, cid: string, pos: AnchorPos): boolean
 	}
 	return true
 }
+
+/**
+ * A Range over the first place `text` occurs in `root`'s text, or null. For
+ * putting a reader's half-written note back on its words after the page
+ * under it was repainted — the old Range points into nodes that are gone.
+ */
+export function rangeOfText(root: Element, text: string): Range | null {
+	const want = text.trim()
+	if (!want) return null
+	const nodes = textNodes(root)
+	const at = nodes.map((n) => n.data).join("").indexOf(want)
+	if (at < 0) return null
+	const end = at + want.length
+	let startNode: Text | null = null, startOff = 0, endNode: Text | null = null, endOff = 0
+	let seen = 0
+	for (const n of nodes) {
+		const len = n.data.length
+		if (!startNode && at < seen + len) { startNode = n; startOff = at - seen }
+		if (startNode && end <= seen + len) { endNode = n; endOff = end - seen; break }
+		seen += len
+	}
+	if (!startNode || !endNode) return null
+	const range = root.ownerDocument.createRange()
+	range.setStart(startNode, startOff)
+	range.setEnd(endNode, endOff)
+	return range
+}

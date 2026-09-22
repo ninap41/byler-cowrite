@@ -22,6 +22,8 @@
 	--accent: #ff3b3b;
 	--accent-2: #7adcc3;
 	--good: #61e2a2;
+	/* a caution mark — one amber that reads on every theme's ink; a theme may override it */
+	--warn: #e0a800;
 	--glow: rgba(255, 59, 59, 0.35);
 	--grad-1: linear-gradient(120deg, #ff3b3b, #b56576 45%, #7adcc3);
 	--grad-hero: radial-gradient(120% 130% at 50% 0%, rgba(255, 59, 59, 0.12), transparent 70%);
@@ -943,6 +945,13 @@ a.solo-title:hover {
 .theme-switch {
 	position: relative;
 	perspective: 700px;
+}
+/* `perspective` makes the switch a stacking context, so the menu's own
+   z-index only orders it INSIDE the switch — against later siblings (the
+   write page's toolbar row, say) the switch itself counted as level 0 and
+   the menu opened underneath them. The open switch carries the z-index. */
+.theme-switch.open {
+	z-index: 120;
 }
 .theme-switch button {
 	flex: 0 0 auto;
@@ -3080,17 +3089,20 @@ input[type="checkbox"]:focus-visible {
 	position: relative;
 	padding-right: 30px;
 }
-.chat-log .reacts {
+.chat-log .reacts,
+.doc-comment .reacts {
 	display: flex;
 	flex-wrap: wrap;
 	justify-content: flex-start;
 	gap: 4px;
 	margin-top: 3px;
 }
-.chat-log .reacts:empty {
+.chat-log .reacts:empty,
+.doc-comment .reacts:empty {
 	display: none;
 }
 .chat-log .react,
+.doc-comment .react,
 .react-pick .react-opt {
 	display: inline-flex;
 	align-items: center;
@@ -3111,18 +3123,21 @@ input[type="checkbox"]:focus-visible {
 	box-shadow: none;
 	cursor: pointer;
 }
-.chat-log .react .react-n {
+.chat-log .react .react-n,
+.doc-comment .react .react-n {
 	font-family: var(--font-mono);
 	font-size: 0.72rem;
 	color: var(--muted);
 }
-.chat-log .react {
+.chat-log .react,
+.doc-comment .react {
 	position: relative; /* the tooltip hangs off the chip */
 	border: none; /* a soft pill, no outline */
 }
 /* who reacted: one name per row in their own colour, shown the instant the
    chip is hovered or focused (no native-title delay), above the chip */
-.chat-log .react-tip {
+.chat-log .react-tip,
+.doc-comment .react-tip {
 	position: absolute;
 	left: 0;
 	bottom: calc(100% + 6px);
@@ -3144,19 +3159,24 @@ input[type="checkbox"]:focus-visible {
 	pointer-events: none;
 }
 .chat-log .react:hover .react-tip,
-.chat-log .react:focus-visible .react-tip {
+.doc-comment .react:hover .react-tip,
+.chat-log .react:focus-visible .react-tip,
+.doc-comment .react:focus-visible .react-tip {
 	display: flex;
 }
-.chat-log .react-who {
+.chat-log .react-who,
+.doc-comment .react-who {
 	color: var(--ink);
 	font-weight: 600;
 }
 .chat-log .react.mine,
+.doc-comment .react.mine,
 .react-pick .react-opt.on {
 	border-color: var(--accent-2);
 	background: color-mix(in srgb, var(--accent-2) 22%, var(--panel));
 }
-.chat-log .react.mine .react-n {
+.chat-log .react.mine .react-n,
+.doc-comment .react.mine .react-n {
 	color: var(--accent-2);
 }
 /* a tiny pill with a grey smiley, shown on hover */
@@ -3257,7 +3277,8 @@ input[type="checkbox"]:focus-visible {
 	background: var(--panel);
 	transform: none;
 }
-.chat-log .react .react-e {
+.chat-log .react .react-e,
+.doc-comment .react .react-e {
 	font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
 	background: none;
 	-webkit-text-fill-color: initial;
@@ -7060,6 +7081,13 @@ body.write-page {
 	box-shadow: var(--panel-glow);
 	overflow: visible;
 }
+/* The shell is a stacking context, so a menu inside it (Appearance, the
+   theme picker, Document, the ⋯) can't out-stack the chapter panel (70) or
+   the comments sheet (60) that overlay the page on narrow screens — whatever
+   the menu's own z-index says. While one is open, the whole shell rises. */
+.doc-shell:has(.vis-menu.open, .theme-switch.open, .xp-menu.open, .more-menu:not(.hidden)) {
+	z-index: 80;
+}
 .doc-head {
 	display: flex;
 	align-items: center;
@@ -7120,7 +7148,8 @@ body.doc-page .topbar {
 }
 .doc-save {
 	flex: 0 0 auto;
-	min-width: 0;
+	/* wide enough for "Saving…", so Save ⇄ Saving… never shoves the row */
+	min-width: 6.2em;
 	padding: 10px 22px;
 	font-size: 1rem;
 }
@@ -7149,6 +7178,13 @@ body.doc-page .topbar {
    than sit where the toolbar's tail used to be. */
 #docToolbar.hidden + .doc-view-prefs {
 	margin-right: auto;
+}
+/* …and its menu hangs from the chip's LEFT edge there: right-anchored (as it
+   is for the author, whose chip sits at the row's end) it opened half off
+   the left of the screen. */
+#docToolbar.hidden + .doc-view-prefs .view-menu {
+	left: 0;
+	right: auto;
 }
 .doc-toolbar-row .toolbar {
 	flex: 1 1 auto;
@@ -8047,20 +8083,25 @@ body.resizing-side {
 	color: var(--accent);
 }
 .dc-actions button:focus-visible,
-.dc-more:focus-visible,
 .dc-send:focus-visible {
 	outline: 2px solid var(--accent-2);
 	outline-offset: 1px;
 }
 
-/* replies hang under the note, behind a dashed rule */
+/* replies hang under the note */
 .dc-replies {
 	list-style: none;
 	margin: 8px 0 0;
-	padding: 8px 0 0 10px;
-	border-top: 1px dashed var(--line);
+	padding: 0;
 	display: grid;
 	gap: 8px;
+}
+/* each reply hangs under what it answers: a step in per level (--d, set by
+   replyHtml and capped there), behind a rule */
+.dc-reply-item {
+	margin-left: calc((var(--d, 1) - 1) * 9px);
+	padding-left: 12px;
+	border-left: 2px solid var(--line);
 }
 .dc-reply-item .dc-text {
 	margin: 4px 0 0;
@@ -8093,45 +8134,148 @@ body.resizing-side {
 	cursor: pointer;
 }
 
-/* ⋮ — edit / delete, on the note and on each reply */
-.dc-more-wrap {
-	position: relative;
-	flex: 0 0 auto;
+/* what you can do to one message, in a row under it: Reply · Edit · Delete
+   (Reopen on a closed note), the reaction smiley, then the chips. The global
+   button rules (pill fill, min-width, form padding) are reset. */
+.dc-acts {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 4px;
+	margin-top: 2px;
+	cursor: default;
 }
-.dc-more {
+.dc-acts .dc-act,
+.dc-show-more {
+	flex: none;
+	width: auto;
 	min-width: 0;
-	width: 22px;
-	padding: 2px 0;
+	min-height: 0;
+	padding: 3px 8px;
 	border: 0;
-	border-radius: 6px;
+	border-radius: 8px;
+	background: none;
+	box-shadow: none;
+	color: var(--ink);
+	font: inherit;
+	font-size: 0.75rem;
+	font-weight: 600;
+	line-height: 1.2;
+	cursor: pointer;
+	transform: none;
+}
+.dc-acts .dc-act:first-child {
+	margin-left: -8px; /* the first word lines up with the text above it */
+}
+.dc-acts .dc-act:hover,
+.dc-show-more:hover {
+	background: var(--chip);
+	transform: none;
+}
+.dc-acts .dc-edit,
+.dc-show-more {
+	color: var(--accent-2);
+}
+.dc-acts .dc-del {
+	color: var(--accent);
+}
+.dc-acts .dc-act:focus-visible,
+.dc-acts .react-add:focus-visible,
+.dc-show-more:focus-visible {
+	outline: 2px solid var(--accent-2);
+	outline-offset: 1px;
+}
+.dc-acts .reacts {
+	margin-top: 0;
+}
+/* The ⋯ at the row's end: Edit · Delete · Add reaction wait behind it, in
+   a small popover under the button. `open` on the wrapper shows it (a
+   class, not .hidden — the twin trap). */
+.dc-more {
+	position: relative;
+	margin-left: auto;
+}
+.dc-more-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 26px;
+	min-width: 0;
+	min-height: 0;
+	height: 20px;
+	padding: 0;
+	border: 0;
+	border-radius: 999px;
 	background: none;
 	box-shadow: none;
 	color: var(--muted);
+	font: inherit;
+	font-size: 0.9rem;
+	font-weight: 700;
+	line-height: 1;
+	letter-spacing: 0.05em;
 	cursor: pointer;
+	transform: none;
 }
-.dc-more:hover {
-	background: var(--chip);
+.dc-more-btn:hover,
+.dc-more.open .dc-more-btn {
 	color: var(--ink);
+	background: var(--chip);
+	transform: none;
+}
+.dc-more-btn:focus-visible {
+	outline: 2px solid var(--accent-2);
+	outline-offset: 1px;
 }
 .dc-menu {
+	display: none;
 	position: absolute;
-	top: 100%;
 	right: 0;
-	z-index: 5;
-	display: grid;
-	min-width: 120px;
+	top: calc(100% + 4px);
+	z-index: 3;
+	flex-direction: column;
+	min-width: 150px;
 	padding: 4px;
 	border: 1px solid var(--panel-brd);
 	border-radius: var(--r-md);
-	background: var(--panel);
+	/* the panel tint over the page's ground: opaque, so the buttons under it can't show through */
+	background: linear-gradient(var(--panel), var(--panel)), var(--bg);
 	box-shadow: var(--panel-glow);
 }
-.dc-menu .more-item {
-	padding: 6px 8px;
-	font-size: 0.82rem;
+.dc-more.open .dc-menu {
+	display: flex;
 }
-.dc-menu .dc-del {
-	color: var(--accent);
+/* every item is the same flex row, so the words line up whether or not one leads with an icon */
+.dc-menu .dc-act {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	width: 100%;
+	justify-content: flex-start;
+	text-align: left;
+	margin: 0;
+	padding: 6px 10px;
+}
+.dc-menu .react-add {
+	color: var(--ink);
+}
+/* each item leads with an icon in a slot of one width, so the words align */
+.dc-menu .dc-act i {
+	flex: none;
+	width: 1.1em;
+	text-align: center;
+	color: var(--muted);
+	background: none;
+	-webkit-text-fill-color: currentColor;
+}
+.dc-show-more {
+	display: block;
+	margin: 6px 0 0 -8px;
+	text-align: left;
+}
+.doc-comment.all .dc-show-more,
+.doc-comment:not(.all) .dc-reply-item.extra {
+	display: none;
 }
 .dc-editbox {
 	display: grid;
@@ -8161,7 +8305,6 @@ body.resizing-side {
 
 /* a closed thread folds to a line; a click unfolds it to read */
 .dc-state {
-	margin-left: auto;
 	color: var(--muted);
 	font-size: 0.75rem;
 	white-space: nowrap;
@@ -8189,6 +8332,83 @@ body.resizing-side {
 	font-size: 0.8rem;
 	color: var(--muted);
 	margin: 0 0 6px;
+}
+
+/* ---- version history (the Document menu's dialog) ---- */
+.history-card {
+	width: min(560px, calc(100vw - 32px));
+	max-height: min(80vh, 640px);
+	display: flex;
+	flex-direction: column;
+	text-align: left;
+}
+.history-list {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-y: auto;
+	margin: 8px 0 12px;
+}
+.history-now {
+	margin: 0 0 8px;
+	font-size: 0.9rem;
+	color: var(--muted);
+	text-align: left;
+}
+.history-rows {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: grid;
+	gap: 6px;
+}
+.history-row {
+	display: grid;
+	grid-template-columns: 1fr auto;
+	gap: 2px 10px;
+	align-items: center;
+	padding: 8px 10px;
+	border: 1px solid var(--line);
+	border-radius: var(--r-md);
+	background: var(--panel-2);
+}
+.history-row.drop {
+	border-color: var(--accent-2);
+}
+.history-when {
+	font-size: 0.88rem;
+}
+.history-what {
+	grid-column: 1;
+	font-size: 0.8rem;
+	color: var(--muted);
+}
+.history-why {
+	display: block;
+	font-style: normal;
+	color: var(--accent-2);
+}
+.history-acts {
+	grid-column: 2;
+	grid-row: 1 / span 2;
+	display: flex;
+	gap: 6px;
+}
+.history-acts button {
+	flex: none;
+	min-width: 0;
+	width: auto;
+	padding: 6px 10px;
+	font-size: 0.8rem;
+}
+@media (max-width: 520px) {
+	.history-row {
+		grid-template-columns: 1fr;
+	}
+	.history-acts {
+		grid-column: 1;
+		grid-row: auto;
+		margin-top: 4px;
+	}
 }
 
 /* a proposed rewrite: what it says now, what it would say */
@@ -8223,35 +8443,25 @@ body.resizing-side {
 	font-size: 0.78rem;
 	color: var(--muted);
 }
-.dc-tag {
+/* The name carries who is speaking (author / beta reader) in its tooltip. */
+.dc-who > b[data-tip] {
+	cursor: help;
+}
+/* A comment whose words are gone: a small amber ! beside the name, the
+   explanation in its tooltip. */
+.dc-flag {
+	flex: 0 0 auto;
+	display: inline-grid;
+	place-items: center;
+	width: 15px;
+	height: 15px;
+	border-radius: 50%;
+	background: var(--warn);
+	color: var(--btn-ink);
 	font-size: 0.68rem;
-	text-transform: uppercase;
-	letter-spacing: 0.06em;
-	color: var(--muted);
-	border: 1px solid var(--line);
-	border-radius: 6px;
-	padding: 0 4px;
-}
-/* the pill rides the right edge of a note's head; in a reply it follows the name */
-.doc-comment > .dc-who > .dc-tag {
-	margin-left: auto;
-}
-.doc-comment > .dc-who > .dc-when,
-.dc-reply-item .dc-when {
-	margin-left: 0;
-}
-.dc-tag.beta {
-	color: var(--accent);
-	border-color: var(--accent);
-	border-radius: 999px;
-	padding: 0 7px;
-	text-transform: none;
-}
-.dc-tag.author {
-	color: var(--good);
-	border-color: transparent;
-	background: var(--chip);
-	text-transform: none;
+	font-weight: 800;
+	line-height: 1;
+	cursor: help;
 }
 .doc-comment.orphaned {
 	border-style: dashed;
@@ -11423,8 +11633,7 @@ html.vcx-live[data-theme="vecna"] #vc-pend {
 .vcx-layer.hidden,
 .vcx-veil.hidden,
 .vcx-hud.hidden,
-.head-chip.hidden,
-.dc-menu.hidden {
+.head-chip.hidden {
 	display: none;
 }
 

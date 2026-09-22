@@ -12,7 +12,10 @@ import { stripTags, plainText } from "./sanitize.js";
  * must never look, to the author's editor, like somebody editing the story.
  *
  * @typedef {{ id: string, title: string, html: string, wordCount?: number }} DocChapter
- * @typedef {{ id: string, userId: string, text: string, ts: number, editedAt?: number }} DocReply
+ * Reactions are the chat's shape, keyed by ACCOUNT id here (commentRows ships usernames).
+ * @typedef {Record<string, { key: string, name: string, color?: string }[]>} DocReactions
+ * `parentId` names the reply this one answers (absent = the note itself).
+ * @typedef {{ id: string, userId: string, text: string, ts: number, editedAt?: number, parentId?: string, reactions?: DocReactions }} DocReply
  * Where a comment's words sat when it was made, in the chapter's plain text
  * (tags gone, entities decoded — what a DOM calls textContent), so an editor
  * that never received the anchor can put the underline back in place.
@@ -21,6 +24,7 @@ import { stripTags, plainText } from "./sanitize.js";
  *   id: string, cid: string, quote: string, userId: string, text: string,
  *   suggestion: string | null, ts: number, resolved: boolean, accepted: boolean,
  *   declined?: boolean, editedAt?: number, replies?: DocReply[], pos?: CommentPos,
+ *   reactions?: DocReactions,
  * }} DocComment
  * @typedef {{ docId: string, comments: DocComment[] }} CommentRecord
  * `html` and `comments` are ATTACHED on read and never persisted in the doc
@@ -178,7 +182,14 @@ export function migrateDocComments() {
     const raw = getJson("doc", id);
     if (!raw || !("comments" in raw) || !ID_RE.test(String(raw.id || ""))) continue;
     const moved = splitComments(raw);
-    storage.put("doc", raw.id, JSON.stringify({ ...raw, html: undefined }, null, 1));
+    // A blob from before CHAPTERS keeps its whole story in `html`. Chapters
+    // first, THEN drop the derived field — stripping `html` from a blob that
+    // has no chapters yet would write the story out of existence.
+    // An already-chaptered blob is written back exactly as it was, minus its
+    // comments: a migration is not an edit.
+    const legacy = !Array.isArray(raw.chapters) || !raw.chapters.length;
+    const doc = legacy ? ensureChapters(raw) : raw;
+    storage.put("doc", doc.id, JSON.stringify({ ...doc, html: undefined }, null, 1));
     if (moved) { docs++; comments += moved; }
   }
   if (docs) console.log(`comments: migrated ${comments} comment${comments === 1 ? "" : "s"} out of ${docs} document${docs === 1 ? "" : "s"}`);
@@ -200,12 +211,29 @@ export function writeDoc(doc) {
   // the comments are their own record (writeComments)
   const json = JSON.stringify({ ...doc, html: undefined, comments: undefined }, null, 1);
   try {
-    storage.put("doc", doc.id, json);
+    // The store answers reads from memory at once; whether the words reached
+    // the DISK/DATABASE is this promise. Most callers don't wait (storage
+    // retries a refused write by itself) — the author's save does, see docLanded.
+    const landed = Promise.resolve(storage.put("doc", doc.id, json));
+    landed.catch(() => {}); // storage logs it; an un-awaited write must not be an unhandled rejection
+    landings.set(doc, landed);
   } catch (e) {
     console.error("writeDoc failed:", e.message);
+    landings.set(doc, Promise.reject(e));
+    landings.get(doc)?.catch(() => {});
   }
   return doc;
 }
+
+/** @type {WeakMap<object, Promise<unknown>>} */
+const landings = new WeakMap();
+/**
+ * Resolves when the last writeDoc(doc) has actually been persisted, rejects
+ * when the store refused it. "Saved" on the author's screen means this
+ * resolved — the save route awaits it before answering.
+ * @param {Doc} doc
+ */
+export const docLanded = (doc) => landings.get(doc) ?? Promise.resolve();
 
 export function createDoc(ownerId, title) {
   const now = Date.now();
