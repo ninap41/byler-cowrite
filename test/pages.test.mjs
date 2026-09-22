@@ -293,8 +293,9 @@ test("a thread's closing row is bordered buttons sharing the rail; replies nest 
   assert.match(block, /min-width: 0/, "and two of them fit without clipping");
   assert.match(css.body, /\.dc-actions \.dc-decline,\n\.dc-actions \.dc-reject \{\s*color: var\(--accent\)/,
     "the refusing ones read as refusing");
-  // the ⋮ menu is gone: actions sit in a row under each message
-  assert.ok(!css.body.includes(".dc-menu") && !css.body.includes(".dc-more"));
+  // Reply and the chips sit in the row; Edit · Delete · Add reaction wait behind a ⋯ popover
+  assert.match(css.body, /\.dc-menu \{\s*display: none;\s*position: absolute/, "the menu is a class-toggled popover, not a .hidden twin");
+  assert.match(css.body, /\.dc-more\.open \.dc-menu \{\s*display: flex/);
   assert.match(css.body, /\n\.dc-reply-item \{\s*margin-left: calc\(\(var\(--d, 1\) - 1\) \* 9px\)/, "a step in per level");
   assert.match(css.body, /\.doc-comment:not\(\.all\) \.dc-reply-item\.extra \{\s*display: none/, "past the fold until Show more");
   // the rail wears the chat's reaction chips

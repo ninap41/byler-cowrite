@@ -1002,6 +1002,19 @@ $("promptInsert").addEventListener("click", () => {
 	closePromptModal()
 })
 
+// One ⋯ menu open at a time; it closes on a click anywhere else or Escape.
+function closeThreadMenus() {
+	for (const m of $("commentPane").querySelectorAll<HTMLElement>(".dc-more.open")) {
+		m.classList.remove("open")
+		m.querySelector(".dc-more-btn")?.setAttribute("aria-expanded", "false")
+	}
+}
+document.addEventListener("click", (e) => {
+	if (!(e.target as HTMLElement).closest?.(".dc-more")) closeThreadMenus()
+})
+document.addEventListener("keydown", (e) => {
+	if (e.key === "Escape") closeThreadMenus()
+})
 $("commentPane").addEventListener("click", (e) => {
 	const t = e.target as HTMLElement
 	const li = t.closest<HTMLElement>(".doc-comment")
@@ -1021,13 +1034,28 @@ $("commentPane").addEventListener("click", (e) => {
 			accept,
 		)
 		socket?.emit("doc-comment-decide", { auth: getToken(), id: docId, commentId, accept })
+	} else if (t.closest(".dc-more-btn")) {
+		// the ⋯ opens this message's menu (Edit · Delete · Add reaction) and closes any other
+		const more = t.closest<HTMLElement>(".dc-more")!
+		const open = !more.classList.contains("open")
+		closeThreadMenus()
+		if (open) {
+			more.classList.add("open")
+			more.querySelector(".dc-more-btn")?.setAttribute("aria-expanded", "true")
+		}
 	} else if (t.closest("[data-react], .react-add")) {
-		// a chip toggles mine; the smiley opens the picker for THIS message
+		// a chip toggles mine; "Add reaction" opens the picker for THIS message,
+		// anchored to the ⋯ its menu hangs from (the menu itself closes)
 		const rid = t.closest<HTMLElement>(".dc-reply-item")?.dataset.rid
 		const key = rid ? `${commentId}/${rid}` : commentId
 		const chip = t.closest<HTMLElement>("[data-react]")
 		if (chip) reactTo(key, chip.dataset.react || "")
-		else reactPicker.toggle(t.closest<HTMLElement>(".react-add")!, key)
+		else {
+			const add = t.closest<HTMLElement>(".react-add")!
+			const anchor = add.closest<HTMLElement>(".dc-more")?.querySelector<HTMLElement>(".dc-more-btn") || add
+			closeThreadMenus()
+			reactPicker.toggle(anchor, key)
+		}
 	} else if (t.closest(".dc-reply-btn")) {
 		const parentId = t.closest<HTMLElement>(".dc-reply-item")?.dataset.rid || null
 		// the same Reply again puts the box away
@@ -1053,6 +1081,7 @@ $("commentPane").addEventListener("click", (e) => {
 			declined: !!t.closest(".dc-decline"),
 		})
 	else if (t.closest(".dc-edit")) {
+		closeThreadMenus()
 		const reply = t.closest<HTMLElement>(".dc-reply-item")
 		const row = comments.find((c) => c.id === commentId)
 		const replyId = reply?.dataset.rid || null
@@ -1061,6 +1090,7 @@ $("commentPane").addEventListener("click", (e) => {
 		editing = { commentId, replyId, value: (replyId ? row?.replies?.find((r) => r.id === replyId)?.text : row?.text) || "" }
 		openEditBox()
 	} else if (t.closest(".dc-del")) {
+		closeThreadMenus()
 		const replyId = t.closest<HTMLElement>(".dc-reply-item")?.dataset.rid
 		void confirmDialog({
 			title: replyId ? "Delete this reply?" : "Delete this comment?",

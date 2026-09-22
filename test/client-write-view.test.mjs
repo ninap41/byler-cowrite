@@ -626,10 +626,11 @@ test("reply text is escaped", () => {
   assert.ok(html.includes("&lt;img"));
 });
 
-test("Reply and the reaction smiley are only for people who may write on the document", () => {
+test("Reply and Add reaction are only for people who may write on the document", () => {
   const can = commentHtml(THREAD, { canReply: true });
   assert.equal((can.match(/dc-reply-btn/g) || []).length, 2, "on the note and on the reply");
-  assert.equal((can.match(/class="react-add"/g) || []).length, 2);
+  assert.equal((can.match(/class="dc-act react-add"/g) || []).length, 2, "Add reaction, inside each ⋯ menu");
+  assert.match(can, /<span class="dc-acts"><button class="dc-act dc-reply-btn"[^>]*>Reply<\/button><span class="reacts">[\s\S]*?<\/span><span class="dc-more"><button class="dc-more-btn"/, "Reply, then the chips, then the ⋯");
   assert.ok(!can.includes("dc-reply-input"), "the box opens under the message you answer, not on every card");
   const cannot = commentHtml(THREAD);
   assert.ok(!cannot.includes("dc-reply-btn") && !cannot.includes("react-add"), "a public reader just reads");
@@ -690,7 +691,8 @@ test("the closing row: the author resolves or rejects, a reader only resolves th
 
 test("the action row offers Edit on your own words only; the author may delete anyone's", () => {
   // each row up to its chips: the buttons one message offers
-  const rows = (html) => [...html.matchAll(/<span class="dc-acts">(.*?)<span class="reacts">/g)].map((m) => m[1]);
+  // each row's ⋯ menu: the buttons one message offers
+  const rows = (html) => [...html.matchAll(/<span class="dc-menu" role="menu">(.*?)<\/span><\/span><\/span>/g)].map((m) => m[1]);
   const [noteForOwner, replyForOwner] = rows(commentHtml(THREAD, { isOwner: true, meName: "nina" }));
   assert.ok(noteForOwner.includes("dc-del") && !noteForOwner.includes("dc-edit"), "the author can't rewrite a reader's note");
   assert.ok(replyForOwner.includes("dc-edit") && replyForOwner.includes("dc-del"));
@@ -698,7 +700,7 @@ test("the action row offers Edit on your own words only; the author may delete a
   assert.equal(forMike.length, 1, "no row on the author's reply for a reader");
   assert.ok(forMike[0].includes("dc-edit") && forMike[0].includes("dc-del"));
   assert.equal(rows(commentHtml(THREAD, { meName: "zed" })).length, 0, "a bystander gets no row at all");
-  assert.ok(!commentHtml(THREAD, { isOwner: true, meName: "nina" }).includes("dc-menu"), "the ⋮ menu is gone");
+  assert.ok(!commentHtml(THREAD, { meName: "zed" }).includes("dc-more"), "no ⋯ with nothing behind it");
 });
 
 test("a closed thread says how it closed and how long it ran", () => {

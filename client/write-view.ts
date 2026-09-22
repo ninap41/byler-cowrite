@@ -389,17 +389,22 @@ const orphanFlag = (): string =>
  */
 interface Acts { reply?: boolean; react?: boolean; edit?: boolean; del?: boolean; reopen?: boolean }
 function actsHtml(reactions: Reactions | undefined, meName: string, { reply = false, react = false, edit = false, del = false, reopen = false }: Acts): string {
-	const buttons =
+	// Reply (or Reopen) leads, the reaction chips follow, and the rest —
+	// Edit · Delete · Add reaction — waits behind a ⋯ so the row stays one
+	// short line even on a busy note.
+	const lead =
 		(reopen ? `<button class="dc-act dc-reopen" type="button">Reopen</button>` : "") +
-		(reply ? `<button class="dc-act dc-reply-btn" type="button">Reply</button>` : "") +
-		(edit ? `<button class="dc-act dc-edit" type="button">Edit</button>` : "") +
-		(del ? `<button class="dc-act dc-del" type="button">Delete</button>` : "") +
-		(react
-			? `<button type="button" class="react-add" title="Add a reaction" aria-label="Add a reaction"><i class="fa-regular fa-face-smile" aria-hidden="true"></i></button>`
-			: "")
+		(reply ? `<button class="dc-act dc-reply-btn" type="button">Reply</button>` : "")
+	const items =
+		(edit ? `<button class="dc-act dc-edit" type="button" role="menuitem">Edit</button>` : "") +
+		(del ? `<button class="dc-act dc-del" type="button" role="menuitem">Delete</button>` : "") +
+		(react ? `<button class="dc-act react-add" type="button" role="menuitem"><i class="fa-regular fa-face-smile" aria-hidden="true"></i> Add reaction</button>` : "")
+	const more = items
+		? `<span class="dc-more"><button class="dc-more-btn" type="button" aria-label="More" aria-haspopup="menu" aria-expanded="false">⋯</button><span class="dc-menu" role="menu">${items}</span></span>`
+		: ""
 	const chips = reactionsHtml(reactions, meName || null)
-	if (!buttons && !chips) return ""
-	return `<span class="dc-acts">${buttons}<span class="reacts">${chips}</span></span>`
+	if (!lead && !more && !chips) return ""
+	return `<span class="dc-acts">${lead}<span class="reacts">${chips}</span>${more}</span>`
 }
 
 export function replyHtml(

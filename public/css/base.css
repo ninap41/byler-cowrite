@@ -8164,39 +8164,82 @@ body.resizing-side {
 	outline: 2px solid var(--accent-2);
 	outline-offset: 1px;
 }
-/* the smiley sits in the row (the chat's floats over the message) */
-.dc-acts .react-add {
+.dc-acts .reacts {
+	margin-top: 0;
+}
+/* The ⋯ at the row's end: Edit · Delete · Add reaction wait behind it, in
+   a small popover under the button. `open` on the wrapper shows it (a
+   class, not .hidden — the twin trap). */
+.dc-more {
+	position: relative;
+	margin-left: auto;
+}
+.dc-more-btn {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	flex: none;
 	width: 26px;
 	min-width: 0;
 	min-height: 0;
 	height: 20px;
 	padding: 0;
-	font-size: 0.75rem;
-	line-height: 1;
-	color: var(--muted);
-	background: none;
 	border: 0;
 	border-radius: 999px;
+	background: none;
 	box-shadow: none;
+	color: var(--muted);
+	font: inherit;
+	font-size: 0.9rem;
+	font-weight: 700;
+	line-height: 1;
+	letter-spacing: 0.05em;
 	cursor: pointer;
 	transform: none;
 }
-.dc-acts .react-add i {
-	color: inherit;
-	background: none;
-	-webkit-text-fill-color: currentColor;
-}
-.dc-acts .react-add:hover {
+.dc-more-btn:hover,
+.dc-more.open .dc-more-btn {
 	color: var(--ink);
 	background: var(--chip);
 	transform: none;
 }
-.dc-acts .reacts {
-	margin-top: 0;
+.dc-more-btn:focus-visible {
+	outline: 2px solid var(--accent-2);
+	outline-offset: 1px;
+}
+.dc-menu {
+	display: none;
+	position: absolute;
+	right: 0;
+	top: calc(100% + 4px);
+	z-index: 3;
+	flex-direction: column;
+	min-width: 150px;
+	padding: 4px;
+	border: 1px solid var(--panel-brd);
+	border-radius: var(--r-md);
+	/* the panel tint over the page's ground: opaque, so the buttons under it can't show through */
+	background: linear-gradient(var(--panel), var(--panel)), var(--bg);
+	box-shadow: var(--panel-glow);
+}
+.dc-more.open .dc-menu {
+	display: flex;
+}
+.dc-menu .dc-act {
+	justify-content: flex-start;
+	text-align: left;
+	margin-left: 0;
+	padding: 6px 10px;
+}
+.dc-menu .react-add {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	color: var(--ink);
+}
+.dc-menu .react-add i {
+	color: var(--muted);
+	background: none;
+	-webkit-text-fill-color: currentColor;
 }
 .dc-show-more {
 	display: block;
