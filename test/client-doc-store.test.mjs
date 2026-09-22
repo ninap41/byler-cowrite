@@ -163,3 +163,25 @@ test("mergeDraft: a draft from before chapters were marked restores whole, by po
   const out = mergeDraft({ chapters: [{ id: null, title: "", html: "<p>old</p>" }, { id: "c2", title: "Two", html: "<p>mine</p>" }], savedAt: 9 }, server);
   assert.deepEqual(out.map((c) => [c.id, c.title, c.html, c.touched]), [["c1", "One", "<p>old</p>", true], ["c2", "Two", "<p>mine</p>", true]]);
 });
+
+test("draftIsNewer with a marked draft: work only this page has is offered, whatever the other tab did", () => {
+  const server = { rev: 5, chapters: [{ id: "c1", title: "One", html: "<p>server</p>" }] };
+  assert.equal(draftIsNewer({ chapters: [{ id: "c1", title: "One", html: "<p>server</p>", touched: false }, { id: null, title: "New", html: "<p>new here</p>", touched: true }], baseRev: 3 }, server), true, "a chapter created here and never saved");
+  assert.equal(draftIsNewer({ chapters: [{ id: "c1", title: "One", html: "<p>server</p>", touched: false }, { id: "c2", title: "Two", html: "<p>typed here</p>", touched: true }], baseRev: 3 }, server), true, "a chapter edited here and deleted there");
+  assert.equal(draftIsNewer({ chapters: [{ id: "c1", title: "One", html: "<p>server</p>", touched: false }, { id: null, title: "", html: "", touched: true }], baseRev: 3 }, server), true, "even an empty new chapter is a change to the list");
+});
+
+test("the touched flag survives storage only as a boolean; anything else is dropped, not coerced", () => {
+  const s = mem();
+  saveDraft("doc-1", [{ id: "c1", title: "One", html: "<p>a</p>", touched: "yes" }, { id: "c2", title: "Two", html: "<p>b</p>", touched: 1 }, { id: "c3", title: "Three", html: "<p>c</p>", touched: false }], "T", s, 3);
+  assert.deepEqual(loadDraft("doc-1", s).chapters.map((c) => c.touched), [undefined, undefined, false]);
+  s.setItem("cowriteDocDraft:doc-2", JSON.stringify({ docId: "doc-2", chapters: [{ id: "c1", title: "", html: "x", touched: "true" }], title: "", savedAt: 1, baseRev: 1 }));
+  assert.equal("touched" in loadDraft("doc-2", s).chapters[0], false, "a tampered draft can't smuggle a truthy string in");
+});
+
+test("mergeDraft over a story the server still holds as one html blob keeps what this page edited", () => {
+  const legacy = { rev: 2, html: "<p>whole story</p>", updatedAt: 1 };
+  const out = mergeDraft({ chapters: [{ id: "c1", title: "One", html: "<p>mine</p>", touched: true }, { id: "c2", title: "Two", html: "<p>old</p>", touched: false }], baseRev: 1 }, legacy);
+  assert.deepEqual(out.map((c) => [c.id, c.html]), [["c1", "<p>mine</p>"]], "the edited chapter comes back, the untouched one has nothing on the server to stand on");
+  assert.equal(draftIsNewer({ chapters: out, baseRev: 1 }, legacy), true, "and it is offered");
+});

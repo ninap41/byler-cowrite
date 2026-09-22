@@ -271,3 +271,13 @@ test("write page: the Save button is disabled when there is nothing to save, whi
   const followed = page.match(/conflicted = (?:true|false);\s*refreshSaveBtn\(\)/g) || [];
   assert.ok(sets.length >= 4 && followed.length === sets.length, "every conflicted change refreshes it");
 });
+
+test("write page: the save request never carries the draft's touched flag, and the button is hidden for a reader", () => {
+  const all = page.slice(page.indexOf("const allChapters = "), page.indexOf("const openChapter = "));
+  assert.match(all, /chapters\.map\(\(\{ id, title, html \}\) => \(\{ id: id \?\? null, title: title \?\? "", html: html \?\? "" \}\)\)/, "allChapters is id, title, html and nothing else");
+  const saveFn = page.slice(page.indexOf("async function save("), page.indexOf("const SAVE_TIMEOUT_MS"));
+  assert.match(saveFn, /const list = allChapters\(\);/);
+  assert.match(saveFn, /chapters: list \}/, "the PUT body is built from it");
+  assert.ok(!/body\.chapters = draftChapters|chapters: draftChapters/.test(saveFn), "never from the draft shape");
+  assert.match(page, /\$\("saveBtn"\)\.classList\.add\("hidden"\)/, "a beta reader has no Save at all");
+});
