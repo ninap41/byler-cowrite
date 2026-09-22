@@ -7074,6 +7074,13 @@ body.write-page {
 	box-shadow: var(--panel-glow);
 	overflow: visible;
 }
+/* The shell is a stacking context, so a menu inside it (Appearance, the
+   theme picker, Document, the ⋯) can't out-stack the chapter panel (70) or
+   the comments sheet (60) that overlay the page on narrow screens — whatever
+   the menu's own z-index says. While one is open, the whole shell rises. */
+.doc-shell:has(.vis-menu.open, .theme-switch.open, .xp-menu.open, .more-menu:not(.hidden)) {
+	z-index: 80;
+}
 .doc-head {
 	display: flex;
 	align-items: center;

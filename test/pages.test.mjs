@@ -860,3 +860,11 @@ test("a reader's Appearance menu hangs from the chip's left edge, so it isn't cu
   const css = readFileSync("public/css/base.css", "utf8");
   assert.match(css, /#docToolbar\.hidden \+ \.doc-view-prefs \.view-menu \{\s*left: 0;\s*right: auto;/);
 });
+
+test("the write page's sticky shell rises above the chapter panel and the comments sheet while one of its menus is open", () => {
+  const css = readFileSync("public/css/base.css", "utf8");
+  assert.match(css, /\n\.doc-shell:has\(\.vis-menu\.open, \.theme-switch\.open, \.xp-menu\.open, \.more-menu:not\(\.hidden\)\) \{\s*z-index: 80;/);
+  // the layers it has to clear
+  assert.match(css, /\.doc-chapters \{[^}]*z-index: 70;/);
+  assert.match(css, /\.doc-side \{[^}]*z-index: 60;/);
+});
