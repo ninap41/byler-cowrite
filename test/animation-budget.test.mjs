@@ -68,13 +68,15 @@ test("an infinite CSS animation in the page animates only opacity and transform"
   assert.deepEqual(offenders, [], "move the effect to a pseudo-element and animate its opacity/transform");
 });
 
-test("the fixed chrome never blurs what scrolls beneath it", () => {
+test("the fixed and sticky chrome never blurs what scrolls beneath it", () => {
   const src = css("base.css");
-  for (const sel of [".user-chip", ".theme-toggle", ".hamburger", ".foot-bar"]) {
+  // the solo editor's two sticky panels are chrome too: a backdrop blur on
+  // them re-samples the prose and the theme art every scroll frame
+  for (const sel of [".user-chip", ".theme-toggle", ".hamburger", ".foot-bar", ".doc-shell", ".doc-side-card"]) {
     const i = src.indexOf(`\n${sel} {\n`);
     assert.ok(i >= 0, sel + " rule found");
     const body = src.slice(i, src.indexOf("\n}\n", i));
-    assert.doesNotMatch(body, /backdrop-filter/, sel + " carries no backdrop-filter");
+    assert.doesNotMatch(body, /backdrop-filter: blur/, sel + " carries no backdrop blur");
     assert.match(body, /var\(--panel-solid\)/, sel + " stands on the solid surface instead");
   }
   assert.match(src, /--panel-solid: color-mix\(in srgb, var\(--bg-2\) \d+%, var\(--panel\)\)/, "the surface is derived from each theme's own tokens");

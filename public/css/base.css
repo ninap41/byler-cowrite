@@ -7075,9 +7075,12 @@ body.write-page {
 	margin: 0 0 14px;
 	border: 1px solid var(--panel-brd);
 	border-radius: var(--r-lg);
-	background: color-mix(in srgb, var(--panel) 88%, transparent);
-	backdrop-filter: blur(16px);
-	-webkit-backdrop-filter: blur(16px);
+	/* Solid, never a backdrop blur: this slab is STICKY, so a blur here is
+	   re-sampled over the prose and the theme art on every scroll frame —
+	   measured at ~20fps on a long chapter. Same rule as the fixed chrome —
+	   but opaque: the panel tint over the page ground, so the prose never
+	   shows through a slab this wide. */
+	background: linear-gradient(var(--panel-solid), var(--panel-solid)), var(--bg);
 	box-shadow: var(--panel-glow);
 	overflow: visible;
 }
@@ -7808,6 +7811,10 @@ button.chap-arrow:disabled {
 	position: sticky;
 	top: calc(var(--doc-sticky, 120px) + 18px);
 	max-height: calc(100vh - var(--doc-sticky, 120px) - 34px);
+	/* sticky, like the shell: the card's blur is switched off for the same reason */
+	background: linear-gradient(var(--panel-solid), var(--panel-solid)), var(--bg);
+	backdrop-filter: none;
+	-webkit-backdrop-filter: none;
 	display: flex;
 	flex-direction: column;
 	min-height: 0;
