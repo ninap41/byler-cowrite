@@ -33,6 +33,8 @@ export function lockTip(id: string, locks: Record<string, ThemeLock> = {}): stri
 
 export interface ThemeController {
 	applyTheme(theme: string): void
+	/** Wear a theme for this page view only: nothing saved, no rank gate (it's someone else's theme on display, e.g. the author's on a public write). */
+	previewTheme(theme: string): void
 	applyFont(key: unknown): void
 	setGate(next: Partial<ThemeGate> | null | undefined): void
 	readonly current: ThemeId
@@ -323,15 +325,28 @@ export function initTheme(): ThemeController {
 			})
 		}
 	}
+	// The theme worn for this page view only (previewTheme): the gate never
+	// steps back from it, and the next applyTheme (a pick in the menu) ends it.
+	let preview: ThemeId | null = null
 	function applyTheme(theme: string) {
 		// An unearned theme can still be sitting in localStorage — from a demo,
 		// another account on this browser, or a lock added after the fact.
 		if (!themeAllowed(theme, gate) || !isThemeId(theme)) theme = DEFAULT_THEME
-		current = theme as ThemeId
+		preview = null
+		paint(theme as ThemeId, true)
+	}
+	function previewTheme(theme: string) {
+		if (!isThemeId(theme)) return
+		preview = theme
+		paint(theme, false)
+	}
+	function paint(theme: ThemeId, persist: boolean) {
+		current = theme
 		root.setAttribute("data-theme", theme)
-		try {
-			localStorage.setItem("cowriteTheme", theme)
-		} catch {}
+		if (persist)
+			try {
+				localStorage.setItem("cowriteTheme", theme)
+			} catch {}
 		document.querySelectorAll("[data-theme-btn]").forEach((b) => {
 			b.classList.toggle("active", b.getAttribute("data-theme-btn") === theme)
 		})
@@ -430,7 +445,7 @@ export function initTheme(): ThemeController {
 			if (label) label.textContent = (locked ? "🔒 " : "") + (LABELS[id] || id)
 		})
 		// and if you were wearing something you no longer have, step back
-		if (!themeAllowed(current, gate)) applyTheme(DEFAULT_THEME)
+		if (!themeAllowed(current, gate) && current !== preview) applyTheme(DEFAULT_THEME)
 	}
 
 	// ---- Site font: the theme menu's Font row ----
@@ -479,6 +494,7 @@ export function initTheme(): ThemeController {
 
 	return {
 		applyTheme,
+		previewTheme,
 		applyFont,
 		setGate,
 		get current() {

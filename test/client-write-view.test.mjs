@@ -287,7 +287,7 @@ test("the menu is a radio list of all three, each with its consequence", () => {
   assert.ok(html.includes('aria-checked="true"'), "the current one is marked");
   assert.equal((html.match(/aria-checked="true"/g) || []).length, 1, "and only one is");
   assert.ok(html.includes("Only you."), "private says what it means");
-  assert.ok(html.includes("Anyone with an account can read it"), "so does public");
+  assert.ok(html.includes("Anyone with the link can read it, signed in or not"), "so does public: no account needed");
   assert.ok(html.includes("Only your beta readers can comment"), "public hands out a reader, not a pen");
 });
 
@@ -570,7 +570,11 @@ test("chapNavHtml: Prev/Next name their chapters, the ends are blank, one chapte
   assert.match(first, /^<nav class="chap-nav"/);
   assert.match(first, /class="chap-arrow chap-prev" disabled/, "nothing before the first: the arrow stays, disabled");
   assert.match(first, /class="chap-arrow chap-next" data-i="1" aria-label="Two" data-tip="Two">›/);
-  assert.match(first, /Chapter 1 of 3/);
+  assert.match(first, /<select class="chap-pick" aria-label="Chapter 1 of 3">/, "a picker between the arrows says where you are");
+  assert.match(first, /<option value="0" selected>1\. One/, "the open chapter is selected");
+  assert.match(first, /<option value="1">2\. Two<\/option>/);
+  assert.equal((first.match(/<option /g) || []).length, 3, "every chapter is a row");
+  assert.match(first, /1\. One &lt;b&gt;bold&lt;\/b&gt;/, "titles are escaped in the picker too");
   const last = chapNavHtml(CHAPS, 2);
   assert.match(last, /class="chap-arrow chap-prev" data-i="1" aria-label="Two"/);
   assert.match(last, /class="chap-arrow chap-next" disabled/);

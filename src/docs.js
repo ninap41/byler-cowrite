@@ -3,6 +3,7 @@
 // lives UNDER the data dir so the test harness's temp COWRITE_DATA_DIR
 // isolates docs for free.
 import { randomUUID, randomBytes } from "crypto";
+import { isThemeId } from "../public/js/shared/themes.js";
 import { storage, getJson } from "./storage.js";
 import { stripTags, plainText } from "./sanitize.js";
 
@@ -33,7 +34,7 @@ import { stripTags, plainText } from "./sanitize.js";
  *   id: string, ownerId: string, title: string, chapters: DocChapter[],
  *   betaReaders: string[], visibility: string, wordCount: number,
  *   createdAt: number, updatedAt: number, rev?: number,
- *   sprintWords?: number, sprints?: number,
+ *   sprintWords?: number, sprints?: number, theme?: string | null,
  *   html?: string, comments: DocComment[],
  * }} Doc
  */
@@ -258,11 +259,14 @@ export const allDocs = () => {
 
 // Three visibility levels, narrowest first. "private" is invisible to everyone
 // but the author, even to beta readers invited earlier; "readers" opens it to
-// the invited friends, who may comment; "public" lets any signed-in account
-// READ it — commenting stays with the invited readers, so going public never
+// the invited friends, who may comment; "public" lets ANYONE read it, signed in
+// or not — commenting stays with the invited readers, so going public never
 // hands anyone a pen.
 export const VISIBILITIES = ["private", "readers", "public"];
 export const cleanVisibility = (v) => (VISIBILITIES.includes(v) ? v : "private");
+// The theme readers see a public write in — the author's pick, a whitelisted
+// id or nothing (readers then keep their own theme).
+export const cleanTheme = (t) => (isThemeId(t) ? t : null);
 export const isReader = (doc, userId) => (doc.betaReaders || []).includes(userId);
 export const canEdit = (doc, userId) => !!doc && doc.ownerId === userId;
 export const canView = (doc, userId) =>
@@ -283,6 +287,7 @@ export const docSummary = (doc, nameOf) => ({
   sprintWords: doc.sprintWords || 0,
   sprints: doc.sprints || 0,
   visibility: doc.visibility,
+  theme: doc.theme || null,
   updatedAt: doc.updatedAt,
   createdAt: doc.createdAt,
   owner: nameOf(doc.ownerId),

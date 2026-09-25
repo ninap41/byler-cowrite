@@ -13,7 +13,7 @@ import { GIMMICKS } from "../lib/gimmicks.js";
 import { cleanColor, stripTags, plainText, clip, httpUrl, sanitizeAbout, sanitizeDoc, DOC_MAX } from "./sanitize.js";
 import {
   readDoc, writeDoc, docLanded, createDoc, deleteDoc, listDocsFor, docSummary,
-  canView, canEdit, canComment, isReader, cleanTitle, cleanVisibility, publicDocs, docsOwnedBy,
+  canView, canEdit, canComment, isReader, cleanTitle, cleanVisibility, cleanTheme, publicDocs, docsOwnedBy,
   cleanChapterTitle, newChapterId, MAX_CHAPTERS,
 } from "./docs.js";
 import { listHistory, readHistory, keepBeforeOverwrite, snapshotOf } from "./dochist.js";
@@ -873,15 +873,24 @@ export function registerRoutes(app, game) {
         avatar: x.avatar || "", avatarFit: x.avatarFit || "cover",
       }));
   // commentRows comes from game.js so HTTP and socket payloads can never drift.
-  const docPayload = (doc, u) => ({
-    ...docSummary(doc, nameOf),
-    html: doc.html || "", // the chapters joined — kept for readers of the old shape
-    chapters: doc.chapters.map(({ id, title, html, wordCount }) => ({ id, title, html, wordCount })),
-    mine: doc.ownerId === u.id,
-    rev: doc.rev || 0,
-    readerRows: readerRows(doc),
-    comments: commentRows(doc),
-  });
+  // `u` may be null: a public write is served to signed-out visitors. Comments
+  // and the reader roster leave the server only for people who may comment —
+  // a plain reader (public, signed in or not) gets an empty list, so nothing
+  // on the client has to remember to hide them.
+  const docPayload = (doc, u) => {
+    const uid = u?.id ?? null;
+    const notes = canComment(doc, uid);
+    return {
+      ...docSummary(doc, nameOf),
+      html: doc.html || "", // the chapters joined — kept for readers of the old shape
+      chapters: doc.chapters.map(({ id, title, html, wordCount }) => ({ id, title, html, wordCount })),
+      mine: doc.ownerId === uid,
+      canComment: notes,
+      rev: doc.rev || 0,
+      readerRows: notes ? readerRows(doc) : [],
+      comments: notes ? commentRows(doc) : [],
+    };
+  };
 
   app.get("/api/docs", (req, res) => {
     const u = authedUser(req);
@@ -895,12 +904,16 @@ export function registerRoutes(app, game) {
     res.json({ doc: docPayload(createDoc(u.id, req.body?.title || "Untitled"), u) });
   });
 
+  // Sign-in is optional here, the one doc route where it is: a public write
+  // is a public page. Anything else still needs an account (401 signed out).
   app.get("/api/docs/:id", (req, res) => {
     const u = authedUser(req);
-    if (!u) return res.status(401).json({ error: "Sign in first." });
     const doc = readDoc(req.params.id);
     if (!doc) return res.status(404).json({ error: "No such document." });
-    if (!canView(doc, u.id)) return res.status(403).json({ error: "That document isn't shared with you." });
+    if (!canView(doc, u?.id ?? null)) {
+      if (!u) return res.status(401).json({ error: "Sign in to read this." });
+      return res.status(403).json({ error: "That document isn't shared with you." });
+    }
     res.json({ doc: docPayload(doc, u) });
   });
 
@@ -1139,8 +1152,11 @@ export function registerRoutes(app, game) {
     const doc = readDoc(req.params.id);
     if (!doc) return res.status(404).json({ error: "No such document." });
     if (!canEdit(doc, u.id)) return res.status(403).json({ error: "Only the author can share this." });
-    // Anything unrecognised narrows to private — the safe direction.
-    doc.visibility = cleanVisibility(req.body?.visibility);
+    // Anything unrecognised narrows to private — the safe direction. A body
+    // that carries only `theme` (the reader-theme picker) leaves visibility be.
+    const body = req.body || {};
+    if (typeof body.visibility === "string") doc.visibility = cleanVisibility(body.visibility);
+    if ("theme" in body) doc.theme = cleanTheme(body.theme);
     writeDoc(doc);
     // Narrowing to private boots whoever is reading it right now, so the UI
     // has to say so — nobody should vanish mid-sentence without being told.

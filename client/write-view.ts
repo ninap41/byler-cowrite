@@ -174,7 +174,7 @@ export type Visibility = "private" | "readers" | "public"
 export const VIS: Record<Visibility, { icon: string; label: string; blurb: string }> = {
 	private: { icon: "🔒", label: "Private", blurb: "Only you." },
 	readers: { icon: "👥", label: "Beta readers", blurb: "The friends you invite can read and comment." },
-	public: { icon: "🌍", label: "Public", blurb: "Anyone with an account can read it. Only your beta readers can comment." },
+	public: { icon: "🌍", label: "Public", blurb: "Anyone with the link can read it, signed in or not. Only your beta readers can comment." },
 }
 export const visOf = (v: unknown) => VIS[v as Visibility] || VIS.private
 export const visLabel = (v: unknown): string => `${visOf(v).icon} ${visOf(v).label}`
@@ -704,7 +704,13 @@ export function chapNavHtml(chapters: Chapter[] | null | undefined, idx: number)
 			? `<button type="button" class="chap-arrow ${cls}" data-i="${to}" aria-label="${esc(name)}" data-tip="${esc(name)}">${glyph}</button>`
 			: `<button type="button" class="chap-arrow ${cls}" disabled aria-hidden="true">${glyph}</button>`
 	}
-	return `<nav class="chap-nav" aria-label="Chapters">${arrow("chap-prev", idx - 1, "‹")}<span class="chap-pos">Chapter ${idx + 1} of ${n}</span>${arrow("chap-next", idx + 1, "›")}</nav>`
+	// between the arrows, a picker of every chapter by name — the same nav is
+	// drawn at the top and the foot of the story, so a reader can jump from
+	// either end without opening the chapters panel
+	const opts = list
+		.map((c, i) => `<option value="${i}"${i === idx ? " selected" : ""}>${i + 1}. ${esc(c.title || `Chapter ${i + 1}`)}</option>`)
+		.join("")
+	return `<nav class="chap-nav" aria-label="Chapters">${arrow("chap-prev", idx - 1, "‹")}<select class="chap-pick" aria-label="Chapter ${idx + 1} of ${n}">${opts}</select>${arrow("chap-next", idx + 1, "›")}</nav>`
 }
 
 // The head-row chip that opens the chapter panel. Closed, it says what

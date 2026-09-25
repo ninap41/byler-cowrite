@@ -2185,14 +2185,20 @@ export function createGame(io) {
     });
 
     // ---- Solo-write documents: who's looking, and live comments ----
+    // No account is fine on a public write (a signed-out reader still gets
+    // live chapter updates); the seat's userId is then null and presence
+    // skips it. Only people who may comment join the notes room, so comment
+    // pushes never reach a plain reader.
     socket.on("doc-open", ({ auth, id }) => {
       const u = userByToken(auth);
+      const uid = u?.id ?? null;
       const doc = readDoc(id);
-      if (!u || !doc || !canView(doc, u.id)) return;
+      if (!doc || !canView(doc, uid)) return;
       leaveDoc(socket);
       socket.data.docId = doc.id;
       socket.join(docRoom(doc.id));
-      docViewers.set(socket.id, { docId: doc.id, userId: u.id });
+      if (canComment(doc, uid)) socket.join(notesRoom(doc.id));
+      docViewers.set(socket.id, { docId: doc.id, userId: uid });
       broadcastDocPresence(doc.id);
     });
 
@@ -2458,6 +2464,8 @@ export function createGame(io) {
 
   // ---- Solo-write doc rooms (presence + live comments) ----
   const docRoom = (id) => "doc:" + id;
+  // The commenters' sub-room: author + beta readers. Comments go here only.
+  const notesRoom = (id) => "doc:" + id + ":notes";
 
   // Everyone currently viewing a doc, deduped by account: two tabs are one
   // person. Shape matches miniAvatar() on the client.
@@ -2522,7 +2530,7 @@ export function createGame(io) {
       };
     });
   const broadcastDocComments = (doc) =>
-    io.to(docRoom(doc.id)).emit("doc-comments", { id: doc.id, comments: commentRows(doc) });
+    io.to(notesRoom(doc.id)).emit("doc-comments", { id: doc.id, comments: commentRows(doc) });
 
   // The html changed underneath everyone (an anchor appeared, a suggestion was
   // taken). `except` skips the socket that caused it — it already applied the
@@ -2542,6 +2550,7 @@ export function createGame(io) {
     if (!seat) return;
     docViewers.delete(socket.id);
     socket.leave(docRoom(seat.docId));
+    socket.leave(notesRoom(seat.docId));
     socket.data.docId = null;
     broadcastDocPresence(seat.docId);
   }
@@ -2554,6 +2563,7 @@ export function createGame(io) {
       docViewers.delete(sid);
       const sock = io.sockets.sockets.get(sid);
       sock?.leave(docRoom(docId));
+      sock?.leave(notesRoom(docId));
       sock?.emit("doc-access-lost", { id: docId });
     }
     broadcastDocPresence(docId);

@@ -55,9 +55,11 @@ import {
 	countWordsHtml,
 } from "/js/write-view.js"
 import { exportDocument, exportWork, exportChapterHtml, slugOf } from "/js/export.js"
-import { esc } from "/js/util.js"
+import { esc, siteName } from "/js/util.js"
 import { confirmDialog } from "/js/components/confirm-delete.js"
 import { createReactionPicker } from "/js/components/reaction-picker.js"
+import { logoHtml } from "/js/logo.js"
+import { THEMES, THEME_LABELS, isThemeId } from "/js/shared/themes.js"
 import type { Socket } from "socket.io-client"
 import type { ServerToClient, ClientToServer } from "/js/shared/wire.js"
 import type { ChipUser } from "/js/chrome.js"
@@ -74,7 +76,11 @@ interface DocPayload {
 	chapters?: Chapter[]
 	comments?: CommentRow[]
 	mine?: boolean
+	/** author or invited beta reader — anyone else is a plain reader and gets no comments at all */
+	canComment?: boolean
 	visibility: string
+	/** the theme the author chose for readers, or null */
+	theme?: string | null
 	readerRows?: { username: string; color?: string; avatar?: string; avatarFit?: string }[]
 	sprintWords?: number
 	sprints?: Sprint[]
@@ -86,7 +92,10 @@ type DirectoryRow = NonNullable<InviteOptionsInput["users"]>[number]
 /** execCommand's value slot for commands that take none — kept `null`, as the browser API has always been called here. */
 const NOVAL = null as unknown as string
 
-mountChrome({ page: "write" })
+// A public write is a public page: no account needed to read one. The nav
+// drawer is for accounts; a signed-out reader gets the theme switch, the
+// site's name where the shelf link was, and a Sign in link (below).
+const themeCtl = mountChrome({ page: "write", nav: !!getToken() })
 // The account controls are position:fixed on every other page, which
 // would float them over this page's sticky header. Move them into it so
 // the chip, the theme switch and the hamburger sit beside Save.
@@ -99,8 +108,20 @@ const topbar = document.querySelector(".topbar")
 const burger = document.querySelector(".hamburger")
 if (headRight && topbar) headRight.prepend(topbar)
 if (headRight && burger) headRight.appendChild(burger)
-const me = await requireAuth<ChipUser>("/")
+// The game page's spectate precedent: only a held token is checked (a dead
+// one still bounces home); with none the page loads as a signed-out reader
+// and the server decides whether this write is theirs to read.
+const me = getToken() ? await requireAuth<ChipUser>("/") : null
 setUserChip(me)
+if (!me) {
+	document.body.classList.add("reader-anon")
+	const back = document.getElementById("backBtn") as HTMLAnchorElement | null
+	if (back) {
+		back.href = "/"
+		back.innerHTML = logoHtml("hdr") + esc(siteName())
+	}
+	headRight?.insertAdjacentHTML("afterbegin", `<a class="doc-signin" href="/">Sign in</a>`)
+}
 const $ = <T extends HTMLElement = HTMLElement>(id: string): T => document.getElementById(id) as T
 const input = (id: string): HTMLInputElement => $<HTMLInputElement>(id)
 const textarea = (id: string): HTMLTextAreaElement => $<HTMLTextAreaElement>(id)
@@ -215,7 +236,11 @@ async function load() {
 	try {
 		doc = (await api<{ doc: DocPayload }>("/api/docs/" + encodeURIComponent(docId), null, "GET")).doc
 	} catch (e) {
-		$("docErr").textContent = (e as Error).message
+		// Signed out and the write isn't public: say what would open it.
+		// A fixed string, nothing of the server's message reaches innerHTML.
+		if (e instanceof ApiError && e.status === 401)
+			$("docErr").innerHTML = `Sign in to read this write. <a href="/">Sign in</a>`
+		else $("docErr").textContent = (e as Error).message
 		return
 	}
 	input("docTitle").value = doc.title
@@ -247,7 +272,17 @@ async function load() {
 		$("saveBtn").classList.add("hidden")
 		$("editorHint").classList.add("hidden")
 	}
-	setCommentMode(!canEdit) // readers start (and stay) in comment mode
+	// A plain reader — a public write's audience, signed in or not — is
+	// neither writing nor commenting: the comments drawer, its edge tab,
+	// the banner and the presence row all go, and the story is read in
+	// the theme the author chose (a pick in the theme menu still wins).
+	if (!canEdit && !doc.canComment) {
+		for (const id of ["commentBanner", "docSide", "commentsOpen", "presenceRow"]) $(id).classList.add("hidden")
+		document.querySelector(".doc-main")?.classList.add("reader")
+		applySide() // the grid was laid out before the doc arrived: drop the drawer's column
+		if (isThemeId(doc.theme)) themeCtl.previewTheme(doc.theme)
+	}
+	setCommentMode(!canEdit) // beta readers start (and stay) in comment mode
 	undoHistory.reset() // you can't undo your way back to the last document
 	renderDoc()
 	updateWords()
@@ -302,8 +337,10 @@ function clampToBlock(range: Range | null): Range | null {
 	return r
 }
 
+const canCommentDoc = () => !!doc?.canComment
 function setCommentMode(on: boolean) {
-	commentMode = canEditDoc() ? !!on : true // readers can never leave it
+	// beta readers can never leave it; a plain reader can never enter it
+	commentMode = canEditDoc() ? !!on : canCommentDoc()
 	palette?.close()
 	$("docEditor").contentEditable = String(!commentMode && canEditDoc())
 	$("commentToggle").classList.toggle("on", commentMode)
@@ -790,7 +827,7 @@ function restoreComposer(d: ComposerDraft | null, why: string) {
 }
 
 function renderComposer() {
-	if (!pendingRange) return
+	if (!pendingRange || !canCommentDoc()) return
 	// A note has to be visible to be written: opening the composer opens
 	// the drawer, whatever state it was left in.
 	if (!prefs.sideOpen) setSideOpen(true)
@@ -1470,10 +1507,12 @@ applyPaper()
 // the side.
 const phoneSide = () => window.matchMedia("(max-width: 860px)").matches
 function applySide() {
+	// a plain reader has no drawer: the grid never makes room for one
+	const reader = !!doc && !doc.mine && !doc.canComment
 	document.documentElement.style.setProperty("--doc-side-w", prefs.sideWidth + "px")
-	document.querySelector(".doc-main")?.classList.toggle("side-closed", !prefs.sideOpen)
-	$("docSide").classList.toggle("open", !!prefs.sideOpen)
-	$("commentsOpen").classList.toggle("hidden", !!prefs.sideOpen)
+	document.querySelector(".doc-main")?.classList.toggle("side-closed", !prefs.sideOpen || reader)
+	$("docSide").classList.toggle("open", !!prefs.sideOpen && !reader)
+	$("commentsOpen").classList.toggle("hidden", !!prefs.sideOpen || reader)
 	$("commentsOpen").setAttribute("aria-expanded", String(!!prefs.sideOpen))
 }
 function setSideOpen(open: boolean) {
@@ -1977,7 +2016,21 @@ function renderVis() {
 	$("visWrap").innerHTML = visChipHtml(doc.visibility)
 	$("visOpts").innerHTML = visOptionsHtml(doc.visibility)
 	paintReaderCount()
+	// the reader theme: the author's pick, or (until they pick) their own
+	const chosen = isThemeId(doc.theme) ? doc.theme : themeCtl.current
+	$("visTheme").innerHTML = THEMES.map((t) => `<option value="${t}"${t === chosen ? " selected" : ""}>${esc(THEME_LABELS[t])}</option>`).join("")
 }
+$("visTheme").addEventListener("change", async () => {
+	const theme = (document.getElementById("visTheme") as HTMLSelectElement).value
+	if (!doc || !isThemeId(theme)) return
+	try {
+		doc = (await api<{ doc: DocPayload }>(`/api/docs/${encodeURIComponent(docId)}/visibility`, { theme })).doc
+		renderVis()
+		setStatus(`Readers will see it in ${THEME_LABELS[theme]}.`)
+	} catch (e) {
+		$("docErr").textContent = (e as Error).message
+	}
+})
 const paintReaderCount = () => ($("readerCount").textContent = `${doc?.readerRows?.length || 0} invited`)
 $("visOpts").addEventListener("click", (e) => {
 	const opt = (e.target as HTMLElement).closest<HTMLElement>(".vis-opt")
@@ -2021,7 +2074,7 @@ async function setVisibility(next: string) {
 	if (next === "public") {
 		const readers = doc.readerRows?.length || 0
 		const line =
-			`Anyone with an account will be able to read “${doc.title || "Untitled"}”.` +
+			`Anyone with the link will be able to read “${doc.title || "Untitled"}”, signed in or not.` +
 			(readers
 				? `\n\nYour ${readers} beta reader${readers === 1 ? "" : "s"} keep${readers === 1 ? "s" : ""} their comments: nobody else can comment.`
 				: "") +
@@ -2029,7 +2082,11 @@ async function setVisibility(next: string) {
 		if (!window.confirm(line)) return
 	}
 	try {
-		doc = (await api<{ doc: DocPayload }>(`/api/docs/${encodeURIComponent(docId)}/visibility`, { visibility: next })).doc
+		// going public with no reader theme picked yet: readers get the
+		// theme the author is wearing right now
+		const body: { visibility: string; theme?: string } = { visibility: next }
+		if (next === "public" && !isThemeId(doc.theme)) body.theme = themeCtl.current
+		doc = (await api<{ doc: DocPayload }>(`/api/docs/${encodeURIComponent(docId)}/visibility`, body)).doc
 		renderVis()
 		renderShare()
 		// going private boots whoever was reading — say so rather than
@@ -2156,7 +2213,10 @@ const commentCounts = () => {
 function renderChapters() {
 	const canEdit = canEditDoc()
 	$("chapPanel").innerHTML = chapterListHtml(chapters, { openIdx, canEdit, commentCounts: commentCounts() })
-	$("chapNav").innerHTML = chapNavHtml(chapters, openIdx)
+	// the same nav at the head and the foot of the story
+	const nav = chapNavHtml(chapters, openIdx)
+	$("chapNav").innerHTML = nav
+	$("chapNavTop").innerHTML = nav
 	paintChapChip()
 	const url = new URL(location.href)
 	if (chapters.length > 1) url.searchParams.set("ch", String(openIdx + 1))
@@ -2286,9 +2346,16 @@ $("chapPanel").addEventListener("dblclick", (e) => {
 	const t = (e.target as HTMLElement).closest(".chap-title")
 	if (t) renameChapter(parseInt(t.closest<HTMLElement>(".chap-row")!.dataset.i || "", 10))
 })
-$("chapNav").addEventListener("click", (e) => {
-	const b = (e.target as HTMLElement).closest<HTMLElement>("button[data-i]")
+// Both copies of the nav live in .doc-col: one handler for the arrows, one
+// for the pickers.
+const docCol = document.querySelector<HTMLElement>(".doc-col")!
+docCol.addEventListener("click", (e) => {
+	const b = (e.target as HTMLElement).closest<HTMLElement>(".chap-nav button[data-i]")
 	if (b) goChapter(parseInt(b.dataset.i || "", 10))
+})
+docCol.addEventListener("change", (e) => {
+	const sel = (e.target as HTMLElement).closest<HTMLSelectElement>("select.chap-pick")
+	if (sel) goChapter(parseInt(sel.value, 10))
 })
 // The panel's open state: a grid column on a desktop (remembered as
 // an editor pref), a dropdown under the head row on a phone (closed
@@ -2570,7 +2637,7 @@ function connect() {
 		renderChapters()
 	})
 	s.on("doc-access-lost", ({ id }) => {
-		if (id === docId) location.href = "/writes"
+		if (id === docId) location.href = me ? "/writes" : "/"
 	})
 	window.addEventListener("beforeunload", () => socket?.emit("doc-close"))
 }
@@ -2587,7 +2654,7 @@ async function mountPalette() {
 	}
 }
 
-if (me && docId) {
+if (docId) {
 	await load()
 	// load() assigned `doc`; the narrowing above this line doesn't know that
 	if ((doc as DocPayload | null)?.mine) mountPalette()

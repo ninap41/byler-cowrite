@@ -7604,6 +7604,35 @@ body.doc-page .topbar {
 .chap-pos {
 	color: var(--muted);
 }
+/* The picker between the arrows: the chapter's name, in the story's own
+   type, on the paper — a control that reads like a running head. */
+select.chap-pick {
+	max-width: 22em;
+	padding: 2px 6px;
+	border: 1px solid transparent;
+	border-radius: var(--r-md);
+	background: transparent;
+	color: var(--muted);
+	font: inherit;
+	cursor: pointer;
+	text-overflow: ellipsis;
+}
+select.chap-pick:hover,
+select.chap-pick:focus-visible {
+	border-color: var(--panel-brd);
+	background: var(--panel-2);
+	color: var(--ink);
+}
+/* The head copy of the nav, centred on the story's top edge. */
+.chap-nav-top {
+	display: flex;
+	justify-content: center;
+	padding: 4px 0 10px;
+	font-size: 0.8em;
+}
+.chap-nav-top:empty {
+	display: none;
+}
 button.chap-arrow {
 	flex: none;
 	min-width: 0;
@@ -8775,6 +8804,8 @@ body.resizing-side {
 /* These set display:*, which outranks the global .hidden by source order —
    without re-declaring it here they could never be hidden (same reason
    .confirm-modal.hidden exists above). */
+.doc-side.hidden,
+.chap-nav-top.hidden,
 .doc-banner.hidden,
 .doc-statusbar.hidden,
 .presence-row.hidden,
@@ -8907,6 +8938,36 @@ body.resizing-side {
 }
 .vis-menu.open {
 	display: block;
+}
+/* The reader-theme picker inside the Share menu. */
+.vis-theme-pick {
+	width: 100%;
+	margin: 2px 0 6px;
+	padding: 7px 10px;
+	border: 1px solid var(--panel-brd);
+	border-radius: var(--r-md);
+	background: var(--panel-2);
+	color: var(--ink);
+	font: inherit;
+}
+/* A signed-out reader's head: the site's name where "All writes" was, and
+   a Sign in link beside the theme switch. */
+.doc-signin {
+	flex: none;
+	padding: 6px 12px;
+	border-radius: 999px;
+	background: var(--grad-1);
+	color: var(--btn-ink);
+	font-size: 0.85rem;
+	font-weight: 600;
+	text-decoration: none;
+	white-space: nowrap;
+}
+.doc-back .brand-logo {
+	width: 1.2em;
+	height: 1.2em;
+	vertical-align: -0.25em;
+	margin-right: 4px;
 }
 .vis-opt {
 	display: flex;

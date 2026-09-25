@@ -52,6 +52,12 @@
 										<div class="menu-cap">Who can see this</div>
 										<div id="visOpts"></div>
 										<div class="menu-rule"></div>
+										<!-- The theme readers see this write in: the author's pick,
+										     defaulting to their own theme when the write goes public.
+										     A reader can still switch themes for themselves. -->
+										<div class="menu-cap">Reader theme</div>
+										<select class="vis-theme-pick" id="visTheme" aria-label="Theme readers see"></select>
+										<div class="menu-rule"></div>
 										<button type="button" class="vis-opt menu-row" id="shareBtn" role="menuitem">
 											<span>👥 Invite beta reader</span><span class="menu-state" id="readerCount"></span>
 										</button>
@@ -221,6 +227,9 @@
 						<!-- Comment mode says so where the eye is: a strip on the
 						     editor's top edge (commentModeBannerHtml in write-view.js),
 						     shown by setCommentMode. -->
+						<!-- Chapter nav at the head of the story too (same builder as the
+						     foot's): a reader turns the page from either end. -->
+						<div class="chap-nav-top" id="chapNavTop"></div>
 						<div class="cm-banner hidden" id="commentBanner" role="status" aria-live="polite"></div>
 						<div
 							class="editor doc-editor"

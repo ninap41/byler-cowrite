@@ -32,6 +32,26 @@ test("theme registry: all nineteen themes present with labels", () => {
   assert.equal(THEME_LABELS.clouds, "I Miss the Clouds");
 });
 
+test("previewTheme wears a theme for this page only: nothing saved, the gate never steps back from it, a real pick ends it", () => {
+  document.body.innerHTML = "";
+  localStorage.setItem("cowriteTheme", "neon");
+  const theme = mountChrome({ page: "write" });
+  assert.equal(theme.current, "neon");
+  theme.previewTheme("vecna");
+  assert.equal(document.documentElement.getAttribute("data-theme"), "vecna");
+  assert.equal(theme.current, "vecna");
+  assert.equal(localStorage.getItem("cowriteTheme"), "neon", "the visitor's own theme is untouched");
+  // the author's theme may be one the reader hasn't unlocked — it stays on
+  theme.setGate({ locks: { vecna: "Rank 9" }, unlocked: [] });
+  assert.equal(document.documentElement.getAttribute("data-theme"), "vecna", "the gate leaves a preview alone");
+  theme.previewTheme("not-a-theme");
+  assert.equal(theme.current, "vecna", "junk is ignored");
+  theme.applyTheme("snowball");
+  assert.equal(localStorage.getItem("cowriteTheme"), "snowball", "a pick in the menu saves as ever");
+  theme.setGate({ locks: { snowball: "Rank 9" }, unlocked: [] });
+  assert.equal(theme.current, DEFAULT_THEME, "and a locked pick is stepped back from, as ever");
+});
+
 test("background layers sit behind the UI and never intercept clicks", () => {
   const css = readFileSync(new URL("../public/css/base.css", import.meta.url), "utf-8");
   const layerBlock = css.slice(css.indexOf(".bg-layers {"), css.indexOf(".bg-wash"));

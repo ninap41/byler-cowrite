@@ -46,6 +46,14 @@ test("the solo-write pages serve at their clean URLs", async () => {
   assert.ok(editor.body.includes('id="listSelect"') && editor.body.includes('id="alignSelect"'), "list + alignment dropdowns");
   assert.ok(editor.body.includes('id="emDashBtn"'), "the em dash button");
   assert.ok(editor.body.includes('id="presenceRow"'), "beta-reader presence");
+  // A public write is a public page: the chapter nav is drawn at the head as
+  // well as the foot, the Share menu carries the reader-theme picker, and the
+  // page never demands an account before asking the server for the write.
+  assert.ok(editor.body.includes('id="chapNavTop"') && editor.body.includes('id="chapNav"'), "chapter nav top and bottom");
+  assert.ok(editor.body.includes('id="visTheme"'), "the reader theme picker");
+  const script = (await page("/js/pages/write.js")).body;
+  assert.ok(/getToken\(\) \? await requireAuth/.test(script), "auth is checked only when a token is held");
+  assert.ok(script.includes("previewTheme("), "readers get the author's theme");
 });
 
 test("homepage serves the hero + auth card", async () => {

@@ -420,6 +420,102 @@ test("a public write is readable by anyone signed in; private and shared are not
   assert.equal((await ctx.api("/api/docs/" + doc.id, null, carol.token, "GET")).status, 403, "narrowing takes it back");
 });
 
+test("a public write is a public page: no account needed to read it, and a plain reader gets no comments", async () => {
+  const doc = await newDoc(alice.token, "Open Book");
+  await ctx.api("/api/docs/" + doc.id, { html: BODY }, alice.token, "PUT");
+  assert.equal((await ctx.api("/api/docs/" + doc.id, null, null, "GET")).status, 401, "private: sign in first");
+  await setVis(doc.id, "readers");
+  assert.equal((await ctx.api("/api/docs/" + doc.id, null, null, "GET")).status, 401, "readers-only: sign in first");
+  assert.equal((await ctx.api("/api/docs/" + doc.id, null, "nonsense-token", "GET")).status, 401, "a junk token is nobody");
+  await setVis(doc.id, "public");
+  // bob is invited; he leaves a note
+  await ctx.api(`/api/docs/${doc.id}/readers`, { username: "bobbeta" }, alice.token);
+  const B = await ctx.conn();
+  B.emit("doc-open", { auth: bob.token, id: doc.id });
+  await ctx.wait(100);
+  B.emit("doc-comment", { auth: bob.token, id: doc.id, cid: "bbbbbbbbbbbb", html: anchored("bbbbbbbbbbbb"), text: "nice" });
+  await ctx.wait(200);
+  assert.equal((await docOf(doc.id)).comments.length, 1, "the beta reader's note landed");
+
+  const anon = await ctx.api("/api/docs/" + doc.id, null, null, "GET");
+  assert.equal(anon.status, 200, "signed out, the write opens");
+  assert.ok(anon.data.doc.html.includes("striped shirt"));
+  assert.equal(anon.data.doc.mine, false);
+  assert.equal(anon.data.doc.canComment, false);
+  assert.deepEqual(anon.data.doc.comments, [], "comments never leave the server for a plain reader");
+  assert.deepEqual(anon.data.doc.readerRows, [], "nor the reader roster");
+
+  const carolSees = await ctx.api("/api/docs/" + doc.id, null, carol.token, "GET");
+  assert.equal(carolSees.data.doc.canComment, false, "a signed-in stranger is a plain reader too");
+  assert.deepEqual(carolSees.data.doc.comments, []);
+  const bobSees = await ctx.api("/api/docs/" + doc.id, null, bob.token, "GET");
+  assert.equal(bobSees.data.doc.canComment, true);
+  assert.equal(bobSees.data.doc.comments.length, 1, "the beta reader still gets the thread");
+  assert.equal((await docOf(doc.id)).canComment, true, "and so does the author");
+
+  // every other doc route still wants an account
+  assert.equal((await ctx.api("/api/docs/" + doc.id, { html: "<p>x</p>" }, null, "PUT")).status, 401);
+  assert.equal((await ctx.api(`/api/docs/${doc.id}/visibility`, { visibility: "private" }, null)).status, 401);
+
+  await setVis(doc.id, "private");
+  assert.equal((await ctx.api("/api/docs/" + doc.id, null, null, "GET")).status, 401, "narrowing shuts the door");
+});
+
+test("a signed-out reader's socket gets the story's updates, and nobody but commenters gets the comments", async () => {
+  const doc = await newDoc(alice.token, "Live Book");
+  await ctx.api("/api/docs/" + doc.id, { html: BODY }, alice.token, "PUT");
+  await setVis(doc.id, "public");
+  await ctx.api(`/api/docs/${doc.id}/readers`, { username: "bobbeta" }, alice.token);
+  const anon = await ctx.conn(), C = await ctx.conn(), B = await ctx.conn();
+  const got = { anon: [], carol: [], bob: [] }, notes = { anon: 0, carol: 0, bob: 0 };
+  anon.on("doc-updated", (p) => got.anon.push(p)); anon.on("doc-comments", () => notes.anon++);
+  C.on("doc-updated", (p) => got.carol.push(p)); C.on("doc-comments", () => notes.carol++);
+  B.on("doc-updated", (p) => got.bob.push(p)); B.on("doc-comments", () => notes.bob++);
+  anon.emit("doc-open", { auth: null, id: doc.id });
+  C.emit("doc-open", { auth: carol.token, id: doc.id });
+  B.emit("doc-open", { auth: bob.token, id: doc.id });
+  await ctx.wait(150);
+
+  await ctx.api("/api/docs/" + doc.id, { html: "<p>a new line</p>" }, alice.token, "PUT");
+  const A = await ctx.conn();
+  A.emit("doc-saved", { auth: alice.token, id: doc.id }); // what the author's editor sends after a save
+  await ctx.wait(200);
+  assert.equal(got.anon.length, 1, "the signed-out reader sees the save land");
+  assert.ok(got.anon[0].html.includes("a new line"));
+  assert.equal(got.carol.length, 1);
+  assert.equal(got.bob.length, 1);
+
+  B.emit("doc-comment", { auth: bob.token, id: doc.id, cid: "dddddddddddd", html: "<p>a new line</p>".replace("new line", 'new <span class="cmt" data-cid="dddddddddddd">line</span>'), text: "hm" });
+  await ctx.wait(200);
+  assert.equal((await docOf(doc.id)).comments.length, 1, "bob's note landed");
+  assert.equal(notes.bob, 1, "the commenter gets the comment push");
+  assert.equal(notes.carol, 0, "a signed-in plain reader does not");
+  assert.equal(notes.anon, 0, "nor a signed-out one");
+
+  // going private shuts the signed-out reader out too
+  const lost = [];
+  anon.on("doc-access-lost", (p) => lost.push(p));
+  await setVis(doc.id, "private");
+  await ctx.wait(150);
+  assert.equal(lost.length, 1, "the anonymous seat is closed with the rest");
+});
+
+test("the reader theme: the author's pick, a whitelisted id, and a theme-only post leaves visibility alone", async () => {
+  const doc = await newDoc(alice.token, "Themed");
+  assert.equal((await docOf(doc.id)).theme, null, "nothing chosen yet");
+  await setVis(doc.id, "public");
+  const r = await ctx.api(`/api/docs/${doc.id}/visibility`, { theme: "vecna" }, alice.token);
+  assert.equal(r.status, 200);
+  assert.equal(r.data.doc.theme, "vecna");
+  assert.equal(r.data.doc.visibility, "public", "a theme-only post does not narrow the write");
+  const anon = await ctx.api("/api/docs/" + doc.id, null, null, "GET");
+  assert.equal(anon.data.doc.theme, "vecna", "readers are told which theme to wear");
+  assert.equal((await ctx.api(`/api/docs/${doc.id}/visibility`, { theme: "<script>" }, alice.token)).data.doc.theme, null, "junk is no theme");
+  assert.equal((await ctx.api(`/api/docs/${doc.id}/visibility`, { visibility: "readers", theme: "neon" }, alice.token)).data.doc.visibility, "readers", "both together still work");
+  assert.equal((await ctx.api(`/api/docs/${doc.id}/visibility`, { theme: "snowball" }, carol.token)).status, 403, "a reader can't restyle it");
+  assert.equal((await docOf(doc.id)).theme, "neon");
+});
+
 test("going public hands out a reader, not a pen", async () => {
   const doc = await newDoc(alice.token, "No Pens");
   await ctx.api("/api/docs/" + doc.id, { html: BODY }, alice.token, "PUT");
