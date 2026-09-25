@@ -1,6 +1,6 @@
 # Public stories, safer saving, and comment threads
 
-Everything since the last release, in brief.
+What changed this week, in brief.
 
 ## Public stories
 
@@ -24,8 +24,3 @@ Everything since the last release, in brief.
 - Reply, Edit, Add reaction and Delete live under the ⋯ on each message.
 - An amber ! marks a comment whose words have changed.
 - A reader's note is never lost to the author's save.
-
-## Dashboard
-
-- The writers directory filters by friends, word count and rank.
-- A ? beside your streak explains how streaks work.
