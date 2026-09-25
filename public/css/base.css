@@ -9776,6 +9776,12 @@ html:has(body.write-page) {
 	.doc-toolbar-row::-webkit-scrollbar {
 		display: none;
 	}
+	/* The strip's overflow clips anything hung under it — the Appearance
+	   menu opened to nothing on a phone. While it is open the strip stops
+	   clipping (the body's own overflow-x keeps the page from scrolling). */
+	.doc-toolbar-row:has(.view-menu.open) {
+		overflow: visible;
+	}
 	.doc-toolbar-row .toolbar {
 		flex: 0 0 auto;
 		flex-wrap: nowrap;
