@@ -8806,6 +8806,7 @@ body.resizing-side {
    .confirm-modal.hidden exists above). */
 .doc-side.hidden,
 .chap-nav-top.hidden,
+.view-row.hidden,
 .doc-banner.hidden,
 .doc-statusbar.hidden,
 .presence-row.hidden,
@@ -9654,6 +9655,12 @@ html:has(body.write-page) {
 .doc-editor,
 .doc-read {
 	line-height: var(--doc-line, 1.7);
+}
+/* The reader's text size (--doc-zoom, doc-prefs.js): zoom rather than
+   font-size, so the fs-* pixel sizes an author typed scale with the rest.
+   Never written into the document; 1 for the author. */
+.doc-editor {
+	zoom: var(--doc-zoom, 1);
 }
 
 /* ---------- "− value +" steppers ---------- */

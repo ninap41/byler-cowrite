@@ -15,6 +15,7 @@ import {
 	loadPrefs,
 	savePrefs,
 	stepLine,
+	stepText,
 	DEFAULT_LINE,
 	PAPERS,
 	fontOf,
@@ -271,6 +272,7 @@ async function load() {
 		$("shareBtn").classList.add("hidden")
 		$("saveBtn").classList.add("hidden")
 		$("editorHint").classList.add("hidden")
+		$("textRow").classList.remove("hidden") // the reader's magnifier
 	}
 	// A plain reader — a public write's audience, signed in or not — is
 	// neither writing nor commenting: the comments drawer, its edge tab,
@@ -1455,6 +1457,22 @@ const nudgeLine = (dir: number) => {
 $("lsDown").addEventListener("click", () => nudgeLine(-1))
 $("lsUp").addEventListener("click", () => nudgeLine(1))
 applyLineHeight()
+
+// ---- text size (readers only) ----
+// A magnifier over the reading surface (CSS zoom via --doc-zoom), so the
+// sizes the author typed scale along with everything else. The row is
+// shown by load() for anyone who can't edit; the author has the toolbar.
+function applyTextSize() {
+	document.documentElement.style.setProperty("--doc-zoom", String(prefs.textSize))
+	$("tsValue").textContent = Math.round(prefs.textSize * 100) + "%"
+}
+const nudgeText = (dir: number) => {
+	prefs = savePrefs({ ...prefs, textSize: stepText(prefs.textSize, dir) })
+	applyTextSize()
+}
+$("tsDown").addEventListener("click", () => nudgeText(-1))
+$("tsUp").addEventListener("click", () => nudgeText(1))
+applyTextSize()
 
 // ---- paper colour (this writer's preference only) ----
 // Stored beside line spacing and applied the same way: an attribute on

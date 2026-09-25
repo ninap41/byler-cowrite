@@ -127,6 +127,13 @@ test("the editor offers a three-way paper colour beside line spacing", async () 
   assert.ok(body.includes('id="paperSelect"'), "the control is on the toolbar");
   for (const v of ["theme", "light", "dark"]) assert.ok(body.includes(`data-paper="${v}"`), v + " is offered");
   assert.ok(body.indexOf('id="lineStepper"') < body.indexOf('id="paperSelect"'), "it sits next to line spacing");
+  // The reader's text-size stepper: right beneath line spacing, hidden until
+  // load() finds a reader (the author sizes text with the toolbar). The
+  // surface scales by zoom so typed fs-* sizes grow with the rest.
+  assert.ok(body.indexOf('id="lineStepper"') < body.indexOf('id="textStepper"') && body.indexOf('id="textStepper"') < body.indexOf('id="fontSelect"'), "text size sits under line spacing");
+  assert.ok(/id="textRow"/.test(body) && /class="view-row hidden" id="textRow"/.test(body), "hidden until a reader opens the write");
+  const css = (await page("/css/base.css")).body;
+  assert.ok(/\.doc-editor \{\s*zoom: var\(--doc-zoom, 1\);/.test(css), "the magnifier is zoom on the reading surface");
   assert.ok(body.includes("applyPaper"), "and is applied on load, not just on change");
 });
 

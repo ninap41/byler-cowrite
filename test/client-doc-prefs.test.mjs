@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { installLocalStorage } from "./client-storage.mjs";
 
 installLocalStorage();
-const { loadPrefs, savePrefs, stepLine, LINE_STEPS, DEFAULT_LINE, PAPERS, DEFAULT_PAPER, DOC_FONTS, fontOf, fontMenuHtml } = await import("../public/js/doc-prefs.js");
+const { loadPrefs, savePrefs, stepLine, stepText, LINE_STEPS, TEXT_STEPS, DEFAULT_LINE, DEFAULT_TEXT, PAPERS, DEFAULT_PAPER, DOC_FONTS, fontOf, fontMenuHtml } = await import("../public/js/doc-prefs.js");
 
 const mem = () => {
   const store = new Map();
@@ -54,6 +54,23 @@ test("survives unreadable storage", () => {
   };
   assert.equal(loadPrefs(broken).lineHeight, DEFAULT_LINE);
   assert.doesNotThrow(() => savePrefs({ lineHeight: 1.8 }, broken));
+});
+
+test("text size: the reader's magnifier is a second ladder, 1 by default, clamped and stepped the same way", () => {
+  const s = mem();
+  assert.equal(DEFAULT_TEXT, 1, "as written");
+  assert.equal(loadPrefs(s).textSize, 1);
+  assert.equal(savePrefs({ textSize: 1.5 }, s).textSize, 1.5);
+  assert.equal(loadPrefs(s).textSize, 1.5, "round-trips beside the others");
+  assert.equal(savePrefs({ textSize: 1.5, lineHeight: 2.0 }, s).lineHeight, 2.0, "and doesn't disturb them");
+  assert.equal(savePrefs({ textSize: 9 }, s).textSize, TEXT_STEPS[TEXT_STEPS.length - 1], "clamped to the top");
+  assert.equal(savePrefs({ textSize: 0 }, s).textSize, TEXT_STEPS[0], "and the bottom");
+  assert.equal(savePrefs({ textSize: "big" }, s).textSize, DEFAULT_TEXT);
+  assert.equal(stepText(1, 1), 1.15);
+  assert.equal(stepText(1, -1), 0.85);
+  assert.equal(stepText(TEXT_STEPS[TEXT_STEPS.length - 1], 1), TEXT_STEPS[TEXT_STEPS.length - 1], "stops at the top");
+  assert.equal(stepText(TEXT_STEPS[0], -1), TEXT_STEPS[0], "and the bottom");
+  assert.equal(stepText(1.2, 1), 1.3, "off-ladder snaps onward");
 });
 
 test("stepping walks the ladder and stops at both ends", () => {
@@ -107,7 +124,7 @@ test("the two preferences are stored together, saving one keeps the other", () =
 test("a legacy prefs blob with only a line height still loads", () => {
   const s = mem();
   s.setItem("cowriteEditorPrefs", '{"lineHeight":1.8}');
-  assert.deepEqual(loadPrefs(s), { lineHeight: 1.8, paper: "theme", font: "theme", sideWidth: 300, sideOpen: true, chapOpen: true });
+  assert.deepEqual(loadPrefs(s), { lineHeight: 1.8, textSize: 1, paper: "theme", font: "theme", sideWidth: 300, sideOpen: true, chapOpen: true });
 });
 
 // ---- typeface ----
@@ -155,7 +172,7 @@ test("the typeface menu previews each face in that face", () => {
 test("all three view preferences live together and survive each other", () => {
   const s = mem();
   savePrefs({ lineHeight: 2.0, paper: "dark", font: "newsreader" }, s);
-  assert.deepEqual(loadPrefs(s), { lineHeight: 2.0, paper: "dark", font: "newsreader", sideWidth: 300, sideOpen: true, chapOpen: true });
+  assert.deepEqual(loadPrefs(s), { lineHeight: 2.0, textSize: 1, paper: "dark", font: "newsreader", sideWidth: 300, sideOpen: true, chapOpen: true });
 });
 
 // ---- the comments drawer ----
