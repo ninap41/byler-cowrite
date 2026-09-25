@@ -38,6 +38,7 @@ export const SYSTEM_FONTS: readonly FontFace[] = [
 	{ key: "trebuchet", label: "Trebuchet MS", stack: '"Trebuchet MS", sans-serif' },
 	{ key: "gillsans", label: "Gill Sans", stack: '"Gill Sans", "Gill Sans MT", Calibri, sans-serif' },
 	{ key: "courier", label: "Courier New", stack: '"Courier New", Courier, monospace' },
+	{ key: "comic", label: "Comic Sans", stack: '"Comic Sans MS", "Comic Sans", "Chalkboard SE", Chalkboard, cursive' },
 	{ key: "system", label: "System UI", stack: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' },
 ]
 

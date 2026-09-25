@@ -59,6 +59,7 @@
   "Trebuchet MS": "\"Trebuchet MS\", sans-serif",
   "Gill Sans": "\"Gill Sans\", \"Gill Sans MT\", Calibri, sans-serif",
   "Courier New": "\"Courier New\", Courier, monospace",
+  "Comic Sans": "\"Comic Sans MS\", \"Comic Sans\", \"Chalkboard SE\", Chalkboard, cursive",
   "System UI": "system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"
  },
  "themes": {

@@ -6633,6 +6633,11 @@ html[data-font="courier"] {
 	--font-story: "Courier New", Courier, monospace;
 	--font-display: "Courier New", Courier, monospace;
 }
+html[data-font="comic"] {
+	--font-body: "Comic Sans MS", "Comic Sans", "Chalkboard SE", Chalkboard, cursive;
+	--font-story: "Comic Sans MS", "Comic Sans", "Chalkboard SE", Chalkboard, cursive;
+	--font-display: "Comic Sans MS", "Comic Sans", "Chalkboard SE", Chalkboard, cursive;
+}
 html[data-font="system"] {
 	--font-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 	--font-story: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
