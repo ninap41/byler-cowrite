@@ -64,3 +64,15 @@ test("both editors offer the same controls, this is the drift guard", () => {
     assert.ok(write.includes(`data-cmd="${cmd}"`) && shared.includes(`data-cmd="${cmd}"`), cmd + " exists on both");
   assert.ok(TOOLBAR_CONTROLS.includes("fontSize") && TOOLBAR_CONTROLS.includes("clearFormatting"));
 });
+
+test("mountRichToolbar exposes exec: a hot key inserts through the same path as a button press (an undo step, then onEdit)", () => {
+  document.body.innerHTML = '<div id="tb"></div><div id="ed" contenteditable="true"><p>a</p></div>';
+  document.getElementById("tb").innerHTML = toolbarHtml();
+  let edits = 0;
+  document.execCommand = document.execCommand || (() => true);
+  const tb = mountRichToolbar(document.getElementById("ed"), document.getElementById("tb"), { onEdit: () => edits++ });
+  assert.equal(typeof tb.exec, "function");
+  tb.exec("insertText", "—");
+  assert.equal(edits, 1, "onEdit fired once");
+  tb.destroy();
+});

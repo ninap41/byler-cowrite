@@ -32,7 +32,7 @@ export function screenGame(): string {
 			<div class="ts-turn"><b>rose is writing…</b><span class="ts-clock">0:14</span></div>
 			<div class="ts-toolbar">${tb("B", "b")}${tb("I", "i")}${tb("U", "u")}${tb("p ▾", "ts-muted")}${tb("HR")}</div>
 			<div class="ts-editor ts-muted">Add the next line…</div>
-			<div class="ts-mono ts-muted ts-hint">Ctrl/⌘+Enter to submit · auto-submits when the timer ends</div>
+			<div class="ts-mono ts-muted ts-hint">Hot Keys <span class="ts-hk">?</span> · Ctrl/⌘+Enter to submit · auto-submits when the timer ends</div>
 			<div class="ts-mono ts-muted ts-hint ts-center">Round 3 of 8 · 24 lines · 1,930 words</div>
 		</div>
 		<aside class="ts-side">

@@ -30,6 +30,7 @@ import { loadDraft, saveDraft, clearDraft, draftIsNewer, mergeDraft } from "/js/
 import { createHistory } from "/js/components/history.js"
 import { mountDocBanners } from "/js/components/doc-banner.js"
 import { mountFindReplace, type FindReplaceApi } from "/js/components/find-replace.js"
+import { mountHotKeys } from "/js/components/hot-keys.js"
 import { anchorCids, placeAnchor, pruneSource, stripAnchorInSource, applySuggestionInSource, rangeOfText } from "/js/components/comment-sync.js"
 import {
 	presenceHtml,
@@ -1248,11 +1249,20 @@ $("clearFmtBtn").addEventListener("mousedown", (e) => {
 	clearFormatting()
 })
 
-$("emDashBtn").addEventListener("mousedown", (e) => {
-	e.preventDefault()
+// The em dash and the divider: the button and its hot key share one path.
+const insertEmDash = () => {
 	$("docEditor").focus()
 	document.execCommand("insertText", false, "—")
 	onEdit({ immediate: true })
+}
+const insertRule = () => {
+	$("docEditor").focus()
+	document.execCommand("insertHorizontalRule", false, NOVAL)
+	onEdit({ immediate: true })
+}
+$("emDashBtn").addEventListener("mousedown", (e) => {
+	e.preventDefault()
+	insertEmDash()
 })
 // The range the size box will act on, remembered while the editor still
 // has the selection (see rememberRange).
@@ -1575,18 +1585,188 @@ $("docSideGrip").addEventListener("keydown", (e) => {
 })
 applySide()
 
+// ---- links and images ----
+// One dialog (#urlModal) for ⌘K / ⌘⇧I and the two toolbar buttons. The
+// dialog takes focus, so the editor's selection is remembered on the way in
+// (collapsed too — a bare caret is where a fresh link's text goes) and put
+// back before execCommand. A link is always a real <a href>: createLink
+// wraps the words you highlighted; with the caret inside a link you edit
+// or remove that one; with no words a Text field supplies them.
+const HTTP_URL = /^https?:\/\//i
+/** "ao3.org/x" → "https://ao3.org/x": nobody should have to type the scheme */
+export const withScheme = (raw: string): string => {
+	const s = raw.trim()
+	if (!s || HTTP_URL.test(s)) return s
+	if (/^[a-z][a-z0-9+.-]*:/i.test(s)) return s // some other scheme: leave it to the check to refuse
+	return "https://" + s.replace(/^\/+/, "")
+}
+let urlRange: Range | null = null
+const rememberUrlRange = () => {
+	const sel = window.getSelection()
+	if (!sel || !sel.rangeCount) return
+	const r = sel.getRangeAt(0)
+	if ($("docEditor").contains(r.commonAncestorContainer)) urlRange = r.cloneRange()
+}
+const restoreUrlRange = () => {
+	$("docEditor").focus()
+	if (!urlRange || !$("docEditor").contains(urlRange.commonAncestorContainer)) return false
+	const sel = window.getSelection()!
+	sel.removeAllRanges()
+	sel.addRange(urlRange)
+	return true
+}
+interface AskUrl {
+	kind: "link" | "image"
+	text?: string
+	url?: string
+	canRemove?: boolean
+	needText?: boolean
+}
+type UrlAnswer = { url: string; text: string } | "remove" | null
+let urlResolve: ((a: UrlAnswer) => void) | null = null
+let urlNeedsText = false
+const closeUrlModal = (answer: UrlAnswer) => {
+	$("urlModal").classList.add("hidden")
+	const r = urlResolve
+	urlResolve = null
+	r?.(answer)
+}
+const askUrl = ({ kind, text = "", url = "", canRemove = false, needText = false }: AskUrl): Promise<UrlAnswer> =>
+	new Promise((resolve) => {
+		if (urlResolve) closeUrlModal(null)
+		urlResolve = resolve
+		$("urlModalTitle").textContent = kind === "image" ? "Add an image" : url ? "Edit link" : "Add a link"
+		$("urlTextRow").classList.toggle("hidden", kind === "image")
+		$("urlRemove").classList.toggle("hidden", !canRemove)
+		$("urlOk").textContent = kind === "image" ? "Add image" : url ? "Save" : "Add link"
+		urlNeedsText = kind === "link" && needText
+		input("urlText").value = text
+		input("urlInput").value = url
+		input("urlInput").placeholder = kind === "image" ? "example.com/picture.jpg" : "archiveofourown.org/…"
+		$("urlErr").textContent = ""
+		$("urlModal").classList.remove("hidden")
+		;(kind === "link" && needText ? input("urlText") : input("urlInput")).focus()
+	})
+$("urlCancel").addEventListener("click", () => closeUrlModal(null))
+$("urlRemove").addEventListener("click", () => closeUrlModal("remove"))
+$("urlModal").addEventListener("click", (e) => {
+	if (e.target === $("urlModal")) closeUrlModal(null)
+})
+$("urlModal").addEventListener("keydown", (e) => {
+	if (e.key === "Escape") closeUrlModal(null)
+	else if (e.key === "Enter") {
+		e.preventDefault()
+		$("urlOk").click()
+	}
+})
+$("urlOk").addEventListener("click", () => {
+	const url = withScheme(input("urlInput").value)
+	const text = input("urlText").value.trim()
+	if (!HTTP_URL.test(url)) {
+		$("urlErr").textContent = "That doesn't look like a web address."
+		input("urlInput").focus()
+		return
+	}
+	if (urlNeedsText && !text) {
+		$("urlErr").textContent = "Give the link some words."
+		input("urlText").focus()
+		return
+	}
+	closeUrlModal({ url, text })
+})
+const selectContents = (el: Node) => {
+	const sel = window.getSelection()!
+	const r = document.createRange()
+	r.selectNodeContents(el)
+	sel.removeAllRanges()
+	sel.addRange(r)
+}
+const insertLink = async () => {
+	if (!canEditDoc() || commentMode || sourceMode) return
+	rememberUrlRange()
+	const sel = window.getSelection()
+	const node = sel?.anchorNode
+	const el = node instanceof Element ? node : node?.parentElement
+	const existing = el?.closest<HTMLAnchorElement>("a")
+	const inEditor = existing && $("docEditor").contains(existing) ? existing : null
+	const picked = sel && !sel.isCollapsed ? sel.toString() : ""
+	const answer = await askUrl(
+		inEditor
+			? { kind: "link", url: inEditor.getAttribute("href") || "", text: inEditor.textContent || "", canRemove: true }
+			: { kind: "link", text: picked, needText: !picked },
+	)
+	if (!answer) {
+		restoreUrlRange()
+		return
+	}
+	if (inEditor) {
+		$("docEditor").focus()
+		if (answer === "remove") {
+			selectContents(inEditor)
+			document.execCommand("unlink", false, NOVAL)
+		} else {
+			inEditor.setAttribute("href", answer.url)
+			if (answer.text && answer.text !== inEditor.textContent) inEditor.textContent = answer.text
+			selectContents(inEditor)
+		}
+		onEdit({ immediate: true })
+		return
+	}
+	if (answer === "remove") return
+	restoreUrlRange()
+	// new words (a bare caret, or the highlighted ones retyped): put them in
+	// first, then select exactly that run so createLink wraps it
+	const words = answer.text || picked
+	if (words && words !== picked) {
+		const cur = window.getSelection()!
+		const start = cur.getRangeAt(0).cloneRange()
+		document.execCommand("insertText", false, words)
+		const after = cur.getRangeAt(0)
+		const r = document.createRange()
+		r.setStart(start.startContainer, start.startOffset)
+		r.setEnd(after.endContainer, after.endOffset)
+		cur.removeAllRanges()
+		cur.addRange(r)
+	}
+	if (!words) return
+	document.execCommand("createLink", false, answer.url)
+	onEdit({ immediate: true })
+}
+const insertImage = async () => {
+	if (!canEditDoc() || commentMode || sourceMode) return
+	rememberUrlRange()
+	const answer = await askUrl({ kind: "image" })
+	restoreUrlRange()
+	if (!answer || answer === "remove") return
+	document.execCommand("insertImage", false, answer.url)
+	onEdit({ immediate: true })
+}
 $("linkBtn").addEventListener("mousedown", (e) => {
 	e.preventDefault()
-	const url = prompt("Link URL (http:// or https://)")
-	if (url && /^https?:\/\//i.test(url)) document.execCommand("createLink", false, url)
-	onEdit()
+	void insertLink()
 })
 $("imgBtn").addEventListener("mousedown", (e) => {
 	e.preventDefault()
-	const url = prompt("Image URL (http:// or https://)")
-	if (url && /^https?:\/\//i.test(url)) document.execCommand("insertImage", false, url)
-	onEdit()
+	void insertImage()
 })
+// A link you can see and read: hovering one in the editor shows its url in
+// the site tooltip (data-tip is the tooltip's trigger; cleanHtml drops it,
+// so it never reaches the server), and a plain click never navigates away
+// mid-edit — ⌘/Ctrl-click opens it in a new tab.
+$("docEditor").addEventListener("mouseover", (e) => {
+	const a = (e.target as HTMLElement).closest<HTMLAnchorElement>("a[href]")
+	if (a && $("docEditor").contains(a)) a.dataset.tip = a.getAttribute("href") || ""
+})
+$("docEditor").addEventListener(
+	"click",
+	(e) => {
+		const a = (e.target as HTMLElement).closest<HTMLAnchorElement>("a[href]")
+		if (!a || $("docEditor").contentEditable !== "true") return
+		e.preventDefault()
+		if (e.metaKey || e.ctrlKey) window.open(a.href, "_blank", "noopener")
+	},
+	true,
+)
 
 // The editor keeps its own undo stack — see components/history.js for why
 // the browser's can't be used here. Every mutation funnels through
@@ -1658,9 +1838,13 @@ function setMode(toSource: boolean) {
 	$("modeRich").setAttribute("aria-pressed", String(!toSource))
 	$("modeHtml").setAttribute("aria-pressed", String(toSource))
 	finder?.refresh()
-	$("editorHint").innerHTML = toSource
+	// the hint's words swap; the Hot Keys "?" between them only hides, since
+	// the shortcuts are the rich view's (a mounted control, never re-rendered)
+	$("hintText").innerHTML = toSource
 		? "Editing raw HTML: unsupported tags are stripped when you switch back or save."
-		: "Type <b>/</b> for dialogue tags + more · Ctrl/⌘+S to save · autosaves 30s"
+		: "Type <b>/</b> for dialogue tags + more · "
+	$("hotKeysSlot").classList.toggle("hidden", toSource)
+	$("hintTail").classList.toggle("hidden", toSource)
 	if (!toSource) updateWords()
 	;(toSource ? $("docSource") : $("docEditor")).focus()
 	setDirty(true)
@@ -1771,12 +1955,7 @@ async function save({ quiet = false, force = false }: { quiet?: boolean; force?:
 }
 const SAVE_TIMEOUT_MS = 20000
 $("saveBtn").addEventListener("click", () => save())
-document.addEventListener("keydown", (e) => {
-	if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
-		e.preventDefault()
-		save()
-	}
-})
+// Ctrl/⌘+S is the hot-keys component's, mounted after the find bar below.
 
 // ---- find & replace ----
 // One bar for both views: text nodes in Rich text, the raw string in HTML.
@@ -1810,13 +1989,28 @@ const toggleFind = (on = !findBar.isOpen()) => {
 $("findBtn").addEventListener("click", () => toggleFind())
 $("findBar").addEventListener("click", () => $("findBtn").setAttribute("aria-expanded", String(findBar.isOpen())))
 document.addEventListener("keydown", (e) => {
-	if ((e.metaKey || e.ctrlKey) && !e.altKey && e.key.toLowerCase() === "f") {
-		e.preventDefault()
-		toggleFind(true)
-	}
 	// Escape closes the bar from anywhere on the page, not only from its own
 	// boxes — you are usually back in the prose by the time you want it gone.
-	else if (e.key === "Escape" && findBar.isOpen() && !e.defaultPrevented) toggleFind(false)
+	// (Ctrl/⌘+F itself is the hot-keys component's, right below.)
+	if (e.key === "Escape" && findBar.isOpen() && !e.defaultPrevented) toggleFind(false)
+})
+// ---- hot keys ----
+// The shared "?" and dispatcher (components/hot-keys.js). Find and Save fire
+// from anywhere, for a reader too; the editing keys only with the caret in
+// the rich view of a story you can edit.
+mountHotKeys($("hotKeysSlot"), {
+	prefix: "doc",
+	keys: ["find", "save", "emDash", "hr", "link", "image", "bold", "italic", "underline"],
+	editor: $("docEditor"),
+	isActive: () => !sourceMode && canEditDoc() && !commentMode,
+	actions: {
+		find: () => toggleFind(true),
+		save: () => save(),
+		emDash: insertEmDash,
+		hr: insertRule,
+		link: () => void insertLink(),
+		image: () => void insertImage(),
+	},
 })
 // the words moved under an open bar: typing, a chapter switch, a mode switch
 $("docEditor").addEventListener("input", () => findBar.refresh())

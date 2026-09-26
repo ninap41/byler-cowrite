@@ -68,7 +68,7 @@ export function toolbarHtml(idPrefix = ""): string {
 
 // mountRichToolbar(editor, toolbar, {onEdit, idPrefix})
 // onEdit fires after anything that changes the html, so the host can save,
-// broadcast typing, or recount words. Returns {sync, history, destroy}.
+// broadcast typing, or recount words. Returns {sync, history, exec, destroy}.
 export interface RichToolbarOpts {
 	/** fires after anything that changes the html, so the host can save, broadcast typing, or recount words */
 	onEdit?: () => void
@@ -77,6 +77,8 @@ export interface RichToolbarOpts {
 export interface RichToolbar {
 	sync(): void
 	history: History
+	/** run one toolbar command the way a button press would: focus, execCommand, an undo step, onEdit */
+	exec(cmd: string, val?: string | null): void
 	destroy(): void
 }
 export function mountRichToolbar(editor: HTMLElement, toolbar: HTMLElement, { onEdit = () => {}, idPrefix = "" }: RichToolbarOpts = {}): RichToolbar {
@@ -303,6 +305,7 @@ export function mountRichToolbar(editor: HTMLElement, toolbar: HTMLElement, { on
 	return {
 		sync,
 		history,
+		exec,
 		destroy() {
 			document.removeEventListener("selectionchange", onSelectionChange)
 			document.removeEventListener("keydown", onKeyDown)

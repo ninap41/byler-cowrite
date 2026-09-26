@@ -7739,6 +7739,26 @@ button.chap-arrow:disabled {
 .doc-editor a,
 .doc-read a {
 	color: var(--accent);
+	text-decoration: underline;
+	text-decoration-thickness: 1px;
+	text-underline-offset: 2px;
+	text-decoration-color: color-mix(in srgb, var(--accent) 60%, transparent);
+}
+.doc-editor a:hover,
+.doc-read a:hover {
+	text-decoration-color: var(--accent);
+}
+/* while editing, a link also wears a small chain after its words (a pseudo,
+   so cleanHtml, comments and the word count never see it) */
+.doc-editor[contenteditable="true"] a::after {
+	content: "\f0c1";
+	font-family: "Font Awesome 6 Free";
+	font-weight: 900;
+	font-size: 0.6em;
+	margin-left: 3px;
+	opacity: 0.7;
+	text-decoration: none;
+	display: inline-block;
 }
 .doc-img {
 	max-width: 100%;
@@ -9333,6 +9353,110 @@ html:has(body.write-page) {
 .xp-menu.right {
 	left: auto;
 	right: 0;
+}
+
+/* ---- Hot Keys: the small round "?" in an editor's foot hint and the sheet of
+   shortcuts it opens (components/hot-keys.js, solo editor + game). The wrap
+   sits inside the solo .hint-bar, which has pointer-events: none, so it turns
+   them back on for itself. A class-`open` popover, never .hidden (no twin). */
+.hk-wrap {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	pointer-events: auto;
+	white-space: nowrap;
+}
+.hk-btn {
+	display: inline-grid;
+	place-items: center;
+	flex: 0 0 auto;
+	width: 18px;
+	height: 18px;
+	min-width: 0;
+	padding: 0;
+	margin: 0;
+	border-radius: 50%;
+	border: 1.5px solid currentColor;
+	background: transparent;
+	color: var(--muted);
+	font: inherit;
+	font-size: 0.7rem;
+	font-weight: 700;
+	line-height: 1;
+	cursor: pointer;
+	vertical-align: middle;
+}
+.hk-btn:hover,
+.hk-btn:focus-visible,
+.hk-btn[aria-expanded="true"] {
+	color: var(--accent-2);
+	border-color: var(--accent-2);
+	transform: none;
+	box-shadow: none;
+}
+.hk-menu {
+	display: none;
+	position: absolute;
+	bottom: calc(100% + 8px);
+	left: 0;
+	z-index: 70;
+	min-width: 210px;
+	max-width: calc(100vw - 32px);
+	padding: 10px 12px 12px;
+	border: 1px solid var(--panel-brd);
+	border-radius: var(--r-md);
+	background: var(--panel-solid);
+	box-shadow: var(--panel-glow);
+	color: var(--ink);
+	font-family: var(--font-body);
+	font-size: 0.8rem;
+	text-align: left;
+	white-space: normal;
+	/* the game's hint is small caps; the sheet is prose */
+	text-transform: none;
+	letter-spacing: normal;
+}
+.hk-menu.open {
+	display: block;
+}
+.hk-menu.down {
+	bottom: auto;
+	top: calc(100% + 8px);
+}
+.hk-menu.right {
+	left: auto;
+	right: 0;
+}
+.hk-menu h4 {
+	margin: 0 0 8px;
+	font-size: 0.72rem;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--muted);
+}
+.hk-menu dl {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	gap: 6px 12px;
+	align-items: center;
+	margin: 0;
+}
+.hk-menu dt,
+.hk-menu dd {
+	margin: 0;
+}
+.hk-menu kbd {
+	display: inline-block;
+	padding: 2px 7px;
+	border: 1px solid var(--chip-brd);
+	border-radius: var(--r-sm);
+	background: var(--chip);
+	color: var(--ink);
+	font-family: var(--font-mono);
+	font-size: 0.72rem;
+	line-height: 1.4;
+	white-space: nowrap;
 }
 .xp-opt {
 	display: flex;

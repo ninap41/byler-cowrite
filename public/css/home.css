@@ -328,6 +328,7 @@ body.home-page {
 .ts-r { margin-left: auto; }
 .ts-center { text-align: center; }
 .ts-hint { font-size: 0.74rem; margin-top: 6px; }
+.ts-hk { display: inline-grid; place-items: center; width: 14px; height: 14px; border: 1px solid var(--line); border-radius: 50%; font-size: 0.6rem; vertical-align: middle; }
 .ts-rule { border-top: 1px solid var(--line); padding-top: 18px; margin-top: 20px; }
 .ts-title {
 	font-family: var(--font-display);

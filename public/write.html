@@ -255,7 +255,9 @@
 						     arrow each side to turn the page (readers and author alike). -->
 						<div class="hint-bar" id="hintBar">
 							<p class="hint" id="editorHint">
-								Type <b>/</b> for dialogue tags + more · Ctrl/⌘+S to save · autosaves 30s
+								<span id="hintText">Type <b>/</b> for dialogue tags + more · </span>
+								<span id="hotKeysSlot"></span>
+								<span id="hintTail"> · autosaves 30s</span>
 							</p>
 							<div id="chapNav"></div>
 						</div>
@@ -372,6 +374,25 @@
 			</div>
 		</div>
 
+		<!-- One dialog for a link and an image: ⌘K / ⌘⇧I and the two toolbar
+		     buttons (write.ts askUrl). The Text row is the link's alone. -->
+		<div class="confirm-modal hidden" id="urlModal" role="dialog" aria-modal="true" aria-labelledby="urlModalTitle">
+			<div class="confirm-card">
+				<h3 id="urlModalTitle">Add a link</h3>
+				<div id="urlTextRow">
+					<label for="urlText">Text</label>
+					<input id="urlText" placeholder="The words that carry the link" maxlength="300" style="width: 100%" />
+				</div>
+				<label for="urlInput" style="margin-top: 10px">URL</label>
+				<input id="urlInput" type="text" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="archiveofourown.org/…" style="width: 100%" />
+				<div class="err" id="urlErr"></div>
+				<div class="row" style="justify-content: flex-end; margin-top: 12px">
+					<button type="button" class="ghost danger hidden" id="urlRemove">Remove link</button>
+					<button type="button" class="ghost" id="urlCancel">Cancel</button>
+					<button type="button" class="primary" id="urlOk">Add link</button>
+				</div>
+			</div>
+		</div>
 		<div class="confirm-modal hidden" id="leaveModal">
 			<div class="confirm-card">
 				<h3>You have unsaved changes</h3>

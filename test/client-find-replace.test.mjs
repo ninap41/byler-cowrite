@@ -169,7 +169,7 @@ test("the write page mounts it: a toolbar button, a bar in the sticky shell, Ctr
   const shell = page.slice(page.indexOf('id="docShell"'), page.indexOf('id="docErr"'));
   assert.ok(shell.includes('id="findBar"'), "inside the shell, so --doc-sticky measures it");
   assert.match(js, /mountFindReplace\(/);
-  assert.match(js, /=== ?"f"/, "the shortcut");
+  assert.match(js, /find: \(\) => toggleFind\(true\)/, "the shortcut: Ctrl/⌘+F is the hot-keys table's find action (components/hot-keys)");
   assert.match(js, /"Escape" ?&& ?findBar\.isOpen\(\)/, "Escape closes it from anywhere on the page");
   assert.match(js, /canReplace: ?\(\) ?=> ?canEditDoc\(\) ?&& ?!commentMode/, "only the author, never in comment mode");
   assert.ok(css.indexOf(".find-bar.hidden") > css.indexOf(".find-bar {"), ".hidden twin comes after the display rule");

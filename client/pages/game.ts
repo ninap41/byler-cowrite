@@ -15,6 +15,7 @@ import { requireAuth } from "/js/auth-guard.js"
 import { statusDot, refreshStatusDots, updateLiveStatus, presenceHtml } from "/js/status.js"
 import { cleanHtml } from "/js/components/editor.js"
 import { toolbarHtml, mountRichToolbar } from "/js/components/rich-toolbar.js"
+import { mountHotKeys } from "/js/components/hot-keys.js"
 import { storyHtml, livePreviewHtml } from "/js/components/story-feed.js"
 import { mountPromptModes, optionChipsHtml } from "/js/components/prompt-modes.js"
 import { chatMessageHtml } from "/js/components/chat-view.js"
@@ -1032,7 +1033,7 @@ $("submitBtn").onclick = submitLine
 // strip anyway (links, images). Live typing is broadcast on every
 // change, so a format lands on the watchers' screens as it happens.
 $("gameToolbar").innerHTML = toolbarHtml()
-mountRichToolbar($("writerEditor"), $("gameToolbar"), {
+const richToolbar = mountRichToolbar($("writerEditor"), $("gameToolbar"), {
 	onEdit: () => $("writerEditor").dispatchEvent(new Event("input")),
 })
 // poking the (disabled) editor, any WYSIWYG toolbar button, the
@@ -1043,11 +1044,18 @@ const pausedPoke = () => {
 }
 ;["writerEditor", "submitBtn", "blockFormat"].forEach((id) => $(id).addEventListener("click", pausedPoke))
 $("gameToolbar").addEventListener("mousedown", pausedPoke)
-$("writerEditor").addEventListener("keydown", (e) => {
-	if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-		e.preventDefault()
-		submitLine()
-	}
+// The shared Hot Keys "?" and dispatcher (components/hot-keys.js): Ctrl/⌘+Enter
+// submits, the em dash and the divider go through the toolbar's own exec so
+// they are undo steps and reach the watchers' live view like a button press.
+mountHotKeys($("gameHotKeysSlot"), {
+	prefix: "game",
+	keys: ["emDash", "hr", "bold", "italic", "underline", "submit"],
+	editor: $("writerEditor"),
+	actions: {
+		emDash: () => richToolbar.exec("insertText", "—"),
+		hr: () => richToolbar.exec("insertHorizontalRule"),
+		submit: () => submitLine(),
+	},
 })
 // Broadcast what I'm typing so others watch live (debounced).
 let typingTimer: ReturnType<typeof setTimeout> | undefined
