@@ -339,6 +339,31 @@ test("chat: length cap, echo id, host flag", async () => {
   assert.equal(m.host, true);
 });
 
+test("chat: a line with a link gets a chat-preview for the same mid, which rides chat-history; a plain line gets none", async () => {
+  const { A, B, code } = await startedGame(ctx);
+  const line = new Promise((r) => B.on("chat", (m) => !m.sys && r(m)));
+  const card = new Promise((r) => B.on("chat-preview", r));
+  A.emit("chat", { text: "read this: https://example.test/works/1." });
+  const m = await line;
+  assert.equal(m.preview, undefined, "the line goes out before the page is fetched");
+  const p = await card;
+  assert.equal(p.mid, m.mid);
+  assert.equal(p.preview.url, "https://example.test/works/1", "the trailing full stop is not part of the link");
+  assert.ok(p.preview.title && p.preview.image);
+  const C = await ctx.conn();
+  const hist = new Promise((r) => C.on("chat-history", r));
+  await ctx.emit(C, "spectate-session", { code });
+  const replayed = (await hist).find((x) => x.mid === m.mid);
+  assert.deepEqual(replayed.preview, p.preview, "history carries the card");
+  let stray = false;
+  B.on("chat-preview", () => (stray = true));
+  const plain = new Promise((r) => B.on("chat", (x) => !x.sys && x.text === "no link" && r(x)));
+  A.emit("chat", { text: "no link" });
+  await plain;
+  await new Promise((r) => setTimeout(r, 150));
+  assert.equal(stray, false, "no preview for a line without a link");
+});
+
 test("a new session is born with a random title, ≤40 chars, until the host renames it", async () => {
   const { host, A, state, code } = await startedGame(ctx);
   const st = state.current;

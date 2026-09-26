@@ -3,7 +3,7 @@
 // pieces the HTTP routes need (sessions, archive helpers, presence).
 import { randomUUID, randomInt } from "crypto";
 import { bumpStreak } from "../lib/streak.js";
-import { badgeName, badgeDesc, usageMatches, awardWordBadges, rewardsForTiers, describeRewards, unlockedThemes, unlockedGimmicks, canUseGimmick } from "../lib/achievements.js";
+import { badgeName, badgeDesc, badgeSound, usageMatches, awardWordBadges, rewardsForTiers, describeRewards, unlockedThemes, unlockedGimmicks, canUseGimmick } from "../lib/achievements.js";
 import { cleanGimmickId, rollOutcome, describeRoll, galagaOutcome, describeGalaga, GALAGA_MAX_SCORE, ROLL_COOLDOWN_MS, SPIN_MS, DIE_SIDES, PAINT_MAX_STROKES, PAINT_MAX_PTS, CURSE_MS, GIMMICK_IDS } from "../lib/gimmicks.js";
 import { PALETTE, cleanColor, cleanHex, sanitizeRich, stripTags, plainText, clip, httpUrl, sanitizeDoc, CID_RE, DOC_MAX } from "./sanitize.js";
 import { keepBeforeOverwrite, snapshotOf } from "./dochist.js";
@@ -13,6 +13,8 @@ import { generateSimplePrompt, generateIntermediatePrompt, validateIntermediateD
 import { readContent, writeContent } from "./content.js";
 import { randomTitle } from "../lib/titles.js";
 import { toggleReaction } from "../public/js/shared/reactions.js";
+import { createUnfurler } from "./unfurl.js";
+import { SITE } from "./site.js";
 import { readDoc, writeDoc, writeComments, anchorPos, canView, canEdit, canComment, anchorCids, anchorText, stripAnchor, stripAnchors, commentBaseline, applySuggestion, chapterById, chapterOfCid, mapChapterHtml } from "./docs.js";
 
 // Curated scenario prompts + the guided-mode component pools (edit
@@ -180,7 +182,19 @@ const DENY_COOLDOWN_MS = 5 * 60_000;
  */
 const loose = (p) => (p && typeof p === "object" ? /** @type {Record<string, any>} */ (p) : {});
 /** @param {IO} io */
+// The first http(s) link in a chat line, exactly as the client links it
+// (client/util.ts URL_RE + trailing-punctuation trim; a test pins the two).
+const URL_RE = /\bhttps?:\/\/[^\s<>"'`]+/gi;
+export function firstUrl(text) {
+  for (const m of String(text).matchAll(URL_RE)) {
+    const url = m[0].replace(/[.,;:!?)\]}'"]+$/, "");
+    if (httpUrl(url)) return url;
+  }
+  return null;
+}
+
 export function createGame(io) {
+  const unfurler = createUnfurler({ userAgent: `${SITE.name} link preview` });
   /** @type {Map<string, Session>} */
   const sessions = new Map(); // code -> session (in-memory; fine for a party game)
   const onlineSockets = new Map(); // socket.id -> userId (signed-in presence for the dashboard)
@@ -509,6 +523,7 @@ export function createGame(io) {
     const notifyEarned = (id, unlocks = null) => {
       const payload = {
         badge: badgeName(id), desc: badgeDesc(id),
+        sound: badgeSound(id), // rides to the whole room, secret or not: the clip is the show
         name: writer.name, color: writer.color,
         unlocks, themes: unlocks ? unlockedThemes(u) : undefined,
         gimmicks: unlocks ? unlockedGimmicks(u) : undefined, // likewise, the gimmicks they may now play
@@ -1698,6 +1713,22 @@ export function createGame(io) {
       s.chat.push(msg);
       if (s.chat.length > CHAT_LIMIT) s.chat.shift();
       io.to(s.code).emit("chat", msg);
+      // A link gets a preview card a moment later: the line goes out now, the
+      // card rides on the message (so chat-history and the snapshot carry it)
+      // and reaches the room as chat-preview. Never awaited, never fatal.
+      const link = firstUrl(body);
+      if (link)
+        unfurler
+          .unfurl(link)
+          .then((preview) => {
+            if (!preview) return;
+            const m = s.chat.find((x) => x.mid === msg.mid);
+            if (!m) return;
+            m.preview = preview;
+            io.to(s.code).emit("chat-preview", { mid: msg.mid, preview });
+            saveSnapshot(s);
+          })
+          .catch(() => {});
     });
 
     // Emoji reactions (public/js/components/reactions.js): toggle mine on ONE

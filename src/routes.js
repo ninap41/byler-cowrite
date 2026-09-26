@@ -363,7 +363,7 @@ export function registerRoutes(app, game) {
     // except for an admin, who gets the whole recipe so the ranks page can
     // show them how every badge is earned.
     const admin = isAdmin(authedUser(req));
-    const recipe = (b) => (admin ? { desc: b.desc, triggers: b.triggers || [], combos: b.combos || [] } : {});
+    const recipe = (b) => (admin ? { desc: b.desc, triggers: b.triggers || [], combos: b.combos || [], sound: b.sound || null } : {});
     res.json({
       // ids ride along so the ranks page can join tiers to themeUnlocks /
       // gimmick locks (they're not secret — docs/UNLOCKS.md prints them)

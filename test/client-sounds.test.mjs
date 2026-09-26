@@ -120,3 +120,24 @@ test("the gimmick pref gates a chat ping played under the gimmick category, and 
   assert.equal(kit.sounds.incomingmessage.plays, 2, "chat muted, gimmick on: the natural 20 still rings");
   assert.equal(kit.prefs.gimmick, true);
 });
+
+test("playClip: a badge clip loads on first use, replays reuse it, off-pref is silent, bad names never touch the network", () => {
+  const made = [];
+  class SpyAudio extends FakeAudio {
+    constructor(src) {
+      super(src);
+      made.push(src);
+    }
+  }
+  const kit = createSounds(SpyAudio);
+  const before = made.length;
+  kit.playClip("at-long-last-we-can-begin");
+  kit.playClip("at-long-last-we-can-begin");
+  assert.deepEqual(made.slice(before), ["/sounds/at-long-last-we-can-begin.mp3"], "created once");
+  kit.playClip("../etc/passwd");
+  kit.playClip("Vecna Laugh");
+  assert.equal(made.length, before + 1, "a name that isn't a basename is ignored");
+  kit.setPrefs({ story: false });
+  kit.playClip("vecna-laugh");
+  assert.equal(made.length, before + 1, "story sounds off: nothing loads or plays");
+});

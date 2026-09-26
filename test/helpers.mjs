@@ -44,6 +44,7 @@ export async function startServer(extraEnv = {}) {
         COWRITE_SAVE_DIR: saveDir,
         COWRITE_CONTENT_DIR: contentDir,
         COWRITE_REF_DIR: refDir,
+        COWRITE_UNFURL: "stub", // chat link previews never touch the network in tests
         // tests accumulate sessions freely; the cap test lowers this itself
         ...extraEnv,
       },

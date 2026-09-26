@@ -12,6 +12,7 @@
     "pretest": "npm run build",
     "test": "node --test \"test/**/*.test.mjs\"",
     "reseed-content": "node scripts/reseed-content.mjs",
+    "reseed-achievements": "node scripts/reseed-content.mjs content achievements",
     "discord-register": "node scripts/discord-register.mjs"
   },
   "dependencies": {

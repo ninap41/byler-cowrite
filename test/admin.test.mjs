@@ -445,19 +445,20 @@ test("the badge editor: an admin saves the catalogue and a new badge is earned o
     assert.ok(bad.data.errors.some((e) => /valid id/.test(e)));
     // a new secret badge
     const next = structuredClone(doc);
-    next.usage.push({ id: "mindflayer", name: "🕷️ Mind Flayer", triggers: ["mind flayer"], desc: "Write the mind flayer into a line." });
+    next.usage.push({ id: "mindflayer", name: "🕷️ Mind Flayer", triggers: ["mind flayer"], sound: "mindflayer-roar", desc: "Write the mind flayer into a line." });
     const ok = await c.api("/api/admin/achievements", { data: next }, admin.token, "PUT");
     assert.equal(ok.status, 200);
     assert.ok(ok.data.data.usage.some((b) => b.id === "mindflayer"));
     // the public catalogue lists it by name only; an admin sees the recipe
     const pub = await c.api("/api/achievements", undefined, normie.token);
     const mine = pub.data.usage.find((b) => b.name === "🕷️ Mind Flayer");
-    assert.ok(mine && !("triggers" in mine) && !("desc" in mine), "secret stays secret");
+    assert.ok(mine && !("triggers" in mine) && !("desc" in mine) && !("sound" in mine), "secret stays secret");
     assert.equal(pub.data.admin, false);
     const adm = await c.api("/api/achievements", undefined, admin.token);
     const seen = adm.data.usage.find((b) => b.name === "🕷️ Mind Flayer");
     assert.deepEqual(seen.triggers, ["mind flayer"]);
     assert.equal(seen.desc, "Write the mind flayer into a line.");
+    assert.equal(seen.sound, "mindflayer-roar");
     assert.equal(adm.data.admin, true);
     // …and it is earned, live, on the next committed line — no restart
     const { A, B } = await startedGame(c);
@@ -467,6 +468,10 @@ test("the badge editor: an admin saves the catalogue and a new badge is earned o
     await c.emit(A, "submit-line", { text: "The mind flayer was waiting in the field." });
     await c.wait(200);
     assert.ok(toasts.some((t) => t.badge === "🕷️ Mind Flayer"), "the new badge fired: " + JSON.stringify(toasts.map((t) => t.badge)));
+    const fired = toasts.filter((t) => t.badge === "🕷️ Mind Flayer");
+    assert.equal(fired.length, 2, "both seats got the toast");
+    assert.ok(fired.every((t) => t.sound === "mindflayer-roar"), "the clip rides to the whole table, secret or not");
+    assert.ok(fired.some((t) => t.desc === null), "the room's copy still hides the recipe");
   } finally {
     await c.stop();
   }

@@ -41,3 +41,11 @@ test("the app's name derives from the fandom when the pack doesn't name it", asy
     await ctx.stop();
   }
 });
+
+test("every badge sound in the default pack is a file in sounds/", async () => {
+  const { readFileSync } = await import("node:fs");
+  const pack = JSON.parse(readFileSync(join(ROOT, "content", "achievements.json"), "utf8"));
+  const sounds = [...(pack.usage ?? []), ...(pack.usageOpen ?? [])].filter((b) => b.sound);
+  assert.ok(sounds.some((b) => b.id === "hescomingforyou"), "the Vecna badge has a clip");
+  for (const b of sounds) assert.ok(existsSync(join(ROOT, "sounds", b.sound + ".mp3")), `${b.id}: sounds/${b.sound}.mp3 exists`);
+});

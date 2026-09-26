@@ -41,12 +41,21 @@ interface ChatBase {
 	text: string
 	ts: number
 }
+/** What the server unfurled from the first http(s) link in a chat line (Open Graph). */
+export interface LinkPreview {
+	url: string
+	title?: string
+	description?: string
+	image?: string
+	site?: string
+}
 /** A seated writer spoke. */
 export interface WriterChat extends ChatBase, Who {
 	id: string
 	mid: string
 	badge?: string | null
 	reactions?: Reactions
+	preview?: LinkPreview
 	sys?: false
 	spec?: false
 }
@@ -58,6 +67,7 @@ export interface SpectatorChat extends ChatBase {
 	color: HexColor | string
 	spec: true
 	reactions?: Reactions
+	preview?: LinkPreview
 	sys?: false
 }
 /** An announce() line — no mid, so nothing can react to it. */
@@ -223,6 +233,8 @@ export interface BadgeEarned {
 	badge: string
 	desc?: string | null
 	name?: string | null
+	/** a clip under /sounds/ (basename, no extension) the whole table plays once instead of the usual ping */
+	sound?: string | null
 	unlocks?: { themes: { id: string; name: string }[]; gimmicks: { id: string; name: string }[] } | null
 	/** on a rank-up: the earner's full wearable theme list (their own socket only) */
 	themes?: string[]
@@ -279,6 +291,8 @@ export interface ServerToClient {
 	chat: (m: ChatMessage) => void
 	"chat-history": (ms: ChatMessage[]) => void
 	"chat-react": (p: { mid: string; reactions: Reactions }) => void
+	/** the link preview for one chat line, arriving a moment after the line itself */
+	"chat-preview": (p: { mid: string; preview: LinkPreview }) => void
 	"live-typing": (p: { html: RichHtml | string }) => void
 	"steal-carry": (p: { html: RichHtml | string }) => void
 	"badge-earned": (p: BadgeEarned) => void

@@ -111,29 +111,38 @@
 		{
 			"id": "onelasttime",
 			"name": "One Last Time.",
-			"combos": [
-				"William",
-				"Henry",
-				""
+			"triggers": [
+				"William"
 			],
-			"comboNumeration": [
-				{
-					"name": "William",
-					"count": 5
-				}
+			"desc": "Let Vecna say his name. Write “William” into a story line."
+		},
+		{
+			"id": "hescomingforyou",
+			"name": "He's coming for you",
+			"triggers": [
+				"Vecna"
 			],
-			"desc": "Get “crazy” and “together” into the same story line."
+			"sound": "at-long-last-we-can-begin",
+			"desc": "Write “Vecna” into a story line. At long last, we can begin."
 		},
 		{
 			"id": "crazycombo",
 			"name": "🌀 If We're Both Going Crazy",
-			"combos": [
-				[
-					"crazy",
-					"together"
-				]
+			"triggers": [
+				"crazy together"
 			],
-			"desc": "Get “crazy” and “together” into the same story line."
+			"desc": "Write “crazy together” into a story line."
+		},
+		{
+			"id": "mouthbreather",
+			"name": "Mouth Breather",
+			"triggers": [
+				"stupid",
+				"mouthbreather",
+				"mouth breather",
+				"mouth-breather"
+			],
+			"desc": "Write “stupid” or “mouth breather” into a story line. Ugh."
 		},
 		{
 			"id": "resumeitstupid",

@@ -4,7 +4,7 @@ import { installDom, mount } from "./dom.mjs";
 
 installDom();
 const { storyHtml, livePreviewHtml, EMPTY_STORY_HTML } = await import("../public/js/components/story-feed.js");
-const { chatMessageHtml } = await import("../public/js/components/chat-view.js");
+const { chatMessageHtml, linkPreviewHtml } = await import("../public/js/components/chat-view.js");
 const { countdownView } = await import("../public/js/components/countdown.js");
 const { statusDot, refreshStatusDots, updateLiveStatus, presenceHtml } = await import("../public/js/status.js");
 const { buildExports, exportDocument, exportWork, exportChapterHtml, slugOf } = await import("../public/js/export.js");
@@ -83,6 +83,18 @@ test("chatMessageHtml: minimal person tag, avatar + name + (host); text escaped"
   assert.ok(host.includes(">(host)<"), "host tagged in parens");
   const sys = chatMessageHtml({ name: "will", color: "#6c8cff", host: true, badge: "x", text: "started", sys: true });
   assert.ok(!sys.includes("cn-host") && !sys.includes("mini-avatar"), "system lines stay bare");
+});
+
+test("chatMessageHtml: a person's URL is a link, a system line's is not; linkPreviewHtml is a card with an http(s) thumbnail only", () => {
+  const person = chatMessageHtml({ name: "will", color: "#6c8cff", text: "see https://ao3.org/works/1 <b>" });
+  assert.ok(person.includes('<a class="chat-link" href="https://ao3.org/works/1"') && person.includes("&lt;b&gt;"));
+  assert.ok(!chatMessageHtml({ name: "sys", color: "#6c8cff", sys: true, text: "https://ao3.org/x" }).includes("<a "));
+  const card = linkPreviewHtml({ url: "https://ao3.org/works/1", title: "Will & <Mike>", description: "a fic", image: "https://ao3.org/i.png", site: "AO3" });
+  assert.ok(card.startsWith('<a class="chat-preview" href="https://ao3.org/works/1" target="_blank" rel="noopener noreferrer nofollow">'));
+  assert.ok(card.includes('<img class="cp-img" src="https://ao3.org/i.png"') && card.includes("Will &amp; &lt;Mike&gt;") && card.includes(">AO3<") && card.includes(">a fic<"));
+  const bare = linkPreviewHtml({ url: "https://www.ao3.org/works/1", title: "t", image: "javascript:alert(1)" });
+  assert.ok(!bare.includes("<img") && bare.includes(">ao3.org<"), "no thumbnail for a non-http image; the host stands in for the site");
+  assert.equal(linkPreviewHtml({ url: "javascript:alert(1)", title: "t" }), "", "a non-http page url renders nothing");
 });
 
 // ---- countdown ----

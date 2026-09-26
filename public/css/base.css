@@ -3082,6 +3082,70 @@ input[type="checkbox"]:focus-visible {
 	color: var(--muted);
 	font-style: italic;
 }
+/* a pasted http(s) URL (client/util.ts linkifyText) — underlined, wraps anywhere */
+.chat-log a.chat-link {
+	color: var(--accent);
+	text-decoration: underline;
+	text-underline-offset: 2px;
+	word-break: break-all;
+}
+/* the preview card the server unfurls for the first link (chat-preview):
+   thumbnail | site / title / description, inside the message's react padding */
+.chat-log .chat-preview {
+	display: flex;
+	gap: 10px;
+	align-items: flex-start;
+	margin-top: 6px;
+	padding: 8px;
+	max-width: 100%;
+	background: var(--panel);
+	border: 1px solid var(--line);
+	border-radius: var(--r-md);
+	color: var(--ink);
+	text-decoration: none;
+	font-style: normal;
+	overflow: hidden;
+}
+.chat-log .chat-preview:hover {
+	border-color: var(--accent);
+}
+.chat-log .cp-img {
+	flex: 0 0 64px;
+	width: 64px;
+	height: 64px;
+	object-fit: cover;
+	border-radius: var(--r-sm);
+	background: var(--panel-2);
+}
+.chat-log .cp-body {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+.chat-log .cp-site {
+	color: var(--muted);
+	font-size: 0.78em;
+	text-transform: lowercase;
+}
+.chat-log .cp-title {
+	font-weight: 700;
+	line-height: 1.25;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+	overflow-wrap: anywhere;
+}
+.chat-log .cp-desc {
+	color: var(--muted);
+	font-size: 0.85em;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+	overflow-wrap: anywhere;
+}
 /* ---- emoji reactions on chat messages (components/reactions.js) ----
    a Discord-style row of counted chips under a person's line; the ☺+ shows
    on hover and opens a picker; system lines (gimmick calls) carry none */

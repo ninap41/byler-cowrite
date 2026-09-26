@@ -136,3 +136,17 @@ test("gradAllEmojis leaves the SuperSoaker's gun alone", () => {
   gradAllEmojis(root);
   assert.equal(root.querySelector(".emoji-grad"), null, "the gun is not a gradient outline");
 });
+
+// ---- chat links ----
+test("linkifyText: http(s) URLs become links, everything else stays escaped text", async () => {
+  const { linkifyText } = await import("../public/js/util.js");
+  assert.equal(linkifyText("<script>hi & bye"), esc("<script>hi & bye"), "no link → exactly esc()");
+  const one = linkifyText("read https://ao3.org/works/1?view_full_work=true. ok");
+  assert.equal(one, 'read <a class="chat-link" href="https://ao3.org/works/1?view_full_work=true" target="_blank" rel="noopener noreferrer nofollow">https://ao3.org/works/1?view_full_work=true</a>. ok');
+  const two = linkifyText("(http://a.com/x) and https://b.com/y?z=<1>");
+  assert.equal((two.match(/<a /g) || []).length, 2);
+  assert.ok(two.includes('href="http://a.com/x"'), "a closing bracket is handed back to the text");
+  assert.ok(two.includes('href="https://b.com/y?z="') && two.includes("</a>&lt;1&gt;") && !two.includes("<1>"), "an angle bracket ends the URL and is escaped as text");
+  for (const t of ["javascript:alert(1)", "ftp://x.y/z", "www.example.com", "https:// no"]) assert.ok(!linkifyText(t).includes("<a "), t);
+  assert.ok(!linkifyText('https://x.y/"onmouseover="alert(1)').includes('"onmouseover'), "quotes end the URL and are escaped");
+});

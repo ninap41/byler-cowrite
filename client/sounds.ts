@@ -35,10 +35,15 @@ export interface Sounds {
 	setPrefs(p: Partial<SoundPrefs> | boolean | null | undefined): void
 	readonly prefs: SoundPrefs
 	play(name: SoundName, category?: SoundCategory): void
+	/** A one-off clip under /sounds/ by basename (a badge's `sound`): loaded on first use, played once. */
+	playClip(name: string, category?: SoundCategory): void
 }
+// A clip name is a file basename, nothing that could walk out of /sounds/.
+export const CLIP_RE = /^[a-z0-9]+(?:[-_][a-z0-9]+)*$/
 
 export function createSounds(AudioC: AudioCtor = globalThis.Audio as unknown as AudioCtor): Sounds {
 	const sounds = {} as Record<SoundName, AudioLike>
+	const clips: Record<string, AudioLike> = {}
 	for (const n of SOUND_NAMES) {
 		const a = new AudioC("/sounds/" + n + ".mp3")
 		a.preload = "auto"
@@ -101,6 +106,20 @@ export function createSounds(AudioC: AudioCtor = globalThis.Audio as unknown as 
 			try {
 				a.currentTime = 0
 				a.play().catch(() => {}) // blocked until first user gesture — fine
+			} catch {}
+		},
+		playClip(name, category = "story") {
+			if (!prefs[category] || typeof name !== "string" || !CLIP_RE.test(name)) return
+			let a = clips[name]
+			if (!a) {
+				a = new AudioC("/sounds/" + name + ".mp3")
+				a.preload = "auto"
+				a.volume = 0.6
+				clips[name] = a
+			}
+			try {
+				a.currentTime = 0
+				a.play().catch(() => {})
 			} catch {}
 		},
 	}

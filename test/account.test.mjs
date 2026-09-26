@@ -101,19 +101,31 @@ test("usage badge awards once from a committed line and announces in chat", asyn
   assert.ok(own.badgeDescs["🐺 Omega Badge"], "the owner sees their own");
 });
 
-test("combo badge: fires only when every word lands in one line; everyone is toasted", async () => {
+test("phrase badge: “crazy together” must land as the phrase, in one line; everyone is toasted, and a badge's clip rides to both seats", async () => {
   const { A, B, state } = await startedGame(ctx);
   const toastsA = [], toastsB = [];
   A.on("badge-earned", (b) => toastsA.push(b));
   B.on("badge-earned", (b) => toastsB.push(b));
   const cur = () => (state.current.currentId === A.id ? A : B);
-  await ctx.emit(cur(), "submit-line", { text: "This is <b>crazy</b>." }); // half a combo: nothing
+  await ctx.emit(cur(), "submit-line", { text: "This is <b>crazy</b>." }); // half of it: nothing
+  await ctx.wait(200);
+  await ctx.emit(cur(), "submit-line", { text: "Then together we go crazy." }); // the words apart: nothing
   await ctx.wait(200);
   const earner = state.current.currentName;
-  await ctx.emit(cur(), "submit-line", { text: "Then together we go crazy." }); // order-free
+  await ctx.emit(cur(), "submit-line", { text: "We go <i>crazy together</i>, then." });
   await ctx.wait(200);
   for (const [who, toasts] of [["A", toastsA], ["B", toastsB]]) {
     assert.deepEqual(toasts.map((t) => t.badge), ["🌀 If We're Both Going Crazy"], who + " got exactly one toast");
     assert.equal(toasts[0].name, earner, who + "'s toast names the earner");
+    assert.equal(toasts[0].sound, null, "no clip on this one");
   }
+  // The Vecna badge carries a clip, and the clip reaches the room too
+  await ctx.emit(cur(), "submit-line", { text: "Vecna was waiting." });
+  await ctx.wait(200);
+  for (const toasts of [toastsA, toastsB]) {
+    const t = toasts.find((x) => x.badge === "He's coming for you");
+    assert.ok(t, "the Vecna badge fired for this seat");
+    assert.equal(t.sound, "at-long-last-we-can-begin");
+  }
+  assert.ok([...toastsA, ...toastsB].some((t) => t.badge === "He's coming for you" && t.desc === null), "the room copy hides the recipe");
 });

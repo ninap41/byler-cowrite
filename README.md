@@ -227,6 +227,7 @@ other. The Reserved VM keeps every player and every room on one instance.
   deploys, and an edit made in the repo does NOT reach production until you run
   ```
   npm run reseed-content            # or: npm run reseed-content -- reference
+  npm run reseed-achievements       # only the badge catalogue; prompts, quotes and the rest stay as production has them
   ```
   against the deployment's `DATABASE_URL` (Replit's shell has it), then
   restart. Deploys that touch only code need nothing. The script overwrites,

@@ -76,6 +76,7 @@ export interface BadgeItem {
 	desc?: string
 	triggers?: string[]
 	combos?: (string[] | string)[]
+	sound?: string
 }
 export interface BadgePool {
 	key: "wordTiers" | "usage" | "usageOpen"
@@ -569,7 +570,8 @@ export function badgeRowHtml(item: BadgeItem, pool: BadgePool): string {
 				`<td><input class="be-min" type="number" min="0" step="1" value="${Number.isInteger(item.min) ? item.min : ""}" style="width:7em" /></td>`
 			: `<td><input class="be-name" value="${esc(item.name || "")}" placeholder="🔤 Badge name" /></td>` +
 				`<td><input class="be-triggers" value="${esc((item.triggers || []).join(", "))}" placeholder="word, another phrase" /></td>` +
-				`<td><textarea class="be-combos" rows="1" placeholder="crazy + together">${esc(combosText(item.combos))}</textarea></td>`
+				`<td><textarea class="be-combos" rows="1" placeholder="crazy + together">${esc(combosText(item.combos))}</textarea></td>` +
+				`<td><input class="be-sound" value="${esc(item.sound || "")}" placeholder="clip file, e.g. vecna-laugh" style="width:11em" /></td>`
 	return (
 		`<tr data-id="${id}"><td class="be-id gc-meta">${id || "<i>new</i>"}</td>${cells}` +
 		`<td><input class="be-desc" value="${esc(item.desc || "")}" placeholder="How it's earned, in the writer's words" /></td>` +
@@ -580,7 +582,7 @@ export function badgeRowHtml(item: BadgeItem, pool: BadgePool): string {
 export function badgeEditorHtml(doc: Partial<Record<BadgePool["key"], BadgeItem[]>> | null | undefined): string {
 	return (
 		BADGE_POOLS.map((pool) => {
-			const head = pool.kind === "tiers" ? "<th>id</th><th>Badge</th><th>Words</th><th>Description</th><th></th>" : "<th>id</th><th>Badge</th><th>Triggers</th><th>Combos</th><th>Description</th><th></th>"
+			const head = pool.kind === "tiers" ? "<th>id</th><th>Badge</th><th>Words</th><th>Description</th><th></th>" : "<th>id</th><th>Badge</th><th>Triggers</th><th>Combos</th><th>Sound</th><th>Description</th><th></th>"
 			const rows = (doc?.[pool.key] || []).map((b) => badgeRowHtml(b, pool)).join("")
 			return (
 				`<details class="pe-pool be-pool" data-pool="${pool.key}" open><summary>${esc(pool.title)} <span class="gc-meta">(${(doc?.[pool.key] || []).length})</span></summary>` +
@@ -615,7 +617,8 @@ export function readBadgeEditor(root: ParentNode, base: AnyDoc | null | undefine
 			} else {
 				const triggers = (tr.querySelector<HTMLInputElement>(".be-triggers")?.value ?? "").split(",").map((t) => t.trim()).filter(Boolean)
 				const combos = (tr.querySelector<HTMLTextAreaElement>(".be-combos")?.value ?? "").split("\n").map((l) => l.split("+").map((t) => t.trim()).filter(Boolean)).filter((c) => c.length)
-				list.push({ id, name, ...(triggers.length ? { triggers } : {}), ...(combos.length ? { combos } : {}), desc })
+				const sound = (tr.querySelector<HTMLInputElement>(".be-sound")?.value ?? "").trim()
+				list.push({ id, name, ...(triggers.length ? { triggers } : {}), ...(combos.length ? { combos } : {}), ...(sound ? { sound } : {}), desc })
 			}
 		}
 		out[pool.key] = list

@@ -9,6 +9,38 @@ const ESC: Record<string, string> = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"
 /** Escape text for html. The result is safe to inject, so it is RichHtml. */
 export const esc = (s: unknown): RichHtml => String(s).replace(/[&<>"']/g, (c) => ESC[c] ?? c) as RichHtml
 
+// URLs in chat: http(s) only, found by this regex (the server uses the SAME
+// one to pick the link it unfurls — src/game.js FIRST_URL; a test pins them
+// equal). Trailing punctuation that closes a sentence or a bracket is handed
+// back to the text, so "see https://x.y/z." links https://x.y/z.
+export const URL_RE = /\bhttps?:\/\/[^\s<>"'`]+/gi
+const TRAIL = /[.,;:!?)\]}'"]+$/
+export function findUrls(text: string): { url: string; start: number; end: number }[] {
+	const out: { url: string; start: number; end: number }[] = []
+	for (const m of String(text).matchAll(URL_RE)) {
+		const url = m[0].replace(TRAIL, "")
+		try {
+			const u = new URL(url)
+			if (u.protocol !== "http:" && u.protocol !== "https:") continue
+		} catch {
+			continue
+		}
+		out.push({ url, start: m.index ?? 0, end: (m.index ?? 0) + url.length })
+	}
+	return out
+}
+/** Escape chat text, turning every http(s) URL into a link. Equals esc(text) when there is none. */
+export function linkifyText(text: string): RichHtml {
+	const s = String(text)
+	let html = ""
+	let at = 0
+	for (const { url, start, end } of findUrls(s)) {
+		html += esc(s.slice(at, start)) + `<a class="chat-link" href="${esc(url)}" target="_blank" rel="noopener noreferrer nofollow">${esc(url)}</a>`
+		at = end
+	}
+	return (html + esc(s.slice(at))) as RichHtml
+}
+
 // Any #rrggbb is a writer colour (custom ones come from the settings picker);
 // the strict shape is what keeps it safe in a style= attribute.
 export const isHex = (c: unknown): c is HexColor => typeof c === "string" && /^#[0-9a-f]{6}$/i.test(c)

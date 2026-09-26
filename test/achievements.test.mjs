@@ -10,8 +10,8 @@ const contentDir = join(mkdtempSync(join(tmpdir(), "cowrite-ach-")), "content");
 cpSync(new URL("../content", import.meta.url), contentDir, { recursive: true });
 process.env.COWRITE_CONTENT_DIR = contentDir;
 const {
-  WORD_TIERS, USAGE, badgeName, isUsageId, usageMatches,
-  awardWordBadges, nextTierFor, migrateBadges,
+  WORD_TIERS, USAGE, badgeName, badgeSound, isUsageId, usageMatches,
+  awardWordBadges, nextTierFor, migrateBadges, setAchievements, getAchievements,
 } = await import("../lib/achievements.js");
 
 // ---- trigger matcher ----
@@ -33,12 +33,47 @@ test('usage matcher: "Michael?" requires the question mark', () => {
   assert.deepEqual(usageMatches("michael?!"), ["ughmike"]);
 });
 
-test("usage matcher: combos need every word of one combination, any order", () => {
-  assert.deepEqual(usageMatches("this is crazy"), [], "half a combo is nothing");
+test('usage matcher: "crazy together" is the phrase, not two words anywhere in the line', () => {
+  assert.deepEqual(usageMatches("this is crazy"), [], "half of it is nothing");
   assert.deepEqual(usageMatches("we stick together"), [], "the other half alone is nothing too");
   assert.deepEqual(usageMatches("crazier altogether"), [], "whole words only");
   assert.deepEqual(usageMatches("If we're both going CRAZY, we go crazy together."), ["crazycombo"]);
-  assert.deepEqual(usageMatches("together, then, and a little crazy"), ["crazycombo"], "order-free");
+  assert.deepEqual(usageMatches("together, then, and a little crazy"), [], "the words apart don't count");
+});
+
+test("usage matcher: combos need every word of one combination, any order (a live catalogue edit)", () => {
+  const base = structuredClone(getAchievements());
+  const withCombo = structuredClone(base);
+  withCombo.usage.push({ id: "flowersface", name: "🌼 Flowers", combos: [["flowers", "face"]], desc: "Both words." });
+  assert.deepEqual(setAchievements(withCombo), []);
+  try {
+    assert.deepEqual(usageMatches("flowers on his face"), ["flowersface"]);
+    assert.deepEqual(usageMatches("her face, and the flowers"), ["flowersface"], "order-free");
+    assert.deepEqual(usageMatches("just flowers"), []);
+  } finally {
+    assert.deepEqual(setAchievements(base), []);
+  }
+});
+
+test("usage matcher: One Last Time. is William alone, He's coming for you is Vecna", () => {
+  assert.deepEqual(usageMatches("Nobody had called him William in years."), ["onelasttime"]);
+  assert.deepEqual(usageMatches("Henry smiled."), [], "Henry no longer counts");
+  assert.deepEqual(usageMatches("Will Byers"), []);
+  assert.deepEqual(usageMatches("VECNA was here."), ["hescomingforyou"]);
+});
+
+test("usage matcher: Mouth Breather takes stupid or any spelling of mouth breather", () => {
+  assert.deepEqual(usageMatches("Don't be stupid, Mike."), ["mouthbreather"]);
+  assert.deepEqual(usageMatches("You MOUTHBREATHER."), ["mouthbreather"]);
+  assert.deepEqual(usageMatches("a mouth breather, honestly"), ["mouthbreather"]);
+  assert.deepEqual(usageMatches("mouth-breather"), ["mouthbreather"]);
+  assert.deepEqual(usageMatches("stupidly brave"), [], "whole words only");
+});
+
+test("badgeSound: the Vecna badge carries its clip, the others carry none", () => {
+  assert.equal(badgeSound("hescomingforyou"), "at-long-last-we-can-begin");
+  assert.equal(badgeSound("onelasttime"), null);
+  assert.equal(badgeSound("nope"), null);
 });
 
 test("usage matcher: combos and plain triggers can fire from the same line", () => {
@@ -103,6 +138,8 @@ test("validateAchievements: ids are slugs and unique, ranks need a 0 rung and wo
   assert.ok(validateAchievements({ ...base, wordTiers: [...base.wordTiers, { id: "newrank", name: "x", min: "lots" }] }).some((e) => /word count/.test(e)));
   assert.deepEqual(validateAchievements({ ...base, usage: [...base.usage, { id: "quiet", name: "🤫 Quiet" }] }), [], "a trigger-less badge is legal, it can be awarded by an event");
   assert.ok(validateAchievements({ ...base, usage: [...base.usage, { id: "quiet", name: "🤫 Quiet", triggers: "shh" }] }).some((e) => /list of words/.test(e)));
+  assert.ok(validateAchievements({ ...base, usage: [...base.usage, { id: "quiet", name: "🤫 Quiet", sound: "../etc/passwd" }] }).some((e) => /sound must be a file name/.test(e)));
+  assert.deepEqual(validateAchievements({ ...base, usage: [...base.usage, { id: "quiet", name: "🤫 Quiet", sound: "vecna-laugh" }] }), [], "a clip is a plain basename");
   assert.ok(validateAchievements({ ...base, usage: [...base.usage, { id: "nameless", triggers: ["x"] }] }).some((e) => /needs a name/.test(e)));
 });
 

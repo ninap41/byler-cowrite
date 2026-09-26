@@ -244,13 +244,15 @@ test("the badge editor round-trips the catalogue: existing ids kept, new rows ge
   ur.querySelector(".be-name").value = "👾 Demogorgon";
   ur.querySelector(".be-triggers").value = "demogorgon, demo-dog";
   ur.querySelector(".be-combos").value = "flowers + face\nupside + down";
+  ur.querySelector(".be-sound").value = " demogorgon-roar ";
   const { data, errors } = readBadgeEditor(root, doc);
   assert.deepEqual(errors, []);
   assert.equal(data._readme, "notes stay");
   assert.deepEqual(data.themeUnlocks, { neon: "puppymike" }, "untouched fields ride along");
   assert.deepEqual(data.wordTiers.map((t) => t.id), ["outloud", "puppymike", "eleven-eggos"]);
   assert.deepEqual(data.wordTiers[2], { id: "eleven-eggos", name: "🧇 Eleven & Eggos", min: 11, desc: "Eleven words." });
-  assert.deepEqual(data.usage[1], { id: "demogorgon", name: "👾 Demogorgon", triggers: ["demogorgon", "demo-dog"], combos: [["flowers", "face"], ["upside", "down"]], desc: "" });
+  assert.deepEqual(data.usage[1], { id: "demogorgon", name: "👾 Demogorgon", triggers: ["demogorgon", "demo-dog"], combos: [["flowers", "face"], ["upside", "down"]], sound: "demogorgon-roar", desc: "" });
+  assert.ok(!("sound" in data.usage[0]), "an empty sound field is left out");
   assert.deepEqual(data.usageOpen[0].combos, [["crazy", "together"]]);
   assert.equal(badgeId("🔫 There. Out Loud."), "there-out-loud");
   // a nameless row is an error, not a silent drop

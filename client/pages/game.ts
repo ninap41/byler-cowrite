@@ -18,7 +18,7 @@ import { toolbarHtml, mountRichToolbar } from "/js/components/rich-toolbar.js"
 import { mountHotKeys } from "/js/components/hot-keys.js"
 import { storyHtml, livePreviewHtml } from "/js/components/story-feed.js"
 import { mountPromptModes, optionChipsHtml } from "/js/components/prompt-modes.js"
-import { chatMessageHtml } from "/js/components/chat-view.js"
+import { chatMessageHtml, linkPreviewHtml } from "/js/components/chat-view.js"
 import { reactionsHtml } from "/js/components/reactions.js"
 import { createReactionPicker } from "/js/components/reaction-picker.js"
 import { confirmDialog } from "/js/components/confirm-delete.js"
@@ -32,7 +32,7 @@ import { needsJoinConfirm, joinConfirmHtml } from "/js/join-confirm.js"
 import type { JoinConfirmGame } from "/js/join-confirm.js"
 import { reconnectOutcome, adoptSeatId } from "/js/components/seat-identity.js"
 import type { Socket } from "socket.io-client"
-import type { ServerToClient, ClientToServer, GameState, Roster, RosterWriter, StoryLine, ChatMessage, SeatAck, SeatResult, ScoreRow } from "/js/shared/wire.js"
+import type { ServerToClient, ClientToServer, GameState, Roster, RosterWriter, StoryLine, ChatMessage, LinkPreview, SeatAck, SeatResult, ScoreRow } from "/js/shared/wire.js"
 import type { Reactions } from "/js/shared/reactions.js"
 import type { ChipUser } from "/js/chrome.js"
 import type { SoundPrefs } from "/js/sounds.js"
@@ -141,7 +141,7 @@ function turnAlert(on: boolean) {
 // ---- Sounds (js/sounds.js) — honors the account's saved preferences ----
 const soundKit = createSounds()
 soundKit.setPrefs(me?.sounds) // spectators (no account) default all-on
-const { play: playSound, clock: vecnaClock } = soundKit
+const { play: playSound, playClip, clock: vecnaClock } = soundKit
 
 // ---- Gimmicks (components/gimmick-dice.js): the foot bar's 🎲 menu
 // and the dice on the table — every die anyone has out tumbles over
@@ -1278,7 +1278,7 @@ socket.on("game-deleted", () => {
 // ---- Badge unlock: centered pop + confetti bursting from behind it,
 // falling down the page (GSAP; without it the card alone shows) ----
 const reduceFx = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches
-socket.on("badge-earned", ({ badge, desc, name, unlocks, themes, gimmicks: myGimmicks }) => {
+socket.on("badge-earned", ({ badge, desc, name, sound, unlocks, themes, gimmicks: myGimmicks }) => {
 	const el = document.createElement("div")
 	el.className = "badge-pop"
 	const title = document.createElement("b")
@@ -1302,7 +1302,9 @@ socket.on("badge-earned", ({ badge, desc, name, unlocks, themes, gimmicks: myGim
 	if (mine && themes) regateThemes(themes)
 	if (mine && myGimmicks) gimmicks.setGate({ unlocked: myGimmicks })
 	document.body.appendChild(el)
-	playSound("incomingmessage")
+	// A badge with its own clip plays that once for the whole table, in place of the ping.
+	if (sound) playClip(sound)
+	else playSound("incomingmessage")
 	const g = window.gsap
 	if (g && !reduceFx) {
 		g.fromTo(el, { scale: 0.4, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.55, ease: "back.out(2)" })
@@ -1438,6 +1440,7 @@ function addChat(m: ChatMessage, silent?: boolean) {
 		rowReactions.set(m.mid, m.reactions)
 		p.dataset.mid = m.mid
 		p.insertAdjacentHTML("beforeend", `<span class="reacts">${reactionsHtml(m.reactions, myReactKey())}</span><button type="button" class="react-add" title="Add a reaction" aria-label="Add a reaction"><i class="fa-regular fa-face-smile"></i></button>`)
+		if (m.preview) attachPreview(p, m.preview)
 	}
 	log.appendChild(p)
 	refreshStatusDots()
@@ -1472,6 +1475,23 @@ socket.on("chat-history", (msgs) => {
 	;(msgs || []).forEach((m) => addChat(m, true)) // history replay is silent
 })
 socket.on("chat", (m) => addChat(m))
+// The link preview card lands a moment after its line (the server fetched the
+// page); a thumbnail that fails to load just goes away. The log stays pinned
+// to the bottom only if it was there already.
+function attachPreview(row: HTMLElement, preview: LinkPreview) {
+	if (row.querySelector(".chat-preview")) return
+	row.insertAdjacentHTML("beforeend", linkPreviewHtml(preview))
+	const img = row.querySelector<HTMLImageElement>(".chat-preview .cp-img")
+	if (img) img.onerror = () => img.remove()
+}
+socket.on("chat-preview", ({ mid, preview }) => {
+	const log = $("chatLog")
+	const row = log.querySelector<HTMLElement>(`[data-mid="${CSS.escape(mid)}"]`)
+	if (!row || !preview) return
+	const pinned = log.scrollHeight - log.scrollTop - log.clientHeight < 8
+	attachPreview(row, preview)
+	if (pinned) log.scrollTop = log.scrollHeight
+})
 function sendChat() {
 	const v = input("chatInput").value.trim()
 	if (!v) return
