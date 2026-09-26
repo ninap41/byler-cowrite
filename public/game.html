@@ -74,6 +74,11 @@
 							<button class="ghost" id="coverBtn" style="flex: 0 0 auto; min-width: auto">Set</button>
 						</div>
 						<img id="coverPreview" class="cover-preview hidden" alt="Cover preview" loading="lazy" />
+						<label for="stationInput" style="margin-top: 10px">WSQK radio: a YouTube playlist link (optional)</label>
+						<div class="chat-row">
+							<input id="stationInput" placeholder="https://www.youtube.com/playlist?list=…" maxlength="500" />
+							<button class="ghost" id="stationBtn" style="flex: 0 0 auto; min-width: auto">Tune</button>
+						</div>
 						<div id="lobbyPrompt" style="margin-top: 14px"></div>
 						<div class="row"><button class="primary" id="startBtn">Begin →</button><button class="ghost danger" id="cancelBtn">Cancel game</button></div>
 					</div>
@@ -191,6 +196,11 @@
 									<button class="ghost" id="chatSend">Send</button>
 								</div>
 							</div>
+							<!-- WSQK: the table's shared radio HUD, always right under the
+							     chat (placeChat carries both). The YouTube player it drives
+							     renders into #radioHost at the foot of <body>, never in here:
+							     a moved iframe reloads mid-song. See js/components/wsqk.js. -->
+							<div id="radioCard" class="side-sec radio-card hidden" aria-label="WSQK radio"></div>
 							<div id="doomFx" aria-hidden="true">
 								<img class="doom-img" src="/img/demogorgon.gif" alt="" />
 								<span class="doom-text">Running out of time</span>
@@ -222,6 +232,12 @@
 									<button class="ghost" id="coverBtn2" style="flex: 0 0 auto; min-width: auto">Set</button>
 								</div>
 								<img id="coverPreview2" class="cover-preview hidden" alt="Cover preview" loading="lazy" />
+								<label for="stationInput2" style="margin-top: 10px">WSQK radio: a YouTube playlist link</label>
+								<div class="chat-row">
+									<input id="stationInput2" placeholder="https://www.youtube.com/playlist?list=…" maxlength="500" />
+									<button class="ghost" id="stationBtn2" style="flex: 0 0 auto; min-width: auto">Tune</button>
+								</div>
+								<p class="subtle" style="margin: 6px 0 0">Everyone at the table hears it together. Clear the link to go off air.</p>
 							</div>
 						</div>
 					</div>
@@ -276,6 +292,9 @@
 			<span>✒ It's your turn: write the next line!</span>
 			<button type="button" id="turnToastClose" class="turn-toast-close" title="Dismiss">✕</button>
 		</div>
+
+		<!-- WSQK's YouTube player lives here, fixed and never moved (see #radioCard) -->
+		<div id="radioHost" aria-hidden="true"></div>
 
 		<script src="/socket.io/socket.io.js"></script>
 		<script type="module" src="/js/pages/game.js"></script>

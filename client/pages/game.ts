@@ -11,6 +11,7 @@ import { mountArtRoom } from "/js/components/art-room.js"
 import { mountGimmickDock } from "/js/components/gimmick-dock.js"
 import { mountSuperSoaker } from "/js/components/super-soaker.js"
 import { mountVecnaCurse } from "/js/components/vecna-curse.js"
+import { mountWsqk } from "/js/components/wsqk.js"
 import { requireAuth } from "/js/auth-guard.js"
 import { statusDot, refreshStatusDots, updateLiveStatus, presenceHtml } from "/js/status.js"
 import { cleanHtml } from "/js/components/editor.js"
@@ -90,7 +91,8 @@ const setPageTitle = () => {
 // lobby / vote card otherwise, so the table talks in every phase.
 const chatHome = $("chatCard").parentElement as HTMLElement
 const placeChat = (id: Card) => {
-	const chat = $("chatCard")
+	const chat = $("chatCard"),
+		radio = $("radioCard") // WSQK rides right under the chat, wherever it goes
 	if (id === "game" || id === "over") {
 		const home = id === "game" ? chatHome : $("overSide")
 		// back in the side column the chat goes ABOVE the demogorgon
@@ -101,6 +103,8 @@ const placeChat = (id: Card) => {
 		$(id).appendChild(chat)
 		chat.classList.add("chat-inline")
 	}
+	if (radio.previousElementSibling !== chat) chat.after(radio)
+	radio.classList.toggle("chat-inline", chat.classList.contains("chat-inline"))
 }
 const onlyShow = (id: Card) => {
 	;["waiting", "choosing", "game", "over"].forEach((x) => (x === id ? show(x) : hide(x)))
@@ -383,6 +387,44 @@ function wireCover(inputId: string, btnId: string) {
 }
 wireCover("coverInput", "coverBtn")
 wireCover("coverInput2", "coverBtn2")
+// WSQK: the host tunes the table to a playlist (the lobby field and the host
+// modal are the same control, like the cover link); the server answers with
+// the station, which reaches everyone as radio-state.
+function wireStation(inputId: string, btnId: string) {
+	const inp = input(inputId),
+		btn = $(btnId)
+	inp.addEventListener("input", () => (inp.dataset.dirty = "1"))
+	const send = () =>
+		socket.emit("radio-set", { url: inp.value.trim() }, (res) => {
+			btn.textContent = res?.ok ? (res.radio.playlistId ? "Tuned ✓" : "Off air") : res?.error || "Host only"
+			setTimeout(() => (btn.textContent = "Tune"), 2000)
+			if (res?.ok) for (const id of ["stationInput", "stationInput2"]) delete $(id).dataset.dirty
+		})
+	btn.onclick = send
+	inp.addEventListener("keydown", (e) => {
+		if (e.key === "Enter") {
+			e.preventDefault()
+			send()
+		}
+	})
+}
+wireStation("stationInput", "stationBtn")
+wireStation("stationInput2", "stationBtn2")
+const wsqk = mountWsqk({
+	socket,
+	card: $("radioCard"),
+	host: $("radioHost"),
+	onTune: () => (shownCard === "game" ? openHostModal() : input("stationInput").focus()),
+})
+socket.on("radio-state", (r) => {
+	wsqk.set(r)
+	// the field shows the station for the host, unless they're mid-edit
+	for (const id of ["stationInput", "stationInput2"]) {
+		const inp = input(id)
+		if (document.activeElement !== inp && !inp.dataset.dirty) inp.value = r.playlistId ? `https://www.youtube.com/playlist?list=${r.playlistId}` : ""
+	}
+})
+const syncRadioHost = () => wsqk.setHost(!!myId && myId === hostId)
 function syncCover(cover: string | null | undefined) {
 	if (cover == null) return
 	for (const id of ["coverInput", "coverInput2"]) {
@@ -648,6 +690,7 @@ socket.on("roster", ({ writers, code, name, cover, hostUserId: hu, continued }) 
 	hostId = writers.find((w) => w.isHost)?.id ?? hostId
 	updateHostView()
 	updateSessionBar()
+	syncRadioHost()
 })
 
 // ---- Phase router ----
@@ -665,6 +708,7 @@ socket.on("game-state", (st) => {
 	}
 	hostId = st.hostId ?? hostId
 	if (st.hostUserId !== undefined) hostUserId = st.hostUserId
+	syncRadioHost()
 	if (st.code) myCode = st.code
 	if (st.name != null) sessName = st.name
 	if (st.friendly != null) sessFriendly = st.friendly

@@ -150,5 +150,26 @@ export function createUnfurler(opts = {}) {
     }
     return preview;
   }
-  return { unfurl, cache };
+  // WSQK: a YouTube playlist's title through YouTube's oEmbed endpoint (a
+  // fixed host, a small JSON answer) — the playlist PAGE bounces a server
+  // fetch through a consent redirect. Same off/stub switches as unfurl.
+  /** @param {string} playlistId @returns {Promise<string>} the title, or "" */
+  async function playlistTitle(playlistId) {
+    if (mode === "0" || mode === "off" || !/^[A-Za-z0-9_-]{13,64}$/.test(playlistId)) return "";
+    if (mode === "stub") return "Stub playlist";
+    const key = "yt:" + playlistId;
+    const hit = cache.get(key);
+    if (hit && Date.now() - hit.at < ttlMs) return hit.preview?.title || "";
+    let title = "";
+    try {
+      const url = `https://www.youtube.com/oembed?format=json&url=${encodeURIComponent("https://www.youtube.com/playlist?list=" + playlistId)}`;
+      const res = await fetchImpl(url, { signal: AbortSignal.timeout(UNFURL_TIMEOUT_MS), headers: { "user-agent": ua, accept: "application/json" } });
+      if (res.ok) title = tidy(/** @type {any} */ (await res.json())?.title, 80);
+    } catch {
+      title = "";
+    }
+    cache.set(key, { at: Date.now(), preview: title ? { url: key, title } : null });
+    return title;
+  }
+  return { unfurl, playlistTitle, cache };
 }

@@ -1969,6 +1969,216 @@ a.solo-title:hover {
 	height: 220px;
 }
 
+/* ---- WSQK, the table's radio (js/components/wsqk.js): a small station HUD
+   right under the chat, carried with it (placeChat). Tokens only; the one
+   infinite animation is the signal bars, transform only. The YouTube player
+   it drives is #radioHost at the foot of <body>: on screen (the API stalls in
+   display:none), but two pixels and invisible. ---- */
+.radio-card {
+	margin-top: 10px;
+	padding-top: 10px;
+	border-top: 1px solid var(--line);
+	font-family: var(--font-mono);
+	font-size: 0.82rem;
+}
+#chatCard.chat-inline + .radio-card {
+	padding: 10px 18px 14px;
+	margin-top: 0;
+}
+.radio-head {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	min-height: 28px;
+}
+.radio-fold {
+	background: none;
+	border: 0;
+	color: var(--muted);
+	padding: 2px 4px;
+	cursor: pointer;
+	font-size: 0.8em;
+	min-width: auto;
+	min-height: auto;
+}
+.radio-call {
+	font-family: var(--font-display);
+	font-weight: 800;
+	letter-spacing: 0.18em;
+	color: var(--accent);
+	font-size: 0.95rem;
+}
+.radio-band {
+	color: var(--muted);
+	letter-spacing: 0.06em;
+	font-size: 0.72rem;
+	flex: 1 1 auto;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.radio-signal {
+	display: inline-flex;
+	align-items: flex-end;
+	gap: 2px;
+	height: 12px;
+	width: 14px;
+	flex: 0 0 auto;
+}
+.radio-signal i {
+	display: block;
+	width: 3px;
+	height: 100%;
+	background: var(--accent-2);
+	border-radius: 1px;
+	transform: scaleY(0.25);
+	transform-origin: bottom;
+	opacity: 0.45;
+}
+.radio-on .radio-signal i {
+	opacity: 1;
+	animation: radio-bars 0.9s ease-in-out infinite;
+}
+.radio-on .radio-signal i:nth-child(2) {
+	animation-delay: -0.3s;
+}
+.radio-on .radio-signal i:nth-child(3) {
+	animation-delay: -0.6s;
+}
+@keyframes radio-bars {
+	0%,
+	100% {
+		transform: scaleY(0.25);
+	}
+	50% {
+		transform: scaleY(1);
+	}
+}
+.radio-body {
+	margin-top: 6px;
+	display: grid;
+	gap: 6px;
+}
+.radio-folded .radio-body {
+	display: none;
+}
+.radio-dial {
+	display: grid;
+	gap: 2px;
+	padding: 6px 8px;
+	border: 1px solid var(--line);
+	border-radius: 6px;
+	background: var(--panel-2);
+	color: var(--accent-2);
+	letter-spacing: 0.03em;
+}
+.radio-list,
+.radio-track {
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.radio-list {
+	font-weight: 700;
+	color: var(--ink);
+}
+.radio-track:empty {
+	display: none;
+}
+.radio-ctl {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+/* every button the same 30px square, icon dead centre, whatever .ghost's
+   own padding and line-height say — so ⏮ ⏯ ⏭ and the speaker line up */
+.radio-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 auto;
+	width: 30px;
+	height: 30px;
+	min-width: 0;
+	min-height: 0;
+	padding: 0;
+	margin: 0;
+	line-height: 1;
+	font-size: 0.8rem;
+}
+.radio-btn i {
+	line-height: 1;
+}
+.radio-host {
+	display: none;
+}
+.is-host .radio-host {
+	display: inline-flex;
+}
+.radio-btn.radio-off {
+	opacity: 0.5;
+}
+.radio-btn.radio-nudge {
+	color: var(--accent);
+	animation: radio-nudge 1.2s ease-in-out infinite;
+}
+@keyframes radio-nudge {
+	0%,
+	100% {
+		transform: scale(1);
+	}
+	50% {
+		transform: scale(1.15);
+	}
+}
+/* the volume: a horizontal tuner slot */
+.radio-vol {
+	flex: 1 1 auto;
+	min-width: 60px;
+	height: 16px;
+	margin: 0;
+	accent-color: var(--accent);
+	cursor: pointer;
+}
+.radio-vol:disabled {
+	opacity: 0.4;
+	cursor: default;
+}
+.radio-note {
+	color: var(--muted);
+	font-size: 0.76rem;
+	line-height: 1.4;
+}
+.radio-note .linky {
+	font: inherit;
+}
+.radio-note a {
+	color: var(--accent-2);
+}
+#radioHost {
+	position: fixed;
+	left: 0;
+	bottom: 0;
+	width: 2px;
+	height: 2px;
+	overflow: hidden;
+	opacity: 0.01;
+	pointer-events: none;
+	z-index: -1;
+}
+#radioHost iframe {
+	width: 200px;
+	height: 200px;
+	border: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+	.radio-on .radio-signal i,
+	.radio-btn.radio-nudge {
+		animation: none;
+		transform: none;
+	}
+}
+
 /* Reveal page: breathing room between the finished story and the
    continue-the-story rules panel */
 #continueControls {
@@ -11907,7 +12117,11 @@ html.vcx-live[data-theme="vecna"] #vc-pend {
 .vcx-layer.hidden,
 .vcx-veil.hidden,
 .vcx-hud.hidden,
-.head-chip.hidden {
+.head-chip.hidden,
+.radio-card.hidden,
+.radio-card .radio-host.hidden,
+.radio-card .radio-ctl.hidden,
+.radio-card .radio-note.hidden {
 	display: none;
 }
 

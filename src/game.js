@@ -14,6 +14,7 @@ import { readContent, writeContent } from "./content.js";
 import { randomTitle } from "../lib/titles.js";
 import { toggleReaction } from "../public/js/shared/reactions.js";
 import { createUnfurler } from "./unfurl.js";
+import { OFF_AIR, parsePlaylistId, VIDEO_ID_RE, MAX_POSITION_MS, MAX_INDEX, acceptsReanchor } from "../public/js/shared/radio.js";
 import { SITE } from "./site.js";
 import { readDoc, writeDoc, writeComments, anchorPos, canView, canEdit, canComment, anchorCids, anchorText, stripAnchor, stripAnchors, commentBaseline, applySuggestion, chapterById, chapterOfCid, mapChapterHtml } from "./docs.js";
 
@@ -172,7 +173,9 @@ const DENY_COOLDOWN_MS = 5 * 60_000;
  * @property {Map<string, number>} [gimmickPaints]
  * @property {Map<string, number>} [gimmickSquirts]
  * @property {Map<string, number>} [gimmickCurses]
+ * @property {Radio} [radio]  WSQK: the table's shared playlist anchor (see broadcastRadio)
  */
+/** @typedef {Omit<import("../client/shared/wire.ts").RadioState, "now"> & { reanchorAt?: number }} Radio */
 /**
  * A client may send anything, so a handler reads its payload as a loose
  * object and validates every field itself (the wire type says what a
@@ -271,6 +274,7 @@ export function createGame(io) {
         hostToken: s.hostToken ?? s.writers.get(s.hostId)?.token ?? null,
         hostName: s.hostName ?? s.writers.get(s.hostId)?.name ?? null,
         hostUserId: s.hostUserId ?? s.writers.get(s.hostId)?.userId ?? null,
+        radio: s.radio ? { ...s.radio, reanchorAt: undefined } : undefined,
         savedAt: Date.now(),
       });
       storage.put("save", s.code, doc);
@@ -278,6 +282,37 @@ export function createGame(io) {
       console.error("saveSnapshot failed:", e.message);
     }
   }
+
+  // ---- WSQK, the shared radio ----
+  // The session keeps ONE anchor (which playlist, which track, playing or not,
+  // the position at `updatedAt`); every listener's own YouTube player derives
+  // the current position from it, and only the HOST's player (the conductor)
+  // reports back — a new track began, or the same track drifted. Volume and
+  // mute never reach the server: they are each listener's own.
+  /** @param {Session} s */
+  const radioPayload = (s) => {
+    const { reanchorAt: _r, ...r } = s.radio ?? { ...OFF_AIR };
+    return { ...r, now: Date.now() };
+  };
+  /** @param {Session} s */
+  const broadcastRadio = (s) => io.to(s.code).emit("radio-state", radioPayload(s));
+  /** A saved station wakes paused where it was, like the game itself. @returns {Radio} */
+  function reviveRadio(d) {
+    const r = loose(d);
+    const playlistId = typeof r.playlistId === "string" && parsePlaylistId(r.playlistId) === r.playlistId ? r.playlistId : "";
+    if (!playlistId) return { ...OFF_AIR };
+    return {
+      playlistId,
+      playlistName: stripTags(String(r.playlistName || "")).slice(0, 80),
+      index: Math.min(MAX_INDEX, Math.max(0, Math.floor(Number(r.index) || 0))),
+      videoId: typeof r.videoId === "string" && VIDEO_ID_RE.test(r.videoId) ? r.videoId : null,
+      title: stripTags(String(r.title || "")).slice(0, 120),
+      playing: false,
+      positionMs: Math.min(MAX_POSITION_MS, Math.max(0, Math.floor(Number(r.positionMs) || 0))),
+      updatedAt: Date.now(),
+    };
+  }
+  const cleanPositionMs = (v) => Math.min(MAX_POSITION_MS, Math.max(0, Math.floor(Number(v) || 0)));
 
   // Rehydrate a saved game: every seat comes back as an unclaimed ghost keyed by
   // its token; players reclaim seats via the normal rejoin flow. A saved writing
@@ -317,6 +352,7 @@ export function createGame(io) {
       hostName: d.hostName ?? null, hostUserId: d.hostUserId ?? null,
       friendly: d.friendly !== false,
       createdAt: d.createdAt ?? null, tags: d.tags || [],
+      radio: reviveRadio(d.radio),
     };
     sessions.set(code, s);
     if (s.phase === "writing") armIdleSleep(s); // wakes paused — and sleeps again if left alone
@@ -346,6 +382,7 @@ export function createGame(io) {
     if (s.balls?.size) sock.emit("gimmick-balls", ballsList(s));
     if (s.paint?.size) sock.emit("gimmick-paints", paintsList(s));
     if (s.guns?.size) sock.emit("gimmick-guns", gunsList(s));
+    if (s.radio?.playlistId) sock.emit("radio-state", radioPayload(s));
   }
   // spectator name colors: stable per name, never attacker-controlled (PALETTE only)
   const specColor = (name) => PALETTE[[...name].reduce((h, c) => h + c.charCodeAt(0), 0) % PALETTE.length];
@@ -1128,6 +1165,7 @@ export function createGame(io) {
         turnSeconds: 60, deadline: 0, paused: false, remaining: 0, timer: null, chat: [], lastTyping: "",
         pending: new Map(), // join requests awaiting host approval
         denied: new Map(), // denyKey -> retry-after timestamp (5-min cooldown)
+        radio: { ...OFF_AIR }, // WSQK starts off air until the host tunes it
       };
       sessions.set(code, s);
       socket.data.joinedCode = code;
@@ -1542,6 +1580,92 @@ export function createGame(io) {
       if (s.phase !== "waiting") broadcastGame(s);
       saveSnapshot(s);
       ack?.({ ok: true, cover: s.cover });
+    });
+
+    // WSQK: the host tunes the table to a YouTube playlist (a link or a bare
+    // id; "" switches the station off). The name is looked up afterwards
+    // through the chat's link unfurler (the playlist page's og:title) and
+    // broadcast again when it lands — no YouTube API key involved.
+    socket.on("radio-set", (p, ack) => {
+      const s = mySession();
+      if (!s || s.hostId !== socket.id) return ack?.({ ok: false, error: "Host only." });
+      const raw = String(loose(p).url ?? "").trim().slice(0, 500);
+      const id = raw ? parsePlaylistId(raw) : "";
+      if (id === null) return ack?.({ ok: false, error: "Paste a YouTube playlist link." });
+      touch(s);
+      s.radio = id ? { ...OFF_AIR, playlistId: id, playing: true, updatedAt: Date.now() } : { ...OFF_AIR };
+      broadcastRadio(s);
+      saveSnapshot(s);
+      ack?.({ ok: true, radio: radioPayload(s) });
+      if (!id) return;
+      unfurler
+        .playlistTitle(id)
+        .then((t) => {
+          const name = stripTags(String(t || "")).slice(0, 80);
+          const r = s.radio;
+          if (!name || !r || r.playlistId !== id || !sessions.has(s.code)) return; // the station changed meanwhile
+          r.playlistName = name;
+          broadcastRadio(s);
+          saveSnapshot(s);
+        })
+        .catch(() => {});
+    });
+    socket.on("radio-play", (_, ack) => {
+      const s = mySession();
+      if (!s || s.hostId !== socket.id) return ack?.({ ok: false, error: "Host only." });
+      if (!s.radio?.playlistId) return ack?.({ ok: false, error: "Off air." });
+      touch(s);
+      s.radio.playing = true;
+      s.radio.updatedAt = Date.now();
+      broadcastRadio(s);
+      saveSnapshot(s);
+      ack?.({ ok: true });
+    });
+    socket.on("radio-pause", (p, ack) => {
+      const s = mySession();
+      if (!s || s.hostId !== socket.id) return ack?.({ ok: false, error: "Host only." });
+      if (!s.radio?.playlistId) return ack?.({ ok: false, error: "Off air." });
+      touch(s);
+      s.radio.playing = false;
+      s.radio.positionMs = cleanPositionMs(loose(p).positionMs);
+      s.radio.updatedAt = Date.now();
+      broadcastRadio(s);
+      saveSnapshot(s);
+      ack?.({ ok: true });
+    });
+    // The conductor's report. A NEW index is a track change and always
+    // moves the anchor; the SAME index is a re-anchor, taken only when the
+    // host's player has drifted past the threshold and not within the
+    // cooldown — so a buffering host corrects the table without chatter.
+    socket.on("radio-track", (p, ack) => {
+      const s = mySession();
+      if (!s || s.hostId !== socket.id) return ack?.({ ok: false, error: "Host only." });
+      const r = s.radio;
+      if (!r?.playlistId) return ack?.({ ok: false, error: "Off air." });
+      const q = loose(p);
+      const index = Math.floor(Number(q.index));
+      if (!Number.isFinite(index) || index < 0 || index > MAX_INDEX) return ack?.({ ok: false, error: "Bad track." });
+      const videoId = typeof q.videoId === "string" && VIDEO_ID_RE.test(q.videoId) ? q.videoId : null;
+      const title = stripTags(String(q.title ?? "")).slice(0, 120);
+      const positionMs = cleanPositionMs(q.positionMs);
+      const now = Date.now();
+      const changed = index !== r.index || (videoId && videoId !== r.videoId);
+      if (!changed) {
+        if (!(r.playing && acceptsReanchor(r, positionMs, r.reanchorAt ?? 0, now))) {
+          if (title && title !== r.title) { r.title = title; broadcastRadio(s); } // a late title is still worth telling
+          return ack?.({ ok: true, ignored: true });
+        }
+        r.reanchorAt = now;
+      }
+      touch(s);
+      r.index = index;
+      r.videoId = videoId;
+      r.title = title;
+      r.positionMs = positionMs;
+      r.updatedAt = now;
+      broadcastRadio(s);
+      saveSnapshot(s);
+      ack?.({ ok: true });
     });
 
     socket.on("pause-game", (_, ack) => {
@@ -2203,6 +2327,7 @@ export function createGame(io) {
       if (s.balls?.size) socket.emit("gimmick-balls", ballsList(s));
       if (s.paint?.size) socket.emit("gimmick-paints", paintsList(s));
       if (s.guns?.size) socket.emit("gimmick-guns", gunsList(s));
+      if (s.radio?.playlistId) socket.emit("radio-state", radioPayload(s));
       if (s.phase === "over") socket.emit("game-over", gameOverPayload(s));
       else if (s.phase === "waiting") broadcastRoster(s);
       else broadcastGame(s);

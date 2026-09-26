@@ -319,6 +319,8 @@ export interface ServerToClient {
 	"gimmick-paints": (list: (StrokeEvent & { strokes?: Stroke[]; live?: Stroke | boolean | null })[]) => void
 	"gimmick-paint": (p: GimmickOwner) => void
 	"gimmick-curse": (d: CurseEvent) => void
+	/** WSQK: the table's shared radio, on every change and replayed to whoever just sat down or started watching */
+	"radio-state": (p: RadioState) => void
 	// the solo editor (src/game.js doc-* handlers): presence, comments and pushes
 	"doc-presence": (p: { id: string; viewers: DocViewer[] }) => void
 	"doc-comments": (p: { id: string; comments: DocCommentRow[] }) => void
@@ -333,6 +335,29 @@ export interface ServerToClient {
 	"doc-updated": (p: { id: string; html: string; title: string; chapters: DocChapterRow[]; updatedAt?: number; rev?: number }) => void
 	"doc-html": (p: { id: string; chapterId: string | null; html: string; chapterWordCount?: number; wordCount?: number }) => void
 	"doc-access-lost": (p: { id: string }) => void
+}
+/**
+ * WSQK, the table's shared radio: one YouTube playlist everyone at the table
+ * hears together. The server keeps the anchor (position at `updatedAt`);
+ * a listener derives the current position as
+ * `positionMs + (playing ? serverNow - updatedAt : 0)`, with `now` (the
+ * server's clock at send) correcting its own clock's skew. Volume and mute
+ * are each listener's own and never travel.
+ */
+export interface RadioState {
+	/** "" = off air */
+	playlistId: string
+	/** the playlist's YouTube title (og:title), plain text, may be "" while it loads */
+	playlistName: string
+	index: number
+	/** what the conductor (the host's player) last reported; display only */
+	videoId: string | null
+	/** the current track's title as the conductor reported it, plain text */
+	title: string
+	playing: boolean
+	positionMs: number
+	updatedAt: number
+	now: number
 }
 /** A reader present on a solo write (docPresenceList). */
 export interface DocViewer {
@@ -450,6 +475,12 @@ export interface ClientToServer {
 	"gimmick-paint": (p: Record<never, never>, ack: AckFn) => void
 	"gimmick-curse": (p: { targetUserId: string }, ack: AckFn<{ duration: number }>) => void
 	"gimmick-uncurse": (p: Record<never, never>, ack: AckFn) => void
+	// WSQK radio (host only): a playlist URL or id ("" = off air), play, pause at a position,
+	// and the conductor's report that a new track began (or a re-anchor on the same index)
+	"radio-set": (p: { url: string }, ack: AckFn<{ radio: RadioState }>) => void
+	"radio-play": (p?: null, ack?: AckFn) => void
+	"radio-pause": (p: { positionMs: number }, ack?: AckFn) => void
+	"radio-track": (p: { index: number; videoId: string; title: string; positionMs: number }, ack?: AckFn<{ ignored?: boolean }>) => void
 	// the solo editor
 	"doc-open": (p: { auth: string | null; id: string }) => void
 	"doc-close": () => void
